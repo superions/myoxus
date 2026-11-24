@@ -1,21 +1,15 @@
 import { createElement } from "react";
-import { AIWidgetUI } from "../native-ui";
+import { DiffWidget } from "./diff-widget";
 import { DiffToolbar } from "./view";
 import { track } from "@myoxus/track";
-import { WidgetComponent, WidgetViewExtension } from "@virgultum/editor/std";
-import { nothing } from "lit";
-import { property } from "lit/decorators.js";
-
-import { BlockDiffProvider } from "../../services/block-diff";
+import { WidgetViewExtension } from "@virgultum/editor/std";
 
 export const MYOXUS_BLOCK_DIFF_WIDGET_FOR_PAGE =
   "myoxus-block-diff-widget-for-page";
 
-export class MyoxusBlockDiffWidgetForPage extends WidgetComponent {
-  override createRenderRoot() {
-    return this;
-  }
-  override firstUpdated() {
+export class MyoxusBlockDiffWidgetForPage extends DiffWidget {
+  override connectedCallback() {
+    super.connectedCallback();
     // Keep the existing viewport anchor; the shared toolbar owns its chrome.
     Object.assign(this.style, {
       position: "fixed",
@@ -26,8 +20,7 @@ export class MyoxusBlockDiffWidgetForPage extends WidgetComponent {
     });
   }
 
-  @property({ type: Number })
-  accessor currentIndex = 0;
+  private currentIndex = 0;
 
   _handleScroll(dir: "prev" | "next") {
     const total = this.diffService.getTotalDiffs();
@@ -47,6 +40,7 @@ export class MyoxusBlockDiffWidgetForPage extends WidgetComponent {
     } else {
       this.currentIndex = Math.min(total - 1, this.currentIndex + 1);
     }
+    this.refresh();
     diffs[this.currentIndex]?.scrollIntoView({ behavior: "smooth" });
   }
 
@@ -60,47 +54,23 @@ export class MyoxusBlockDiffWidgetForPage extends WidgetComponent {
     this.diffService.rejectAll();
   }
 
-  get diffService() {
-    return this.std.get(BlockDiffProvider);
-  }
-
-  override render() {
-    if (!this.diffService.hasDiff()) {
-      return nothing;
-    }
-
+  protected renderDiff() {
     const total = this.diffService.getTotalDiffs();
-
-    return total === 0
-      ? nothing
-      : this.std.get(AIWidgetUI)(
-          createElement(DiffToolbar, {
-            current: Math.min(this.currentIndex + 1, total),
-            total,
-            previous: () => this._handleScroll("prev"),
-            next: () => this._handleScroll("next"),
-            accept: () => {
-              void this._handleAcceptAll();
-            },
-            reject: () => this._handleRejectAll(),
-          }),
-        );
-  }
-
-  override connectedCallback() {
-    super.connectedCallback();
-
-    this.disposables.add(
-      this.diffService.diffMap$.subscribe(() => {
-        this.requestUpdate();
-      }),
-    );
-
-    this.disposables.add(
-      this.diffService.rejects$.subscribe(() => {
-        this.requestUpdate();
-      }),
-    );
+    if (total <= 0) {
+      this.currentIndex = 0;
+      return null;
+    }
+    this.currentIndex = Math.min(this.currentIndex, total - 1);
+    return createElement(DiffToolbar, {
+      current: Math.min(this.currentIndex + 1, total),
+      total,
+      previous: () => this._handleScroll("prev"),
+      next: () => this._handleScroll("next"),
+      accept: () => {
+        void this._handleAcceptAll();
+      },
+      reject: () => this._handleRejectAll(),
+    });
   }
 }
 

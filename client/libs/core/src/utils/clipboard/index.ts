@@ -3,17 +3,18 @@ import { type Clipboard as BlockStdScopeClipboard } from "@virgultum/editor/std"
 import { copyTextToClipboard } from "@virgultum/core/primitives/utils";
 export { copyTextToClipboard } from "@virgultum/core/primitives/utils";
 
-export const copyLinkToBlockStdScopeClipboard = async (
+export const copyEditorLink = async (
   text: string,
-  clipboard?: BlockStdScopeClipboard,
+  clipboard?: Pick<BlockStdScopeClipboard, "writeToClipboard">,
 ) => {
   let success = false;
 
-  if (!clipboard) return success;
-
   if (typeof navigator.clipboard?.write === "function") {
     try {
-      await clipboard.writeToClipboard((items) => ({
+      const write = clipboard
+        ? clipboard.writeToClipboard.bind(clipboard)
+        : (await import("@virgultum/core/runtime")).writeClipboardItems;
+      await write((items) => ({
         ...items,
         "text/plain": text,
         // wrap a link

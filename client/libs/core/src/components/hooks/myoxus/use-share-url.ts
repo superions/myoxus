@@ -1,7 +1,10 @@
 import { toDocSearchParams } from "@myoxus/core/modules/navigation";
 import { ServerService } from "@myoxus/core/modules/server";
-import { copyTextToClipboard } from "@myoxus/core/utils/clipboard";
-import { useI18n } from "@myoxus/i18n";
+import {
+  copyEditorLink,
+  copyTextToClipboard,
+} from "@myoxus/core/utils/clipboard";
+import { I18n, useI18n } from "@myoxus/i18n";
 import { useService } from "@myoxus/infra";
 import { track } from "@myoxus/track";
 import { notify } from "@myoxus/ui-facade";
@@ -50,6 +53,19 @@ export const generateUrl = ({
     return undefined;
   }
 };
+
+/** Toolbar links keep the editor HTML format in both document views. */
+export async function copyEditorBlockLink(
+  options: UseSharingUrl & { baseUrl: string },
+  type: string,
+  clipboard?: Parameters<typeof copyEditorLink>[1],
+) {
+  const url = generateUrl(options);
+  if (!url) return;
+  if (await copyEditorLink(url, clipboard))
+    notify.success({ title: I18n["Copied link to clipboard"]() });
+  track.doc.editor.toolbar.copyBlockToLink({ type });
+}
 
 const getShareLinkType = ({
   mode,

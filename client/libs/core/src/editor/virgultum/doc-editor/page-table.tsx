@@ -93,11 +93,16 @@ export default function PageTable({
   readonly,
   handoff,
   detached = false,
+  readCell,
 }: {
   model: TableBlockModel;
   readonly: boolean;
   handoff: (intent: PageIntent) => void;
   detached?: boolean;
+  readCell?: (
+    model: TableBlockModel,
+    text: Y.Text,
+  ) => import("react").ReactNode;
 }) {
   const t = useI18n(),
     store = model.store;
@@ -486,14 +491,17 @@ export default function PageTable({
                   if (s) show(at, { kind: "cell", area: s }, e.currentTarget);
                 }}
               >
-                {cell && (
-                  <CellText
-                    id={at}
-                    text={cell.text.yText}
-                    readonly={readonly}
-                    model={model}
-                  />
-                )}
+                {cell &&
+                  (readCell ? (
+                    readCell(model, cell.text.yText)
+                  ) : (
+                    <CellText
+                      id={at}
+                      text={cell.text.yText}
+                      readonly={readonly}
+                      model={model}
+                    />
+                  ))}
                 {!readonly && !r && control("column")}
                 {!readonly && !c && control("row")}
                 {!readonly && (
@@ -551,7 +559,7 @@ export default function PageTable({
         const at = { row: td.dataset.rowId!, column: td.dataset.columnId! };
         drag.current = at;
         select({ first: at, last: at });
-        if (!(e.target instanceof HTMLTextAreaElement)) {
+        if (!readCell && !(e.target instanceof HTMLTextAreaElement)) {
           e.preventDefault();
           focus(at);
         }

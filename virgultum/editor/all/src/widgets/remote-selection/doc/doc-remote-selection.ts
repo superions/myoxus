@@ -13,14 +13,10 @@ import { matchModels } from "@virgultum/core/utils";
 import {
   BlockSelection,
   TextSelection,
-  WidgetComponent,
+  NativeEditorWidget,
 } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import { type BaseSelection, Text, type UserInfo } from "@virgultum/core/store";
-import { css, html, nothing } from "lit";
-import { state } from "lit/decorators.js";
-import { keyed } from "lit/directives/keyed.js";
-import { styleMap } from "lit/directives/style-map.js";
 import throttle from "lodash-es/throttle";
 
 import { RemoteColorManager } from "../manager/remote-color-manager";
@@ -39,9 +35,9 @@ export interface SelectionRect {
 export const MYOXUS_DOC_REMOTE_SELECTION_WIDGET =
   "myoxus-doc-remote-selection-widget";
 
-export class MyoxusDocRemoteSelectionWidget extends WidgetComponent {
+export class MyoxusDocRemoteSelectionWidget extends NativeEditorWidget {
   // avoid being unable to select text by mouse click or drag
-  static override styles = css`
+  private static readonly styles = `
     :host {
       pointer-events: none;
     }
@@ -50,6 +46,20 @@ export class MyoxusDocRemoteSelectionWidget extends WidgetComponent {
       position: absolute;
       pointer-events: none;
       animation: recent-remote-text 15s ease-out forwards;
+    }
+
+    .remote-username {
+      position: absolute;
+      left: 0;
+      bottom: 100%;
+      background-color: var(--myoxus-background-primary-color);
+      color: var(--myoxus-text-primary-color);
+      max-width: 160px;
+      font-size: var(--myoxus-font-xs);
+      line-height: 18px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     @keyframes recent-remote-text {
@@ -62,15 +72,33 @@ export class MyoxusDocRemoteSelectionWidget extends WidgetComponent {
     }
   `;
 
-  @state()
-  private accessor _selections: Array<{
+  private readonly marks = this.ownerDocument.createElement("div");
+  private readonly selections = this.ownerDocument.createElement("div");
+  private paintPending = false;
+
+  constructor() {
+    super();
+    const shadow = this.attachShadow({ mode: "open" });
+    const style = this.ownerDocument.createElement("style");
+    style.textContent = MyoxusDocRemoteSelectionWidget.styles;
+    shadow.append(style, this.marks, this.selections);
+  }
+
+  private schedulePaint() {
+    if (this.paintPending || !this.isConnected) return;
+    this.paintPending = true;
+    queueMicrotask(() => {
+      this.paintPending = false;
+      if (this.isConnected) this.paint();
+    });
+  }
+
+  private _selections: Array<{
     id: number;
     selections: BaseSelection[];
     rects: SelectionRect[];
     user?: UserInfo;
   }> = [];
-
-  private readonly _abortController = new AbortController();
 
   private _remoteColorManager: RemoteColorManager | null = null;
 
@@ -78,24 +106,35 @@ export class MyoxusDocRemoteSelectionWidget extends WidgetComponent {
   // editor explicitly, including deletions; cursor positions are not authorship.
   private readonly _recentChanges = new Map<
     string,
-    { timeout: ReturnType<typeof setTimeout>; color: string }
+    {
+      timeout: ReturnType<typeof setTimeout>;
+      color: string;
+      anchor: HTMLDivElement;
+    }
   >();
 
   private readonly _seenTextChanges = new Map<number, number>();
   private readonly _pendingLocalChanges = new Set<string>();
 
   private _clearRecentChange(id: string) {
-    clearTimeout(this._recentChanges.get(id)?.timeout);
-    if (this._recentChanges.delete(id)) this.requestUpdate();
+    const change = this._recentChanges.get(id);
+    if (!change) return;
+    clearTimeout(change.timeout);
+    change.anchor.remove();
+    this._recentChanges.delete(id);
   }
 
   private _markRecentChange(id: string, color: string) {
     this._clearRecentChange(id);
+    const anchor = this.ownerDocument.createElement("div");
+    anchor.dataset.remoteChangeBlock = id;
+    this.marks.append(anchor);
     this._recentChanges.set(id, {
+      anchor,
       timeout: setTimeout(() => this._clearRecentChange(id), 15000),
       color,
     });
-    this.requestUpdate();
+    this.schedulePaint();
   }
 
   private _announceTextChange(id: string) {
@@ -152,7 +191,7 @@ export class MyoxusDocRemoteSelectionWidget extends WidgetComponent {
   });
 
   private readonly _resizeObserver: ResizeObserver = new ResizeObserver(() => {
-    this.requestUpdate();
+    this.schedulePaint();
   });
 
   private get _config(): DocRemoteSelectionConfig {
@@ -343,14 +382,16 @@ export class MyoxusDocRemoteSelectionWidget extends WidgetComponent {
     this._resizeObserver.observe(this.host);
 
     this.handleEvent("wheel", () => {
-      this.requestUpdate();
+      this.schedulePaint();
     });
 
     this.disposables.addFromEvent(window, "resize", () => {
-      this.requestUpdate();
+      this.schedulePaint();
     });
 
-    this._remoteColorManager = new RemoteColorManager(this.std);
+    this._remoteColorManager = new RemoteColorManager(
+      this.store.awarenessStore,
+    );
     const awareness = this.store.awarenessStore.awareness;
     this._receiveTextChanges();
     awareness.on("change", this._receiveTextChanges);
@@ -384,7 +425,7 @@ export class MyoxusDocRemoteSelectionWidget extends WidgetComponent {
           }
         }
         this._updateSelectionsThrottled(this._remoteSelections.peek());
-        this.requestUpdate();
+        this.schedulePaint();
       }),
     );
     const gfx = this.std.get(GfxControllerIdentifier);
@@ -406,7 +447,8 @@ export class MyoxusDocRemoteSelectionWidget extends WidgetComponent {
   override disconnectedCallback() {
     super.disconnectedCallback();
     this._resizeObserver.disconnect();
-    this._abortController.abort();
+    this.marks.replaceChildren();
+    this.selections.replaceChildren();
     this._updateSelectionsThrottled.cancel();
     for (const entry of this._recentChanges.values())
       clearTimeout(entry.timeout);
@@ -433,6 +475,7 @@ export class MyoxusDocRemoteSelectionWidget extends WidgetComponent {
         user,
       };
     });
+    this.schedulePaint();
   };
 
   private readonly _updateSelectionsThrottled = throttle(
@@ -455,85 +498,59 @@ export class MyoxusDocRemoteSelectionWidget extends WidgetComponent {
     });
   }
 
-  override render() {
-    if (this._selections.length === 0 && this._recentChanges.size === 0) {
-      return nothing;
-    }
-
-    const remoteColorManager = this._remoteColorManager;
-    if (!remoteColorManager) return nothing;
-    return html`<div>
-      ${[...this._recentChanges].map(([id, { timeout, color }]) => {
+  private paint() {
+    const doc = this.ownerDocument;
+    const colors = this._remoteColorManager;
+    if (!colors) return;
+    // A mark owns its animated fragments for the lifetime of one edit cue.
+    // Updating another cursor must not restart the fifteen-second fade.
+    if (this._recentChanges.size) {
+      const container = this._container;
+      const bounds = this._containerRect;
+      for (const [id, { anchor, color }] of this._recentChanges) {
         const rects = this._getRecentTextRects(id);
-        const containerRect = this._containerRect;
-        const container = this._container;
-        return keyed(
-          timeout,
-          html`<div data-remote-change-block=${id}>
-            ${rects.map(
-              (rect) =>
-                html`<div
-                  class="recent-remote-text"
-                  style=${styleMap({
-                    backgroundColor: color,
-                    top: `${rect.top - (containerRect?.top ?? 0) + (container?.scrollTop ?? 0)}px`,
-                    left: `${rect.left - (containerRect?.left ?? 0) + (container?.scrollLeft ?? 0)}px`,
-                    width: `${rect.width}px`,
-                    height: `${rect.height}px`,
-                  })}
-                ></div>`,
-            )}
-          </div>`,
-        );
-      })}
-      ${this._selections.map((selection) => {
-        const color = remoteColorManager.get(selection.id);
-        if (!color) return [];
-        const cursorRect = this._getCursorRect(selection.selections);
-
-        return selection.rects
-          .map((r) => html`<div style="${selectionStyle(r, color)}"></div>`)
-          .concat([
-            html`
-              <div
-                style="${
-                  cursorRect
-                    ? cursorStyle(cursorRect, color)
-                    : styleMap({
-                        display: "none",
-                      })
-                }"
-              >
-                <div
-                  style="${styleMap({
-                    position: "relative",
-                    height: "100%",
-                  })}"
-                >
-                  <div
-                    style="${styleMap({
-                      position: "absolute",
-                      left: "0",
-                      bottom: "100%",
-                      backgroundColor: "var(--myoxus-background-primary-color)",
-                      color: "var(--myoxus-text-primary-color)",
-                      maxWidth: "160px",
-                      fontSize: "var(--myoxus-font-xs)",
-                      lineHeight: "18px",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      display: selection.user ? "block" : "none",
-                    })}"
-                  >
-                    ${selection.user?.name}
-                  </div>
-                </div>
-              </div>
-            `,
-          ]);
-      })}
-    </div>`;
+        while (anchor.childElementCount > rects.length)
+          anchor.lastElementChild!.remove();
+        rects.forEach((rect, i) => {
+          const mark =
+            (anchor.children[i] as HTMLElement | undefined) ??
+            doc.createElement("div");
+          if (!mark.parentElement) {
+            mark.className = "recent-remote-text";
+            anchor.append(mark);
+          }
+          Object.assign(mark.style, {
+            backgroundColor: color,
+            top: `${rect.top - (bounds?.top ?? 0) + (container?.scrollTop ?? 0)}px`,
+            left: `${rect.left - (bounds?.left ?? 0) + (container?.scrollLeft ?? 0)}px`,
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
+          });
+        });
+      }
+    }
+    const fragment = doc.createDocumentFragment();
+    for (const selection of this._selections) {
+      const color = colors.get(selection.id);
+      if (!color) continue;
+      for (const rect of selection.rects) {
+        const node = doc.createElement("div");
+        Object.assign(node.style, selectionStyle(rect, color));
+        fragment.append(node);
+      }
+      const rect = this._getCursorRect(selection.selections);
+      if (!rect) continue;
+      const cursor = doc.createElement("div");
+      Object.assign(cursor.style, cursorStyle(rect, color));
+      if (selection.user) {
+        const label = doc.createElement("div");
+        label.className = "remote-username";
+        label.textContent = selection.user.name;
+        cursor.append(label);
+      }
+      fragment.append(cursor);
+    }
+    this.selections.replaceChildren(fragment);
   }
 }
 

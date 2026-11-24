@@ -2,12 +2,14 @@ import {
   type BlockStdScope,
   ConfigExtensionFactory,
 } from "@virgultum/core/runtime";
-import type { TemplateResult } from "lit";
 
 import type { MyoxusReference } from "./reference-node";
 
 export interface ReferenceNodeConfig {
-  customContent?: (reference: MyoxusReference) => TemplateResult;
+  customContent?: (
+    target: HTMLElement,
+    reference: MyoxusReference,
+  ) => () => void;
   interactable?: boolean;
   hidePopup?: boolean;
 }
@@ -16,8 +18,7 @@ export const ReferenceNodeConfigExtension =
   ConfigExtensionFactory<ReferenceNodeConfig>("MyoxusReferenceNodeConfig");
 
 export class ReferenceNodeConfigProvider {
-  private _customContent:
-    ((reference: MyoxusReference) => TemplateResult) | undefined = undefined;
+  private _customContent: ReferenceNodeConfig["customContent"];
 
   private _hidePopup = false;
 

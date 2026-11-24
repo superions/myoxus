@@ -90,10 +90,7 @@ interface ExportHandlerOptions {
   page: Store;
   editorRoot: EditorHost | null;
   /**
-   * Editor host root. Pre-B-FIND-02 this was typed as the rich
-   * `MyoxusEditorContainer` adapter, but the only branch that
-   * reads it (`pdf` -> `printToPdf`) wants the raw
-   * `HTMLElement`. Tightening here keeps the contract honest.
+   * Mounted document origin for browser printing and native Page image capture.
    */
   editorContainer: HTMLElement | null;
   type: Exclude<ExportType, "docx">;
@@ -634,6 +631,13 @@ export async function exportHandler({
       await printToPdf(editorContainer);
       return;
     case "png": {
+      if (
+        pageMode === "page" &&
+        editorContainer?.dataset.pageRenderer === "native"
+      ) {
+        await ExportManager.exportPagePng(editorContainer, page);
+        return;
+      }
       if (!editorRoot?.isConnected || editorRoot.store !== page)
         throw new Error(
           "PNG export requires the document's active editor host",

@@ -1,17 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
-import type {
-  AttachmentBlockModel,
-  CodeBlockModel,
-  ImageBlockModel,
-} from "@virgultum/core/models";
-import { Text } from "@virgultum/core/store";
+import { type BlockModel, Text } from "@virgultum/core/store";
 import { useState } from "react";
 import { EditorBlockCaption } from "../../view-extensions/editor-view/editor-chrome/block-caption";
 import { restorePageRange } from "./plain-page-input";
 
 export function usePageCaption(
-  model: AttachmentBlockModel | CodeBlockModel | ImageBlockModel,
+  model: BlockModel<{ caption?: string | null }>,
   readonly: boolean,
 ) {
   const [focusRequest, requestFocus] = useState(0);

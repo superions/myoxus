@@ -1,13 +1,7 @@
-import type { DirectiveResult } from "lit/directive.js";
-import { styleMap, type StyleMapDirective } from "lit/directives/style-map.js";
-
 import type { SelectionRect } from "./doc-remote-selection.js";
 
-export function selectionStyle(
-  rect: SelectionRect,
-  color: string,
-): DirectiveResult<typeof StyleMapDirective> {
-  return styleMap({
+export function selectionStyle(rect: SelectionRect, color: string) {
+  return {
     position: "absolute",
     width: `${rect.width}px`,
     height: `${rect.height}px`,
@@ -17,14 +11,11 @@ export function selectionStyle(
     pointerEvents: "none",
     opacity: "20%",
     borderRadius: "3px",
-  });
+  };
 }
 
-export function cursorStyle(
-  rect: SelectionRect,
-  color: string,
-): DirectiveResult<typeof StyleMapDirective> {
-  return styleMap({
+export function cursorStyle(rect: SelectionRect, color: string) {
+  return {
     position: "absolute",
     width: `${rect.width}px`,
     height: `${rect.height}px`,
@@ -33,5 +24,5 @@ export function cursorStyle(
     backgroundColor: color,
     pointerEvents: "none",
     boxShadow: "0 0 0 1px var(--myoxus-background-primary-color)",
-  });
+  };
 }

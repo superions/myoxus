@@ -65,6 +65,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./adapters": "./src/adapters/index.ts",
+    "./adapters/copy": "./src/adapters/middlewares/copy.ts",
     "./commands": "./src/commands/index.ts",
     "./consts": "./src/consts/index.ts",
     "./extensions": "./src/extensions/index.ts",
@@ -85,6 +86,7 @@
     "./runtime": "./src/runtime/index.ts",
     "./runtime/effects": "./src/runtime/effects.ts",
     "./runtime/gfx": "./src/runtime/gfx/index.ts",
+    "./runtime/inline/attributes": "./src/runtime/inline/utils/attribute-renderer.ts",
     "./runtime/inline": "./src/runtime/inline/index.ts",
     "./selection": "./src/selection/index.ts",
     "./services": "./src/services/index.ts",

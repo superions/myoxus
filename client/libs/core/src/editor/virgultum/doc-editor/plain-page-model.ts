@@ -44,7 +44,11 @@ export type PageLine = {
 };
 
 const marks = new Set(["bold", "italic", "underline", "strike", "code"]);
-function supportedText(text: YText, inlineObjects = true) {
+export function supportedText(
+  text: YText,
+  inlineObjects: boolean | "source-fields" | "snapshot" = true,
+) {
+  const links = inlineObjects === true || inlineObjects === "snapshot";
   return text
     .toDelta()
     .every(
@@ -52,7 +56,7 @@ function supportedText(text: YText, inlineObjects = true) {
         typeof op.insert === "string" &&
         Object.entries(op.attributes ?? {}).every(([key, value]) =>
           key.startsWith("comment-")
-            ? inlineObjects &&
+            ? inlineObjects === true &&
               key.length > 8 &&
               typeof value === "boolean" &&
               ![
@@ -65,11 +69,11 @@ function supportedText(text: YText, inlineObjects = true) {
                 "link",
               ].some((k) => Object.hasOwn(op.attributes ?? {}, k))
             : key === "documentField"
-              ? inlineObjects &&
+              ? (inlineObjects === true || inlineObjects === "source-fields") &&
                 op.insert === " " &&
                 DocumentFieldSchema.safeParse(value).success
               : key === "mention"
-                ? inlineObjects &&
+                ? inlineObjects === true &&
                   op.insert === " " &&
                   !!value &&
                   typeof value === "object" &&
@@ -77,15 +81,15 @@ function supportedText(text: YText, inlineObjects = true) {
                   typeof value.member === "string" &&
                   !!value.member
                 : key === "latex"
-                  ? inlineObjects &&
+                  ? inlineObjects === true &&
                     op.insert === " " &&
                     typeof value === "string"
                   : key === "link"
-                    ? inlineObjects && typeof value === "string" && !!value
+                    ? links && typeof value === "string" && !!value
                     : marks.has(key)
                       ? value === true
                       : key === "reference"
-                        ? inlineObjects &&
+                        ? links &&
                           op.insert === " " &&
                           !!value &&
                           typeof value === "object" &&
@@ -95,11 +99,11 @@ function supportedText(text: YText, inlineObjects = true) {
                           (value.type === "LinkedPage" ||
                             value.type === "Subpage")
                         : key === "footnote"
-                          ? inlineObjects &&
+                          ? inlineObjects === true &&
                             op.insert === " " &&
                             FootNoteSchema.safeParse(value).success
                           : key === "annotation"
-                            ? inlineObjects &&
+                            ? inlineObjects === true &&
                               !!value &&
                               typeof value === "object" &&
                               "id" in value &&
@@ -133,8 +137,12 @@ export function readPageTitle(page: Store): PageLine | null {
   };
 }
 
-/** These projections read only the detached Store; none needs a live workspace or a command handoff. */
-export function canReadPageSnapshot(content: PageContent) {
+/** Snapshot bodies read the captured models. An event resolves its captured foreign
+ * key through the same workspace service as the registered read-only card. */
+export function canReadPageSnapshot(
+  content: PageContent,
+  sourceFields = false,
+) {
   return (
     content.order.every(
       (item) =>
@@ -143,14 +151,25 @@ export function canReadPageSnapshot(content: PageContent) {
         item.kind === "callout" ||
         item.kind === "equation" ||
         item.kind === "annotation" ||
+        item.kind === "html" ||
+        item.kind === "bookmark" ||
+        item.kind === "iframe" ||
+        item.kind === "event" ||
+        item.kind === "code" ||
         item.kind === "table",
-    ) && content.lines.every((line) => supportedText(line.text, false))
+    ) &&
+    content.lines.every((line) =>
+      supportedText(line.text, sourceFields ? "source-fields" : "snapshot"),
+    )
   );
 }
 
 /** Inspect the live tree, including disconnected children during materialization.
  * Unknown runs are never flattened into editable plain text. */
-export function readPageContent(page: Store) {
+export function readPageContent(
+  page: Store,
+  reader?: "source-fields" | "snapshot",
+) {
   const title = readPageTitle(page);
   if (!title) return null;
   const root = title.model;
@@ -322,7 +341,6 @@ export function readPageContent(page: Store) {
         const model = child as BookmarkBlockModel;
         if (
           child.yBlock.get("sys:children").length ||
-          model.props.caption ||
           model.props.footnoteIdentifier ||
           model.props.style === "citation" ||
           Object.keys(model.props.comments ?? {}).length
@@ -334,16 +352,14 @@ export function readPageContent(page: Store) {
       }
       if (child.flavour === "myoxus:embed-github" && parent !== root) {
         const model = child as EmbedGithubModel;
-        if (model.props.caption || child.yBlock.get("sys:children").length)
-          return false;
+        if (child.yBlock.get("sys:children").length) return false;
         body.push({ kind: "forge", model, depth });
         ordinal = 0;
         continue;
       }
       if (child.flavour === "myoxus:embed-html" && parent !== root) {
         const model = child as EmbedHtmlModel;
-        if (model.props.caption || child.yBlock.get("sys:children").length)
-          return false;
+        if (child.yBlock.get("sys:children").length) return false;
         body.push({ kind: "html", model, depth });
         ordinal = 0;
         continue;
@@ -368,7 +384,6 @@ export function readPageContent(page: Store) {
         if (
           child.yBlock.get("sys:children").length ||
           !model.props.pageId ||
-          model.props.caption ||
           model.props.style === "citation" ||
           ("preFoldHeight" in model.props && model.props.preFoldHeight)
         )
@@ -379,8 +394,7 @@ export function readPageContent(page: Store) {
       }
       if (child.flavour === "myoxus:embed-iframe" && parent !== root) {
         const model = child as EmbedIframeBlockModel;
-        if (child.yBlock.get("sys:children").length || model.props.caption)
-          return false;
+        if (child.yBlock.get("sys:children").length) return false;
         body.push({ kind: "iframe", model, depth });
         ordinal = 0;
         continue;
@@ -397,7 +411,6 @@ export function readPageContent(page: Store) {
           EmbedFigmaModel | EmbedLoomModel | EmbedYoutubeModel;
         if (
           child.yBlock.get("sys:children").length ||
-          model.props.caption ||
           !["video", "figma"].includes(model.props.style)
         )
           return false;
@@ -417,13 +430,18 @@ export function readPageContent(page: Store) {
             (c) =>
               c.textProtection ||
               !c.text?.yText ||
-              c.text
-                .toDelta()
-                .some(
-                  (run) =>
-                    typeof run.insert !== "string" ||
-                    Object.keys(run.attributes ?? {}).length,
-                ),
+              (reader
+                ? !supportedText(
+                    c.text.yText,
+                    reader === "source-fields" ? reader : false,
+                  )
+                : c.text
+                    .toDelta()
+                    .some(
+                      (run) =>
+                        typeof run.insert !== "string" ||
+                        Object.keys(run.attributes ?? {}).length,
+                    )),
           )
         )
           return false;
@@ -528,7 +546,7 @@ export function readPageContent(page: Store) {
     }
     return true;
   }
-  if (!children(root, 0) || !body.length) return null;
+  if (!children(root, 0)) return null;
   if (!body.some((item) => item.kind === "callout"))
     return { lines, body, order: body };
   // Clipboard and selection use document order even when a host presents nested blocks.

@@ -63,7 +63,7 @@ export const PageDetailEditor = ({
 
       <VirgultumEditor
         plainPage={
-          !journal &&
+          (mode === "page" || !journal) &&
           !template &&
           !doc.virgultumDoc.meta?.docKind &&
           !isSharedMode
@@ -71,6 +71,7 @@ export const PageDetailEditor = ({
         {...detailPageEditorRootAttrs({
           fullWidthLayout: !isSharedMode && fullWidthLayout,
         })}
+        journalDate={journal}
         mode={mode}
         page={editor.doc.virgultumDoc}
         shared={isSharedMode}

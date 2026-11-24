@@ -1,35 +1,68 @@
 import type { IconData } from "@virgultum/core/services";
+import { IconPickerServiceIdentifier } from "@virgultum/core/services";
+import type { CalloutBlockModel } from "@virgultum/core/models";
 import type { UniComponent, UniComponentReturn } from "@virgultum/core/types";
-import { ShadowlessElement } from "@virgultum/core/runtime";
-import { html } from "lit";
-import { ref } from "lit/directives/ref.js";
+import { type BlockStdScope, NativeViewElement } from "@virgultum/core/runtime";
+import { cssVar } from "@myoxus/theme";
+import {
+  createPopup,
+  popupTargetFromElement,
+} from "@virgultum/core/view/portal";
 
 export interface IconPickerWrapperProps {
   onSelect?: (iconData?: IconData) => void;
   onClose?: () => void;
 }
 
-export class IconPickerWrapper extends ShadowlessElement {
+export class IconPickerWrapper extends NativeViewElement {
   iconPickerComponent?: UniComponent<IconPickerWrapperProps>;
   props?: IconPickerWrapperProps;
-  private _picker?: UniComponentReturn<IconPickerWrapperProps>;
-
-  // The popup owns the React portal lifetime, including disconnect/reconnect.
-  private readonly _mountPicker = (element?: Element) => {
-    this._picker?.unmount();
-    this._picker =
-      element instanceof HTMLElement
-        ? this.iconPickerComponent?.(element, this.props ?? {}, () => {})
-        : undefined;
-  };
-
-  override render() {
-    if (!this.iconPickerComponent) {
-      return html``;
-    }
-
-    return html`<div ${ref(this._mountPicker)}></div>`;
+  private picker?: UniComponentReturn<IconPickerWrapperProps>;
+  connectedCallback() {
+    this.picker = this.iconPickerComponent?.(this, this.props ?? {}, () => {});
   }
+  disconnectedCallback() {
+    this.picker?.unmount();
+    this.picker = undefined;
+  }
+}
+
+/** The same picker session serves the document glyph and the selection toolbar. */
+export function openCalloutIconPicker(
+  std: BlockStdScope,
+  model: CalloutBlockModel,
+  anchor: HTMLElement,
+  onClose?: () => void,
+) {
+  const store = std.store;
+  const component = std.getOptional(
+    IconPickerServiceIdentifier,
+  )?.iconPickerComponent;
+  if (!component || store.readonly || store.getModelById(model.id) !== model)
+    return;
+  const wrapper = anchor.ownerDocument.createElement("icon-picker-wrapper");
+  wrapper.iconPickerComponent = component;
+  wrapper.props = {
+    onSelect(icon) {
+      if (!store.readonly && store.getModelById(model.id) === model) {
+        store.captureSync();
+        store.updateBlock(model, () => {
+          model.props.icon = icon;
+        });
+        store.captureSync();
+      }
+      close();
+    },
+    onClose: () => close(),
+  };
+  wrapper.style.position = "absolute";
+  wrapper.style.backgroundColor = cssVar("backgroundOverlayPanelColor");
+  wrapper.style.boxShadow = "var(--myoxus-menu-shadow)";
+  wrapper.style.borderRadius = "var(--mantine-radius-md)";
+  const close = createPopup(popupTargetFromElement(anchor), wrapper, {
+    onClose,
+  });
+  return close;
 }
 
 declare global {

@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { WorkspaceServerService } from "../../../modules/server";
+import { useService, useFramework } from "@myoxus/infra";
+import { notify } from "@myoxus/ui-facade";
+import { copyEditorBlockLink } from "../../../components/hooks/myoxus/use-share-url";
 import { useI18n } from "@myoxus/i18n";
 import { useMyoxusTheme } from "@myoxus/ui-facade/provider";
 import type { CodeBlockModel } from "@virgultum/core/models";
@@ -53,6 +57,27 @@ export default function PageCode({
 }) {
   const t = useI18n(),
     { resolvedTheme } = useMyoxusTheme();
+  const workspaceServer = useService(WorkspaceServerService);
+  const framework = useFramework();
+  const copyOwner = useRef<AbortController | null>(null);
+  useLayoutEffect(() => {
+    const owner = new AbortController();
+    copyOwner.current = owner;
+    return () => owner.abort();
+  }, [model]);
+  const copyCode = async () => {
+    const signal = copyOwner.current?.signal;
+    if (!signal || signal.aborted || !field.current?.isConnected) return;
+    try {
+      const { copyPageBlock } = await import("./page-block-copy");
+      await copyPageBlock(model, framework, signal);
+      if (!signal.aborted) notify({ title: t["Copied to clipboard"]() });
+    } catch (error) {
+      if (signal.aborted) return;
+      notify({ title: t["com.myoxus.editor.clipboard.copy-failed"]() });
+      console.error(error);
+    }
+  };
   const captionEditor = usePageCaption(model, readonly);
   const field = useRef<HTMLTextAreaElement>(null),
     paint = useRef<HTMLPreElement>(null);
@@ -208,7 +233,7 @@ export default function PageCode({
           "copy-code",
           t["com.myoxus.editor.toolbar.copy-code"](),
           "CopyIcon",
-          () => command("copy-code"),
+          () => void copyCode(),
         ),
         disabled: false,
       },
@@ -256,7 +281,23 @@ export default function PageCode({
           "copy-link-to-block",
           t["com.myoxus.editor.toolbar.copy-link-to-block"](),
           "LinkIcon",
-          () => command("copy-link-to-block"),
+          () => {
+            if (
+              !field.current?.isConnected ||
+              store.getModelById(model.id) !== model
+            )
+              return;
+            void copyEditorBlockLink(
+              {
+                pageId: store.id,
+                workspaceId: store.workspace.id,
+                blockIds: [model.id],
+                mode: "page",
+                baseUrl: workspaceServer.server?.baseUrl ?? location.origin,
+              },
+              model.flavour,
+            ).catch(console.error);
+          },
         ),
         disabled: false,
       },

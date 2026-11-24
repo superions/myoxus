@@ -458,7 +458,7 @@ test("bookmark card uses the shared preview template in edgeless mode", async ({
 
   const url = "https://github.com/example/project/pull/11796";
 
-  await page.locator("edgeless-link-tool-button").click();
+  await page.getByTestId("canvas-link").click();
   await page.getByRole("dialog").getByRole("textbox").fill(url);
   await pressEnter(page);
 
@@ -548,7 +548,7 @@ test("drag a card from canvas to note should not change the style of the card", 
   await createNote(page, [0, 200]);
   const targetNote = page.locator("myoxus-edgeless-note").last();
   await expect(targetNote).toBeVisible();
-  await page.locator("edgeless-link-tool-button").click();
+  await page.getByTestId("canvas-link").click();
   await page.getByRole("dialog").getByRole("textbox").fill(url);
   await pressEnter(page);
 

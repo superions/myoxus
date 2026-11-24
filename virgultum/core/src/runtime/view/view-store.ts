@@ -1,13 +1,9 @@
 import { Subject } from "rxjs";
 
 import { LifeCycleWatcher } from "../extension/index.js";
-import type {
-  BlockComponent,
-  NativeEditorWidget,
-  WidgetComponent,
-} from "./element/index.js";
+import type { BlockComponent, NativeEditorWidget } from "./element/index.js";
 
-export type EditorWidgetView = WidgetComponent | NativeEditorWidget;
+export type EditorWidgetView = NativeEditorWidget;
 
 type ViewUpdateMethod = "delete" | "add";
 

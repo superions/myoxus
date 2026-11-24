@@ -464,13 +464,11 @@ describe("callout presentation controls", () => {
     };
     try {
       document.body.append(popup);
-      await popup.updateComplete;
       popup.querySelector("button")!.click();
       expect(select).toHaveBeenCalledWith({ type: "emoji", unicode: "🚀" });
       popup.remove();
       expect(unmount).toHaveBeenCalledTimes(1);
       document.body.append(popup);
-      await popup.updateComplete;
       expect(popup.querySelectorAll("button")).toHaveLength(1);
       popup.remove();
       expect(unmount).toHaveBeenCalledTimes(2);

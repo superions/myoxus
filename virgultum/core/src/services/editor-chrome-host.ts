@@ -6,9 +6,11 @@ import type { ReadonlySignal } from "@preact/signals-core";
 import type { SelectionAction } from "./toolbar-service/presentation";
 
 import type { MyoxusIconExportName } from "@myoxus/icons/names";
-import type { NoteDisplayMode } from "../models/index";
+import type { EventBlockModel, NoteDisplayMode } from "../models/index";
 import { createIdentifier } from "../primitives/di/index";
 import type { ExtensionType } from "../store/index";
+import type { MyoxusHostService } from "./host/myoxus-host-service";
+import type { ReferenceIconName } from "./doc-display-meta-service";
 import type { TemplateResult } from "lit";
 
 export type EditorZoomState = Readonly<{
@@ -206,18 +208,12 @@ export type EditorGithubCardControls = Readonly<{
 }>;
 
 /** Event reads, date formatting, permissions and dialog commands stay in the block. */
-export type EditorEventCardControls = Readonly<{
-  state: "loading" | "ready" | "unavailable";
+export type EditorEventReference = {
+  model: EventBlockModel;
   readonly: boolean;
-  title: string;
-  meta: string;
-  label: string;
-  /** Validated authored event-tag color; null uses the shared theme accent. */
-  accent: string | null;
-  activate: () => void;
-}>;
+  host: Pick<MyoxusHostService, "resolveEventData" | "openEventEditDialog">;
+};
 
-/** The editor owns preview DOM and its renderer; React only mounts the stable container. */
 export type EditorDocumentCardControls = Readonly<{
   title: string;
   selected: boolean;
@@ -227,7 +223,7 @@ export type EditorDocumentCardControls = Readonly<{
     | Readonly<{
         /** A source citation has no preview mount or preview lifecycle. */
         citationIdentifier: string;
-        citationIcon?: TemplateResult;
+        citationIcon?: ReferenceIconName;
       }>
     | Readonly<{
         citationIdentifier?: undefined;
@@ -473,7 +469,10 @@ export type EditorChromeHost = {
   ) => TemplateResult;
   renderBookmarkCard: (controls: EditorBookmarkCardControls) => TemplateResult;
   renderGithubCard: (controls: EditorGithubCardControls) => TemplateResult;
-  renderEventCard: (controls: EditorEventCardControls) => TemplateResult;
+  mountEventReference: (
+    anchor: HTMLElement,
+    controls: EditorEventReference,
+  ) => () => void;
   renderHtmlFullscreenToolbar: (
     controls: EditorHtmlFullscreenControls,
   ) => TemplateResult;

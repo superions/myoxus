@@ -11,18 +11,25 @@ export const sharedEffectElementTags = [
 
 export type SharedEffectElementTag = (typeof sharedEffectElementTags)[number];
 
-export const editorEffectElementTags = [
+export const storedBlockTags = [
   "myoxus-edgeless-ai-chat",
   "myoxus-ai-chat",
+  "transcription-block",
+] as const;
+
+export const interactiveEditorTags = [
   "ai-scrollable-text-renderer",
-  "ai-block-diff-options",
   "myoxus-block-diff-playground",
   "myoxus-ai-panel-widget",
   "myoxus-edgeless-copilot-widget",
   "myoxus-block-diff-widget-for-block",
   "myoxus-block-diff-widget-for-page",
   "edgeless-copilot-panel",
-  "transcription-block",
+] as const;
+
+export const editorEffectElementTags = [
+  ...storedBlockTags,
+  ...interactiveEditorTags,
 ] as const;
 
 export type EditorEffectElementTag = (typeof editorEffectElementTags)[number];

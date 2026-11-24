@@ -90,9 +90,7 @@ export async function resumePageIntent(
           (!isPaste &&
             (intent.clipboard === "copy" ||
               (intent.flavour === "myoxus:code" &&
-                (intent.control === "copy-code" ||
-                  intent.control === "copy-link-to-block" ||
-                  intent.control === "comment"))))) &&
+                intent.control === "comment")))) &&
         page.getModelById(intent.id)?.flavour ===
           (isPaste ? "myoxus:divider" : (intent.flavour ?? "myoxus:attachment"))
       ) {

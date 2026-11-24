@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import { patchCalloutTitleHost } from "@myoxus/core/editor/view-extensions/editor-view/callout";
 import { patchMermaidFamilyReactHost } from "@myoxus/core/editor/view-extensions/editor-view/mermaid-family-react-host";
 import { patchEditorChromeHost } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome";
 import { setupGlobal } from "@myoxus/env/global";
@@ -27,6 +28,7 @@ function ChromeHost({
     return {
       setup(di) {
         chrome.setup(di);
+        patchCalloutTitleHost(mountPortal).setup(di);
         // A renderer-contract fixture can supply its own host for this scope.
         if (!di.getFactory(MermaidFamilyReactHostIdentifier)) mermaid.setup(di);
       },

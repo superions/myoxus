@@ -1,4 +1,4 @@
-import type { ReactToLit } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/lit-react";
 import {
   type MyoxusReference,
   ReferenceNodeConfigExtension,
@@ -10,13 +10,11 @@ export type ReferenceReactRenderer = (
 ) => React.ReactElement;
 
 export function patchReferenceRenderer(
-  reactToLit: ReactToLit,
+  mount: MountReactPortal,
   reactRenderer: ReferenceReactRenderer,
 ): ExtensionType {
-  const customContent = (reference: MyoxusReference) => {
-    const node = reactRenderer(reference);
-    return reactToLit(node, true);
-  };
+  const customContent = (target: HTMLElement, reference: MyoxusReference) =>
+    mount(target, reactRenderer(reference));
 
   return ReferenceNodeConfigExtension({
     customContent,

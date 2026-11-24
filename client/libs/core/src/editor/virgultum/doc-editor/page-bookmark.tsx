@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { usePageCaption } from "./page-caption";
 import { useService } from "@myoxus/infra";
 import { useMemo, useEffect, useRef, useState } from "react";
 import type {
@@ -22,6 +23,7 @@ export default function PageBookmarkCard({
   readonly: boolean;
   handoff: (intent: PageIntent) => void;
 }) {
+  const caption = usePageCaption(model, readonly);
   const base = useService(ServerService).server.baseUrl;
   const service = useMemo(
     () => workspaceLinkPreview(base, LinkPreviewCache.getInstance()),
@@ -116,6 +118,7 @@ export default function PageBookmarkCard({
           },
         }}
       />
+      {caption.field}
     </div>
   );
 }

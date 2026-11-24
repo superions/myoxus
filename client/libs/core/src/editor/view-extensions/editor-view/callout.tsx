@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useI18n } from "@myoxus/i18n";
-import type { ReactToLit } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/lit-react";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
@@ -25,11 +25,18 @@ import {
   type CalloutTitleHostProps,
 } from "@virgultum/editor/blocks/callout";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { type CalloutBlockModel } from "@virgultum/core/models";
+import type { IconData } from "@virgultum/core/services";
+import type { ReadonlySignal } from "@preact/signals-core";
+import { useSignalValue } from "../../../modules/doc-info/utils";
 import {
-  type CalloutBlockModel,
-  normalizeCalloutAppearance,
-} from "@virgultum/core/models";
-import { editorBackgroundColors } from "@virgultum/core/services";
+  calloutHostStyles,
+  calloutBlockContainerStyles,
+  calloutChildrenStyles,
+  calloutEmojiContainerStyles,
+  calloutIconOffset,
+  calloutSurface,
+} from "@virgultum/content/callout-layout";
 import { restorePageRange } from "../../virgultum/doc-editor/plain-page-input";
 
 export function PageCallout({
@@ -58,33 +65,28 @@ export function PageCallout({
     !model.store.readonly &&
     model.store.getModelById(model.id) === model &&
     !model.props.textProtection;
-  const palette =
-    editorBackgroundColors.find(
-      (c) => c.name === model.props.backgroundColorName,
-    ) ?? editorBackgroundColors.find((c) => c.name === "grey")!;
-  const appearance =
-    normalizeCalloutAppearance(model.props.appearance) ?? "soft";
+  const { appearance, style } = calloutSurface(model);
   return (
     <div
       ref={el}
+      className={
+        readonly
+          ? calloutHostStyles + " " + calloutBlockContainerStyles
+          : undefined
+      }
+      data-page-callout-readonly={readonly || undefined}
       data-page-callout={model.id}
       data-block-id={model.id}
       data-callout-appearance={appearance}
-      style={
-        appearance === "soft"
-          ? { backgroundColor: palette.background, color: palette.ink }
-          : appearance === "accent"
-            ? {
-                borderInlineStart: `3px solid ${palette.emphasis}`,
-                backgroundColor: "var(--myoxus-background-secondary-color)",
-              }
-            : {
-                border: `1px solid ${palette.emphasis}`,
-                backgroundColor: "var(--myoxus-background-primary-color)",
-              }
-      }
+      style={style}
     >
-      <div contentEditable={false} data-block-id={model.id}>
+      <div
+        hidden={readonly && !icon}
+        className={readonly ? calloutEmojiContainerStyles : undefined}
+        style={readonly ? { marginTop: calloutIconOffset(model) } : undefined}
+        contentEditable={false}
+        data-block-id={model.id}
+      >
         {readonly ? (
           <IconRenderer data={icon} />
         ) : (
@@ -103,7 +105,10 @@ export function PageCallout({
           />
         )}
       </div>
-      <div data-callout-content="">
+      <div
+        data-callout-content=""
+        className={readonly ? calloutChildrenStyles : undefined}
+      >
         {type && (
           <div
             contentEditable={false}
@@ -348,8 +353,21 @@ export function CalloutTitle({
     </Group>
   );
 }
-export function patchCalloutTitleHost(reactToLit: ReactToLit) {
-  return CalloutTitleHostExtension((props) =>
-    reactToLit(<CalloutTitle {...props} />, true),
-  );
+function BoundTitle({
+  state,
+}: {
+  state: ReadonlySignal<CalloutTitleHostProps>;
+}) {
+  return <CalloutTitle {...useSignalValue(state)} />;
+}
+function BoundIcon({ state }: { state: ReadonlySignal<IconData | undefined> }) {
+  return <IconRenderer data={useSignalValue(state)} />;
+}
+export function patchCalloutTitleHost(mountPortal: MountReactPortal) {
+  return CalloutTitleHostExtension({
+    mountTitle: (anchor, state) =>
+      mountPortal(anchor, <BoundTitle state={state} />),
+    mountIcon: (anchor, state) =>
+      mountPortal(anchor, <BoundIcon state={state} />),
+  });
 }

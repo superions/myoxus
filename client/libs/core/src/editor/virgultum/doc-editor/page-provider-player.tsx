@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { usePageCaption } from "./page-caption";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useService } from "@myoxus/infra";
 import { useI18n } from "@myoxus/i18n";
@@ -52,6 +53,7 @@ type Props<T> = {
   handoff: (i: PageIntent) => void;
 };
 export function HtmlCard({ model, readonly, handoff }: Props<EmbedHtmlModel>) {
+  const caption = usePageCaption(model, readonly);
   const t = useI18n(),
     wrap = useRef<HTMLDivElement>(null),
     [active, setActive] = useState(false),
@@ -79,46 +81,48 @@ export function HtmlCard({ model, readonly, handoff }: Props<EmbedHtmlModel>) {
       data-block-id={model.id}
       contentEditable={false}
       tabIndex={-1}
-      style={{ height: EMBED_CARD_HEIGHT.html }}
     >
-      <ReferenceCard
-        size="preview"
-        contained
-        fullHeight
-        orientation="vertical"
-        icon={<FileIconHtmlIcon />}
-        title={t["com.myoxus.editor.embed.html-title"]()}
-        onDoubleClick={fullscreen}
-        preview={
-          model.props.html ? (
-            <Box ref={wrap} h="100%" pos="relative">
-              <iframe
-                title="HTML"
-                sandbox="allow-scripts"
-                loading="lazy"
-                scrolling="no"
-                width="100%"
-                height="100%"
-                srcDoc={`<style>body{margin:0}</style>${model.props.html}`}
-              />
-              {!active && !full && (
-                <Box pos="absolute" inset={0} onClick={select} />
-              )}
-              <div data-html-fullscreen="">
-                <IconButton
-                  icon={<ExpandIcon />}
-                  tooltip={t[
-                    "com.myoxus.workbench.split-view-menu.full-screen"
-                  ]()}
-                  onClick={fullscreen}
+      <div style={{ height: EMBED_CARD_HEIGHT.html }}>
+        <ReferenceCard
+          size="preview"
+          contained
+          fullHeight
+          orientation="vertical"
+          icon={<FileIconHtmlIcon />}
+          title={t["com.myoxus.editor.embed.html-title"]()}
+          onDoubleClick={fullscreen}
+          preview={
+            model.props.html ? (
+              <Box ref={wrap} h="100%" pos="relative">
+                <iframe
+                  title="HTML"
+                  sandbox="allow-scripts"
+                  loading="lazy"
+                  scrolling="no"
+                  width="100%"
+                  height="100%"
+                  srcDoc={`<style>body{margin:0}</style>${model.props.html}`}
                 />
-              </div>
-            </Box>
-          ) : (
-            t["com.myoxus.editor.embed.empty"]()
-          )
-        }
-      />
+                {!active && !full && (
+                  <Box pos="absolute" inset={0} onClick={select} />
+                )}
+                <div data-html-fullscreen="">
+                  <IconButton
+                    icon={<ExpandIcon />}
+                    tooltip={t[
+                      "com.myoxus.workbench.split-view-menu.full-screen"
+                    ]()}
+                    onClick={fullscreen}
+                  />
+                </div>
+              </Box>
+            ) : (
+              t["com.myoxus.editor.embed.empty"]()
+            )
+          }
+        />
+      </div>
+      {caption.field}
     </div>
   );
 }
@@ -127,6 +131,7 @@ export function ForgeCard({
   readonly,
   handoff,
 }: Props<EmbedGithubModel>) {
+  const caption = usePageCaption(model, readonly);
   const t = useI18n(),
     base = useService(ServerService).server.baseUrl;
   const preview = useMemo(
@@ -267,6 +272,7 @@ export function ForgeCard({
           },
         }}
       />
+      {caption.field}
     </div>
   );
 }
@@ -279,6 +285,7 @@ export function PageIframe({
   readonly: boolean;
   handoff: (i: PageIntent) => void;
 }) {
+  const caption = usePageCaption(model, readonly);
   const service = model.store.get(EmbedIframeService);
   const base = useService(ServerService).server.baseUrl;
   const preview = useMemo(
@@ -354,68 +361,68 @@ export function PageIframe({
     });
   };
   return (
-    <div
-      data-block-id={model.id}
-      data-page-iframe=""
-      contentEditable={false}
-      tabIndex={-1}
-      onClick={() => select(!url ? "iframe-input" : undefined)}
-      style={{
-        position: "relative",
-        borderRadius: options?.containerBorderRadius,
-      }}
-    >
-      {usable && src ? (
-        <>
-          <iframe
-            key={src.href}
-            src={src.href}
-            title={model.props.title || new URL(url).hostname}
-            ref={(el) => {
-              if (el && options?.style) el.style.cssText = options.style;
+    <div data-block-id={model.id} contentEditable={false} tabIndex={-1}>
+      <div
+        data-page-iframe=""
+        onClick={() => select(!url ? "iframe-input" : undefined)}
+        style={{
+          position: "relative",
+          borderRadius: options?.containerBorderRadius,
+        }}
+      >
+        {usable && src ? (
+          <>
+            <iframe
+              key={src.href}
+              src={src.href}
+              title={model.props.title || new URL(url).hostname}
+              ref={(el) => {
+                if (el && options?.style) el.style.cssText = options.style;
+              }}
+              sandbox={iframeSandbox(
+                service.getConfig(src.href)?.name === config?.name
+                  ? config
+                  : undefined,
+              )}
+              loading="lazy"
+              {...{ credentialless: true }}
+              width={`${options?.widthPercent ?? 100}%`}
+              height={options?.heightInNote ?? 152}
+              allowFullScreen={options?.allowFullscreen}
+              allow={options?.allow}
+              referrerPolicy={
+                options?.referrerpolicy as ReferrerPolicy | undefined
+              }
+              scrolling={
+                options?.scrolling === undefined
+                  ? undefined
+                  : options.scrolling
+                    ? "yes"
+                    : "no"
+              }
+            />
+            <span data-iframe-source="">{new URL(url).hostname}</span>
+            {!interactive && <div data-iframe-guard="" />}
+          </>
+        ) : (
+          <EditorIframeStatusCard
+            controls={{
+              status: !url
+                ? "idle"
+                : state?.error || state?.src
+                  ? "error"
+                  : "loading",
+              message: url,
+              inSurface: false,
+              selected: false,
+              readonly,
+              edit: () => select("iframe-input"),
+              retry: async () => setRetry((n) => n + 1),
             }}
-            sandbox={iframeSandbox(
-              service.getConfig(src.href)?.name === config?.name
-                ? config
-                : undefined,
-            )}
-            loading="lazy"
-            {...{ credentialless: true }}
-            width={`${options?.widthPercent ?? 100}%`}
-            height={options?.heightInNote ?? 152}
-            allowFullScreen={options?.allowFullscreen}
-            allow={options?.allow}
-            referrerPolicy={
-              options?.referrerpolicy as ReferrerPolicy | undefined
-            }
-            scrolling={
-              options?.scrolling === undefined
-                ? undefined
-                : options.scrolling
-                  ? "yes"
-                  : "no"
-            }
           />
-          <span data-iframe-source="">{new URL(url).hostname}</span>
-          {!interactive && <div data-iframe-guard="" />}
-        </>
-      ) : (
-        <EditorIframeStatusCard
-          controls={{
-            status: !url
-              ? "idle"
-              : state?.error || state?.src
-                ? "error"
-                : "loading",
-            message: url,
-            inSurface: false,
-            selected: false,
-            readonly,
-            edit: () => select("iframe-input"),
-            retry: async () => setRetry((n) => n + 1),
-          }}
-        />
-      )}
+        )}
+      </div>
+      {caption.field}
     </div>
   );
 }
@@ -428,6 +435,7 @@ export default function PageProviderPlayer({
   readonly: boolean;
   handoff: (i: PageIntent) => void;
 }) {
+  const caption = usePageCaption(model, readonly);
   const base = useService(ServerService).server.baseUrl;
   const preview = useMemo(
     () => workspaceLinkPreview(base, LinkPreviewCache.getInstance()),
@@ -559,33 +567,35 @@ export default function PageProviderPlayer({
       data-page-provider={model.flavour}
       tabIndex={-1}
       contentEditable={false}
-      style={{ height: EMBED_CARD_HEIGHT[style] }}
     >
-      {model instanceof EmbedLoomModel ? (
-        <EditorLoomCard controls={{ ...data, title: data.title ?? "Loom" }} />
-      ) : model instanceof EmbedYoutubeModel ? (
-        <EditorYoutubeCard
-          controls={{
-            ...data,
-            title: data.title ?? "YouTube",
-            printImage: print,
-            creator:
-              current?.data?.creator ?? (stored ? model.props.creator : null),
-            creatorImage: proxy(
-              current?.data?.creatorImage ??
-                (stored ? model.props.creatorImage : null),
-            ),
-          }}
-        />
-      ) : (
-        <EditorFigmaCard
-          controls={{
-            ...common,
-            title: title ?? "Figma",
-            iframeUrl: `https://www.figma.com/embed?embed_host=virgultum&url=${encodeURIComponent(url)}`,
-          }}
-        />
-      )}
+      <div style={{ height: EMBED_CARD_HEIGHT[style] }}>
+        {model instanceof EmbedLoomModel ? (
+          <EditorLoomCard controls={{ ...data, title: data.title ?? "Loom" }} />
+        ) : model instanceof EmbedYoutubeModel ? (
+          <EditorYoutubeCard
+            controls={{
+              ...data,
+              title: data.title ?? "YouTube",
+              printImage: print,
+              creator:
+                current?.data?.creator ?? (stored ? model.props.creator : null),
+              creatorImage: proxy(
+                current?.data?.creatorImage ??
+                  (stored ? model.props.creatorImage : null),
+              ),
+            }}
+          />
+        ) : (
+          <EditorFigmaCard
+            controls={{
+              ...common,
+              title: title ?? "Figma",
+              iframeUrl: `https://www.figma.com/embed?embed_host=virgultum&url=${encodeURIComponent(url)}`,
+            }}
+          />
+        )}
+      </div>
+      {caption.field}
     </div>
   );
 }

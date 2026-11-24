@@ -1,7 +1,7 @@
 import "katex/dist/katex.min.css";
 
 import { useGuard } from "@myoxus/core/components/guard/use-guard";
-import { useEnableAI } from "@myoxus/core/components/hooks/myoxus/use-enable-ai";
+import { useEditorCopilot } from "@myoxus/core/components/hooks/myoxus/use-enable-ai";
 import { DocumentViewport, DocumentTitle } from "@myoxus/core/editor/editors";
 import type { EditorHost } from "@virgultum/editor/std";
 import { getViewManager } from "@myoxus/core/editor/manager/view";
@@ -176,7 +176,7 @@ const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
     [openConfirmModal, closeConfirmModal],
   );
 
-  const enableAI = useEnableAI();
+  const enableAI = useEditorCopilot();
 
   const isInPeekView = useInsidePeekView();
 

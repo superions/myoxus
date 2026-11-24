@@ -1,11 +1,4 @@
 import {
-  BlockLinkIcon,
-  DeleteIcon,
-  EdgelessIcon,
-  LinkIcon,
-  PageIcon,
-} from "@myoxus/icons/lit";
-import {
   computed,
   type ReadonlySignal,
   type Signal,
@@ -19,15 +12,23 @@ import {
 import type { AliasInfo, ReferenceParams } from "../models/index";
 import { LifeCycleWatcher, StdIdentifier } from "../runtime/index";
 import type { Store } from "../store/index";
-import type { TemplateResult } from "lit";
 
 import { referenceToNode } from "../utils/reference.js";
-import { DocModeProvider } from "./doc-mode-service.js";
 
 export type DocDisplayMetaParams = {
   referenced?: boolean;
   params?: ReferenceParams;
 } & AliasInfo;
+
+export type ReferenceIconName = "LinkIcon" | "BlockLinkIcon" | "DeleteIcon";
+
+/** Only the addressed object determines an inline or embedded reference glyph. */
+export function referenceIconName(
+  pageId: string,
+  params?: ReferenceParams,
+): ReferenceIconName {
+  return referenceToNode({ pageId, params }) ? "BlockLinkIcon" : "LinkIcon";
+}
 
 /**
  * Customize document display title and icon.
@@ -44,10 +45,10 @@ export type DocDisplayMetaParams = {
  *      `EmbedEdgelessSyncedDocBlockComponent`
  */
 export interface DocDisplayMetaExtension {
-  icon: (
-    docId: string,
-    referenceInfo?: DocDisplayMetaParams,
-  ) => ReadonlySignal<TemplateResult>;
+  referenceIcon: (
+    pageId: string,
+    params?: ReferenceParams,
+  ) => ReferenceIconName;
   title: (
     docId: string,
     referenceInfo?: DocDisplayMetaParams,
@@ -62,19 +63,9 @@ export class DocDisplayMetaService
   extends LifeCycleWatcher
   implements DocDisplayMetaExtension
 {
-  static icons = {
-    deleted: iconBuilder(DeleteIcon),
-    page: iconBuilder(PageIcon),
-    edgeless: iconBuilder(EdgelessIcon),
-    linkedBlock: iconBuilder(BlockLinkIcon),
-    linkedPage: iconBuilder(LinkIcon),
-  } as const;
-
   static override key = "doc-display-meta";
 
   readonly disposables: DisposableMember[] = [];
-
-  readonly iconMap = new WeakMap<Store, Signal<TemplateResult>>();
 
   readonly titleMap = new WeakMap<Store, Signal<string>>();
 
@@ -91,51 +82,10 @@ export class DocDisplayMetaService
     }
   }
 
-  icon(
-    pageId: string,
-    { params, referenced }: DocDisplayMetaParams = {},
-  ): ReadonlySignal<TemplateResult> {
-    const doc = this.std.workspace.getDoc(pageId);
-
-    if (!doc) {
-      return computed(() => DocDisplayMetaService.icons.deleted);
-    }
-
-    const store = doc.getStore();
-
-    let icon$ = this.iconMap.get(store);
-
-    if (!icon$) {
-      icon$ = signal(
-        this.std.get(DocModeProvider).getPrimaryMode(pageId) === "edgeless"
-          ? DocDisplayMetaService.icons.edgeless
-          : DocDisplayMetaService.icons.page,
-      );
-
-      const disposable = this.std
-        .get(DocModeProvider)
-        .onPrimaryModeChange((mode) => {
-          icon$!.value =
-            mode === "edgeless"
-              ? DocDisplayMetaService.icons.edgeless
-              : DocDisplayMetaService.icons.page;
-        }, pageId);
-
-      this.disposables.push(disposable);
-      this.iconMap.set(store, icon$);
-    }
-
-    return computed(() => {
-      if (referenceToNode({ pageId, params })) {
-        return DocDisplayMetaService.icons.linkedBlock;
-      }
-
-      if (referenced) {
-        return DocDisplayMetaService.icons.linkedPage;
-      }
-
-      return icon$.value;
-    });
+  referenceIcon(pageId: string, params?: ReferenceParams): ReferenceIconName {
+    return this.std.workspace.getDoc(pageId)
+      ? referenceIconName(pageId, params)
+      : "DeleteIcon";
   }
 
   title(
@@ -172,12 +122,4 @@ export class DocDisplayMetaService
   override unmounted() {
     this.dispose();
   }
-}
-
-function iconBuilder(
-  icon: typeof PageIcon,
-  size = "1.25em",
-  style = "user-select:none;flex-shrink:0;vertical-align:middle;font-size:inherit;",
-) {
-  return icon({ width: size, height: size, style });
 }

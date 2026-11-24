@@ -12,7 +12,6 @@ import {
   resolveEditorMessage,
 } from "@virgultum/core/services";
 import type { UIEventStateContext } from "@virgultum/core/runtime";
-import type { ReactiveController } from "lit";
 
 import { ColumnMinWidth, DefaultColumnWidth } from "./consts";
 import {
@@ -29,11 +28,10 @@ import {
 } from "./table-cell";
 import { cleanSelection } from "./utils";
 const TEXT = "text/plain";
-export class SelectionController implements ReactiveController {
-  constructor(public readonly host: TableBlockComponent) {
-    this.host.addController(this);
-  }
-  hostConnected() {
+export class SelectionController {
+  constructor(public readonly host: TableBlockComponent) {}
+
+  connect() {
     this.dragListener();
     this.host.handleEvent("copy", this.onCopy);
     this.host.handleEvent("cut", this.onCut);

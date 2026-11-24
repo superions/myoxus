@@ -1,10 +1,16 @@
-import { type Rect } from "@virgultum/core/primitives/gfx";
-import { css, html, LitElement } from "lit";
-import { property, state } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
+import { NativeViewElement } from "../../primitives/env/index.js";
+import type { Rect } from "../../primitives/gfx/index.js";
 
-export class DropIndicator extends LitElement {
-  static override styles = css`
+export class DropIndicator extends NativeViewElement {
+  private readonly mark = this.ownerDocument.createElement("div");
+  private bounds: Rect | null = null;
+  private layer = 2;
+
+  constructor() {
+    super();
+    const shadow = this.attachShadow({ mode: "open" });
+    const style = this.ownerDocument.createElement("style");
+    style.textContent = `
     .myoxus-drop-indicator {
       position: absolute;
       top: 0;
@@ -19,29 +25,36 @@ export class DropIndicator extends LitElement {
       z-index: 2;
     }
   `;
-
-  override render() {
-    if (!this.rect) {
-      return null;
-    }
-
-    const { left, top, width, height } = this.rect;
-    const style = styleMap({
-      width: `${width}px`,
-      height: `${height}px`,
-      top: `${top}px`,
-      left: `${left}px`,
-      zIndex: this.zIndex,
-    });
-
-    return html`<div class="myoxus-drop-indicator" style=${style}></div>`;
+    shadow.append(style);
+    this.mark.className = "myoxus-drop-indicator";
   }
 
-  @property({ attribute: false })
-  accessor rect: Rect | null = null;
+  get rect() {
+    return this.bounds;
+  }
+  set rect(value: Rect | null) {
+    this.bounds = value;
+    if (!value) {
+      this.mark.remove();
+      return;
+    }
+    Object.assign(this.mark.style, {
+      left: value.left + "px",
+      top: value.top + "px",
+      width: value.width + "px",
+      height: value.height + "px",
+      zIndex: String(this.layer),
+    });
+    if (!this.mark.parentNode) this.shadowRoot!.append(this.mark);
+  }
 
-  @state()
-  accessor zIndex = 2;
+  get zIndex() {
+    return this.layer;
+  }
+  set zIndex(value: number) {
+    this.layer = value;
+    this.mark.style.zIndex = String(value);
+  }
 }
 
 declare global {

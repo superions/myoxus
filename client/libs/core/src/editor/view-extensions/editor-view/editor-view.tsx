@@ -126,7 +126,7 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
 
     context
       .register([
-        patchReferenceRenderer(reactToLit, referenceRenderer),
+        patchReferenceRenderer(options.mountPortal, referenceRenderer),
         patchNotificationService(confirmModal),
         patchOpenDocExtension(),
         patchSideBarService(framework),
@@ -151,7 +151,7 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
           options.mountPortal,
           options.showAnnotations ?? false,
         ),
-        patchCalloutTitleHost(reactToLit),
+        patchCalloutTitleHost(options.mountPortal),
         patchFootnoteHost(options.mountPortal),
         patchEditorChromeHost(reactToLit, options.mountPortal),
       ])

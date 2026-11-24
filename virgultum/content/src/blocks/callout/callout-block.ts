@@ -1,397 +1,211 @@
-import * as icons from "@myoxus/icons/lit";
-import { cssVar } from "@myoxus/theme";
-import { CaptionedBlockComponent } from "../../caption/index";
-import {
-  createPopup,
-  popupTargetFromElement,
-} from "@virgultum/core/view/portal";
-import { DefaultInlineManagerExtension } from "../../inlines/preset/index";
-import {
-  type CalloutBlockModel,
-  normalizeCalloutAppearance,
-  type ParagraphBlockModel,
-} from "@virgultum/core/models";
-import { focusTextModel } from "../../rich-text/index";
+import { computed, effect, signal } from "@preact/signals-core";
+import { type CalloutBlockModel } from "@virgultum/core/models";
 import { EDGELESS_TOP_CONTENTEDITABLE_SELECTOR } from "@virgultum/core/consts";
 import {
   DocModeProvider,
-  editorBackgroundColors,
-  type IconData,
-  IconPickerServiceIdentifier,
-  IconType,
   EditorI18nProvider,
   textProtectionHint,
 } from "@virgultum/core/services";
-import type { BlockComponent } from "@virgultum/core/runtime";
-import { html, type TemplateResult } from "lit";
-import { type StyleInfo, styleMap } from "lit/directives/style-map.js";
-
+import {
+  NativeContainerBlock,
+  type BlockComponent,
+} from "@virgultum/core/runtime";
+import { DefaultInlineManagerExtension } from "../../inlines/preset/index";
+import { focusTextModel } from "../../rich-text/index";
+import { selectionFrame } from "../../caption/selection-frame";
 import {
   calloutBlockContainerStyles,
   calloutChildrenStyles,
   calloutEmojiContainerStyles,
   calloutEmojiStyles,
   calloutHostStyles,
+  calloutIconOffset,
+  calloutSurface,
 } from "./callout-block-styles";
-import { IconPickerWrapper } from "./icon-picker-wrapper";
-import { CalloutTitleHostIdentifier } from "./react-host";
-const getIcon = (icon?: IconData) => {
-  if (!icon) {
-    return null;
-  }
-  if (icon.type === IconType.Emoji) {
-    return icon.unicode;
-  }
-  if (icon.type === IconType.MyoxusIcon) {
-    return (
-      icons as Record<string, (props: { style: string }) => TemplateResult>
-    )[`${icon.name}Icon`]?.({ style: `color:${icon.color}` });
-  }
-  return null;
-};
-export class CalloutBlockComponent extends CaptionedBlockComponent<CalloutBlockModel> {
-  private _popupCloseHandler: (() => void) | null = null;
-  // Viewing state is deliberately not a Yjs write or an undo/history entry.
-  private _expanded: boolean | undefined;
-  private _foldState = "";
+import { openCalloutIconPicker } from "./icon-picker-wrapper";
+import {
+  CalloutTitleHostIdentifier,
+  type CalloutTitleHostProps,
+} from "./react-host";
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.classList.add(calloutHostStyles);
-  }
-
-  override disconnectedCallback() {
-    this._closeIconPicker();
-    super.disconnectedCallback();
-  }
-
-  private _getEmojiMarginTop(): string {
-    if (this.model.children.length === 0) {
-      return "10px";
-    }
-
-    const firstChild = this.model.children[0];
-    const flavour = firstChild.flavour;
-
-    const marginTopMap: Record<string, string> = {
-      "myoxus:paragraph:h1": "23px",
-      "myoxus:paragraph:h2": "20px",
-      "myoxus:paragraph:h3": "16px",
-      "myoxus:paragraph:h4": "15px",
-      "myoxus:paragraph:h5": "14px",
-      "myoxus:paragraph:h6": "13px",
-    };
-
-    // For heading blocks, use the type to determine margin
-    if (flavour === "myoxus:paragraph") {
-      const paragraph = firstChild as ParagraphBlockModel;
-      const type = paragraph.props.type$.value;
-      const key = `${flavour}:${type}`;
-      return marginTopMap[key] || "10px";
-    }
-
-    // Default for all other block types
-    return "10px";
-  }
-
-  private _closeIconPicker() {
-    if (this._popupCloseHandler) {
-      this._popupCloseHandler();
-      this._popupCloseHandler = null;
-    }
-  }
-
-  private _toggleIconPicker(event: MouseEvent) {
-    if (this.store.readonly) return;
-    // If popup is already open, close it
-    if (this._popupCloseHandler) {
-      this._closeIconPicker();
-      return;
-    }
-
-    // Get IconPickerService from the framework
-    const iconPickerService = this.std.getOptional(IconPickerServiceIdentifier);
-    if (!iconPickerService) {
-      console.warn("IconPickerService not found");
-      return;
-    }
-
-    // Get the uni-component from the service
-    const iconPickerComponent = iconPickerService.iconPickerComponent;
-
-    // Create props for the icon picker
-    const props = {
-      onSelect: (iconData?: IconData) => {
-        if (this.store.readonly) {
-          this._closeIconPicker();
-          return;
-        }
-        this.store.captureSync();
-        this.store.updateBlock(this.model, () => {
-          this.model.props.icon = iconData;
-        });
-        this.store.captureSync();
-        this._closeIconPicker(); // Close the picker after selection
-      },
-      onClose: () => {
-        this._closeIconPicker();
-      },
-    };
-
-    // Create IconPickerWrapper instance
-    const wrapper = new IconPickerWrapper();
-    wrapper.iconPickerComponent = iconPickerComponent;
-    wrapper.props = props;
-    wrapper.style.position = "absolute";
-    wrapper.style.backgroundColor = cssVar("backgroundOverlayPanelColor");
-    wrapper.style.boxShadow = "var(--myoxus-menu-shadow)";
-    wrapper.style.borderRadius = "8px";
-
-    // Create popup target from the clicked element
-    const target = popupTargetFromElement(event.currentTarget as HTMLElement);
-
-    // Create popup
-    this._popupCloseHandler = createPopup(target, wrapper, {
-      onClose: () => {
-        this._popupCloseHandler = null;
-      },
-    });
-  }
-
-  private readonly _handleBlockClick = (event: MouseEvent) => {
-    if (this.store.readonly) return;
-    if (
-      this.model.props.foldable &&
-      !(this._expanded ?? this.model.props.defaultOpen !== false)
-    )
-      return;
-    // Check if the click target is emoji related element
-    const target = event.target as HTMLElement;
-    if (target.closest("[data-callout-title]")) return;
-    if (target.closest("rich-text")) {
-      // Native title controls can leave browser focus outside the editor while
-      // the pointer has already placed a valid caret in this rich-text body.
-      this.topContenteditableElement?.focus({ preventScroll: true });
-      return;
-    }
-    if (
-      target.closest(".myoxus-callout-emoji-container") ||
-      target.classList.contains("myoxus-callout-emoji")
-    ) {
-      return;
-    }
-
-    // If there's no icon, open icon picker on click
-    const icon = this.model.props.icon$.value;
-    if (!icon) {
-      this._toggleIconPicker(event);
-      return;
-    }
-
-    // Only handle clicks when there are no children
-    if (this.model.children.length > 0) {
-      return;
-    }
-
-    // Prevent event bubbling
-    event.stopPropagation();
-
-    // Create a new paragraph block
-    const paragraphId = this.store.addBlock("myoxus:paragraph", {}, this.model);
-
-    // Focus the new paragraph
-    focusTextModel(this.std, paragraphId);
-  };
-
-  get attributeRenderer() {
-    return this.inlineManager.getRenderer();
-  }
-
-  get attributesSchema() {
-    return this.inlineManager.getSchema();
-  }
-
-  get embedChecker() {
-    return this.inlineManager.embedChecker;
-  }
-
-  get inlineManager() {
-    return this.std.get(DefaultInlineManagerExtension.identifier);
-  }
-
+export class CalloutBlockComponent extends NativeContainerBlock<CalloutBlockModel> {
+  protected readonly blockStyles = "";
   override get topContenteditableElement() {
-    if (this.std.get(DocModeProvider).getEditorMode() === "edgeless") {
-      return this.closest<BlockComponent>(
-        EDGELESS_TOP_CONTENTEDITABLE_SELECTOR,
-      );
-    }
-    return this.rootComponent;
+    return this.std.get(DocModeProvider).getEditorMode() === "edgeless"
+      ? this.closest<BlockComponent>(EDGELESS_TOP_CONTENTEDITABLE_SELECTOR)
+      : this.rootComponent;
   }
-
-  override renderBlock() {
-    const type = this.model.props.type$.value;
-    const foldable = this.model.props.foldable$.value === true;
-    const defaultOpen = this.model.props.defaultOpen$.value !== false;
-    const foldState = `${foldable}:${defaultOpen}`;
-    if (foldState !== this._foldState) {
-      this._foldState = foldState;
-      this._expanded = undefined;
-    }
-    const expanded = !foldable || (this._expanded ?? defaultOpen);
-    const title = this.model.props.title;
-    const titleValue =
-      title?.deltas$.value.map((delta) => delta.insert ?? "").join("") ?? "";
-    const titleHost = this.std.getOptional(CalloutTitleHostIdentifier);
-    const icon = this.model.props.icon$.value;
-    const backgroundColorName = this.model.props.backgroundColorName$.value;
-    const normalizedBackgroundName =
-      backgroundColorName === "default" || backgroundColorName === ""
-        ? "grey"
-        : backgroundColorName;
-    const palette = editorBackgroundColors.find(
-      ({ name }) => name === normalizedBackgroundName,
+  protected mountBody() {
+    const { model, store, ownerDocument: doc } = this;
+    const host = this.std.getOptional(CalloutTitleHostIdentifier);
+    this.classList.add(calloutHostStyles);
+    const surface = doc.createElement("div");
+    surface.className = calloutBlockContainerStyles;
+    const glyph = doc.createElement("div");
+    glyph.className = calloutEmojiContainerStyles;
+    glyph.contentEditable = "false";
+    const icon = doc.createElement("span");
+    icon.className = calloutEmojiStyles;
+    icon.dataset.testid = "callout-emoji";
+    glyph.append(icon);
+    const content = doc.createElement("div");
+    content.className = calloutChildrenStyles;
+    const title = doc.createElement("div");
+    title.contentEditable = "false";
+    title.dataset.calloutTitle = "";
+    const body = doc.createElement("div");
+    body.dataset.calloutBody = "";
+    const children = doc.createElement("div");
+    children.className = "myoxus-block-children-container";
+    body.append(children);
+    content.append(title, body);
+    surface.append(glyph, content);
+    this.append(selectionFrame(this, surface));
+    this.mountBlockWidgets(surface);
+    const manager = this.std.get(DefaultInlineManagerExtension.identifier);
+    const input = doc.createElement("rich-text");
+    input.inlineEventSource = this.topContenteditableElement ?? undefined;
+    input.undoManager = store.history.undoManager;
+    input.attributesSchema = manager.getSchema();
+    input.attributeRenderer = manager.getRenderer();
+    input.markdownMatches = manager.markdownMatches;
+    input.embedChecker = manager.embedChecker;
+    input.enableClipboard = false;
+    input.enableUndoRedo = false;
+    this.disposables.add(
+      effect(() => {
+        const props = model.props,
+          text = props.text$.value;
+        input.yText = text.yText;
+        input.readonly =
+          store.readonly || props.textProtection$.value === "fixed";
+        input.title =
+          textProtectionHint(
+            props.textProtection$.value,
+            this.std.getOptional(EditorI18nProvider) ?? undefined,
+          ) ?? "";
+        if (text.deltas$.value.length || !model.children.length) {
+          if (!input.parentElement) body.prepend(input);
+        } else input.remove();
+      }),
     );
-    const backgroundColor =
-      palette?.background ??
-      (normalizedBackgroundName === "grey"
-        ? cssVar("tagGray")
-        : cssVar(
-            `--myoxus-text-highlight-${normalizedBackgroundName ?? "grey"}`,
-          ));
-    const emphasisColor =
-      palette?.emphasis ??
-      cssVar(
-        `--myoxus-text-highlight-foreground-${normalizedBackgroundName ?? "grey"}`,
+    const folded = signal<{ policy: string; open: boolean } | undefined>(
+      undefined,
+    );
+    const policy = computed(
+      () =>
+        `${!!model.props.foldable$.value}:${model.props.defaultOpen$.value !== false}`,
+    );
+    const expanded = computed(
+      () =>
+        !model.props.foldable$.value ||
+        (folded.value?.policy === policy.value
+          ? folded.value.open
+          : model.props.defaultOpen$.value !== false),
+    );
+    const writable = () =>
+      this.isConnected &&
+      !store.readonly &&
+      store.getModelById(model.id) === model;
+    const titleState = computed<CalloutTitleHostProps>(() => {
+      const props = model.props,
+        type = props.type$.value;
+      const foldable = props.foldable$.value === true,
+        defaultOpen = props.defaultOpen$.value !== false;
+      return {
+        type,
+        foldable,
+        defaultOpen,
+        expanded: expanded.value,
+        title:
+          props.title$.value?.deltas$.value.map((d) => d.insert).join("") ?? "",
+        readonly: store.readonly || props.textProtection$.value === "fixed",
+        toggle: () => {
+          folded.value = { policy: policy.value, open: !expanded.value };
+        },
+        apply: (value, base) => writable() && model.applyTitle(value, base),
+        applySettings: (value) =>
+          writable() &&
+          !!type &&
+          model.applySettings(value, { type, foldable, defaultOpen }),
+        focusEditor: () => {
+          if (!writable()) return;
+          folded.value = { policy: policy.value, open: true };
+          void this.updateComplete.then(() => {
+            if (!writable()) return;
+            this.topContenteditableElement?.focus({ preventScroll: true });
+            const target =
+              model.props.text.length || !model.children.length
+                ? model
+                : model.children[0];
+            focusTextModel(this.std, target.id, target.text?.length ?? 0);
+          });
+        },
+      };
+    });
+    const iconState = computed(() => model.props.icon$.value);
+    this.disposables.add(
+      effect(() => {
+        const current = iconState.value;
+        if (current && current.type !== "blob") {
+          if (glyph.parentElement !== surface) surface.prepend(glyph);
+          glyph.style.marginTop = calloutIconOffset(model);
+        } else glyph.remove();
+        body.hidden = !expanded.value;
+        title.hidden = !model.props.type$.value;
+        const { appearance, style } = calloutSurface(model);
+        surface.dataset.calloutAppearance = appearance;
+        Object.assign(surface.style, style);
+      }),
+    );
+    if (host) {
+      this.disposables.add(host.mountIcon(icon, iconState));
+      this.disposables.add(host.mountTitle(title, titleState));
+    } else {
+      this.disposables.add(
+        effect(() => {
+          title.textContent = titleState.value.title;
+          const value = iconState.value;
+          icon.textContent = value?.type === "emoji" ? value.unicode : "";
+        }),
       );
-    const appearance =
-      normalizeCalloutAppearance(this.model.props.appearance$.value) ?? "soft";
-    const appearanceStyles: StyleInfo =
-      appearance === "accent"
-        ? {
-            backgroundColor: cssVar("backgroundSecondaryColor"),
-            borderInlineStart: `3px solid ${emphasisColor}`,
-          }
-        : appearance === "outline"
-          ? {
-              backgroundColor: cssVar("backgroundPrimaryColor"),
-              border: `1px solid ${emphasisColor}`,
-            }
-          : { backgroundColor, color: palette?.ink };
-
-    const iconContent = getIcon(icon);
-
-    return html`
-      <div
-        class="${calloutBlockContainerStyles}"
-        data-callout-appearance=${appearance}
-        @click=${this._handleBlockClick}
-        style=${styleMap(appearanceStyles)}
-      >
-        ${
-          iconContent
-            ? html`
-                <div
-                  @click=${this._toggleIconPicker}
-                  contenteditable="false"
-                  class="${calloutEmojiContainerStyles}"
-                  style=${styleMap({
-                    // Typed callouts align their icon with the title row;
-                    // untitled callouts still follow the first body's heading.
-                    marginTop: type ? "0" : this._getEmojiMarginTop(),
-                  })}
-                >
-                  <span
-                    class="${calloutEmojiStyles}"
-                    data-testid="callout-emoji"
-                    >${iconContent}</span
-                  >
-                </div>
-              `
-            : ""
-        }
-        <div class="${calloutChildrenStyles}">
-          ${
-            type
-              ? html` <div contenteditable="false" data-callout-title>
-                  ${
-                    titleHost?.render({
-                      type,
-                      foldable,
-                      defaultOpen,
-                      expanded,
-                      toggle: () => {
-                        this._expanded = !expanded;
-                        this.requestUpdate();
-                      },
-                      applySettings: (value) =>
-                        this.model.applySettings(value, {
-                          type,
-                          foldable,
-                          defaultOpen,
-                        }),
-                      title: titleValue,
-                      readonly:
-                        this.store.readonly$.value ||
-                        this.model.props.textProtection === "fixed",
-                      focusEditor: async () => {
-                        if (this.store.readonly) return;
-                        if (!expanded) {
-                          this._expanded = true;
-                          this.requestUpdate();
-                          await this.updateComplete;
-                        }
-                        if (
-                          !this.isConnected ||
-                          this.store.readonly ||
-                          this.store.getModelById(this.model.id) !== this.model
-                        )
-                          return;
-                        // A native title input owns focus outside the rich-text
-                        // range. Return both browser focus and editor selection.
-                        this.topContenteditableElement?.focus({
-                          preventScroll: true,
-                        });
-                        const target =
-                          this.model.props.text.length ||
-                          !this.model.children.length
-                            ? this.model
-                            : this.model.children[0];
-                        focusTextModel(
-                          this.std,
-                          target.id,
-                          target.text?.length ?? 0,
-                        );
-                      },
-                      apply: (value, base) =>
-                        this.model.applyTitle(value, base),
-                    }) ?? titleValue
-                  }
-                </div>`
-              : ""
-          }
-          <div ?hidden=${!expanded} data-callout-body>
-            ${
-              this.model.props.text.deltas$.value.length ||
-              this.model.children.length === 0
-                ? html` <rich-text
-                    .yText=${this.model.props.text.yText}
-                    .inlineEventSource=${this.topContenteditableElement}
-                    .undoManager=${this.store.history.undoManager}
-                    .attributesSchema=${this.attributesSchema}
-                    .attributeRenderer=${this.attributeRenderer}
-                    .markdownMatches=${this.inlineManager.markdownMatches}
-                    .embedChecker=${this.embedChecker}
-                    .readonly=${this.store.readonly || this.model.props.textProtection === "fixed"}
-                    title=${textProtectionHint(this.model.props.textProtection, this.std.getOptional(EditorI18nProvider) ?? undefined)}
-                    .enableClipboard=${false}
-                    .enableUndoRedo=${false}
-                  ></rich-text>`
-                : ""
-            }
-            ${this.renderChildren(this.model)}
-          </div>
-        </div>
-      </div>
-    `;
+    }
+    let closePicker: (() => void) | undefined;
+    const pick = (anchor: HTMLElement) => {
+      if (closePicker) {
+        closePicker();
+        return;
+      }
+      closePicker = openCalloutIconPicker(this.std, model, anchor, () => {
+        closePicker = undefined;
+      });
+    };
+    this.disposables.add(() => closePicker?.());
+    this.disposables.addFromEvent(surface, "click", (event) => {
+      if (
+        !writable() ||
+        !(event.target instanceof Element) ||
+        title.contains(event.target)
+      )
+        return;
+      if (glyph.contains(event.target)) {
+        pick(glyph);
+        return;
+      }
+      if (!expanded.value) return;
+      if (event.target.closest("rich-text")) {
+        this.topContenteditableElement?.focus({ preventScroll: true });
+        return;
+      }
+      if (!iconState.value) {
+        pick(surface);
+        return;
+      }
+      if (model.children.length) return;
+      event.stopPropagation();
+      const id = store.addBlock("myoxus:paragraph", {}, model);
+      focusTextModel(this.std, id);
+    });
+    return children;
   }
 }

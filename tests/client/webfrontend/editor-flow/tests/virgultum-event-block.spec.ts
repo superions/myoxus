@@ -33,9 +33,13 @@ import {
 } from "../../shared/auth-helper";
 import { getSmokeWorkspaceId, smokeGql } from "../../shared/workspace-helper";
 
-const FRONTEND = "http://localhost:3010";
-const API = "http://localhost:3001";
+const FRONTEND =
+  process.env.MYOXUS_FRONTEND_BASE_URL ?? "http://localhost:3010";
+const API = process.env.MYOXUS_API_BASE_URL ?? "http://localhost:3001";
 const GQL = `${API}/graphql`;
+
+const journalEditor = "[data-myoxus-editor-container]";
+const bodyLine = "[data-page-body] [data-page-text], myoxus-paragraph v-line";
 
 const USER_EMAIL = DEFAULT_SMOKE_USER_EMAIL;
 const USER_PASSWORD = DEFAULT_SMOKE_USER_PASSWORD;
@@ -118,15 +122,6 @@ async function clickVisibleControl(page: Page, target: Locator): Promise<void> {
   await target.click({ timeout: 15_000 });
 }
 
-function e2eCleanupWindow(): { from: string; to: string } {
-  const from = new Date();
-  from.setDate(from.getDate() - 30);
-  from.setHours(0, 0, 0, 0);
-  const to = new Date(from);
-  to.setFullYear(to.getFullYear() + 4);
-  return { from: from.toISOString(), to: to.toISOString() };
-}
-
 const CALENDAR_EVENTS = `
   query calendarEvents($workspaceId: String!, $from: DateTime!, $to: DateTime!) {
     workspace(id: $workspaceId) {
@@ -171,8 +166,12 @@ const DELETE_DOCUMENTS_PERMANENTLY = `
 async function deleteEventsByTitle(
   request: APIRequestContext,
   title: string,
+  date: string,
 ): Promise<void> {
-  const { from, to } = e2eCleanupWindow();
+  const start = new Date(date + "T00:00:00Z");
+  // Include both adjacent UTC days for a journal created in local time.
+  const from = new Date(start.getTime() - 86_400_000).toISOString();
+  const to = new Date(start.getTime() + 2 * 86_400_000).toISOString();
   const data = (await gql(request, cookies, CALENDAR_EVENTS, {
     workspaceId,
     from,
@@ -200,45 +199,6 @@ async function deleteEventsByTitle(
   if (failedDeletes > 0) {
     throw new Error(
       `failed to delete ${failedDeletes} calendar E2E event(s) titled "${title}"`,
-    );
-  }
-}
-
-async function cleanupSmokeEvents(request: APIRequestContext): Promise<void> {
-  const { from, to } = e2eCleanupWindow();
-  const data = (await gql(request, cookies, CALENDAR_EVENTS, {
-    workspaceId,
-    from,
-    to,
-  })) as {
-    workspace?: {
-      calendars?: Array<{ events?: Array<{ id: string; title?: string }> }>;
-    };
-  };
-  const events =
-    data.workspace?.calendars?.flatMap((calendar) => calendar.events ?? []) ??
-    [];
-  const cleanupEvents = events.filter((event) =>
-    /^E2E (Test Event|Edit Test|Delete Test|Block Test) \d+/.test(
-      event.title ?? "",
-    ),
-  );
-  const failedDeletes: string[] = [];
-
-  for (const event of cleanupEvents) {
-    const deleted = (await gql(request, cookies, DELETE_EVENT, {
-      eventId: event.id,
-      workspaceId,
-      scope: "All",
-    })) as { deleteWorkspaceEvent?: boolean };
-    if (!deleted.deleteWorkspaceEvent) {
-      failedDeletes.push(event.id);
-    }
-  }
-
-  if (failedDeletes.length > 0) {
-    throw new Error(
-      `failed to delete calendar E2E artifact(s): ${failedDeletes.join(", ")}`,
     );
   }
 }
@@ -332,7 +292,7 @@ async function createDisposableJournalEditor(
   );
   await dismissOpenInAppOverlay(page);
 
-  const editor = page.locator("[data-myoxus-editor-container]");
+  const editor = page.locator(journalEditor);
   const createBtn = page.locator(
     '[data-testid="confirm-create-journal-button"]',
   );
@@ -367,24 +327,21 @@ async function createDisposableJournalEditor(
     );
   }
 
-  if (state === "create") {
-    await expect(createBtn).toBeVisible({ timeout: 15_000 });
-    // The create action is setup for the Event-Block contract. The journal
-    // placeholder is already visible and the following editor assertion proves
-    // that the real create handler ran; force avoids unrelated overlay
-    // actionability noise from the right sidebar while still using the rendered
-    // button element.
-    await createBtn.click({ force: true, timeout: 15_000 });
-    await expect(editor).toBeVisible({ timeout: 30_000 });
-  }
-  await page.waitForSelector("v-line", { timeout: 20_000 });
+  if (state === "editor")
+    throw new Error(
+      `The journal for ${date} already exists; the test needs its own document.`,
+    );
+  await createBtn.click();
+  await expect(editor).toBeVisible({ timeout: 30_000 });
+  await expect(editor.locator(bodyLine).first()).toBeVisible({
+    timeout: 20_000,
+  });
   await dismissOpenInAppOverlay(page);
 
-  const docId = page.url().split("/").findLast(Boolean);
-  if (!docId || docId === "all") {
-    throw new Error(`Could not derive doc id from URL: ${page.url()}`);
-  }
-  return docId;
+  const mounted = await editor.getAttribute("data-testid");
+  const id = /^editor-(.+)$/.exec(mounted ?? "")?.[1];
+  if (!id) throw new Error("Missing mounted journal document identity");
+  return id;
 }
 
 function futureDateString(dayOffset: number): string {
@@ -415,7 +372,7 @@ async function closeTransientJournalUi(page: Page): Promise<void> {
  * blocks like existing event blocks), then creates a new line.
  */
 async function typeSlashCommand(page: Page, command: string): Promise<void> {
-  const editor = page.locator("[data-myoxus-editor-container]");
+  const editor = page.locator(journalEditor);
   await expect(editor).toBeVisible({ timeout: 20_000 });
 
   // Click the blank gap first so journal documents with only the placeholder
@@ -429,7 +386,7 @@ async function typeSlashCommand(page: Page, command: string): Promise<void> {
     await clickVisibleControl(page, editor);
   }
 
-  const lastLine = page.locator("v-line").last();
+  const lastLine = editor.locator(bodyLine).last();
   await expect(lastLine).toBeVisible({ timeout: 10_000 });
   await lastLine.click({ timeout: 10_000 });
 
@@ -438,11 +395,13 @@ async function typeSlashCommand(page: Page, command: string): Promise<void> {
       () =>
         page.evaluate(() => {
           const active = document.activeElement;
-          return Boolean(
-            active?.closest?.("rich-text") ||
-            active?.closest?.("v-line") ||
-            active?.closest?.("[data-myoxus-editor-container]") ||
-            document.querySelector("rich-text")?.contains(active),
+          const caret = document.getSelection()?.anchorNode;
+          const field = caret instanceof Element ? caret : caret?.parentElement;
+          return (
+            active instanceof HTMLElement &&
+            active.isContentEditable &&
+            active.contains(caret ?? null) &&
+            !!field?.closest("[data-page-body], rich-text")
           );
         }),
       {
@@ -457,41 +416,9 @@ async function typeSlashCommand(page: Page, command: string): Promise<void> {
   await page.keyboard.press("Enter");
   await page.keyboard.type(command);
 
-  await expect(
-    page.getByRole("button", {
-      name: /Event\s+Insert a workspace event\./i,
-    }),
-  ).toBeVisible({
-    timeout: 5_000,
-  });
-}
-
-/**
- * Activate the slash menu item matching the given text.
- *
- * Tries to find the item in the `myoxus-slash-menu` element (which is
- * appended to document.body). Falls back to pressing Enter (which selects
- * the first/highlighted item in the open menu).
- */
-async function selectSlashMenuItem(
-  page: Page,
-  itemText: string,
-): Promise<void> {
-  // The popover host may stay hidden while its item is projected into the
-  // accessibility tree. Target the visible item rather than the implementation
-  // host so the smoke follows the user-visible slash-menu contract.
-  const escapedItemText = itemText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const item = page.getByRole("button", {
-    name: new RegExp(`^${escapedItemText}\\b`, "i"),
-  });
-  if (await item.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await clickVisibleControl(page, item);
-    return;
-  }
-
-  // Fallback: press Enter to select the first/highlighted item.
-  // This works because the slash menu intercepts Enter on the inline editor.
-  await page.keyboard.press("Enter");
+  const option = page.getByRole("option", { name: "Event", exact: true });
+  await expect(option).toBeVisible({ timeout: 5_000 });
+  await expect(option).toHaveAccessibleDescription(/Insert a workspace event/i);
 }
 
 // ---- test setup --------------------------------------------------------------
@@ -504,10 +431,11 @@ const disposableJournalTitles = new Set<string>();
 async function openTrackedDisposableJournal(
   page: Page,
   date: string,
-): Promise<void> {
+): Promise<string> {
   const docId = await createDisposableJournalEditor(page, workspaceId, date);
   disposableJournalDocIds.add(docId);
   disposableJournalTitles.add(date);
+  return docId;
 }
 
 test.beforeAll(async ({ request }) => {
@@ -517,7 +445,6 @@ test.beforeAll(async ({ request }) => {
 
 test.afterAll(async ({ request }) => {
   try {
-    await cleanupSmokeEvents(request);
     await cleanupDisposableJournalDocs(
       request,
       disposableJournalDocIds,
@@ -547,26 +474,6 @@ test.describe("Virgultum event block", () => {
     try {
       await typeSlashCommand(page, "/event");
 
-      // The slash menu should appear with "Event" entry
-      const slashMenuEl = page.locator("myoxus-slash-menu");
-      const menuVisible = await slashMenuEl
-        .isVisible({ timeout: 5_000 })
-        .catch(() => false);
-
-      if (menuVisible) {
-        // Verify "Event" option exists in the menu (Playwright pierces shadow DOM)
-        await expect(
-          page.getByText("Event", { exact: true }).first(),
-        ).toBeVisible({
-          timeout: 3_000,
-        });
-      } else {
-        // Menu may not be visible via this locator; verify body text
-        await expect(page.locator("body")).toContainText(/Event/, {
-          timeout: 3_000,
-        });
-      }
-
       // Close the slash menu
       await page.keyboard.press("Escape");
     } finally {
@@ -587,7 +494,7 @@ test.describe("Virgultum event block", () => {
 
     try {
       await typeSlashCommand(page, "/event");
-      await selectSlashMenuItem(page, "Event");
+      await page.getByRole("option", { name: "Event", exact: true }).click();
 
       // EventEditDialog should open
       const dialog = page.locator('[data-testid="event-edit-dialog"]');
@@ -607,6 +514,7 @@ test.describe("Virgultum event block", () => {
   }) => {
     await injectCookies(context, cookies);
     await suppressOpenInApp(context);
+    const date = futureDateString(RUN_JOURNAL_DAY_OFFSET + 2);
     const uniqueTitle = `E2E Block Test ${Date.now()}`;
 
     try {
@@ -616,13 +524,10 @@ test.describe("Virgultum event block", () => {
         if (msg.type() === "error") consoleErrors.push(msg.text());
       });
 
-      await openTrackedDisposableJournal(
-        page,
-        futureDateString(RUN_JOURNAL_DAY_OFFSET + 2),
-      );
+      const docId = await openTrackedDisposableJournal(page, date);
 
       await typeSlashCommand(page, "/event");
-      await selectSlashMenuItem(page, "Event");
+      await page.getByRole("option", { name: "Event", exact: true }).click();
 
       // EventEditDialog must open
       const dialog = page.locator('[data-testid="event-edit-dialog"]');
@@ -647,8 +552,32 @@ test.describe("Virgultum event block", () => {
           .locator('myoxus-event [data-testid="editor-event-card-title"]')
           .filter({ hasText: uniqueTitle }),
       ).toBeVisible({ timeout: 10_000 });
+
+      // React commits portal disposal after the old block has disconnected.
+      await page.goto(
+        `${FRONTEND}/workspace/${workspaceId}/${docId}?mode=edgeless`,
+      );
+      await expect(
+        page.locator("[data-myoxus-canvas-host]").first(),
+      ).toBeVisible();
+      await expect(
+        page
+          .locator("[data-myoxus-canvas-host]")
+          .getByTestId("editor-event-card-title")
+          .filter({ hasText: uniqueTitle }),
+      ).toBeVisible();
+      await page.goBack();
+      await expect(
+        page
+          .getByTestId("editor-event-card-title")
+          .filter({ hasText: uniqueTitle }),
+      ).toBeVisible();
+      expect(
+        consoleErrors.filter((message) => message.includes("removeChild")),
+      ).toEqual([]);
     } finally {
-      await deleteEventsByTitle(request, uniqueTitle);
+      await deleteEventsByTitle(request, uniqueTitle, date);
+      await deleteEventsByTitle(request, uniqueTitle, futureDateString(0));
       await closeTransientJournalUi(page);
     }
   });

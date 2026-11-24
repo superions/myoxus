@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
-import { toReactNode } from "@myoxus/lit-react";
 import { useI18n } from "@myoxus/i18n";
 import {
   BlockLinkIcon,
+  DeleteIcon,
   LinkIcon,
   ResetIcon,
   WarningIcon,
@@ -27,13 +27,15 @@ export function EditorDocumentCard({
 }) {
   const t = useI18n();
   if (c.citationIdentifier !== undefined) {
+    const Icon =
+      c.citationIcon && { LinkIcon, BlockLinkIcon, DeleteIcon }[c.citationIcon];
     return (
       <ReferenceCard
         size="small"
         contained={c.inSurface}
         selected={c.selected}
         title={c.title}
-        icon={toReactNode(c.citationIcon)}
+        icon={Icon && <Icon width="1.25em" height="1.25em" />}
         status={
           <Badge tone={c.selected ? "info" : "neutral"}>
             {c.citationIdentifier}

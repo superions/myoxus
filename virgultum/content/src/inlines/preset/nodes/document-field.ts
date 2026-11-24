@@ -5,10 +5,7 @@ import {
   MyoxusHostServiceIdentifier,
 } from "@virgultum/core/services";
 import { DocumentFieldSchema } from "@virgultum/core/types";
-import {
-  myoxusLabelToneStyles,
-  myoxusTextStyles,
-} from "@virgultum/core/styles";
+import { documentFieldTextStyles } from "@virgultum/core/styles/text";
 import { computed, effect } from "@preact/signals-core";
 import { InlineObject } from "./inline-object";
 import { setInlineStyles } from "@virgultum/core/runtime/inline";
@@ -71,9 +68,7 @@ export class InlineDocumentField extends InlineObject {
       anchor.hidden = !shown;
       setInlineStyles(
         anchor,
-        myoxusTextStyles(this.delta.attributes ?? {}, {
-          "background-color": myoxusLabelToneStyles("info")["background-color"],
-        }),
+        documentFieldTextStyles(this.delta.attributes ?? {}),
       );
     });
     const props = computed<DocumentFieldInlineHostProps | undefined>(() => {

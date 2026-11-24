@@ -21,7 +21,6 @@ import {
 import {
   CitationProvider,
   DocDisplayMetaProvider,
-  DocDisplayMetaService,
   DocEmbedProvider,
   DocModeProvider,
   OpenDocExtensionIdentifier,
@@ -276,7 +275,7 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
   });
 
   icon$ = computed(() => {
-    const { pageId, params, title } = this.referenceInfo$.value;
+    const { pageId, params } = this.referenceInfo$.value;
     const context = this.targetContext;
     if (
       !context ||
@@ -284,10 +283,8 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
     )
       return nothing;
     if (context.collection.id !== this.std.workspace.id)
-      return DocDisplayMetaService.icons.linkedPage;
-    return this.std
-      .get(DocDisplayMetaProvider)
-      .icon(pageId, { params, title, referenced: true }).value;
+      return "LinkIcon" as const;
+    return this.std.get(DocDisplayMetaProvider).referenceIcon(pageId, params);
   });
 
   open = ({

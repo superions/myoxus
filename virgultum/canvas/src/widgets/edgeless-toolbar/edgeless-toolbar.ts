@@ -417,7 +417,14 @@ export class EdgelessToolbarWidget extends NativeEditorWidget<RootBlockModel> {
         .mountCanvasToolbar(this.anchor, this.controls),
     );
     this.disposables.add(
-      this.gfx.tool.currentToolName$.subscribe(() => this.requestUpdate()),
+      this.gfx.tool.currentToolName$.subscribe((name) => {
+        if (
+          (name === "default" || name === "pan") &&
+          localStorage.defaultTool !== name
+        )
+          localStorage.defaultTool = name;
+        this.requestUpdate();
+      }),
     );
     this.disposables.add(
       this.std.store.readonly$.subscribe(() => this.requestUpdate()),

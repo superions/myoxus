@@ -1,10 +1,4 @@
 import { calloutPresets } from "../presets";
-import { cssVar } from "@myoxus/theme";
-import {
-  createPopup,
-  popupTargetFromElement,
-} from "@virgultum/core/view/portal";
-
 import {
   type CalloutAppearance,
   calloutPresentation,
@@ -15,8 +9,6 @@ import {
   ActionPlacement,
   editorMessage,
   editorBackgroundColors,
-  type IconData,
-  IconPickerServiceIdentifier,
   type ToolbarAction,
   type ToolbarActionGroup,
   type ToolbarModuleConfig,
@@ -25,7 +17,7 @@ import {
 import { BlockFlavourIdentifier } from "@virgultum/core/runtime";
 import type { ExtensionType } from "@virgultum/core/store";
 
-import { IconPickerWrapper } from "../icon-picker-wrapper";
+import { openCalloutIconPicker } from "../icon-picker-wrapper";
 
 const appearanceOptions = [
   {
@@ -179,42 +171,7 @@ const iconPickerAction = {
     const model = ctx.getCurrentModelByType(CalloutBlockModel);
     if (!model) return;
 
-    const iconPickerService = ctx.std.getOptional(IconPickerServiceIdentifier);
-    if (!iconPickerService) {
-      console.warn("IconPickerService not found");
-      return;
-    }
-
-    const iconPickerComponent = iconPickerService.iconPickerComponent;
-
-    const props = {
-      onSelect: (iconData?: IconData) => {
-        ctx.store.captureSync();
-        // The callback form also applies removal; property patches skip undefined.
-        ctx.store.updateBlock(model, () => {
-          model.props.icon = iconData;
-        });
-        ctx.store.captureSync();
-        closeHandler(); // Close the picker after selection
-      },
-      onClose: () => {
-        closeHandler();
-      },
-    };
-
-    const wrapper = new IconPickerWrapper();
-    wrapper.iconPickerComponent = iconPickerComponent;
-    wrapper.props = props;
-    wrapper.style.position = "absolute";
-    wrapper.style.backgroundColor = cssVar("backgroundOverlayPanelColor");
-    wrapper.style.boxShadow = "var(--myoxus-menu-shadow)";
-    wrapper.style.borderRadius = "8px";
-
-    const target = popupTargetFromElement(anchor);
-
-    const closeHandler = createPopup(target, wrapper, {
-      onClose: () => {},
-    });
+    openCalloutIconPicker(ctx.std, model, anchor);
   },
 } satisfies ToolbarAction;
 

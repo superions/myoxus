@@ -21,7 +21,6 @@ import { useSetAtom } from "jotai";
 import { nanoid } from "nanoid";
 import { useAsyncCallback } from "../myoxus-async-hooks";
 import type { ExportType } from "./page-export-actions";
-import { filter, firstValueFrom, timeout } from "rxjs";
 /** Map a server error_class string to an i18n key. */
 function pdfErrorI18nKey(
   errorClass: string | null | undefined,
@@ -128,19 +127,8 @@ export const useExportPage = (
       let actions: typeof import("./page-export-actions") | undefined;
       try {
         actions = await import("./page-export-actions");
-        let host = editorContainer?.host ?? null;
-        if (type === "png" && !host && pageOrigin?.isConnected) {
-          editor.requireEditorHost();
-          const receiver = await firstValueFrom(
-            editor.editorContainer$.pipe(
-              filter((container) => container !== null),
-              timeout({ first: 30000 }),
-            ),
-          );
-          host = receiver.host ?? null;
-        }
         const result = await actions.exportHandler({
-          editorRoot: host,
+          editorRoot: editorContainer?.host ?? null,
           page: virgultumDoc,
           type,
           editorContainer: originEditorContainer,

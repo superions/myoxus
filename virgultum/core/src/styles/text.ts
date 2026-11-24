@@ -115,3 +115,11 @@ export function myoxusTextStyles(
     ...override,
   };
 }
+
+export function documentFieldTextStyles(
+  props: MyoxusTextAttributes,
+): StyleInfo {
+  return myoxusTextStyles(props, {
+    "background-color": labelToneColors.info["background-color"],
+  });
+}

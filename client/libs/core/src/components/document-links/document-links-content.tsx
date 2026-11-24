@@ -1,5 +1,5 @@
 import { useGuard } from "@myoxus/core/components/guard";
-import { useEnableAI } from "@myoxus/core/components/hooks/myoxus/use-enable-ai";
+import { useEditorCopilot } from "@myoxus/core/components/hooks/myoxus/use-enable-ai";
 import {
   MyoxusPageReference,
   MyoxusSharedPageReference,
@@ -125,7 +125,7 @@ export function DatabaseBacklinkReferences({
 const usePreviewExtensions = () => {
   const [reactToLit, portals, mountPortal] = useLitPortalFactory();
   const framework = useFramework();
-  const enableAI = useEnableAI();
+  const enableAI = useEditorCopilot();
 
   const { workspaceService } = useServices({
     WorkspaceService,
@@ -167,7 +167,7 @@ const usePreviewExtensions = () => {
       .linkPreview(framework)
       .codeBlockPreview(framework).value;
     const specs = manager.get("preview-page");
-    return [...specs, patchReferenceRenderer(reactToLit, referenceRenderer)];
+    return [...specs, patchReferenceRenderer(mountPortal, referenceRenderer)];
   }, [reactToLit, mountPortal, referenceRenderer, framework, enableAI]);
 
   return [extensions, portals] as const;

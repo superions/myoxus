@@ -28,10 +28,27 @@ import {
 import { holdPageText } from "./page-input-lease";
 import type { EditorSlashControls } from "@virgultum/core/services";
 import { EditorSlashMenu } from "../../view-extensions/editor-view/editor-chrome/slash-menu";
-let receiver: typeof import("./legacy-entry") | undefined;
-const loadLegacy = async () => (receiver ??= await import("./legacy-entry"));
-const Legacy = lazy(loadLegacy);
+let documentSession:
+  typeof import("./virgultum-editor").VirgultumEditor | undefined;
+const loadDocumentSession = async () =>
+  (documentSession ??= (await import("./virgultum-editor")).VirgultumEditor);
+const RegisteredEditor = lazy(async () => ({
+  default: await loadDocumentSession(),
+}));
 const CanvasReader = lazy(() => import("./canvas-preview"));
+
+function CanvasSnapshot(props: EditorProps) {
+  const surface = readRasterSurface(props.page);
+  return surface ? (
+    <CanvasReader
+      mode="snapshot"
+      surface={surface}
+      title={props.page.meta?.title ?? ""}
+    />
+  ) : (
+    <RegisteredEditor {...props} />
+  );
+}
 
 function ReadonlyCanvas(props: EditorProps) {
   const { page } = props;
@@ -42,28 +59,24 @@ function ReadonlyCanvas(props: EditorProps) {
     origin = useRef<HTMLDivElement>(null),
     present = useRef(false);
   useLayoutEffect(() => {
-    const awareness = page.awarenessStore.awareness;
     const root = page.slots.rootAdded.subscribe(refresh),
       readonly = page.readonly$.subscribe(refresh);
     page.spaceDoc.on("afterTransaction", refresh);
-    awareness.on("change", refresh);
     refresh();
     return () => {
       root.unsubscribe();
       readonly();
       page.spaceDoc.off("afterTransaction", refresh);
-      awareness.off("change", refresh);
     };
   }, [page]);
   const surface = readRasterSurface(page);
+  const targetId = selector?.elementIds?.[0] || selector?.blockIds?.[0];
   const native =
     !!surface &&
     !legacy &&
     page.readonly &&
-    !selector?.elementIds?.length &&
-    !selector?.blockIds?.length &&
-    !selector?.commentId &&
-    page.awarenessStore.getStates().size <= 1;
+    (!targetId || !!surface.getElementById(targetId)) &&
+    !selector?.commentId;
   useLayoutEffect(() => {
     if (native && origin.current)
       return editor.bindCanvasOrigin(
@@ -87,8 +100,9 @@ function ReadonlyCanvas(props: EditorProps) {
     },
     [editor, props.onEditorReady],
   );
-  if (!page.root) return <EditorLoading />;
-  if (!native) return <Legacy {...props} onEditorReady={ready} />;
+  // The outer document route applies its readonly permission to this Store after mount.
+  if (!page.root || !page.readonly) return <EditorLoading />;
+  if (!native) return <RegisteredEditor {...props} onEditorReady={ready} />;
   return (
     <div
       ref={origin}
@@ -99,7 +113,9 @@ function ReadonlyCanvas(props: EditorProps) {
       <CanvasReader
         surface={surface!}
         title={page.meta?.title ?? ""}
-        interactive
+        mode="document"
+        targetId={targetId}
+        refreshKey={selector?.refreshKey}
       />
     </div>
   );
@@ -129,7 +145,7 @@ function EditablePage(props: EditorProps) {
         lease.current ??= holdPageText(page.id);
       // Keep accepting native input while the receiver's chunk loads. Its
       // slash query starts at the original trigger, not the later caret.
-      void loadLegacy()
+      void Promise.all([loadDocumentSession(), import("./page-handoff")])
         .then(() => {
           if (!alive.current) return;
           if (intent?.kind === "slash")
@@ -194,7 +210,7 @@ function EditablePage(props: EditorProps) {
           request.intent?.kind === "block-command" ||
           request.intent?.kind === "table-cell")
       )
-        void loadLegacy()
+        void import("./page-handoff")
           .then(async ({ resumePageIntent }) => {
             if (!abort.signal.aborted)
               await resumePageIntent(
@@ -239,7 +255,7 @@ function EditablePage(props: EditorProps) {
       pending.current = { range: owner.current.selection ?? null };
     // Keep this session (and its pending input) mounted while a first
     // legacy-only document or a newly unsupported peer block suspends.
-    const ReceivingEditor = receiver?.default ?? Legacy;
+    const ReceivingEditor = documentSession ?? RegisteredEditor;
     return (
       <Suspense fallback={<EditorLoading />}>
         <ReceivingEditor {...props} onEditorReady={legacyReady} />
@@ -253,6 +269,7 @@ function EditablePage(props: EditorProps) {
       readonly={Boolean(props.readonly || page.readonly)}
       content={content}
       refresh={refresh}
+      journalDate={props.journalDate}
       controller={owner}
       handoff={transfer}
       enableAI={enableAI}
@@ -279,18 +296,39 @@ function EditablePage(props: EditorProps) {
   );
 }
 
-function SnapshotPage(props: EditorProps) {
-  // This store is immutable and fully materialized by the history/reading owner.
-  const content = readPageContent(props.page);
-  if (!content || !canReadPageSnapshot(content)) return <Legacy {...props} />;
-  return (
+const SourceFields = lazy(async () => ({
+  default: (await import("./document-field-presentation"))
+    .DocumentFieldSourcePreviewProvider,
+}));
+
+function ReadonlyPage(props: EditorProps) {
+  const { page, snapshot } = props;
+  const [, refresh] = useReducer((revision) => revision + 1, 0);
+  // An overview introduction follows its source. History and template snapshots
+  // are detached, immutable views and need no live-document subscriptions.
+  useLayoutEffect(() => {
+    if (snapshot) return;
+    page.spaceDoc.on("afterTransaction", refresh);
+    refresh();
+    return () => page.spaceDoc.off("afterTransaction", refresh);
+  }, [page, snapshot]);
+  const sourceFields = !!(snapshot && props.templateSourcePreview);
+  const content = readPageContent(
+    page,
+    sourceFields ? "source-fields" : "snapshot",
+  );
+  if (!content || !canReadPageSnapshot(content, sourceFields))
+    return <RegisteredEditor {...props} />;
+  const view = (
     <PageSnapshot
       page={props.page}
       content={content}
       className={props.className}
       fullWidth={props["data-full-width-layout"]}
+      contentOnly={props.contentOnly}
     />
   );
+  return sourceFields ? <SourceFields>{view}</SourceFields> : view;
 }
 
 export function VirgultumEditor(props: EditorProps) {
@@ -299,13 +337,12 @@ export function VirgultumEditor(props: EditorProps) {
     <Suspense fallback={<EditorLoading />}>
       {(BUILD_CONFIG.isWeb || desktopPage) &&
       props.mode === "page" &&
-      props.snapshot &&
+      ((props.snapshot && !props.shared) ||
+        (props.shared && props.contentOnly)) &&
       props.readonly &&
       props.page.readonly &&
-      !props.onEditorReady &&
-      !props.contentOnly &&
-      !props.shared ? (
-        <SnapshotPage {...props} />
+      !props.onEditorReady ? (
+        <ReadonlyPage {...props} />
       ) : (BUILD_CONFIG.isWeb || desktopPage) &&
         props.mode === "page" &&
         !props.shared &&
@@ -315,6 +352,13 @@ export function VirgultumEditor(props: EditorProps) {
         <EditablePage key={props.page.id} {...props} />
       ) : (BUILD_CONFIG.isWeb || desktopPage) &&
         props.mode === "edgeless" &&
+        props.snapshot &&
+        props.readonly &&
+        props.page.readonly &&
+        !props.onEditorReady ? (
+        <CanvasSnapshot {...props} />
+      ) : (BUILD_CONFIG.isWeb || desktopPage) &&
+        props.mode === "edgeless" &&
         props.plainPage &&
         props.readonly &&
         !props.snapshot &&
@@ -322,7 +366,7 @@ export function VirgultumEditor(props: EditorProps) {
         !props.shared ? (
         <ReadonlyCanvas key={props.page.id} {...props} />
       ) : (
-        <Legacy {...props} />
+        <RegisteredEditor {...props} />
       )}
     </Suspense>
   );

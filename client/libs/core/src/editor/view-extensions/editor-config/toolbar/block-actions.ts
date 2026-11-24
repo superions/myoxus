@@ -7,16 +7,13 @@ import { createOpenDocActions } from "./text-actions";
 
 import { snapshotTaskCaptureSelection } from "./task-capture-selection";
 import {
-  generateUrl,
+  copyEditorBlockLink,
   type UseSharingUrl,
 } from "@myoxus/core/components/hooks/myoxus/use-share-url";
 import { EditorService } from "@myoxus/core/modules/editor";
 import { WorkspaceServerService } from "@myoxus/core/modules/server";
-import { copyLinkToBlockStdScopeClipboard } from "@myoxus/core/utils/clipboard";
 import { I18n, i18nTime } from "@myoxus/i18n";
 import type { FrameworkProvider } from "@myoxus/infra";
-import { track } from "@myoxus/track";
-import { notify } from "@myoxus/ui-facade";
 import { computed } from "@preact/signals-core";
 import { BookmarkBlockComponent } from "@virgultum/editor/blocks/bookmark";
 import {
@@ -178,26 +175,14 @@ function createCopyLinkToBlockMenuItem(
         }
       }
 
-      const str = generateUrl({
-        ...options,
-        baseUrl: workspaceServerService.server?.baseUrl ?? location.origin,
-      });
-      if (!str) {
-        ctx.close();
-        return;
-      }
-
-      const success = await copyLinkToBlockStdScopeClipboard(
-        str,
+      await copyEditorBlockLink(
+        {
+          ...options,
+          baseUrl: workspaceServerService.server?.baseUrl ?? location.origin,
+        },
+        type,
         ctx.std.clipboard,
       );
-
-      if (success) {
-        notify.success({ title: I18n["Copied link to clipboard"]() });
-      }
-
-      track.doc.editor.toolbar.copyBlockToLink({ type });
-
       ctx.close();
     },
   };
@@ -312,22 +297,11 @@ export function createToolbarMoreMenuConfigV2(
 
               if (!type) return;
 
-              const str = generateUrl({
-                ...options,
-                baseUrl: baseUrl ?? location.origin,
-              });
-
-              if (!str) return;
-
-              copyLinkToBlockStdScopeClipboard(str, std.clipboard)
-                .then((ok) => {
-                  if (!ok) return;
-
-                  notify.success({ title: I18n["Copied link to clipboard"]() });
-                })
-                .catch(console.error);
-
-              track.doc.editor.toolbar.copyBlockToLink({ type });
+              void copyEditorBlockLink(
+                { ...options, baseUrl: baseUrl ?? location.origin },
+                type,
+                std.clipboard,
+              ).catch(console.error);
             },
           },
         ],
@@ -595,21 +569,11 @@ export function createSurfaceRefToolbarConfig(
                 type = refModel.flavour;
               }
 
-              const str = generateUrl({
-                ...options,
-                baseUrl: baseUrl ?? location.origin,
-              });
-              if (!str) return;
-
-              copyLinkToBlockStdScopeClipboard(str, std.clipboard)
-                .then((ok) => {
-                  if (!ok) return;
-
-                  notify.success({ title: I18n["Copied link to clipboard"]() });
-                })
-                .catch(console.error);
-
-              track.doc.editor.toolbar.copyBlockToLink({ type });
+              void copyEditorBlockLink(
+                { ...options, baseUrl: baseUrl ?? location.origin },
+                type,
+                std.clipboard,
+              ).catch(console.error);
             },
           },
         ],

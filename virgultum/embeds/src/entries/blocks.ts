@@ -154,7 +154,6 @@ export {
   EmbedLinkedDocInteraction,
   EmbedLinkedDocBlockComponent,
   EmbedLinkedDocViewExtensions,
-  getEmbedLinkedDocIcons,
   embedSyncedDocBlockHtmlAdapterMatcher,
   EmbedSyncedDocBlockHtmlAdapterExtension,
   embedSyncedDocBlockMarkdownAdapterMatcher,

@@ -1,6 +1,3 @@
-import { AIChatBlockComponent } from "../blocks/ai-chat-block/ai-chat-block";
-import { EdgelessAIChatBlockComponent } from "../blocks/ai-chat-block/ai-chat-edgeless-block";
-import { TranscriptionBlockView } from "../blocks/ai-chat-block/ai-transcription-block";
 import { AIScrollableTextRenderer } from "../components/ai-scrollable-text-renderer";
 import {
   MYOXUS_AI_PANEL_WIDGET,
@@ -10,7 +7,6 @@ import {
   MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK,
   MyoxusBlockDiffWidgetForBlock,
 } from "../widgets/block-diff/block";
-import { BlockDiffOptions } from "../widgets/block-diff/options";
 import {
   MYOXUS_BLOCK_DIFF_WIDGET_FOR_PAGE,
   MyoxusBlockDiffWidgetForPage,
@@ -24,35 +20,26 @@ import {
   MYOXUS_EDGELESS_COPILOT_WIDGET,
 } from "../widgets/edgeless-copilot";
 import { EdgelessCopilotPanel } from "../widgets/edgeless-copilot-panel";
-import {
-  type EditorEffectElementTag,
-  editorEffectElementTags,
-} from "./registry";
+import { interactiveEditorTags } from "./registry";
 import { registerAISharedEffects } from "./shared";
 
 const editorRegistries = new WeakSet<CustomElementRegistry>();
-const editorElements = {
-  "myoxus-edgeless-ai-chat": EdgelessAIChatBlockComponent,
-  "myoxus-ai-chat": AIChatBlockComponent,
-  "ai-scrollable-text-renderer": AIScrollableTextRenderer,
-  "ai-block-diff-options": BlockDiffOptions,
-  [MYOXUS_BLOCK_DIFF_PLAYGROUND]: BlockDiffPlayground,
-  [MYOXUS_AI_PANEL_WIDGET]: MyoxusAIPanelWidget,
-  [MYOXUS_EDGELESS_COPILOT_WIDGET]: EdgelessCopilotWidget,
-  [MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK]: MyoxusBlockDiffWidgetForBlock,
-  [MYOXUS_BLOCK_DIFF_WIDGET_FOR_PAGE]: MyoxusBlockDiffWidgetForPage,
-  "edgeless-copilot-panel": EdgelessCopilotPanel,
-  "transcription-block": TranscriptionBlockView,
-} satisfies Record<EditorEffectElementTag, CustomElementConstructor>;
-
 export function registerAIEditorEffects() {
   const registry = customElements;
   if (editorRegistries.has(registry)) return;
-  editorRegistries.add(registry);
-
   registerAISharedEffects();
-
-  for (const tag of editorEffectElementTags) {
-    customElements.define(tag, editorElements[tag]);
-  }
+  const elements = {
+    "ai-scrollable-text-renderer": AIScrollableTextRenderer,
+    [MYOXUS_BLOCK_DIFF_PLAYGROUND]: BlockDiffPlayground,
+    [MYOXUS_AI_PANEL_WIDGET]: MyoxusAIPanelWidget,
+    [MYOXUS_EDGELESS_COPILOT_WIDGET]: EdgelessCopilotWidget,
+    [MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK]: MyoxusBlockDiffWidgetForBlock,
+    [MYOXUS_BLOCK_DIFF_WIDGET_FOR_PAGE]: MyoxusBlockDiffWidgetForPage,
+    "edgeless-copilot-panel": EdgelessCopilotPanel,
+  } satisfies Record<
+    (typeof interactiveEditorTags)[number],
+    CustomElementConstructor
+  >;
+  for (const tag of interactiveEditorTags) registry.define(tag, elements[tag]);
+  editorRegistries.add(registry);
 }

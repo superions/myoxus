@@ -6,6 +6,7 @@ import { GfxViewportRendering, gfxViewportStyle } from "./viewport-element.js";
 export interface GfxViewportElement extends HTMLElement {
   gfx: GfxController;
   maxConcurrentRenders: number;
+  enableChildrenSchedule: boolean;
   getModelsInViewport(): Set<GfxBlockElementModel>;
   setBlocksActive(blockIds: string[]): void;
   setBlocksIdle(blockIds: string[]): void;

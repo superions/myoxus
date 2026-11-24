@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useLayoutEffect, useRef } from "react";
+import { CursorSelection } from "@virgultum/core/runtime";
+import { StoreSelectionExtension } from "@virgultum/core/store";
+import { mountCanvasPeerOverlay } from "@virgultum/editor/widgets/remote-selection/canvas";
 import { canvasCameraStorage } from "@virgultum/core/services";
 import { EditorService } from "../../../modules/editor";
 import { EditorSettingService } from "../../../modules/editor-setting";
@@ -14,6 +17,7 @@ import {
   FIT_TO_SCREEN_PADDING,
   ZOOM_INITIAL,
   type SurfaceBlockModel,
+  type Viewport,
 } from "@virgultum/core/runtime/gfx";
 import {
   mountCanvasScene,
@@ -26,12 +30,18 @@ import { canvasPainters } from "@virgultum/editor/gfx/painters";
 export default function CanvasPreview({
   surface,
   title,
-  interactive = false,
+  mode = "embed",
+  targetId,
+  refreshKey,
 }: {
   surface: SurfaceBlockModel;
   title: string;
-  interactive?: boolean;
+  mode?: "embed" | "document" | "snapshot";
+  targetId?: string;
+  refreshKey?: string;
 }) {
+  const interactive = mode !== "embed";
+  const liveDocument = mode === "document";
   const record = useLiveData(
       useService(DocsService).list.doc$(surface.store.id),
     ),
@@ -42,6 +52,7 @@ export default function CanvasPreview({
     (scheme === "system" || !scheme ? theme : scheme) === "dark"
       ? ColorScheme.Dark
       : ColorScheme.Light;
+  const activeCamera = useRef<Viewport | null>(null);
   const editor = useService(EditorService).editor,
     settings = useService(EditorSettingService).editorSetting;
   useLayoutEffect(() => {
@@ -58,6 +69,7 @@ export default function CanvasPreview({
       },
     });
     const camera = scene.viewport;
+    activeCamera.current = camera;
     const fit = () => {
       // Match the document viewport's fit, including the authored bounds of
       // Page-only notes even though their contents are not painted on Canvas.
@@ -84,8 +96,57 @@ export default function CanvasPreview({
       size = !interactive ? camera.sizeUpdated.subscribe(fit) : undefined;
     const stop = new AbortController();
     const storage = canvasCameraStorage(surface.store.id);
+    if (liveDocument) {
+      const presence = el.ownerDocument.createElement("div");
+      presence.dataset.canvasPeers = "";
+      el.append(presence);
+      const releasePeers = mountCanvasPeerOverlay(
+        presence,
+        surface.store,
+        camera,
+        surface,
+        (id) => surface.getElementById(id),
+      );
+      const selection = surface.store.get(StoreSelectionExtension);
+      let frame = 0;
+      let cursor: CursorSelection | undefined;
+      const publishCursor = (e: PointerEvent) => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => {
+          const [x, y] = camera.toModelCoordFromClientCoord([
+            e.clientX,
+            e.clientY,
+          ]);
+          cursor = new CursorSelection(x, y);
+          selection.setGroup("gfx", [
+            ...selection
+              .getGroup("gfx")
+              .filter((value) => !value.is(CursorSelection)),
+            cursor,
+          ]);
+        });
+      };
+      el.addEventListener("pointermove", publishCursor, {
+        signal: stop.signal,
+      });
+      stop.signal.addEventListener(
+        "abort",
+        () => {
+          cancelAnimationFrame(frame);
+          if (cursor && selection.value.includes(cursor))
+            selection.clear([CursorSelection.type]);
+          releasePeers();
+          presence.remove();
+        },
+        { once: true },
+      );
+    }
     if (interactive) {
-      const saved = editor.scrollPosition.edgeless ?? storage.read();
+      // Detached history fits the captured scene and never reads or publishes
+      // the live document's camera or presence.
+      const saved = liveDocument
+        ? (editor.scrollPosition.edgeless ?? storage.read())
+        : null;
       if (saved && "zoom" in saved)
         camera.setViewport(saved.zoom, [saved.centerX, saved.centerY]);
       else if (saved && "xywh" in saved)
@@ -156,7 +217,7 @@ export default function CanvasPreview({
     return () => {
       live = false;
       stop.abort();
-      if (interactive) {
+      if (liveDocument) {
         const position = {
           centerX: camera.centerX,
           centerY: camera.centerY,
@@ -166,12 +227,54 @@ export default function CanvasPreview({
         if (editor.mode$.value === "edgeless")
           editor.workbenchView?.setScrollPosition(position);
         storage.write(position);
-      } else surface.store.spaceDoc.off("afterTransaction", fit);
+      } else if (!interactive)
+        surface.store.spaceDoc.off("afterTransaction", fit);
       changed.unsubscribe();
       size?.unsubscribe();
+      activeCamera.current = null;
       scene.dispose();
     };
-  }, [surface, color, interactive, editor, settings]);
+  }, [surface, color, interactive, liveDocument, editor, settings]);
+  useLayoutEffect(() => {
+    const camera = activeCamera.current,
+      el = root.current;
+    const target = targetId && surface.getElementById(targetId);
+    if (!camera || !el || !target || !interactive) return;
+    const bounds = Bound.deserialize(target.xywh);
+    const mark = el.ownerDocument.createElement("div");
+    mark.dataset.canvasAnchor = target.id;
+    const paint = () => {
+      const { x, y, w, h } = camera.toViewBound(bounds);
+      Object.assign(mark.style, {
+        left: x + "px",
+        top: y + "px",
+        width: w + "px",
+        height: h + "px",
+      });
+    };
+    let focused = false;
+    const focus = () => {
+      if (focused || !camera.width || !camera.height) return;
+      focused = true;
+      camera.focusLinkedBounds(bounds);
+      paint();
+      el.append(mark);
+    };
+    const dismiss = () => {
+      focused = true;
+      mark.remove();
+    };
+    const resize = camera.sizeUpdated.subscribe(focus);
+    const moved = camera.viewportUpdated.subscribe(paint);
+    el.addEventListener("pointerdown", dismiss, { once: true });
+    focus();
+    return () => {
+      resize.unsubscribe();
+      moved.unsubscribe();
+      el.removeEventListener("pointerdown", dismiss);
+      mark.remove();
+    };
+  }, [surface, targetId, refreshKey, color, interactive, editor, settings]);
   // The two-pixel inset is the existing preview frame; its canvas includes
   // the synced-document header space, not the dimensions of a Page card.
   return (

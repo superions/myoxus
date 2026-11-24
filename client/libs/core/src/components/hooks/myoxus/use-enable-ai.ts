@@ -1,3 +1,4 @@
+import { use } from "react";
 import { useGuard } from "@myoxus/core/components/guard";
 import { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
 import { ServerService } from "@myoxus/core/modules/server";
@@ -48,3 +49,17 @@ export const useEnableAI = () => {
     workspaceCopilotPermission: canUseWorkspaceAI,
   });
 };
+
+let editorEffects: Promise<void> | undefined;
+
+/** Only an enabled editor assembly needs the interactive Copilot elements. */
+export function useEditorCopilot() {
+  const enabled = useEnableAI();
+  if (enabled) {
+    editorEffects ??= import("../../../editor/ai/effects/editor").then(
+      ({ registerAIEditorEffects }) => registerAIEditorEffects(),
+    );
+    use(editorEffects);
+  }
+  return enabled;
+}

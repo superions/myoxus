@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import type { FrameworkProvider } from "@myoxus/infra";
+import { captureLeafTextSelection } from "@virgultum/core/adapters/copy";
 import type { Store } from "@virgultum/core/store";
+import { appendPageParagraph, getLastNoteBlock } from "@virgultum/core/utils";
 import {
   bookmark,
   deletionRange,
@@ -40,6 +43,7 @@ export class PageInteraction {
       intent?: PageIntent,
     ) => void,
     private readonly picker: (start: PickerStart) => void,
+    private readonly framework: FrameworkProvider,
   ) {
     const { signal } = this.stop;
     root.addEventListener("beforeinput", this.input, { signal });
@@ -127,7 +131,8 @@ export class PageInteraction {
         range.anchor.offset === range.focus.offset)
     )
       return false;
-    const inline = segments(this.lines(), range).some(({ line, from, to }) => {
+    const parts = segments(this.lines(), range);
+    const inline = parts.some(({ line, from, to }) => {
       let pos = 0;
       return line.text
         .toDelta()
@@ -149,6 +154,34 @@ export class PageInteraction {
         );
     });
     if (!inline && range.anchor.id === range.focus.id) return false;
+    const part = parts.length === 1 ? parts[0] : undefined;
+    if (action === "copy" && part) {
+      const { model } = part.line;
+      // Footnote copies can carry asset-bearing definition bodies through the source job.
+      const runs = model.text?.sliceToDelta(part.from, part.to);
+      if (
+        runs?.some((run) => run.attributes?.reference) &&
+        !runs.some((run) => run.attributes?.footnote)
+      ) {
+        const selection = captureLeafTextSelection(
+          model,
+          part.from,
+          part.to - part.from,
+        );
+        if (selection) {
+          e.preventDefault();
+          const { signal } = this.stop;
+          void import("./page-block-copy")
+            .then(({ copyPageBlock }) =>
+              copyPageBlock(model, this.framework, signal, selection),
+            )
+            .catch((error) => {
+              if (!signal.aborted) console.error(error);
+            });
+          return true;
+        }
+      }
+    }
     const body = readPageContent(this.page)?.order;
     if (!body) return false;
     const a = body.findIndex((b) => b.model.id === range.anchor.id);
@@ -310,6 +343,21 @@ export class PageInteraction {
       this.current = bookmark(this.lines(), range) ?? undefined;
     }
   };
+  focusPageEnd() {
+    if (!this.canWrite() || this.composing) return;
+    const last = getLastNoteBlock(this.page)?.lastChild();
+    const id =
+      last?.flavour === "myoxus:paragraph" && last.text?.length === 0
+        ? last.id
+        : appendPageParagraph(this.page);
+    if (!id) return;
+    const point = { id, offset: 0 };
+    this.root
+      .querySelector<HTMLElement>("[data-page-body]")
+      ?.focus({ preventScroll: true });
+    this.after = { anchor: point, focus: point };
+    this.refresh();
+  }
   afterRender() {
     // The browser owns a pointer drag until release. Restoring the last
     // collapsed caret during a preview update would move the drag's anchor.
@@ -730,7 +778,7 @@ export class PageInteraction {
         if (!e.data) return;
         if (
           (e.data === "/" || e.data === "、") &&
-          range.focus.id !== lines[0].model.id
+          range.focus.id !== this.page.root?.id
         ) {
           if (this.write(range, e.data)) {
             this.current = bookmark(lines, this.after!) ?? undefined;

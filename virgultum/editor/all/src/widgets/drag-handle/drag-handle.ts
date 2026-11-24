@@ -8,13 +8,11 @@ import {
   isInsideEdgelessEditor,
   isInsidePageEditor,
 } from "@virgultum/core/utils";
-import { type BlockComponent, WidgetComponent } from "@virgultum/core/runtime";
+import {
+  type BlockComponent,
+  NativeEditorWidget,
+} from "@virgultum/core/runtime";
 import type { GfxModel } from "@virgultum/core/runtime/gfx";
-import { html, nothing } from "lit";
-import { query, state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { styleMap } from "lit/directives/style-map.js";
-
 import type { MYOXUS_DRAG_HANDLE_WIDGET } from "./consts.js";
 import { RectHelper } from "./helpers/rect-helper.js";
 import { SelectionHelper } from "./helpers/selection-helper.js";
@@ -27,8 +25,31 @@ import { KeyboardEventWatcher } from "./watchers/keyboard-event-watcher.js";
 import { PageWatcher } from "./watchers/page-watcher.js";
 import { PointerEventWatcher } from "./watchers/pointer-event-watcher.js";
 
-export class MyoxusDragHandleWidget extends WidgetComponent<RootBlockModel> {
-  static override styles = styles;
+export class MyoxusDragHandleWidget extends NativeEditorWidget<RootBlockModel> {
+  readonly dragHandleContainer = this.ownerDocument.createElement("div");
+  readonly dragHandleGrabber = this.ownerDocument.createElement("div");
+  private readonly hover = this.ownerDocument.createElement("div");
+  private active: "block" | "gfx" | null = null;
+  private hoverBounds: Pick<
+    DOMRect,
+    "width" | "height" | "left" | "top"
+  > | null = null;
+
+  constructor() {
+    super();
+    const shadow = this.attachShadow({ mode: "open" });
+    const sheet = this.ownerDocument.createElement("style");
+    sheet.textContent = styles;
+    const wrapper = this.ownerDocument.createElement("div");
+    wrapper.className = "myoxus-drag-handle-widget";
+    this.dragHandleContainer.className = "myoxus-drag-handle-container";
+    this.dragHandleGrabber.className = "myoxus-drag-handle-grabber";
+    this.hover.className = "myoxus-drag-hover-rect";
+    this.hover.style.display = "none";
+    this.dragHandleContainer.append(this.dragHandleGrabber);
+    wrapper.append(this.dragHandleContainer, this.hover);
+    shadow.append(sheet, wrapper);
+  }
 
   private _anchorModelDisposables: DisposableGroup | null = null;
 
@@ -51,8 +72,23 @@ export class MyoxusDragHandleWidget extends WidgetComponent<RootBlockModel> {
     this.pointerEventWatcher.reset();
   };
 
-  @state()
-  accessor activeDragHandle: "block" | "gfx" | null = null;
+  get activeDragHandle() {
+    return this.active;
+  }
+  set activeDragHandle(value: "block" | "gfx" | null) {
+    if (this.active === value) return;
+    this.active = value;
+    this.dragHandleGrabber.classList.toggle("dots", value === "gfx");
+    this.dragHandleGrabber.replaceChildren();
+    if (value === "gfx") {
+      for (let i = 0; i < 6; i++) {
+        const dot = this.ownerDocument.createElement("div");
+        dot.className = "dot";
+        this.dragHandleGrabber.append(dot);
+      }
+    }
+    this.paintHover();
+  }
 
   anchorBlockId = signal<string | null>(null);
 
@@ -167,18 +203,8 @@ export class MyoxusDragHandleWidget extends WidgetComponent<RootBlockModel> {
     this.pointerEventWatcher.watch();
     this._keyboardEventWatcher.watch();
     this._dragEventWatcher.watch();
-  }
-
-  override disconnectedCallback() {
     this.hide(true);
-    this._disposables.dispose();
-    this._anchorModelDisposables?.dispose();
-    super.disconnectedCallback();
-  }
-
-  override firstUpdated() {
-    this.hide(true);
-    this._disposables.addFromEvent(this.host, "pointerleave", () => {
+    this.disposables.addFromEvent(this.host, "pointerleave", () => {
       this.hide();
     });
     this._handleEventWatcher.watch();
@@ -190,63 +216,36 @@ export class MyoxusDragHandleWidget extends WidgetComponent<RootBlockModel> {
     }
   }
 
-  override render() {
-    // Canvas selection already owns its outline. The opaque Page hover fill
-    // would cover a native owner's children when hovering its drag handle.
-    const hoverRectStyle = styleMap(
-      this.dragHoverRect && this.activeDragHandle === "block"
-        ? {
-            width: `${this.dragHoverRect.width}px`,
-            height: `${this.dragHoverRect.height}px`,
-            top: `${this.dragHoverRect.top}px`,
-            left: `${this.dragHoverRect.left}px`,
-          }
-        : {
-            display: "none",
-          },
-    );
-    const isGfx = this.activeDragHandle === "gfx";
-    const classes = {
-      "myoxus-drag-handle-grabber": true,
-      dots: isGfx ? true : false,
-    };
-
-    return html`
-      <div class="myoxus-drag-handle-widget">
-        <div class="myoxus-drag-handle-container">
-          <div class=${classMap(classes)}>
-            ${
-              isGfx
-                ? html`
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                  `
-                : nothing
-            }
-          </div>
-        </div>
-        <div class="myoxus-drag-hover-rect" style=${hoverRectStyle}></div>
-      </div>
-    `;
+  override disconnectedCallback() {
+    this.hide(true);
+    this._anchorModelDisposables?.dispose();
+    super.disconnectedCallback();
   }
 
-  @query(".myoxus-drag-handle-container")
-  accessor dragHandleContainer!: HTMLDivElement;
+  get dragHoverRect() {
+    return this.hoverBounds;
+  }
+  set dragHoverRect(bounds: typeof this.hoverBounds) {
+    this.hoverBounds = bounds;
+    this.paintHover();
+  }
 
-  @query(".myoxus-drag-handle-grabber")
-  accessor dragHandleGrabber!: HTMLDivElement;
-
-  @state()
-  accessor dragHoverRect: {
-    width: number;
-    height: number;
-    left: number;
-    top: number;
-  } | null = null;
+  private paintHover() {
+    const { style } = this.hover;
+    const rect = this.hoverBounds;
+    // Canvas selections supply their own outline.
+    if (!rect || this.active !== "block") {
+      style.display = "none";
+      return;
+    }
+    Object.assign(style, {
+      display: "",
+      left: rect.left + "px",
+      top: rect.top + "px",
+      width: rect.width + "px",
+      height: rect.height + "px",
+    });
+  }
 }
 
 declare global {

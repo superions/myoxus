@@ -1,9 +1,8 @@
-import { unsafeCSSVar } from "@virgultum/core/theme";
-import { css } from "lit";
+import { cssVar } from "@myoxus/theme";
 
 import { DRAG_HANDLE_CONTAINER_WIDTH } from "./config.js";
 
-export const styles = css`
+export const styles = `
   .myoxus-drag-handle-widget {
     display: flex;
     position: absolute;
@@ -51,7 +50,7 @@ export const styles = css`
   }
 
   .myoxus-drag-handle-grabber.dots:hover {
-    background-color: ${unsafeCSSVar("hoverColor")};
+    background-color: ${cssVar("hoverColor")};
   }
 
   .myoxus-drag-handle-grabber.dots > .dot {
@@ -59,7 +58,7 @@ export const styles = css`
     height: 4px;
     border-radius: 50%;
     flex: 0 0 4px;
-    background-color: ${unsafeCSSVar("iconSecondary")};
+    background-color: ${cssVar("iconSecondary")};
   }
 
   @media print {

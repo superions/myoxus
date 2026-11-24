@@ -1,246 +1,129 @@
-import { WidgetComponent, WidgetViewExtension } from "@virgultum/editor/std";
+import { WidgetViewExtension } from "@virgultum/editor/std";
 import { ThemeProvider } from "@virgultum/core/services";
-import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/core/theme";
-import { css, html, nothing, type TemplateResult } from "lit";
-import { repeat } from "lit/directives/repeat.js";
-
-import { BlockDiffProvider } from "../../services/block-diff";
-import type { Block } from "../../utils/apply-model/markdown-diff";
+import { createElement, type ReactNode } from "react";
+import track from "@myoxus/track";
+import type { BlockDiffProvider } from "../../services/block-diff";
+import { DiffWidget } from "./diff-widget";
+import { DiffOptions } from "./view";
 import { blockDiffWidgetForPage } from "./page";
+
+const styles = `
+myoxus-block-diff-widget-for-block .ai-block-diff {
+  position: relative;
+  margin-top: var(--mantine-spacing-sm);
+  margin-bottom: var(--mantine-spacing-sm);
+  pointer-events: auto;
+  background-color: var(--myoxus-background-processing-color);
+  padding: var(--mantine-spacing-sm) 0;
+  border-radius: var(--mantine-radius-sm);
+}
+
+myoxus-block-diff-widget-for-block .ai-block-diff.delete {
+  position: absolute;
+  top: calc(var(--mantine-spacing-sm) * -1);
+  left: var(--mantine-spacing-xs);
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+}
+myoxus-block-diff-widget-for-block .diff-options {
+  position: absolute;
+  top: 0;
+  right: calc((var(--mantine-spacing-lg) + var(--mantine-spacing-xs)) * -1);
+  pointer-events: auto;
+  visibility: hidden;
+}
+
+myoxus-block-diff-widget-for-block .ai-block-diff:hover .diff-options {
+  visibility: visible;
+}
+`;
 
 export const MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK =
   "myoxus-block-diff-widget-for-block";
+type Change = Parameters<BlockDiffProvider["accept"]>[0];
 
-export class MyoxusBlockDiffWidgetForBlock extends WidgetComponent {
-  override createRenderRoot() {
-    return this;
-  }
+export class MyoxusBlockDiffWidgetForBlock extends DiffWidget {
+  private decorated?: HTMLElement;
 
-  static override styles = css`
-    myoxus-block-diff-widget-for-block .ai-block-diff {
-      position: relative;
-      margin-top: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-      margin-bottom: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-      pointer-events: none;
-      background-color: ${unsafeCSSVar("backgroundProcessingColor")};
-      padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")} 0;
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
-    }
-
-    myoxus-block-diff-widget-for-block .ai-block-diff.delete {
-      position: absolute;
-      top: calc(${unsafeCSSValue("var(--mantine-spacing-sm)")} * -1);
-      left: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      background: transparent;
-    }
-    myoxus-block-diff-widget-for-block .ai-block-diff,
-    myoxus-block-diff-widget-for-block .ai-block-diff.delete,
-    myoxus-block-diff-widget-for-block .ai-block-diff.update,
-    myoxus-block-diff-widget-for-block .ai-block-diff.insert {
-      pointer-events: auto;
-    }
-    myoxus-block-diff-widget-for-block .diff-options {
-      visibility: hidden;
-    }
-    myoxus-block-diff-widget-for-block .ai-block-diff:hover .diff-options,
-    myoxus-block-diff-widget-for-block
-      .ai-block-diff.delete:hover
-      .diff-options,
-    myoxus-block-diff-widget-for-block
-      .ai-block-diff.update:hover
-      .diff-options,
-    myoxus-block-diff-widget-for-block
-      .ai-block-diff.insert:hover
-      .diff-options {
-      visibility: visible;
-    }
-  `;
-  private _setDeletedStyle(blockId: string) {
-    const deleted = document.querySelector<HTMLDivElement>(
-      `[data-block-id="${blockId}"]`,
-    );
-    if (!deleted) {
-      return;
-    }
-    deleted.classList.add("ai-block-diff-deleted");
-  }
-
-  private _clearDeletedStyle(blockId: string) {
-    const block = document.querySelector<HTMLDivElement>(
-      `[data-block-id="${blockId}"]`,
-    );
-    if (!block) {
-      return;
-    }
-    block.classList.remove("ai-block-diff-deleted");
-  }
-
-  private _renderDelete(blockId: string) {
-    if (this.diffService.isRejected("delete", blockId)) {
-      return nothing;
-    }
-
-    this._setDeletedStyle(blockId);
-    const diffId = `delete-${blockId}`;
-
-    return html`<div class="ai-block-diff delete" data-diff-id=${diffId}>
-      <ai-block-diff-options
-        .host=${this.host}
-        class="diff-options"
-        .onAccept=${() =>
-          this.diffService.accept(
-            { type: "delete", payload: { id: blockId } },
-            this.std.store,
-          )}
-        .onReject=${() =>
-          this.diffService.reject({ type: "delete", payload: { id: blockId } })}
-      ></ai-block-diff-options>
-    </div>`;
-  }
-
-  private _renderInsert(from: string, blocks: Block[]) {
-    return html`${repeat(
-      blocks,
-      (block) => block.id,
-      (block, offset) => {
-        const diffId = `insert-${block.id}-${offset}`;
-        return this.diffService.isRejected("insert", `${from}:${offset}`)
-          ? nothing
-          : html`<div class="ai-block-diff insert" data-diff-id=${diffId}>
-              <chat-content-rich-text
-                .text=${block.content}
-                .state="finished"
-                .extensions=${this.userExtensions}
-                .theme=${this.host.std.get(ThemeProvider).app$}
-              ></chat-content-rich-text>
-              <ai-block-diff-options
-                .host=${this.host}
-                class="diff-options"
-                .onAccept=${() =>
-                  this.diffService.accept(
-                    {
-                      type: "insert",
-                      payload: { from, offset, content: block.content },
-                    },
-                    this.std.store,
-                  )}
-                .onReject=${() =>
-                  this.diffService.reject({
-                    type: "insert",
-                    payload: { from, offset },
-                  })}
-              ></ai-block-diff-options>
-            </div>`;
-      },
-    )}`;
-  }
-
-  private _renderUpdate(blockId: string, content: string) {
-    if (this.diffService.isRejected("update", blockId)) {
-      return nothing;
-    }
-    const diffId = `update-${blockId}`;
-    return html`
-      <div class="ai-block-diff update" data-diff-id=${diffId}>
-        <chat-content-rich-text
-          .text=${content}
-          .state="finished"
-          .extensions=${this.userExtensions}
-          .theme=${this.host.std.get(ThemeProvider).app$}
-        ></chat-content-rich-text>
-        <ai-block-diff-options
-          .host=${this.host}
-          class="diff-options"
-          .onAccept=${() =>
-            this.diffService.accept(
-              {
-                type: "update",
-                payload: { id: blockId, content },
+  protected renderDiff() {
+    const service = this.diffService;
+    const id = this.model.id;
+    const block = this.block;
+    this.decorated?.classList.remove("ai-block-diff-deleted");
+    this.decorated = undefined;
+    if (
+      !block ||
+      !service.hasDiff() ||
+      service.getBlockIndexById(this.store, id) < 0
+    )
+      return null;
+    const { deletes, updates, inserts } = service.getDiff();
+    const rows: ReactNode[] = [];
+    const row = (key: string, change: Change) => {
+      const content = change.type === "delete" ? null : change.payload.content;
+      rows.push(
+        createElement(
+          "div",
+          {
+            key,
+            className: "ai-block-diff " + change.type,
+            "data-diff-id": key,
+          },
+          content !== null &&
+            createElement("chat-content-rich-text", {
+              text: content,
+              state: "finished",
+              theme: this.std.get(ThemeProvider).app$,
+              extensions: this.std.userExtensions.filter(
+                (extension) => extension !== blockDiffWidgetForPage,
+              ),
+            }),
+          createElement(
+            "div",
+            { className: "diff-options" },
+            createElement(DiffOptions, {
+              accept: () => {
+                track.applyModel.widget.block.accept();
+                void service.accept(change, this.store);
               },
-              this.std.store,
-            )}
-          .onReject=${() =>
-            this.diffService.reject({
-              type: "update",
-              payload: { id: blockId },
-            })}
-        ></ai-block-diff-options>
-      </div>
-    `;
+              reject: () => {
+                track.applyModel.widget.block.reject();
+                service.reject(change);
+              },
+            }),
+          ),
+        ),
+      );
+    };
+    if (deletes.includes(id) && !service.isRejected("delete", id)) {
+      block.classList.add("ai-block-diff-deleted");
+      this.decorated = block;
+      row("delete-" + id, { type: "delete", payload: { id } });
+    }
+    if (updates[id] && !service.isRejected("update", id)) {
+      row("update-" + id, {
+        type: "update",
+        payload: { id, content: updates[id] },
+      });
+    }
+    inserts[id]?.forEach((insert, offset) => {
+      if (!service.isRejected("insert", id + ":" + offset))
+        row(`insert-${insert.id}-${offset}`, {
+          type: "insert",
+          payload: { from: id, offset, content: insert.content },
+        });
+    });
+    return rows.length
+      ? [createElement("style", { key: "styles" }, styles), ...rows]
+      : null;
   }
 
-  get diffService() {
-    return this.std.get(BlockDiffProvider);
-  }
-
-  get userExtensions() {
-    return this.std.userExtensions.filter(
-      (extension) => extension !== blockDiffWidgetForPage,
-    );
-  }
-
-  get blockIndex(): number {
-    const attached = this.block?.blockId;
-    if (!attached) {
-      return -1;
-    }
-
-    return this.diffService.getBlockIndexById(this.std.store, attached);
-  }
-
-  override render() {
-    const attached = this.block?.blockId;
-    const service = this.std.get(BlockDiffProvider);
-    const blockIndex = this.blockIndex;
-
-    if (attached) {
-      this._clearDeletedStyle(attached);
-    }
-
-    if (!attached || blockIndex < 0 || !service.hasDiff()) {
-      return nothing;
-    }
-
-    const diffMap = service.getDiff();
-    const { deletes, inserts, updates } = diffMap;
-
-    let deleteDiff: TemplateResult | symbol = nothing;
-    let updateDiff: TemplateResult | symbol = nothing;
-    let insertDiff: TemplateResult | symbol = nothing;
-
-    if (deletes.includes(attached)) {
-      deleteDiff = this._renderDelete(attached);
-    }
-
-    if (updates[attached]) {
-      updateDiff = this._renderUpdate(attached, updates[attached]);
-    }
-
-    if (inserts[attached]) {
-      const blocks = inserts[attached];
-      insertDiff = this._renderInsert(attached, blocks);
-    }
-
-    return html`<style>
-        ${MyoxusBlockDiffWidgetForBlock.styles}</style
-      >${deleteDiff} ${updateDiff} ${insertDiff}`;
-  }
-
-  override connectedCallback() {
-    super.connectedCallback();
-    this.disposables.add(
-      this.diffService.diffMap$.subscribe(() => {
-        this.requestUpdate();
-      }),
-    );
-    this.disposables.add(
-      this.diffService.rejects$.subscribe(() => {
-        this.requestUpdate();
-      }),
-    );
+  override disconnectedCallback() {
+    this.decorated?.classList.remove("ai-block-diff-deleted");
+    this.decorated = undefined;
+    super.disconnectedCallback();
   }
 }
 

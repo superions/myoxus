@@ -1,29 +1,32 @@
-import { MultiCursorDuotoneIcon } from "@myoxus/icons/lit";
+import { MultiCursorDuotoneIcon } from "@myoxus/icons/native";
 import { EdgelessCRUDIdentifier } from "@virgultum/canvas-runtime/surface";
 import type { RootBlockModel } from "@virgultum/core/models";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import { StoreSelectionExtension, type Store } from "@virgultum/core/store";
 import {
   getSelectedRect,
   isTopLevelBlock,
   requestThrottledConnectedFrame,
 } from "@virgultum/core/utils";
-import { WidgetComponent } from "@virgultum/core/runtime";
+import {
+  BlockSelection,
+  CursorSelection,
+  SurfaceSelection,
+  TextSelection,
+  NativeEditorWidget,
+} from "@virgultum/core/runtime";
 import {
   GfxControllerIdentifier,
   type GfxModel,
+  type SurfaceBlockModel,
+  type Viewport,
 } from "@virgultum/core/runtime/gfx";
-import type { UserInfo } from "@virgultum/core/store";
-import { css, html, nothing } from "lit";
-import { state } from "lit/decorators.js";
-import { repeat } from "lit/directives/repeat.js";
-import { styleMap } from "lit/directives/style-map.js";
-
 import { RemoteColorManager } from "../manager/remote-color-manager";
 
 export const MYOXUS_EDGELESS_REMOTE_SELECTION_WIDGET =
   "myoxus-edgeless-remote-selection-widget";
 
-export class EdgelessRemoteSelectionWidget extends WidgetComponent<RootBlockModel> {
-  static override styles = css`
+const styles = `
     :host {
       pointer-events: none;
       position: absolute;
@@ -79,225 +82,157 @@ export class EdgelessRemoteSelectionWidget extends WidgetComponent<RootBlockMode
     }
   `;
 
-  private _remoteColorManager: RemoteColorManager | null = null;
-
-  private readonly _updateOnElementChange = (
-    element: string | { id: string },
-  ) => {
-    const id = typeof element === "string" ? element : element.id;
-
-    if (this.isConnected && this.selection.hasRemote(id))
-      this._updateRemoteRects();
+/** Both Canvas hosts paint awareness in model space with their own live camera. */
+export function mountCanvasPeerOverlay(
+  host: HTMLElement,
+  store: Store,
+  viewport: Viewport,
+  surface: SurfaceBlockModel | null | undefined,
+  getElement: (id: string) => GfxModel | null | undefined,
+) {
+  const shadow = host.shadowRoot ?? host.attachShadow({ mode: "open" });
+  const style = host.ownerDocument.createElement("style");
+  style.textContent = styles;
+  const overlay = host.ownerDocument.createElement("div");
+  overlay.className = "myoxus-edgeless-remote-selection";
+  shadow.replaceChildren(style, overlay);
+  const rects = new Map<number, HTMLElement>();
+  const cursors = new Map<number, HTMLElement>();
+  const colors = new RemoteColorManager(store.awarenessStore);
+  const selection = store.get(StoreSelectionExtension);
+  const subscriptions = new DisposableGroup();
+  const selections = new Map<number, CursorSelection>();
+  const surfaces = new Map<number, SurfaceSelection[]>();
+  const selectedIds = new Set<string>();
+  const paintCursors = () => {
+    const states = store.awarenessStore.getStates();
+    for (const [id, cursor] of selections) {
+      let node = cursors.get(id);
+      if (!node) {
+        node = host.ownerDocument.createElement("div");
+        node.className = "remote-cursor";
+        node.dataset.clientId = String(id);
+        node.innerHTML = MultiCursorDuotoneIcon;
+        const icon = node.querySelector("svg")!;
+        icon.setAttribute("width", "24px");
+        icon.setAttribute("height", "24px");
+        icon.style.fill = icon.style.stroke = "currentColor";
+        const label = host.ownerDocument.createElement("div");
+        label.className = "remote-username";
+        node.append(label);
+        cursors.set(id, node);
+        overlay.append(node);
+      }
+      const color = colors.get(id) ?? "";
+      node.style.color = color;
+      node.style.transform = `translate(${cursor.x}px, ${cursor.y}px) scale(calc(1/var(--v-zoom)))`;
+      const label = node.lastElementChild as HTMLElement;
+      label.style.backgroundColor = color;
+      label.textContent = states.get(id)?.user?.name ?? "Unknown";
+    }
+    for (const [id, node] of cursors) {
+      if (selections.has(id)) continue;
+      node.remove();
+      cursors.delete(id);
+    }
   };
-
-  private readonly _updateRemoteCursor = () => {
-    const remoteCursors: EdgelessRemoteSelectionWidget["_remoteCursors"] =
-      new Map();
-    const status = this.store.awarenessStore.getStates();
-
-    this.selection.remoteCursorSelectionMap.forEach(
-      (cursorSelection, clientId) => {
-        remoteCursors.set(clientId, {
-          x: cursorSelection.x,
-          y: cursorSelection.y,
-          user: status.get(clientId)?.user,
-        });
-      },
-    );
-
-    this._remoteCursors = remoteCursors;
-  };
-
-  private readonly _updateRemoteRects = () => {
-    const { selection } = this;
-    const remoteSelectionsMap = selection.remoteSurfaceSelectionsMap;
-    const remoteRects: EdgelessRemoteSelectionWidget["_remoteRects"] =
-      new Map();
-
-    remoteSelectionsMap.forEach((selections, clientId) => {
-      selections.forEach((selection) => {
-        if (selection.elements.length === 0) return;
-
+  const paintRects = () => {
+    const visible = new Set<number>();
+    for (const [id, selections] of surfaces) {
+      for (const selection of selections) {
         const elements = selection.elements
-          .map((id) => this.crud.getElementById(id))
-          .filter((element) => element) as GfxModel[];
-        const rect = getSelectedRect(elements);
-
-        if (rect.width === 0 || rect.height === 0) return;
-
-        const { left, top } = rect;
-        const [width, height] = [rect.width, rect.height];
-
-        let rotate = 0;
-        if (elements.length === 1) {
-          const element = elements[0];
-          if (!isTopLevelBlock(element)) {
-            rotate = element.rotate ?? 0;
-          }
+          .map((key) => getElement(key))
+          .filter((el): el is GfxModel => !!el);
+        if (!elements.length) continue;
+        const { left, top, width, height } = getSelectedRect(elements);
+        if (!width || !height) continue;
+        const rotate =
+          elements.length === 1 && !isTopLevelBlock(elements[0])
+            ? (elements[0].rotate ?? 0)
+            : 0;
+        let node = rects.get(id);
+        if (!node) {
+          node = host.ownerDocument.createElement("div");
+          node.className = "remote-rect";
+          node.dataset.clientId = String(id);
+          rects.set(id, node);
+          overlay.prepend(node);
         }
-
-        remoteRects.set(clientId, {
-          width,
-          height,
+        visible.add(id);
+        Object.assign(node.style, {
+          width: `${width}px`,
+          height: `${height}px`,
           borderStyle: "solid",
-          left,
-          top,
-          rotate,
+          borderColor: colors.get(id) ?? "",
+          transform: `translate(${left}px, ${top}px) rotate(${rotate}deg)`,
         });
-      });
-    });
-
-    this._remoteRects = remoteRects;
+      }
+    }
+    for (const [id, node] of rects) {
+      if (visible.has(id)) continue;
+      node.remove();
+      rects.delete(id);
+    }
   };
-
-  private readonly _updateTransform = requestThrottledConnectedFrame(() => {
-    const { translateX, translateY, zoom } = this.gfx.viewport;
-
-    this.style.setProperty("--v-zoom", `${zoom}`);
-
-    this.style.setProperty(
-      "transform",
-      `translate(${translateX}px, ${translateY}px) scale(var(--v-zoom))`,
-    );
-  }, this);
-
-  get gfx() {
-    return this.std.get(GfxControllerIdentifier);
+  const receive = () => {
+    selections.clear();
+    surfaces.clear();
+    selectedIds.clear();
+    for (const [client, values] of selection.remoteSelections) {
+      if (values.some((value) => value.is(TextSelection))) continue;
+      const cursor = values.findLast((value) => value.is(CursorSelection));
+      if (cursor) selections.set(client, cursor);
+      if (values.some((value) => value.is(BlockSelection))) continue;
+      const active = values.filter((value) => value.is(SurfaceSelection));
+      if (active.length) {
+        surfaces.set(client, active);
+        for (const value of active)
+          for (const id of value.elements) selectedIds.add(id);
+      }
+    }
+    paintCursors();
+    paintRects();
+  };
+  const elementChanged = (element: string | { id: string }) => {
+    if (selectedIds.has(typeof element === "string" ? element : element.id))
+      paintRects();
+  };
+  const transform = requestThrottledConnectedFrame(() => {
+    const { translateX, translateY, zoom } = viewport;
+    host.style.setProperty("--v-zoom", String(zoom));
+    host.style.transform = `translate(${translateX}px, ${translateY}px) scale(var(--v-zoom))`;
+  }, host);
+  if (surface) {
+    subscriptions.add(surface.elementAdded.subscribe(elementChanged));
+    subscriptions.add(surface.elementRemoved.subscribe(elementChanged));
+    subscriptions.add(surface.elementUpdated.subscribe(elementChanged));
   }
+  subscriptions.add(store.slots.blockUpdated.subscribe(elementChanged));
+  subscriptions.add(viewport.viewportUpdated.subscribe(transform));
+  subscriptions.add(selection.slots.remoteChanged.subscribe(receive));
+  transform();
+  receive();
+  return () => {
+    subscriptions.dispose();
+    shadow.replaceChildren();
+  };
+}
 
-  get crud() {
-    return this.std.get(EdgelessCRUDIdentifier);
-  }
-
-  get selection() {
-    return this.gfx.selection;
-  }
-
-  get surface() {
-    return this.gfx.surface;
-  }
-
+export class EdgelessRemoteSelectionWidget extends NativeEditorWidget<RootBlockModel> {
   override connectedCallback() {
     super.connectedCallback();
-
-    const { _disposables, store } = this;
-
-    if (this.surface) {
-      _disposables.add(
-        this.surface.elementAdded.subscribe(this._updateOnElementChange),
-      );
-      _disposables.add(
-        this.surface.elementRemoved.subscribe(this._updateOnElementChange),
-      );
-      _disposables.add(
-        this.surface.elementUpdated.subscribe(this._updateOnElementChange),
-      );
-    }
-
-    _disposables.add(
-      store.slots.blockUpdated.subscribe(this._updateOnElementChange),
-    );
-
-    _disposables.add(
-      this.selection.slots.remoteUpdated.subscribe(this._updateRemoteRects),
-    );
-    _disposables.add(
-      this.selection.slots.remoteCursorUpdated.subscribe(
-        this._updateRemoteCursor,
+    const gfx = this.std.get(GfxControllerIdentifier);
+    const crud = this.std.get(EdgelessCRUDIdentifier);
+    this.disposables.add(
+      mountCanvasPeerOverlay(
+        this,
+        this.store,
+        gfx.viewport,
+        gfx.surface,
+        (id) => crud.getElementById(id),
       ),
     );
-
-    _disposables.add(
-      this.gfx.viewport.viewportUpdated.subscribe(() => {
-        this._updateTransform();
-      }),
-    );
-
-    this._updateTransform();
-    this._updateRemoteRects();
-
-    this._remoteColorManager = new RemoteColorManager(this.std);
   }
-
-  override render() {
-    const { _remoteRects, _remoteCursors, _remoteColorManager } = this;
-    if (!_remoteColorManager) return nothing;
-
-    const rects = repeat(
-      _remoteRects.entries(),
-      (value) => value[0],
-      ([id, rect]) =>
-        html`<div
-          data-client-id=${id}
-          class="remote-rect"
-          style=${styleMap({
-            pointerEvents: "none",
-            width: `${rect.width}px`,
-            height: `${rect.height}px`,
-            borderStyle: rect.borderStyle,
-            borderColor: _remoteColorManager.get(id),
-            transform: `translate(${rect.left}px, ${rect.top}px) rotate(${rect.rotate}deg)`,
-          })}
-        ></div>`,
-    );
-
-    const cursors = repeat(
-      _remoteCursors.entries(),
-      (value) => value[0],
-      ([id, cursor]) => {
-        return html`<div
-          data-client-id=${id}
-          class="remote-cursor"
-          style=${styleMap({
-            pointerEvents: "none",
-            transform: `translate(${cursor.x}px, ${cursor.y}px) scale(calc(1/var(--v-zoom)))`,
-            color: _remoteColorManager.get(id),
-          })}
-        >
-          ${MultiCursorDuotoneIcon({
-            width: "24px",
-            height: "24px",
-            style: `fill: ${_remoteColorManager.get(id)}; stroke: ${_remoteColorManager.get(id)};`,
-          })}
-          <div
-            class="remote-username"
-            style=${styleMap({
-              backgroundColor: _remoteColorManager.get(id),
-            })}
-          >
-            ${cursor.user?.name ?? "Unknown"}
-          </div>
-        </div>`;
-      },
-    );
-
-    return html`
-      <div class="myoxus-edgeless-remote-selection">${rects}${cursors}</div>
-    `;
-  }
-
-  @state()
-  private accessor _remoteCursors: Map<
-    number,
-    {
-      x: number;
-      y: number;
-      user?: UserInfo | undefined;
-    }
-  > = new Map();
-
-  @state()
-  private accessor _remoteRects: Map<
-    number,
-    {
-      width: number;
-      height: number;
-      borderStyle: string;
-      left: number;
-      top: number;
-      rotate: number;
-    }
-  > = new Map();
 }
 
 declare global {

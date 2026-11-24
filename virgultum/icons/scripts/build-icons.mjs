@@ -5050,8 +5050,12 @@ writeFileChecked(path.join(distDir, "lit.js"), renderLitCjs());
 writeFileChecked(path.join(distDir, "lit.d.ts"), renderDts("lit"));
 writeFileChecked(path.join(distDir, "outline.mjs"), renderIconOutlines());
 writeFileChecked(path.join(distDir, "outline.d.ts"), renderIconOutlineTypes());
-// The document text renderer uses the catalogue geometry before any React root mounts.
-const nativeTextIcons = [
+// Editor geometry uses these catalogue glyphs outside a React root.
+const nativeEditorIcons = [
+  "MultiCursorDuotoneIcon",
+  "DeleteIcon",
+  "BlockLinkIcon",
+  "LinkIcon",
   ...Array.from({ length: 6 }, (_, index) => "Heading" + (index + 1) + "Icon"),
   "CheckBoxCheckSolidIcon",
   "CheckBoxUnIcon",
@@ -5061,7 +5065,7 @@ const nativeTextIcons = [
 writeFileChecked(
   path.join(distDir, "native.mjs"),
   HEADER +
-    nativeTextIcons
+    nativeEditorIcons
       .map((name) => {
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" style="user-select:none;flex-shrink:0;">${iconParts(name).map(nodeToLit).join("")}</svg>`;
         return `export const ${name} = ${JSON.stringify(svg)};\n`;
@@ -5071,7 +5075,7 @@ writeFileChecked(
 writeFileChecked(
   path.join(distDir, "native.d.ts"),
   HEADER +
-    nativeTextIcons
+    nativeEditorIcons
       .map((name) => `export declare const ${name}: string;\n`)
       .join(""),
 );

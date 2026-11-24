@@ -1,6 +1,4 @@
-import { litDocIcon } from "@myoxus/core/modules/doc-display-meta/services/lit-icon";
 import { DocDisplayMetaService } from "@myoxus/core/modules/doc-display-meta";
-import { LinkIcon, PageIcon } from "@myoxus/icons/lit";
 import { type FrameworkProvider } from "@myoxus/infra";
 import { computed, type ReadonlySignal } from "@preact/signals-core";
 import type { Container } from "@virgultum/editor/global/di";
@@ -8,28 +6,13 @@ import {
   type DocDisplayMetaExtension,
   type DocDisplayMetaParams,
   DocDisplayMetaProvider,
+  referenceIconName,
 } from "@virgultum/editor/shared/services";
-import {
-  createSignalFromObservable,
-  referenceToNode,
-} from "@virgultum/editor/shared/utils";
+import { createSignalFromObservable } from "@virgultum/editor/shared/utils";
 import { LifeCycleWatcher, StdIdentifier } from "@virgultum/editor/std";
-import type { TemplateResult } from "lit";
 
 export function buildDocDisplayMetaExtension(framework: FrameworkProvider) {
   const docDisplayMetaService = framework.get(DocDisplayMetaService);
-
-  function iconBuilder(
-    icon: typeof PageIcon,
-    size = "1.25em",
-    style = "user-select:none;flex-shrink:0;vertical-align:middle;font-size:inherit;margin-bottom:0.1em;",
-  ) {
-    return icon({
-      width: size,
-      height: size,
-      style,
-    });
-  }
 
   class MyoxusDocDisplayMetaService
     extends LifeCycleWatcher
@@ -50,27 +33,7 @@ export function buildDocDisplayMetaExtension(framework: FrameworkProvider) {
       }
     }
 
-    icon(
-      docId: string,
-      { params, title, referenced }: DocDisplayMetaParams = {},
-    ): ReadonlySignal<TemplateResult> {
-      const icon$ = docDisplayMetaService
-        .iconDescriptor$(docId, {
-          title,
-          reference: referenced,
-          referenceToNode: referenceToNode({ pageId: docId, params }),
-        })
-        .map((icon) => iconBuilder(litDocIcon(icon)));
-
-      const { signal: iconSignal, cleanup } = createSignalFromObservable(
-        icon$,
-        iconBuilder(referenced ? LinkIcon : PageIcon),
-      );
-
-      this.disposables.push(cleanup);
-
-      return computed(() => iconSignal.value);
-    }
+    readonly referenceIcon = referenceIconName;
 
     title(
       docId: string,

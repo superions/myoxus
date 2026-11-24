@@ -2,6 +2,10 @@ import type { MountReactPortal, ReactToLit } from "@myoxus/lit-react";
 import { aiWidgetUI, nativeAIWidgetUI } from "../../ai/widgets/native-ui";
 import { decorateEditorEmbeddedUI } from "../editor-view/embedded-ui-root";
 import { toolbarAIEntryConfig } from "@myoxus/core/editor/ai";
+import { AIChatBlockComponent } from "../../ai/blocks/ai-chat-block/ai-chat-block";
+import { EdgelessAIChatBlockComponent } from "../../ai/blocks/ai-chat-block/ai-chat-edgeless-block";
+import { TranscriptionBlockView } from "../../ai/blocks/ai-chat-block/ai-transcription-block";
+import { storedBlockTags } from "../../ai/effects/registry";
 import { AIChatBlockSpec } from "@myoxus/core/editor/ai/blocks";
 import { AITranscriptionBlockSpec } from "@myoxus/core/editor/ai/blocks/ai-chat-block/ai-transcription-block";
 import { edgelessToolbarAIEntryConfig } from "@myoxus/core/editor/ai/entries/edgeless";
@@ -40,6 +44,21 @@ const optionsSchema = z.object({
 
 type AIViewOptions = z.infer<typeof optionsSchema>;
 
+const registeredBlocks = new WeakSet<CustomElementRegistry>();
+function registerStoredBlocks(registry: CustomElementRegistry) {
+  if (registeredBlocks.has(registry)) return;
+  const elements = {
+    "myoxus-edgeless-ai-chat": EdgelessAIChatBlockComponent,
+    "myoxus-ai-chat": AIChatBlockComponent,
+    "transcription-block": TranscriptionBlockView,
+  } satisfies Record<
+    (typeof storedBlockTags)[number],
+    CustomElementConstructor
+  >;
+  for (const tag of storedBlockTags) registry.define(tag, elements[tag]);
+  registeredBlocks.add(registry);
+}
+
 export class AIViewExtension extends ViewExtensionProvider<AIViewOptions> {
   override name = "myoxus-ai-view-extension";
 
@@ -60,6 +79,9 @@ export class AIViewExtension extends ViewExtensionProvider<AIViewOptions> {
     if (options.mountPortal)
       context.register(nativeAIWidgetUI(options.mountPortal));
 
+    // Stored blocks remain readable after the workspace disables Copilot.
+    if (typeof customElements !== "undefined")
+      registerStoredBlocks(customElements);
     context.register(AIChatBlockSpec).register(AITranscriptionBlockSpec);
     if (!options.enable) return;
 

@@ -23,6 +23,10 @@ export class NativeEditorWidget<
     return this.editorWidgetContext.std;
   }
 
+  get store() {
+    return this.std.store;
+  }
+
   get host() {
     return this.std.host;
   }

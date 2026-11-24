@@ -7,12 +7,7 @@ import { assertType } from "../../primitives/utils/index";
 import groupBy from "lodash-es/groupBy";
 import { Subject } from "rxjs";
 
-import {
-  BlockSelection,
-  CursorSelection,
-  SurfaceSelection,
-  TextSelection,
-} from "../selection/index.js";
+import { CursorSelection, SurfaceSelection } from "../selection/index.js";
 import type { GfxController } from "./controller.js";
 import { GfxExtension, GfxExtensionIdentifier } from "./extension.js";
 import type { GfxModel } from "./model/model.js";
@@ -48,12 +43,6 @@ export class GfxSelectionManager extends GfxExtension {
 
   private _lastSurfaceSelections: SurfaceSelection[] = [];
 
-  private _remoteCursorSelectionMap = new Map<number, CursorSelection>();
-
-  private _remoteSelectedSet = new Set<string>();
-
-  private _remoteSurfaceSelectionsMap = new Map<number, SurfaceSelection[]>();
-
   private _selectedSet = new Set<string>();
 
   private _surfaceSelections: SurfaceSelection[] = [];
@@ -62,10 +51,8 @@ export class GfxSelectionManager extends GfxExtension {
 
   readonly slots = {
     updated: new Subject<SurfaceSelection[]>(),
-    remoteUpdated: new Subject<void>(),
 
     cursorUpdated: new Subject<CursorSelection>(),
-    remoteCursorUpdated: new Subject<void>(),
   };
 
   get activeGroup() {
@@ -94,18 +81,6 @@ export class GfxSelectionManager extends GfxExtension {
 
   get lastSurfaceSelections() {
     return this._lastSurfaceSelections;
-  }
-
-  get remoteCursorSelectionMap() {
-    return this._remoteCursorSelectionMap;
-  }
-
-  get remoteSelectedSet() {
-    return this._remoteSelectedSet;
-  }
-
-  get remoteSurfaceSelectionsMap() {
-    return this._remoteSurfaceSelectionsMap;
   }
 
   get selectedBound() {
@@ -196,9 +171,6 @@ export class GfxSelectionManager extends GfxExtension {
    * check if element is selected by remote peers
    * @param element
    */
-  hasRemote(element: string) {
-    return this._remoteSelectedSet.has(element);
-  }
 
   isEmpty(selections: SurfaceSelection[]) {
     return selections.every((sel) => sel.elements.length === 0);
@@ -251,56 +223,6 @@ export class GfxSelectionManager extends GfxExtension {
         );
 
         this.slots.updated.next(this.surfaceSelections);
-      }),
-    );
-
-    this.disposable.add(
-      this.stdSelection.slots.remoteChanged.subscribe((states) => {
-        const surfaceMap = new Map<number, SurfaceSelection[]>();
-        const cursorMap = new Map<number, CursorSelection>();
-        const selectedSet = new Set<string>();
-
-        states.forEach((selections, id) => {
-          let hasTextSelection = false;
-          let hasBlockSelection = false;
-
-          selections.forEach((selection) => {
-            if (selection.is(TextSelection)) {
-              hasTextSelection = true;
-            }
-
-            if (selection.is(BlockSelection)) {
-              hasBlockSelection = true;
-            }
-
-            if (selection.is(SurfaceSelection)) {
-              const surfaceSelections = surfaceMap.get(id) ?? [];
-              surfaceSelections.push(selection);
-              surfaceMap.set(id, surfaceSelections);
-
-              selection.elements.forEach((id) => selectedSet.add(id));
-            }
-
-            if (selection.is(CursorSelection)) {
-              cursorMap.set(id, selection);
-            }
-          });
-
-          if (hasBlockSelection || hasTextSelection) {
-            surfaceMap.delete(id);
-          }
-
-          if (hasTextSelection) {
-            cursorMap.delete(id);
-          }
-        });
-
-        this._remoteCursorSelectionMap = cursorMap;
-        this._remoteSurfaceSelectionsMap = surfaceMap;
-        this._remoteSelectedSet = selectedSet;
-
-        this.slots.remoteUpdated.next();
-        this.slots.remoteCursorUpdated.next();
       }),
     );
   }

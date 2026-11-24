@@ -179,13 +179,16 @@
 [data-disclosure]:has([aria-expanded="false"]) {
   opacity: 1;
 }
-[data-page-callout] {
+[data-page-callout]:not([data-page-callout-readonly]) {
   display: flex;
   align-items: flex-start;
   margin-block: var(--mantine-spacing-xs);
   padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
   gap: var(--mantine-spacing-sm);
   border-radius: var(--mantine-radius-md);
+}
+[data-page-callout-readonly] [data-callout-body] > [data-callout-text] {
+  margin-block: 0;
 }
 [data-callout-content] {
   flex: 1;
@@ -282,6 +285,13 @@
   font-style: var(--myoxus-typography-code-block-font-style);
   letter-spacing: var(--myoxus-typography-code-block-letter-spacing);
 }
+[data-page-renderer="snapshot"] [data-page-code] {
+  padding: var(--mantine-spacing-2xl)
+    calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs));
+}
+[data-page-renderer="snapshot"] [data-code-gutter] {
+  min-inline-size: calc(var(--mantine-spacing-2xl) - var(--mantine-spacing-md));
+}
 [data-code-toolbar] {
   position: absolute;
   inset: 0 0 auto;
@@ -352,11 +362,23 @@
     var(--myoxus-background-primary-color) 1px
   );
 }
+/* The camera measures the shell. An inline canvas adds a text baseline to every resize. */
+[data-canvas-preview] > canvas {
+  display: block;
+}
 [data-canvas-reader] {
   margin: 0;
   cursor: grab;
   pointer-events: auto;
   touch-action: none;
+}
+[data-canvas-anchor] {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 1;
+  border: 1.39px solid var(--myoxus-primary-color);
+  box-shadow: var(--myoxus-active-shadow);
 }
 [data-canvas-reader]:active {
   cursor: grabbing;

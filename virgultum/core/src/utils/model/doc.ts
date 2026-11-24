@@ -2,7 +2,8 @@ import {
   DEFAULT_PAGE_BLOCK_HEIGHT,
   DEFAULT_PAGE_BLOCK_WIDTH,
 } from "../../models/index";
-import { Text, type Workspace } from "../../store/index";
+import { getLastNoteBlock } from "./getter";
+import { Text, type Store, type Workspace } from "../../store/index";
 
 export function createDefaultDoc(
   collection: Workspace,
@@ -34,4 +35,17 @@ export function createDefaultDoc(
   store.resetHistory();
 
   return store;
+}
+
+/** Append to the last Page-visible note. Merely reading an empty Page never creates blocks. */
+export function appendPageParagraph(store: Store, text = "") {
+  const root = store.root;
+  if (!root || store.readonly) return;
+  let id: string | undefined;
+  store.transact(() => {
+    const note =
+      getLastNoteBlock(store)?.id ?? store.addBlock("myoxus:note", {}, root);
+    id = store.addBlock("myoxus:paragraph", { text: new Text(text) }, note);
+  });
+  return id;
 }

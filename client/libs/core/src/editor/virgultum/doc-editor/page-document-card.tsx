@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { usePageCaption } from "./page-caption";
 import {
   lazy,
   Suspense,
@@ -19,7 +20,9 @@ import type {
   EmbedSyncedDocModel,
   NoteBlockModel,
 } from "@virgultum/core/models";
-import type { Store } from "@virgultum/core/store";
+import type { BlockModel } from "@virgultum/core/store";
+import { supportedText } from "./plain-page-model";
+import { pageTextRun } from "./page-text-run";
 import { EMBED_CARD_HEIGHT, EMBED_CARD_WIDTH } from "@virgultum/core/consts";
 import { CoreDocEmbedProvider, DocsService } from "../../../modules/doc";
 import { WorkspaceService } from "../../../modules/workspace";
@@ -41,7 +44,7 @@ type State = {
   target?: Target;
   title?: string;
   updated?: number;
-  lines?: string[];
+  lines?: BlockModel[];
   canvas?: SurfaceBlockModel;
   deleted?: boolean;
   error?: boolean;
@@ -49,6 +52,32 @@ type State = {
   specialist?: boolean;
   cycle?: boolean;
 };
+function Excerpt({ model }: { model: BlockModel }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const text = model.text?.yText;
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!text || !el) return;
+    const paint = () =>
+      el.replaceChildren(
+        ...text
+          .toDelta()
+          .map(
+            (run: { insert: string; attributes?: Record<string, unknown> }) =>
+              pageTextRun(el.ownerDocument, run.insert, run.attributes ?? {}),
+          ),
+      );
+    paint();
+    text.observe(paint);
+    return () => text.unobserve(paint);
+  }, [text]);
+  return (
+    <MyoxusText>
+      <span ref={ref} />
+    </MyoxusText>
+  );
+}
+
 export default function PageDocumentCard({
   model,
   readonly,
@@ -58,6 +87,7 @@ export default function PageDocumentCard({
   readonly: boolean;
   handoff: (r: PageBookmark | null, i?: PageIntent) => void;
 }) {
+  const caption = usePageCaption(model, readonly);
   const t = useI18n(),
     guard = useService(GuardService),
     docs = useService(DocsService),
@@ -141,17 +171,12 @@ export default function PageDocumentCard({
             const selected = !!(
               params?.blockIds?.length || params?.elementIds?.length
             );
-            const eligibleText = (m: Store["root"]) =>
-              m?.flavour === "myoxus:paragraph" &&
+            const eligibleText = (m: BlockModel) =>
+              m.flavour === "myoxus:paragraph" &&
               (m.props as { type?: string }).type === "text" &&
               !m.children.length &&
-              m.text
-                ?.toDelta()
-                .every(
-                  (d) =>
-                    typeof d.insert === "string" &&
-                    !Object.keys(d.attributes ?? {}).length,
-                );
+              !!m.text &&
+              supportedText(m.text.yText, false);
             const candidates = synced
               ? nodes
               : nodes.filter(
@@ -190,9 +215,7 @@ export default function PageDocumentCard({
               target,
               title: currentTitle,
               updated: page.meta?.updatedDate ?? page.meta?.createDate,
-              lines: specialist
-                ? []
-                : needed.map((m) => m.text?.toString() ?? ""),
+              lines: specialist ? [] : needed,
               specialist,
               canvas,
               cycle,
@@ -298,8 +321,10 @@ export default function PageDocumentCard({
           title={label}
           icon={<LinkIcon />}
           preview={
-            state.lines?.some(Boolean)
-              ? state.lines.map((s, i) => <MyoxusText key={i}>{s}</MyoxusText>)
+            state.lines?.some((model) => model.text?.length)
+              ? state.lines.map((model) => (
+                  <Excerpt key={model.id} model={model} />
+                ))
               : t["com.myoxus.editor.embed.synced-empty-hint"]()
           }
         />
@@ -330,10 +355,13 @@ export default function PageDocumentCard({
       )}
       {preview && state?.target && !synced && state.lines?.length
         ? createPortal(
-            state.lines.map((s, i) => <MyoxusText key={i}>{s}</MyoxusText>),
+            state.lines.map((model) => (
+              <Excerpt key={model.id} model={model} />
+            )),
             preview,
           )
         : null}
+      {caption.field}
     </div>
   );
 }

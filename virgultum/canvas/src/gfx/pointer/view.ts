@@ -3,18 +3,12 @@ import {
   ViewExtensionProvider,
 } from "@virgultum/core/extensions";
 
-import { effects } from "./effects";
 import { defaultQuickTool } from "./quick-tool/quick-tool";
 import { SnapExtension, SnapOverlay } from "@virgultum/canvas-runtime/snap";
 import { EmptyTool, PanTool } from "@virgultum/canvas-runtime/tools";
 
 export class PointerViewExtension extends ViewExtensionProvider {
   override name = "myoxus-pointer-gfx";
-
-  override effect() {
-    super.effect();
-    effects();
-  }
 
   override setup(context: ViewExtensionContext) {
     super.setup(context);

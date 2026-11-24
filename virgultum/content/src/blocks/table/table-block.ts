@@ -37,6 +37,8 @@ export class TableBlockComponent extends CaptionedBlockComponent<TableBlockModel
 
   override connectedCallback() {
     super.connectedCallback();
+    this.selectionController.connect();
+    this.observeSelection();
     this.setAttribute(RANGE_SYNC_EXCLUDE_ATTR, "true");
     this.style.position = "relative";
     if (
@@ -197,6 +199,53 @@ export class TableBlockComponent extends CaptionedBlockComponent<TableBlockModel
     };
   };
 
+  private observeSelection() {
+    this.disposables.add(
+      effect(() => {
+        const table = this.table$.value;
+        if (!table) return;
+        // Measure inside the table so Canvas scaling and horizontal scrolling
+        // affect the outline and its selected cells together.
+        const outline = table.ownerDocument.createElement("div");
+        outline.dataset.tableSelectionOutline = "";
+        outline.style.cssText =
+          "position:absolute;pointer-events:none;border-radius:2px;border:2px solid var(--myoxus-primary-color)";
+        table.append(outline);
+        const paint = () => {
+          const selected = this.selectionController.selected$.value;
+          const rect = !selected
+            ? undefined
+            : selected.type === "row"
+              ? this.getRowRect(selected.rowId)
+              : selected.type === "column"
+                ? this.getColumnRect(selected.columnId)
+                : this.getAreaRect(
+                    selected.rowStartIndex,
+                    selected.rowEndIndex,
+                    selected.columnStartIndex,
+                    selected.columnEndIndex,
+                  );
+          outline.hidden = !rect;
+          if (!rect) return;
+          Object.assign(outline.style, {
+            left: `${rect.left}px`,
+            top: `${rect.top}px`,
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
+          });
+        };
+        const stop = effect(paint);
+        const observer = new ResizeObserver(paint);
+        observer.observe(table);
+        return () => {
+          observer.disconnect();
+          stop();
+          outline.remove();
+        };
+      }),
+    );
+  }
+
   override renderBlock() {
     const rows = this.dataManager.uiRows$.value;
     const columns = this.dataManager.uiColumns$.value;
@@ -290,13 +339,6 @@ export class TableBlockComponent extends CaptionedBlockComponent<TableBlockModel
                     .dataManager=${this.dataManager}
                   ></myoxus-table-add-button>`
             }
-            ${html`<myoxus-table-selection-layer
-              style="display: contents;"
-              .selectionController=${this.selectionController}
-              .getRowRect=${this.getRowRect}
-              .getColumnRect=${this.getColumnRect}
-              .getAreaRect=${this.getAreaRect}
-            ></myoxus-table-selection-layer>`}
           </table>
         </div>
       </div>

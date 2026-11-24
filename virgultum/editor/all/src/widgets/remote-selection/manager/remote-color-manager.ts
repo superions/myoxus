@@ -1,45 +1,35 @@
-import { EditPropsStore } from "@virgultum/core/services";
-import type { BlockStdScope } from "@virgultum/core/runtime";
-
+import type { Store } from "@virgultum/core/store";
 import { multiPlayersColor, vividRemoteColor } from "./color-picker";
 
+const sessionKey = "virgultum:remote-color";
+
 export class RemoteColorManager {
-  private get awarenessStore() {
-    return this.std.store.awarenessStore;
-  }
-
-  constructor(readonly std: BlockStdScope) {
-    const savedColor = this.std.get(EditPropsStore).getStorage("remoteColor");
-    const sessionColor = savedColor ? vividRemoteColor(savedColor) : null;
-    if (sessionColor) {
-      this.awarenessStore.awareness.setLocalStateField("color", sessionColor);
-      if (sessionColor !== savedColor)
-        this.std.get(EditPropsStore).setStorage("remoteColor", sessionColor);
-      return;
+  private readonly color: string;
+  constructor(private readonly awarenessStore: Store["awarenessStore"]) {
+    let saved: unknown;
+    try {
+      saved = JSON.parse(sessionStorage.getItem(sessionKey) ?? "null");
+    } catch {
+      /* An unreadable preference has no bearing on presence. */
     }
-
-    const pickColor = multiPlayersColor.pick();
-    this.awarenessStore.awareness.setLocalStateField("color", pickColor);
-    this.std.get(EditPropsStore).setStorage("remoteColor", pickColor);
+    this.color =
+      typeof saved === "string" && saved
+        ? vividRemoteColor(saved)
+        : multiPlayersColor.pick();
+    if (saved !== this.color) {
+      try {
+        sessionStorage.setItem(sessionKey, JSON.stringify(this.color));
+      } catch {
+        /* The session can still publish its color. */
+      }
+    }
+    awarenessStore.awareness.setLocalStateField("color", this.color);
   }
-
   get(id: number) {
-    const awarenessColor = this.awarenessStore.getStates().get(id)?.color;
-    if (awarenessColor) {
-      return vividRemoteColor(awarenessColor);
-    }
-
+    const color = this.awarenessStore.getStates().get(id)?.color;
+    if (color) return vividRemoteColor(color);
     if (id !== this.awarenessStore.awareness.clientID) return null;
-
-    const sessionColor = this.std.get(EditPropsStore).getStorage("remoteColor");
-    if (sessionColor) {
-      this.awarenessStore.awareness.setLocalStateField("color", sessionColor);
-      return sessionColor;
-    }
-
-    const pickColor = multiPlayersColor.pick();
-    this.awarenessStore.awareness.setLocalStateField("color", pickColor);
-    this.std.get(EditPropsStore).setStorage("remoteColor", pickColor);
-    return pickColor;
+    this.awarenessStore.awareness.setLocalStateField("color", this.color);
+    return this.color;
   }
 }

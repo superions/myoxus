@@ -160,13 +160,7 @@ export class MyoxusScrollAnchoringWidget extends NativeEditorWidget {
       );
     }
 
-    const { zoom, centerX, centerY } = viewport.getFitToScreenData(
-      bounds,
-      [20, 20, 100, 20],
-    );
-
-    viewport.setZoom(zoom);
-    viewport.setCenter(centerX, centerY);
+    viewport.focusLinkedBounds(bounds);
 
     this.#listened = false;
     this.anchorBounds$.value = bounds;

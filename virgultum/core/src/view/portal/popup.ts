@@ -81,16 +81,22 @@ export const createPopup = (
   },
 ) => {
   const close = () => {
+    if (closed) return;
+    closed = true;
+    stopPositioning();
     modal.remove();
     options?.onClose?.();
   };
   const modal = createModal(target.root);
-  autoUpdate(target.targetRect, content, () => {
+  modal.append(content);
+  let closed = false;
+  const stopPositioning = autoUpdate(target.targetRect, content, () => {
     computePosition(target.targetRect, content, {
       placement: options?.placement,
       middleware: options?.middleware ?? [shift({ crossAxis: true })],
     })
       .then(({ x, y }) => {
+        if (closed) return;
         Object.assign(content.style, {
           left: `${x}px`,
           top: `${y}px`,
@@ -98,7 +104,6 @@ export const createPopup = (
       })
       .catch(console.error);
   });
-  modal.append(content);
 
   modal.onpointerdown = (ev) => {
     if (ev.target === modal) {

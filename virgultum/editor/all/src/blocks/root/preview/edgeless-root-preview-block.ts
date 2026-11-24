@@ -13,7 +13,7 @@ import {
 } from "@virgultum/core/services";
 import { requestThrottledConnectedFrame } from "@virgultum/core/utils";
 import {
-  BlockComponent,
+  NativeContainerBlock,
   type GfxBlockComponent,
   SurfaceSelection,
 } from "@virgultum/core/runtime";
@@ -21,14 +21,10 @@ import {
   GfxControllerIdentifier,
   type GfxViewportElement,
 } from "@virgultum/core/runtime/gfx";
-import { css, html } from "lit";
-import { query, state } from "lit/decorators.js";
-import { type StyleInfo, styleMap } from "lit/directives/style-map.js";
-
 import { isCanvasElement } from "../edgeless/utils/query";
 
-export class EdgelessRootPreviewBlockComponent extends BlockComponent<RootBlockModel> {
-  static override styles = css`
+export class EdgelessRootPreviewBlockComponent extends NativeContainerBlock<RootBlockModel> {
+  protected readonly blockStyles = `
     myoxus-edgeless-root-preview {
       pointer-events: none;
       -webkit-user-select: none;
@@ -73,15 +69,22 @@ export class EdgelessRootPreviewBlockComponent extends BlockComponent<RootBlockM
       const { zoom, translateX, translateY } = this._viewport;
       const gap = getBgGridGap(zoom);
 
-      this.backgroundStyle = {
-        backgroundPosition: `${translateX}px ${translateY}px`,
-        backgroundSize: `${gap}px ${gap}px`,
-      };
+      if (this.background) {
+        this.background.style.backgroundPosition = `${translateX}px ${translateY}px`;
+        this.background.style.backgroundSize = `${gap}px ${gap}px`;
+      }
     },
     this,
   );
 
-  private _resizeObserver: ResizeObserver | null = null;
+  private background?: HTMLElement;
+  gfxViewportElm!: GfxViewportElement;
+
+  get surface() {
+    return this.gfxViewportElm?.querySelector<SurfaceBlockComponent>(
+      "myoxus-surface",
+    );
+  }
 
   private get _gfx() {
     return this.std.get(GfxControllerIdentifier);
@@ -101,7 +104,7 @@ export class EdgelessRootPreviewBlockComponent extends BlockComponent<RootBlockM
     this.std
       .get(FontLoaderService)
       .ready.then(() => {
-        this.surface?.refresh();
+        if (this.isConnected) this.surface?.refresh();
       })
       .catch(console.error);
   }
@@ -115,9 +118,9 @@ export class EdgelessRootPreviewBlockComponent extends BlockComponent<RootBlockM
       blocks.forEach((block: GfxBlockComponent) => {
         block.updateZIndex?.();
       });
-    });
+    }, this);
 
-    this._disposables.add(
+    this.disposables.add(
       this._gfx.layer.slots.layerUpdated.subscribe(() => updateLayers()),
     );
   }
@@ -137,7 +140,7 @@ export class EdgelessRootPreviewBlockComponent extends BlockComponent<RootBlockM
 
     onPixelRatioChange();
 
-    this._disposables.add(() => {
+    this.disposables.add(() => {
       media?.removeEventListener("change", onPixelRatioChange);
     });
   }
@@ -150,8 +153,7 @@ export class EdgelessRootPreviewBlockComponent extends BlockComponent<RootBlockM
 
     try {
       resizeObserver.observe(this.viewportElement);
-      this._resizeObserver?.disconnect();
-      this._resizeObserver = resizeObserver;
+      this.disposables.add(() => resizeObserver.disconnect());
     } catch {
       // viewport is not ready
       console.error("Viewport is not ready");
@@ -176,9 +178,7 @@ export class EdgelessRootPreviewBlockComponent extends BlockComponent<RootBlockM
     return this.std.get(EdgelessCRUDIdentifier);
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-
+  protected override afterProjection() {
     this.handleEvent("selectionChange", () => {
       const surface = this.host.selection.value.find(
         (sel): sel is SurfaceSelection => sel.is(SurfaceSelection),
@@ -192,25 +192,13 @@ export class EdgelessRootPreviewBlockComponent extends BlockComponent<RootBlockM
 
       return;
     });
-  }
-
-  override disconnectedCallback() {
-    super.disconnectedCallback();
-
-    if (this._resizeObserver) {
-      this._resizeObserver.disconnect();
-      this._resizeObserver = null;
-    }
-  }
-
-  override firstUpdated() {
     this._initSlotEffects();
     this._initResizeEffect();
     this._initPixelRatioChangeEffect();
     this._initFontLoader();
     this._initLayerUpdateEffect();
 
-    this._disposables.add(
+    this.disposables.add(
       this._gfx.viewport.viewportUpdated.subscribe(() => {
         this._refreshLayerViewport();
       }),
@@ -219,35 +207,25 @@ export class EdgelessRootPreviewBlockComponent extends BlockComponent<RootBlockM
     this._refreshLayerViewport();
   }
 
-  override renderBlock() {
-    const background = styleMap({
-      ...this.backgroundStyle,
-      background: this.overrideBackground,
-    });
-
-    return html`
-      <div class="edgeless-background edgeless-container" style=${background}>
-        <gfx-viewport
-          .enableChildrenSchedule=${!this._disableScheduleUpdate}
-          .gfx=${this._gfx}
-        >
-          ${this.renderChildren(this.model)}${this.renderChildren(
-            this.surfaceBlockModel,
-          )}
-        </gfx-viewport>
-      </div>
-    `;
+  protected override projectedModels() {
+    return [
+      ...this.model.children,
+      ...(this.surfaceBlockModel?.children ?? []),
+    ];
   }
 
-  @state()
-  accessor overrideBackground: string | undefined = undefined;
-
-  @state()
-  accessor backgroundStyle: Readonly<StyleInfo> | null = null;
-
-  @query("gfx-viewport")
-  accessor gfxViewportElm!: GfxViewportElement;
-
-  @query("myoxus-surface")
-  accessor surface!: SurfaceBlockComponent;
+  protected override mountBody() {
+    const background = this.ownerDocument.createElement("div");
+    background.className = "edgeless-background edgeless-container";
+    this.background = background;
+    const viewport = this.ownerDocument.createElement(
+      "gfx-viewport",
+    ) as GfxViewportElement;
+    viewport.enableChildrenSchedule = !this._disableScheduleUpdate;
+    viewport.gfx = this._gfx;
+    this.gfxViewportElm = viewport;
+    background.append(viewport);
+    this.replaceChildren(background);
+    return viewport;
+  }
 }

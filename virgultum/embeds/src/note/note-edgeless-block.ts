@@ -32,7 +32,7 @@ export class EdgelessNoteController {
 
   get showCollapsedContent() {
     return (
-      !!this.view.model.props.edgeless.collapse &&
+      !!this.view.model.props.edgeless$.value.collapse &&
       this.view.selected$.value &&
       !this._dragging &&
       (this._isResizing.value || this._isHover.value || this._editing.value)

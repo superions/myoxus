@@ -9,7 +9,6 @@ import { EMBED_CARD_HEIGHT } from "@virgultum/core/consts";
 import { matchModels } from "@virgultum/core/utils";
 import { BlockStdScope } from "@virgultum/core/runtime";
 import type { BlockModel, Query } from "@virgultum/core/store";
-import { render, type TemplateResult } from "lit";
 
 import type { EmbedLinkedDocBlockComponent } from "../embed-linked-doc-block";
 import type { EmbedSyncedDocCard } from "../embed-synced-doc-block/components/embed-synced-doc-card";
@@ -74,35 +73,23 @@ async function renderImageAsBanner(
   const sourceId = (image as ImageBlockModel).props.sourceId;
   if (!sourceId) return;
 
-  const storage = card.linkedDoc?.blobSync;
+  const linkedDoc = card.linkedDoc;
+  const storage = linkedDoc?.blobSync;
   if (!storage) return;
 
   const blob = await storage.get(sourceId);
   if (!blob) return;
 
+  const container = await card.bannerContainer;
+  if (!container || !card.isConnected || card.linkedDoc !== linkedDoc) return;
+  const imageElement = container.ownerDocument.createElement("img");
   const url = URL.createObjectURL(blob);
-  const $img = document.createElement("img");
-  $img.src = url;
-  await addCover(card, $img);
-
+  const release = () => URL.revokeObjectURL(url);
+  imageElement.addEventListener("load", release, { once: true });
+  imageElement.addEventListener("error", release, { once: true });
+  imageElement.src = url;
+  container.replaceChildren(imageElement);
   card.isBannerEmpty = false;
-}
-
-async function addCover(
-  card: EmbedSyncedDocCard,
-  cover: HTMLElement | TemplateResult<1>,
-) {
-  const coverContainer = await card.bannerContainer;
-  if (!coverContainer) return;
-  while (coverContainer.firstChild) {
-    coverContainer.firstChild.remove();
-  }
-
-  if (cover instanceof HTMLElement) {
-    coverContainer.append(cover);
-  } else {
-    render(cover, coverContainer);
-  }
 }
 
 async function renderNoteContent(
@@ -144,18 +131,14 @@ async function renderNoteContent(
 
   const noteContainer = await card.noteContainer;
 
-  if (!noteContainer) {
+  if (!noteContainer || card.linkedDoc !== doc) {
     return;
-  }
-
-  while (noteContainer.firstChild) {
-    noteContainer.firstChild.remove();
   }
 
   const noteBlocksContainer = document.createElement("div");
   noteBlocksContainer.classList.add("myoxus-embed-doc-content-note-blocks");
   noteBlocksContainer.contentEditable = "false";
-  noteContainer.append(noteBlocksContainer);
+  noteContainer.replaceChildren(noteBlocksContainer);
 
   if (isHorizontal) {
     // When the card is horizontal, we only render the first block
@@ -192,10 +175,7 @@ async function renderNoteContent(
     store: previewDoc,
     extensions: previewSpec,
   });
-  const previewTemplate = previewStd.render();
-  const fragment = document.createDocumentFragment();
-  render(previewTemplate, fragment);
-  noteBlocksContainer.append(fragment);
+  noteBlocksContainer.append(previewStd.render());
   const contentEditableElements = noteBlocksContainer.querySelectorAll(
     '[contenteditable="true"]',
   );

@@ -20,7 +20,6 @@ export type LastPropsKey = keyof LastProps;
 
 const SessionPropsSchema = z.object({
   templateCache: z.string(),
-  remoteColor: z.string(),
   showBidirectional: z.boolean(),
 });
 
@@ -152,8 +151,6 @@ export class EditPropsStore extends LifeCycleWatcher {
         return "virgultum:presentation:noFrameToastShown";
       case "templateCache":
         return "virgultum:" + id + ":templateTool";
-      case "remoteColor":
-        return "virgultum:remote-color";
       case "showBidirectional":
         return "virgultum:" + id + ":showBidirectional";
       case "autoHideEmbedHTMLFullScreenToolbar":

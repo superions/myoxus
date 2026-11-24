@@ -5,13 +5,9 @@ import {
   type BlockComponent,
   BlockSelection,
   type PointerEventState,
-  WidgetComponent,
+  NativeEditorWidget,
   WidgetViewExtension,
 } from "@virgultum/core/runtime";
-import { html, nothing } from "lit";
-import { state } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
-
 import {
   type BlockInfo,
   getSelectingBlockPaths,
@@ -22,7 +18,7 @@ import {
 export const MYOXUS_PAGE_DRAGGING_AREA_WIDGET =
   "myoxus-page-dragging-area-widget";
 
-export class MyoxusPageDraggingAreaWidget extends WidgetComponent<RootBlockModel> {
+export class MyoxusPageDraggingAreaWidget extends NativeEditorWidget<RootBlockModel> {
   static excludeFlavours: string[] = ["myoxus:note", "myoxus:surface"];
 
   private _dragging = false;
@@ -92,7 +88,7 @@ export class MyoxusPageDraggingAreaWidget extends WidgetComponent<RootBlockModel
       width: right - left,
       height: bottom - top,
     };
-    this.rect = userRect;
+    this.paint(userRect);
     this._selectBlocksByRect({
       left: userRect.left + viewportLeft,
       top: userRect.top + viewportTop,
@@ -236,7 +232,7 @@ export class MyoxusPageDraggingAreaWidget extends WidgetComponent<RootBlockModel
       () => {
         this._clearRaf();
         this._dragging = false;
-        this.rect = null;
+        this.mark.remove();
         this._initialScrollOffset = {
           top: 0,
           left: 0,
@@ -264,16 +260,7 @@ export class MyoxusPageDraggingAreaWidget extends WidgetComponent<RootBlockModel
         global: true,
       },
     );
-  }
-
-  override disconnectedCallback() {
-    this._clearRaf();
-    this._disposables.dispose();
-    super.disconnectedCallback();
-  }
-
-  override firstUpdated() {
-    this._disposables.addFromEvent(this.scrollContainer, "scroll", () => {
+    this.disposables.addFromEvent(this.scrollContainer, "scroll", () => {
       if (!this._dragging || !this._lastPointerState) return;
 
       const state = this._lastPointerState;
@@ -283,31 +270,37 @@ export class MyoxusPageDraggingAreaWidget extends WidgetComponent<RootBlockModel
     });
   }
 
-  override render() {
-    const rect = this.rect;
-    if (!rect) return nothing;
+  private readonly mark = this.ownerDocument.createElement("div");
 
-    const style = {
+  private paint(rect: Rect) {
+    const { style } = this.mark;
+    if (!this.mark.isConnected) {
+      this.mark.className = "myoxus-page-dragging-area";
+      Object.assign(style, {
+        position: "absolute",
+        background: "var(--myoxus-hover-color)",
+        zIndex: "1",
+        pointerEvents: "none",
+      });
+      (this.shadowRoot ?? this.attachShadow({ mode: "open" })).append(
+        this.mark,
+      );
+    }
+    Object.assign(style, {
       left: rect.left + "px",
       top: rect.top + "px",
       width: rect.width + "px",
       height: rect.height + "px",
-    };
-    return html`
-      <style>
-        .myoxus-page-dragging-area {
-          position: absolute;
-          background: var(--myoxus-hover-color);
-          z-index: 1;
-          pointer-events: none;
-        }
-      </style>
-      <div class="myoxus-page-dragging-area" style=${styleMap(style)}></div>
-    `;
+    });
   }
 
-  @state()
-  accessor rect: Rect | null = null;
+  override disconnectedCallback() {
+    this._clearRaf();
+    this._dragging = false;
+    this._lastPointerState = null;
+    this.mark.remove();
+    super.disconnectedCallback();
+  }
 }
 
 export const pageDraggingAreaWidget = WidgetViewExtension(

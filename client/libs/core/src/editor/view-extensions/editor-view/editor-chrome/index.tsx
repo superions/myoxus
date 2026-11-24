@@ -8,7 +8,7 @@ import { EditorDocumentCard } from "./document-card";
 import { EditorAttachmentCard } from "./attachment-card";
 import { EditorBookmarkCard } from "./bookmark-card";
 import { EditorGithubCard } from "./github-card";
-import { EditorEventCard } from "./event-card";
+import { EventReferenceCard } from "./event-card";
 import { EditorHtmlFullscreenToolbar } from "./html-fullscreen-toolbar";
 import { EditorYoutubeCard } from "./youtube-card";
 import { EditorFigmaCard } from "./figma-card";
@@ -144,7 +144,7 @@ export function patchEditorChromeHost(
       ),
     renderBookmarkCard: renderControl(EditorBookmarkCard),
     renderGithubCard: renderControl(EditorGithubCard),
-    renderEventCard: renderControl(EditorEventCard),
+    mountEventReference: mountControl(EventReferenceCard),
     renderHtmlFullscreenToolbar: renderControl(
       EditorHtmlFullscreenToolbar,
       decorateEditorEmbeddedUI,

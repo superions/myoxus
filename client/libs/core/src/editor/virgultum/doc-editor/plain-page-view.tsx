@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { Store } from "@virgultum/core/store";
-import {
-  isMyoxusLabelTone,
-  myoxusTextStyles,
-} from "@virgultum/core/styles/text";
 import type { MyoxusTextAttributes } from "@virgultum/core/types";
+import type { Store } from "@virgultum/core/store";
+import { VirgultumEditorJournalDocTitleUI } from "./journal-doc-title";
+import { documentFieldTextStyles } from "@virgultum/core/styles/text";
+import { setInlineStyles } from "@virgultum/core/runtime/inline/attributes";
+import { pageTextRun } from "./page-text-run";
 import type { ReferenceInfo } from "@virgultum/core/models";
 import type { ParagraphBlockModel } from "@virgultum/core/models";
 import { calculateCollapsedSiblings } from "@virgultum/core/utils/collapsed";
@@ -24,6 +24,7 @@ import { resolveLinkToDoc } from "../../../modules/navigation/utils";
 import { createPortal } from "react-dom";
 import type { PageInlineObject } from "./page-inline-object";
 import {
+  DetailPageEditorViewport,
   DocumentEditorRoot,
   DocumentEditorPageViewport,
   DocumentTitleRow,
@@ -49,6 +50,7 @@ import { type Editor, EditorService } from "../../../modules/editor";
 import { useWorkbenchSurfaceScrollViewport } from "../../../modules/workbench/view/workbench-surface-scroll";
 import { DocsService } from "../../../modules/doc";
 import {
+  shouldShowDocumentMetadata,
   DocumentMetadataProvider,
   DocumentMetadataSummary,
 } from "../../../modules/document-metadata";
@@ -154,7 +156,7 @@ function TextField({
       if (composing()) return;
       const runs = line.text.toDelta() as {
         insert: string;
-        attributes?: Record<string, unknown>;
+        attributes?: MyoxusTextAttributes;
       }[];
       const key = JSON.stringify([!!comment, runs]);
       if (previous.current === key) return;
@@ -228,6 +230,10 @@ function TextField({
             }
             object = { kind: "annotation", id, body, start: position };
           }
+          setInlineStyles(
+            el,
+            a.documentField ? documentFieldTextStyles(a) : {},
+          );
           el.contentEditable = "false";
           el.dataset.pageInlineLength = String(offset - start);
           el.dataset.pageInline = object.kind;
@@ -235,37 +241,7 @@ function TextField({
           fragment.append(el);
           continue;
         }
-        let node: Node = document.createTextNode(insert);
-        for (const [mark, tag] of Object.entries({
-          bold: "strong",
-          italic: "em",
-          underline: "u",
-          strike: "s",
-          code: "code",
-        })) {
-          if (a[mark]) {
-            const el = document.createElement(tag);
-            el.append(node);
-            node = el;
-          }
-        }
-        if (
-          a.color ||
-          a.background ||
-          a.code ||
-          isMyoxusLabelTone(a.labelTone)
-        ) {
-          const el = document.createElement("span");
-          for (const [key, value] of Object.entries(
-            myoxusTextStyles(a as MyoxusTextAttributes),
-          )) {
-            if (value != null) el.style.setProperty(key, String(value));
-          }
-          if (isMyoxusLabelTone(a.labelTone))
-            el.dataset.myoxusLabelTone = a.labelTone;
-          el.append(node);
-          node = el;
-        }
+        let node = pageTextRun(field.ownerDocument, insert, a);
         if (typeof a.link === "string") {
           const url = normalizeUrl(a.link);
           if (url && isValidUrl(url)) {
@@ -310,9 +286,9 @@ function TextField({
             };
           }
         }
-        const thread = Object.keys(a).find(
-          (k) => k.startsWith("comment-") && a[k] === true,
-        );
+        const thread = Object.entries(a).find(
+          ([key, value]) => key.startsWith("comment-") && value === true,
+        )?.[0];
         if (thread && comment) {
           const el = document.createElement("span"),
             id = thread.slice(8),
@@ -393,6 +369,8 @@ type PageViewProps = {
   enableAI: boolean;
   className?: string;
   fullWidth?: string;
+  contentOnly?: boolean;
+  journalDate?: string;
 };
 
 export function PlainPageView(props: PageViewProps) {
@@ -401,9 +379,7 @@ export function PlainPageView(props: PageViewProps) {
   const { page, readonly } = props;
   const title = props.content.lines[0];
   const docs = useService(DocsService);
-  const guard = useService(GuardService);
   const workspace = useService(WorkspaceService).workspace;
-  const navigate = useDocumentLinkNavigation();
   const dialogs = useService(WorkspaceDialogService),
     server = useService(ServerService).server;
   const openCommentThread = useCallback(
@@ -434,51 +410,35 @@ export function PlainPageView(props: PageViewProps) {
       editor={editor}
       viewport={viewport}
       openThread={canComment ? openCommentThread : undefined}
-      openDocLink={(url, button) => {
-        const link = resolveLinkToDoc(url, server.baseUrl);
-        if (!link) return false;
-        const { docId: pageId, workspaceId, ...params } = link;
-        navigate(
-          {
-            pageId,
-            workspaceId,
-            params,
-            openMode: button === 1 ? "open-in-new-tab" : "open-in-active-view",
-          },
-          workspace.id,
-          (id) => {
-            const provider = new CoreDocEmbedProvider(guard, docs, workspace);
-            const target = provider.inWorkspace(id);
-            if (!target) {
-              provider.dispose();
-              return;
-            }
-            return { ...target, dispose: () => provider.dispose() };
-          },
-        );
-        return true;
-      }}
       metadata={
-        <DocumentMetadataProvider
-          docId={page.id}
-          readonly={readonly}
-          canOpenGlobalPolicy={Boolean(admin)}
-          canConfigureWorkspaceDefaults={configure}
-          onConfigureWorkspaceDefaults={() =>
-            dialogs.open("workspace-settings", {
-              activeTab: "workspace:documents",
-            })
-          }
-          onOpenGlobalPolicy={() =>
-            window.open(
-              new URL("/adminfrontend/documents?tab=metadata", server.baseUrl),
-              "_blank",
-              "noopener,noreferrer",
-            )
-          }
-        >
-          <DocumentMetadataSummary />
-        </DocumentMetadataProvider>
+        shouldShowDocumentMetadata({
+          isJournal: !!props.journalDate,
+          workspaceFlavour: workspace.flavour,
+        }) && (
+          <DocumentMetadataProvider
+            docId={page.id}
+            readonly={readonly}
+            canOpenGlobalPolicy={Boolean(admin)}
+            canConfigureWorkspaceDefaults={configure}
+            onConfigureWorkspaceDefaults={() =>
+              dialogs.open("workspace-settings", {
+                activeTab: "workspace:documents",
+              })
+            }
+            onOpenGlobalPolicy={() =>
+              window.open(
+                new URL(
+                  "/adminfrontend/documents?tab=metadata",
+                  server.baseUrl,
+                ),
+                "_blank",
+                "noopener,noreferrer",
+              )
+            }
+          >
+            <DocumentMetadataSummary />
+          </DocumentMetadataProvider>
+        )
       }
     />
   );
@@ -500,12 +460,26 @@ export function SnapshotTitle({ line }: { line: PageLine }) {
   );
 }
 
+function readTableCell(model: PageLine["model"], text: PageLine["text"]) {
+  return (
+    <TextField
+      readonly
+      composing={notComposing}
+      line={{ kind: "text", model, text, depth: 0, ordinal: 0, checked: false }}
+    />
+  );
+}
+
 export function PageSnapshot({
   page,
   content,
   className,
   fullWidth,
-}: Pick<PageViewProps, "page" | "content" | "className" | "fullWidth">) {
+  contentOnly,
+}: Pick<
+  PageViewProps,
+  "page" | "content" | "className" | "fullWidth" | "contentOnly"
+>) {
   const rtl = useLiveData(
     useService(FeatureFlagService).flags.enable_editor_rtl.$,
   );
@@ -516,6 +490,7 @@ export function PageSnapshot({
       content={content}
       className={className}
       fullWidth={fullWidth}
+      contentOnly={contentOnly}
       controller={controller}
       dir={rtl ? "rtl" : "ltr"}
       readonly
@@ -536,15 +511,15 @@ function PageView({
   enableAI,
   className,
   fullWidth,
+  contentOnly,
+  journalDate,
   editor,
   viewport,
-  openDocLink,
   openThread,
   metadata,
   dir,
 }: PageViewProps & {
   openThread?: (id: string) => void;
-  openDocLink?: (url: string, button: number) => boolean;
   metadata?: import("react").ReactNode;
   dir?: "ltr" | "rtl";
   editor?: Editor;
@@ -581,6 +556,8 @@ function PageView({
       line.model.children.forEach(hide);
     }
   }
+  // A journal date is document chrome and can never be a text selection endpoint.
+  if (journalDate) hiddenIds.add(lines[0].model.id);
   const visibleLines = hiddenIds.size
     ? lines.filter((l) => !hiddenIds.has(l.model.id))
     : lines;
@@ -626,6 +603,7 @@ function PageView({
       refresh,
       handoff,
       setPicker,
+      editor.framework,
     );
     controller.current = owner;
     if (editor.pageSelection) {
@@ -633,6 +611,7 @@ function PageView({
       if (saved) restorePageRange(el, saved);
       editor.pageSelection = null;
     } else if (
+      !journalDate &&
       !props.current.readonly &&
       !editor.selector$.value?.blockIds?.length &&
       editor.scrollPosition.page === null
@@ -663,7 +642,7 @@ function PageView({
       owner.dispose();
       document.removeEventListener("selectionchange", onSelection);
     };
-  }, [page, editor, controller, handoff, refresh]);
+  }, [page, editor, controller, handoff, refresh, journalDate]);
   useLayoutEffect(
     () => controller.current?.afterRender(),
     [controller, lines, epoch],
@@ -692,15 +671,47 @@ function PageView({
     }
   }, [selector, controller, openThread]);
   const composing = () => !!controller.current?.isComposing;
+  const docs = useService(DocsService);
+  const guard = useService(GuardService);
+  const workspace = useService(WorkspaceService).workspace;
+  const server = useService(ServerService).server;
+  const navigate = useDocumentLinkNavigation();
+  const openDocLink = (url: string, button: number) => {
+    const link = resolveLinkToDoc(url, server.baseUrl);
+    if (!link) return false;
+    const { docId: pageId, workspaceId, ...params } = link;
+    navigate(
+      {
+        pageId,
+        workspaceId,
+        params,
+        openMode: button === 1 ? "open-in-new-tab" : "open-in-active-view",
+      },
+      workspace.id,
+      (id) => {
+        const provider = new CoreDocEmbedProvider(guard, docs, workspace);
+        const target = provider.inWorkspace(id);
+        if (!target) {
+          provider.dispose();
+          return;
+        }
+        return { ...target, dispose: () => provider.dispose() };
+      },
+    );
+    return true;
+  };
   const openLink = (info: LinkAnchor, button?: number) => {
     if (button === undefined) {
       setLink(info);
       return;
     }
     const url = normalizeUrl(info.url);
-    if (!openDocLink?.(url, button))
+    if (!openDocLink(url, button))
       window.open(url, "_blank", "noopener,noreferrer");
   };
+  const Viewport = contentOnly
+    ? DetailPageEditorViewport
+    : DocumentEditorPageViewport;
   return (
     <DocumentEditorRoot
       ref={root}
@@ -710,19 +721,28 @@ function PageView({
       data-full-width-layout={fullWidth}
       dir={dir}
       data-testid={`editor-${page.id}`}
+      data-document-id={page.id}
+      contentOnly={contentOnly}
       data-page-renderer={editor ? "native" : "snapshot"}
     >
-      <DocumentEditorPageViewport>
-        <DocumentTitleRow data-testid="doc-title-row">
-          {editor && <DocIconPicker docId={page.id} readonly={readonly} />}
-          <TextField
-            line={title}
-            snapshotTitle={!editor}
-            title={t.Title()}
-            readonly={readonly}
-            composing={composing}
-          />
-        </DocumentTitleRow>
+      <Viewport
+        {...(contentOnly && { editorMode: "page", pageModeContentBox: true })}
+      >
+        {!contentOnly && journalDate && (
+          <VirgultumEditorJournalDocTitleUI date={journalDate} />
+        )}
+        {!contentOnly && !journalDate && (
+          <DocumentTitleRow data-testid="doc-title-row">
+            {editor && <DocIconPicker docId={page.id} readonly={readonly} />}
+            <TextField
+              line={title}
+              snapshotTitle={!editor}
+              title={t.Title()}
+              readonly={readonly}
+              composing={composing}
+            />
+          </DocumentTitleRow>
+        )}
         {metadata}
         <PageContentRail width="editor">
           <div
@@ -837,6 +857,7 @@ function PageView({
                 <Suspense key={line.model.id} fallback={null}>
                   <Table
                     detached={!editor}
+                    readCell={!editor ? readTableCell : undefined}
                     model={line.model}
                     readonly={readonly || page.readonly}
                     handoff={(intent) => handoff(null, intent)}
@@ -913,6 +934,9 @@ function PageView({
               ) : (
                 <div
                   className="plain-page-line"
+                  data-callout-text={
+                    line.model.flavour === "myoxus:callout" || undefined
+                  }
                   role={line.heading ? "heading" : undefined}
                   aria-level={
                     line.heading ? Number(line.heading[1]) : undefined
@@ -1001,25 +1025,13 @@ function PageView({
             })}
           </div>
         </PageContentRail>
-        <DocumentEditorBlankGap
-          data-testid="page-editor-blank"
-          onClick={() => {
-            if (!readonly) {
-              const last = body.at(-1)!;
-              if (!("text" in last)) {
-                root.current
-                  ?.querySelector<HTMLElement>(
-                    `[data-block-id="${CSS.escape(last.model.id)}"]`,
-                  )
-                  ?.focus();
-                return;
-              }
-              const point = { id: last.model.id, offset: last.text.length };
-              restorePageRange(root.current!, { anchor: point, focus: point });
-            }
-          }}
-        />
-        {!readonly && <StarterBar doc={page} />}
+        {!contentOnly && (
+          <DocumentEditorBlankGap
+            data-testid="page-editor-blank"
+            onClick={() => controller.current?.focusPageEnd()}
+          />
+        )}
+        {!readonly && !journalDate && <StarterBar doc={page} />}
         {link && (
           <Suspense fallback={null}>
             <LinkMenu
@@ -1050,7 +1062,7 @@ function PageView({
             enableAI={enableAI}
           />
         )}
-      </DocumentEditorPageViewport>
+      </Viewport>
     </DocumentEditorRoot>
   );
 }

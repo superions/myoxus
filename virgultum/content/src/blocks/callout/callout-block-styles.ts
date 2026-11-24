@@ -1,3 +1,10 @@
+import { cssVar } from "@myoxus/theme";
+import { editorBackgroundColors } from "@virgultum/core/services";
+import { normalizeCalloutAppearance } from "@virgultum/core/models";
+import type {
+  CalloutBlockModel,
+  ParagraphBlockModel,
+} from "@virgultum/core/models";
 import { css } from "@virgultum/core/styles";
 
 export const calloutHostStyles = css({
@@ -43,15 +50,53 @@ export const calloutChildrenStyles = css({
   paddingInlineStart: "10px",
 });
 
-export const iconPickerContainerStyles = css({
-  position: "absolute",
-  top: "100%",
-  left: 0,
-  zIndex: 1000,
-  background: "white",
-  border: "1px solid #ccc",
-  borderRadius: "8px",
-  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-  width: "390px",
-  height: "400px",
-});
+// Untitled callouts align the glyph with their first paragraph's reading baseline.
+export function calloutIconOffset(model: CalloutBlockModel) {
+  if (model.props.type) return "0";
+  const first = model.children[0];
+  const heading =
+    first?.flavour === "myoxus:paragraph"
+      ? (first as ParagraphBlockModel).props.type$.value
+      : undefined;
+  return (
+    (
+      {
+        h1: "23px",
+        h2: "20px",
+        h3: "16px",
+        h4: "15px",
+        h5: "14px",
+        h6: "13px",
+      } as Record<string, string>
+    )[heading ?? ""] ?? "10px"
+  );
+}
+
+export function calloutSurface(model: CalloutBlockModel) {
+  const appearance =
+    normalizeCalloutAppearance(model.props.appearance$.value) ?? "soft";
+  const stored = model.props.backgroundColorName$.value;
+  const name = !stored || stored === "default" ? "grey" : stored;
+  const palette = editorBackgroundColors.find((color) => color.name === name);
+  const emphasis =
+    palette?.emphasis ?? cssVar(`--myoxus-text-highlight-foreground-${name}`);
+  return {
+    appearance,
+    style: {
+      backgroundColor:
+        appearance === "soft"
+          ? (palette?.background ??
+            (name === "grey"
+              ? cssVar("tagGray")
+              : cssVar(`--myoxus-text-highlight-${name}`)))
+          : cssVar(
+              appearance === "accent"
+                ? "backgroundSecondaryColor"
+                : "backgroundPrimaryColor",
+            ),
+      color: appearance === "soft" ? (palette?.ink ?? "") : "",
+      border: appearance === "outline" ? `1px solid ${emphasis}` : "",
+      borderInlineStart: appearance === "accent" ? `3px solid ${emphasis}` : "",
+    },
+  };
+}

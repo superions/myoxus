@@ -63,3 +63,5 @@ export const clipboardConfigs: ExtensionType[] = [
   PlainTextClipboardConfig,
   AttachmentClipboardConfig,
 ];
+
+export { bindDocumentCopy } from "../blocks/root/clipboard/readonly-clipboard";

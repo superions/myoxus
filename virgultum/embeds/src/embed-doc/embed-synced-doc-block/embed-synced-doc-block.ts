@@ -1,3 +1,4 @@
+import { createReferenceIcon } from "@virgultum/core/view/icons";
 import { computed, effect, signal } from "@preact/signals-core";
 import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import { EmbedBlockComponent, isEmptyDoc } from "../../embed/index";
@@ -18,7 +19,6 @@ import {
 import { REFERENCE_NODE } from "@virgultum/core/consts";
 import {
   DocDisplayMetaProvider,
-  DocDisplayMetaService,
   DocEmbedProvider,
   DocModeProvider,
   EditorChromeHostIdentifier,
@@ -440,10 +440,11 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
     )
       return nothing;
     if (context.collection.id !== this.std.workspace.id)
-      return DocDisplayMetaService.icons.linkedPage;
-    return this.std
-      .get(DocDisplayMetaProvider)
-      .icon(pageId, { params, referenced: true }).value;
+      return createReferenceIcon(this.ownerDocument, "LinkIcon");
+    return createReferenceIcon(
+      this.ownerDocument,
+      this.std.get(DocDisplayMetaProvider).referenceIcon(pageId, params),
+    );
   });
 
   open = (event?: Partial<DocLinkClickedEvent>) => {

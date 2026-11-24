@@ -49,19 +49,74 @@ export type CaptureEdgelessSnapshotForExportOptions = {
   ) => boolean | Promise<boolean>;
 };
 
+// html2canvas's CSS parser predates CSS Color 4. Resolve computed theme colors
+// through the browser in the disposable print clone, including shadow colors.
+function normalizePageColors(root: HTMLElement) {
+  const doc = root.ownerDocument;
+  const context = doc
+    .createElement("canvas")
+    .getContext("2d", { willReadFrequently: true });
+  const win = doc.defaultView;
+  if (!context || !win) return;
+  const colors = new Map<string, string>();
+  const resolve = (value: string) => {
+    const cached = colors.get(value);
+    if (cached) return cached;
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = value;
+    context.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
+    const result = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+    colors.set(value, result);
+    return result;
+  };
+  for (const element of [
+    root,
+    ...root.querySelectorAll<HTMLElement | SVGElement>("*"),
+  ]) {
+    if (!element.style) continue;
+    const style = win.getComputedStyle(element);
+    for (const key of [
+      "color",
+      "background-color",
+      "background-image",
+      "box-shadow",
+      "text-shadow",
+      "text-decoration-color",
+      "border-top-color",
+      "border-right-color",
+      "border-bottom-color",
+      "border-left-color",
+      "outline-color",
+      "fill",
+      "stroke",
+    ]) {
+      const value = style.getPropertyValue(key);
+      const normalized = value.replace(
+        /(?:color|(?:ok)?l(?:ab|ch))\([^()]+\)/gi,
+        resolve,
+      );
+      if (value !== normalized)
+        element.style.setProperty(key, normalized, "important");
+    }
+  }
+}
+
 export class ExportManager {
   private readonly _exportOptions: ExportOptions = {
     imageProxyEndpoint: DEFAULT_IMAGE_PROXY_ENDPOINT,
   };
 
-  replaceImgSrcWithSvg = async (element: HTMLElement) => {
+  readonly replaceImgSrcWithSvg = ExportManager.replaceImgSrcWithSvg;
+
+  private static async replaceImgSrcWithSvg(element: HTMLElement) {
     const imgList = Array.from(element.querySelectorAll("img"));
     // Create an array of promises
     const promises = imgList.map((img) => {
       return FetchUtils.fetchImage(
         img.src,
         undefined,
-        this._exportOptions.imageProxyEndpoint,
+        DEFAULT_IMAGE_PROXY_ENDPOINT,
       )
         .then((response) => response && response.blob())
         .then(async (blob) => {
@@ -101,7 +156,7 @@ export class ExportManager {
 
     // Wait for all promises to resolve
     await Promise.all(promises);
-  };
+  }
 
   get doc(): Store {
     return this.std.store;
@@ -178,33 +233,19 @@ export class ExportManager {
     return { canvas, ctx };
   }
 
-  private _disableMediaPrint() {
+  private static _disableMediaPrint() {
     document.querySelectorAll(".media-print").forEach((mediaPrint) => {
       mediaPrint.classList.add("hide");
     });
   }
 
-  private async _docToCanvas(): Promise<HTMLCanvasElement | void> {
+  private static async pageToCanvas(
+    viewportElement: HTMLElement,
+    pageLeft: number,
+    pageWidth: number | undefined,
+  ) {
     const html2canvas = (await import("html2canvas")).default;
-    if (!(html2canvas instanceof Function)) return;
-
-    const pathname = location.pathname;
-    const editorMode = isInsidePageEditor(this.editorHost);
-
-    const rootComponent = getRootByEditorHost(this.editorHost);
-    if (!rootComponent) return;
-    const viewportElement = rootComponent.viewportElement;
-    if (!viewportElement) return;
-    const pageContainer = viewportElement.querySelector(
-      ".myoxus-page-root-block-container",
-    );
-    const rect = pageContainer?.getBoundingClientRect();
-    const { viewport } = rootComponent;
-    if (!viewport) return;
-    const pageWidth = rect?.width;
-    const pageLeft = rect?.left ?? 0;
-    const viewportHeight = viewportElement?.scrollHeight;
-
+    const viewportHeight = viewportElement.scrollHeight;
     const html2canvasOption = {
       ignoreElements: function (element: Element) {
         if (
@@ -228,28 +269,92 @@ export class ExportManager {
       },
       onclone: async (_documentClone: Document, element: HTMLElement) => {
         element.style.height = `${viewportHeight}px`;
-        await this.replaceImgSrcWithSvg(element);
+        normalizePageColors(element);
+        await ExportManager.replaceImgSrcWithSvg(element);
       },
       backgroundColor: window.getComputedStyle(viewportElement).backgroundColor,
-      x: pageLeft - viewport.left,
+      x: pageLeft,
       width: pageWidth,
       height: viewportHeight,
-      useCORS: this._exportOptions.imageProxyEndpoint ? false : true,
-      proxy: this._exportOptions.imageProxyEndpoint,
+      useCORS: DEFAULT_IMAGE_PROXY_ENDPOINT ? false : true,
+      proxy: DEFAULT_IMAGE_PROXY_ENDPOINT,
     };
 
     let data: HTMLCanvasElement;
     try {
-      this._enableMediaPrint();
+      ExportManager._enableMediaPrint();
       data = await html2canvas(
         viewportElement as HTMLElement,
         html2canvasOption,
       );
     } finally {
-      this._disableMediaPrint();
+      ExportManager._disableMediaPrint();
     }
-    this._checkCanContinueToCanvas(pathname, editorMode);
     return data;
+  }
+
+  static async exportPagePng(origin: HTMLElement, page: Store) {
+    const root = page.root as RootBlockModel | null;
+    const viewport = origin.querySelector<HTMLElement>(
+      ".myoxus-document-editor-page-viewport",
+    );
+    const content = viewport?.querySelector<HTMLElement>("[data-page-body]");
+    if (
+      !root ||
+      !viewport ||
+      !content ||
+      !origin.isConnected ||
+      origin.dataset.documentId !== page.id
+    )
+      throw new Error("PNG export requires the mounted document");
+    const body = content.getBoundingClientRect();
+    const title =
+      viewport
+        .querySelector(".myoxus-document-title-row")
+        ?.getBoundingClientRect() ?? body;
+    const left = Math.min(body.left, title.left);
+    const right = Math.max(body.right, title.right);
+    const data = await this.pageToCanvas(
+      viewport,
+      left - viewport.getBoundingClientRect().left,
+      right - left,
+    );
+    if (
+      !origin.isConnected ||
+      page.root !== root ||
+      origin.dataset.documentId !== page.id
+    )
+      throw new Error("Document changed during PNG export");
+    FileExporter.exportPng(
+      root.props.title.toString(),
+      data.toDataURL("image/png"),
+    );
+  }
+
+  private async _docToCanvas() {
+    const pathname = location.pathname;
+    const editorMode = isInsidePageEditor(this.editorHost);
+
+    const rootComponent = getRootByEditorHost(this.editorHost);
+    if (!rootComponent) return;
+    const viewportElement = rootComponent.viewportElement;
+    if (!viewportElement) return;
+    const pageContainer = viewportElement.querySelector(
+      ".myoxus-page-root-block-container",
+    );
+    const rect = pageContainer?.getBoundingClientRect();
+    const { viewport } = rootComponent;
+    if (!viewport) return;
+    const pageWidth = rect?.width;
+    const pageLeft = rect?.left ?? 0;
+
+    const canvas = await ExportManager.pageToCanvas(
+      viewportElement,
+      pageLeft - viewport.left,
+      pageWidth,
+    );
+    this._checkCanContinueToCanvas(pathname, editorMode);
+    return canvas;
   }
 
   private _drawEdgelessBackground(
@@ -286,7 +391,7 @@ export class ExportManager {
     });
   }
 
-  private _enableMediaPrint() {
+  private static _enableMediaPrint() {
     document.querySelectorAll(".media-print").forEach((mediaPrint) => {
       mediaPrint.classList.remove("hide");
     });
@@ -329,7 +434,7 @@ export class ExportManager {
           }
         });
 
-        await this.replaceImgSrcWithSvg(element);
+        await ExportManager.replaceImgSrcWithSvg(element);
       },
       useCORS: this._exportOptions.imageProxyEndpoint ? false : true,
       proxy: this._exportOptions.imageProxyEndpoint,
@@ -337,13 +442,13 @@ export class ExportManager {
 
     let data: HTMLCanvasElement;
     try {
-      this._enableMediaPrint();
+      ExportManager._enableMediaPrint();
       data = await html2canvas(
         htmlElement,
         Object.assign(html2canvasOption, options),
       );
     } finally {
-      this._disableMediaPrint();
+      ExportManager._disableMediaPrint();
     }
     return data;
   }

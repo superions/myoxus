@@ -569,7 +569,6 @@ path = [
   "libs/core/src/editor/ai/widgets/ai-panel/ai-panel.ts",
   "libs/core/src/editor/ai/widgets/ai-panel/type.ts",
   "libs/core/src/editor/ai/widgets/block-diff/block.ts",
-  "libs/core/src/editor/ai/widgets/block-diff/options.ts",
   "libs/core/src/editor/ai/widgets/block-diff/page.ts",
   "libs/core/src/editor/ai/widgets/block-diff/playground.ts",
   "libs/core/src/editor/ai/widgets/edgeless-copilot-panel/index.ts",
@@ -909,7 +908,6 @@ path = [
   "libs/core/src/modules/doc-display-meta/index.ts",
   "libs/core/src/modules/doc-display-meta/services/doc-display-meta.ts",
   "libs/core/src/modules/doc-display-meta/services/icon.tsx",
-  "libs/core/src/modules/doc-display-meta/services/lit-icon.ts",
   "libs/core/src/modules/doc-info/use-std.ts",
   "libs/core/src/modules/doc-info/utils.ts",
   "libs/core/src/modules/doc-link/entities/doc-backlinks.ts",
@@ -5812,6 +5810,7 @@ path = [
   "libs/core/public/document-bundles/payloads/d94e17b0b15207e2e80db37ff48692ef610dc6aeb2e902281792a888a2098e87.snapshot.json",
   "libs/core/src/desktop/pages/workspace/overview/register-configuration.tsx",
   "libs/core/src/editor/ai/widgets/ai-panel/view.tsx",
+  "libs/core/src/editor/ai/widgets/block-diff/diff-widget.ts",
   "libs/core/src/editor/ai/widgets/block-diff/view.tsx",
   "libs/core/src/editor/ai/blocks/ai-chat-block/components/stored-chat-messages.tsx",
   "libs/core/src/editor/ai/widgets/native-ui.ts",
@@ -5924,7 +5923,6 @@ SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [
   "libs/core/src/components/document-links/use-document-link-counts.ts",
-  "libs/core/src/editor/virgultum/doc-editor/legacy-entry.ts",
   "libs/core/src/editor/virgultum/doc-editor/page-handoff.ts",
   "libs/core/src/editor/virgultum/doc-editor/page-equation.tsx",
   "libs/core/src/editor/virgultum/doc-editor/page-event.tsx",
@@ -5993,3 +5991,15 @@ SPDX-FileCopyrightText  = "2026-present Daniel Scharf and Myoxus contributors"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin         = "M0"
 path                    = ["libs/core/src/editor/ai/chat-panel/message/assistant.tsx"]
+
+[[annotations]]
+SPDX-FileCopyrightText  = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin         = "M0"
+path                    = ["libs/core/src/editor/virgultum/doc-editor/page-text-run.ts"]
+
+[[annotations]]
+SPDX-FileCopyrightText  = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin         = "M0"
+path                    = ["libs/core/src/editor/virgultum/doc-editor/page-block-copy.ts"]

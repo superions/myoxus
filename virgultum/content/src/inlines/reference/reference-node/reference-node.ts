@@ -1,13 +1,12 @@
-import { effect } from "@preact/signals-core";
-import { LinkIcon } from "@myoxus/icons/lit";
+import { effect, signal } from "@preact/signals-core";
+import { createReferenceIcon } from "@virgultum/core/view/icons";
 import { whenHover } from "@virgultum/core/view/hover";
 import { Peekable } from "@virgultum/core/view/peek";
-import { WithDisposable } from "@virgultum/core/primitives/lit";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import type { ReferenceInfo } from "@virgultum/core/models";
 import { DEFAULT_DOC_NAME, REFERENCE_NODE } from "@virgultum/core/consts";
 import {
   DocDisplayMetaProvider,
-  DocDisplayMetaService,
   DocEmbedProvider,
   ToolbarRegistryIdentifier,
 } from "@virgultum/core/services";
@@ -18,7 +17,8 @@ import {
   BLOCK_ID_ATTR,
   type BlockComponent,
   type BlockStdScope,
-  ShadowlessElement,
+  NativeViewElement,
+  installEditorStyles,
 } from "@virgultum/core/runtime";
 import {
   INLINE_ROOT_ATTR,
@@ -26,20 +26,12 @@ import {
   ZERO_WIDTH_FOR_EMBED_NODE,
   ZERO_WIDTH_FOR_EMPTY_LINE,
 } from "@virgultum/core/runtime/inline";
-import type { DeltaInsert, DocMeta, Store } from "@virgultum/core/store";
-import { css, html, nothing } from "lit";
-import { property, state } from "lit/decorators.js";
-import { choose } from "lit/directives/choose.js";
-import { ifDefined } from "lit/directives/if-defined.js";
-import { styleMap } from "lit/directives/style-map.js";
-
+import type { DeltaInsert, DocMeta } from "@virgultum/core/store";
 import type { ReferenceNodeConfigProvider } from "./reference-config";
 import { RefNodeSlotsProvider } from "./reference-node-slots";
 import type { DocLinkClickedEvent } from "./types";
 
-@Peekable({ action: false })
-export class MyoxusReference extends WithDisposable(ShadowlessElement) {
-  static override styles = css`
+const styles = `
     .myoxus-reference {
       white-space: normal;
       word-break: break-word;
@@ -73,20 +65,42 @@ export class MyoxusReference extends WithDisposable(ShadowlessElement) {
     }
   `;
 
+@Peekable({ action: false })
+export class MyoxusReference extends NativeViewElement {
+  std!: BlockStdScope;
+  config!: ReferenceNodeConfigProvider;
+  disposables = new DisposableGroup();
+  private readonly currentDelta = signal<DeltaInsert<MyoxusTextAttributes>>({
+    insert: ZERO_WIDTH_FOR_EMPTY_LINE,
+    attributes: {},
+  });
+  private readonly currentSelection = signal(false);
+  private readonly revision = signal(0);
+  get delta() {
+    return this.currentDelta.value;
+  }
+  set delta(value: DeltaInsert<MyoxusTextAttributes>) {
+    this.currentDelta.value = value;
+  }
+  get selected() {
+    return this.currentSelection.value;
+  }
+  set selected(value: boolean) {
+    this.currentSelection.value = value;
+  }
+
   private _targetIdentity: string | undefined;
   private _targetScope: ReturnType<
     NonNullable<DocEmbedProvider["inWorkspace"]>
   >;
   private _targetReference:
     ReturnType<NonNullable<DocEmbedProvider["openReference"]>> | undefined;
-  private _targetEffect: (() => void) | undefined;
   private get targetContext() {
     const { pageId, workspaceId } = this.referenceInfo;
     const provider = this.std.getOptional(DocEmbedProvider);
     const workspace = workspaceId ?? this.std.workspace.id;
     const identity = JSON.stringify([workspace, pageId]);
     if (identity !== this._targetIdentity) {
-      this._targetEffect?.();
       this._targetReference?.dispose();
       this._targetScope?.dispose();
       this._targetIdentity = identity;
@@ -94,11 +108,6 @@ export class MyoxusReference extends WithDisposable(ShadowlessElement) {
       this._targetScope = this._targetReference
         ? undefined
         : provider?.inWorkspace?.(workspace);
-      this._targetEffect = effect(() => {
-        const context = this.targetContext;
-        void context?.access?.readable(context.docId).value;
-        this.requestUpdate();
-      });
     }
     if (this._targetReference)
       return this._targetReference.target.value ?? undefined;
@@ -135,48 +144,32 @@ export class MyoxusReference extends WithDisposable(ShadowlessElement) {
     return this.refMeta?.title ?? DEFAULT_DOC_NAME;
   }
 
-  private readonly _updateRefMeta = (_doc: Store) => {
-    const refAttribute = this.resolvedReferenceInfo;
-    if (!refAttribute) {
-      return;
-    }
-
+  get refMeta(): DocMeta | undefined {
     const context = this.targetContext;
     if (
       !context ||
-      (context.access &&
-        context.access.readable(refAttribute.pageId).value !== true)
-    ) {
-      this.refMeta = undefined;
+      (context.access && context.access.readable(context.docId).value !== true)
+    )
       return;
-    }
-    const refMeta = context.collection.meta.docMetas.find(
-      (doc) => doc.id === refAttribute.pageId,
+    return context.collection.meta.docMetas.find(
+      (doc) => doc.id === context.docId,
     );
-    this.refMeta = refMeta
-      ? {
-          ...refMeta,
-        }
-      : undefined;
-  };
-
-  // Since the linked doc may be deleted, the `_refMeta` could be undefined.
-  @state()
-  accessor refMeta: DocMeta | undefined = undefined;
+  }
 
   get _icon() {
-    const { pageId, params, title } = this.resolvedReferenceInfo;
+    const { pageId, params } = this.resolvedReferenceInfo;
     const context = this.targetContext;
     if (
       !context ||
       (context.access && context.access.readable(pageId).value !== true)
     )
-      return nothing;
+      return null;
     if (context.collection.id !== this.std.workspace.id)
-      return DocDisplayMetaService.icons.linkedPage;
-    return this.std
-      .get(DocDisplayMetaProvider)
-      .icon(pageId, { params, title, referenced: true }).value;
+      return createReferenceIcon(this.ownerDocument, "LinkIcon");
+    return createReferenceIcon(
+      this.ownerDocument,
+      this.std.get(DocDisplayMetaProvider).referenceIcon(pageId, params),
+    );
   }
 
   get _title() {
@@ -284,144 +277,87 @@ export class MyoxusReference extends WithDisposable(ShadowlessElement) {
     { enterDelay: 500 },
   );
 
-  override connectedCallback() {
-    super.connectedCallback();
-
-    this._whenHover.setReference(this);
-    this.disposables.add(() => {
-      this._targetEffect?.();
-      this._targetReference?.dispose();
-      this._targetScope?.dispose();
-      this._targetIdentity = undefined;
-    });
-
-    const message$ = this.std.get(ToolbarRegistryIdentifier).message$;
-
-    this._disposables.add(() => {
-      if (message$?.value) {
-        message$.value = null;
-      }
-      this._whenHover.dispose();
-    });
-
-    if (!this.config) {
-      console.error("`reference-node` need `ReferenceNodeConfig`.");
-      return;
-    }
-
+  connectedCallback() {
+    this.disposables = new DisposableGroup();
+    if (!this.config || !this.std) return;
     if (this.delta.insert !== REFERENCE_NODE) {
       console.error(
         `Reference node must be initialized with '${REFERENCE_NODE}', but got '${this.delta.insert}'`,
       );
     }
-
-    const doc = this.doc;
-    if (doc) {
-      this._disposables.add(
-        doc.workspace.slots.docListUpdated.subscribe(() =>
-          this._updateRefMeta(doc),
-        ),
-      );
-    }
-
-    this.updateComplete
-      .then(() => {
-        if (!this.inlineEditor || !doc) return;
-
-        // observe yText update
-        this.disposables.add(
-          this.inlineEditor.slots.textChange.subscribe(() =>
-            this._updateRefMeta(doc),
-          ),
+    const doc = this.ownerDocument;
+    installEditorStyles(this, styles);
+    const label = doc.createElement("span");
+    label.className = "myoxus-reference";
+    const content = doc.createElement("span");
+    const marker = doc.createElement("v-text");
+    marker.str = ZERO_WIDTH_FOR_EMBED_NODE;
+    label.append(content, marker);
+    this.replaceChildren(label);
+    const open = (event: MouseEvent) => this.open({ event });
+    this.disposables.addFromEvent(label, "click", open);
+    this.disposables.addFromEvent(label, "auxclick", open);
+    this._whenHover.setReference(this);
+    const refresh = () => this.revision.value++;
+    this.disposables.add(
+      this.doc.workspace.slots.docListUpdated.subscribe(refresh),
+    );
+    this.disposables.add(
+      effect(() => {
+        label.dataset.selected = String(this.selected);
+      }),
+    );
+    this.disposables.add(
+      effect(() => {
+        const attrs = this.delta.attributes;
+        const type = attrs?.reference?.type;
+        label.hidden = !type;
+        if (!attrs || !type) return undefined;
+        const mount = this.customContent;
+        if (!mount) void this.revision.value;
+        const deleted = !mount && !this.refMeta;
+        const styles = myoxusTextStyles(
+          attrs,
+          deleted
+            ? {
+                color: "var(--myoxus-text-disable-color)",
+                "text-decoration": "line-through",
+                fill: "var(--myoxus-text-disable-color)",
+              }
+            : {},
         );
-      })
-      .catch(console.error);
+        label.removeAttribute("style");
+        for (const [key, value] of Object.entries(styles)) {
+          if (value != null) label.style.setProperty(key, String(value));
+        }
+        if (mount) return mount(content, this);
+
+        const title = this._title;
+        const icon =
+          type === "Subpage"
+            ? createReferenceIcon(doc, "LinkIcon")
+            : this._icon;
+        const name = doc.createElement("span");
+        name.className = "myoxus-reference-title";
+        if (title !== undefined) name.dataset.title = title;
+        name.textContent = title ?? "";
+        content.replaceChildren(...(icon ? [icon, name] : [name]));
+        return undefined;
+      }),
+    );
   }
 
-  // reference to block/element
+  disconnectedCallback() {
+    this.disposables.dispose();
+    this._targetReference?.dispose();
+    this._targetScope?.dispose();
+    this._targetIdentity = undefined;
+    const message = this.std?.getOptional(ToolbarRegistryIdentifier)?.message$;
+    if (message?.value?.element === this) message.value = null;
+    this._whenHover.dispose();
+  }
+
   referenceToNode() {
     return referenceToNode(this.referenceInfo);
   }
-
-  override render() {
-    const refMeta = this.refMeta;
-    // A host renderer owns its guarded pending/unavailable presentation.
-    const isDeleted = !this.customContent && !refMeta;
-
-    const attributes = this.delta.attributes;
-    const reference = attributes?.reference;
-    const type = reference?.type;
-    if (!attributes || !type) {
-      return nothing;
-    }
-
-    const title = this._title;
-    const icon = choose(type, [
-      ["LinkedPage", () => this._icon],
-      [
-        "Subpage",
-        () =>
-          LinkIcon({
-            width: "1.25em",
-            height: "1.25em",
-            style:
-              "user-select:none;flex-shrink:0;vertical-align:middle;font-size:inherit;margin-bottom:0.1em;",
-          }),
-      ],
-    ]);
-
-    const style = myoxusTextStyles(
-      attributes,
-      isDeleted
-        ? {
-            color: "var(--myoxus-text-disable-color)",
-            textDecoration: "line-through",
-            fill: "var(--myoxus-text-disable-color)",
-          }
-        : {},
-    );
-
-    const content = this.customContent
-      ? this.customContent(this)
-      : html`${icon}<span
-            data-title=${ifDefined(title)}
-            class="myoxus-reference-title"
-            >${title}</span
-          >`;
-
-    // we need to add `<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text>` in an
-    // embed element to make sure inline range calculation is correct
-    return html`<span
-      data-selected=${this.selected}
-      class="myoxus-reference"
-      style=${styleMap(style)}
-      @click=${(event: MouseEvent) => this.open({ event })}
-      @auxclick=${(event: MouseEvent) => this.open({ event })}
-      >${content}<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
-    ></span>`;
-  }
-
-  override willUpdate(_changedProperties: Map<PropertyKey, unknown>) {
-    super.willUpdate(_changedProperties);
-
-    const doc = this.doc;
-    if (doc) {
-      this._updateRefMeta(doc);
-    }
-  }
-
-  @property({ attribute: false })
-  accessor config!: ReferenceNodeConfigProvider;
-
-  @property({ type: Object })
-  accessor delta: DeltaInsert<MyoxusTextAttributes> = {
-    insert: ZERO_WIDTH_FOR_EMPTY_LINE,
-    attributes: {},
-  };
-
-  @property({ type: Boolean })
-  accessor selected = false;
-
-  @property({ attribute: false })
-  accessor std!: BlockStdScope;
 }

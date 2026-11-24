@@ -1,65 +1,56 @@
-import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import { EmbedSyncedDocBlockSchema } from "@virgultum/core/models";
-import { LifeCycleWatcher } from "@virgultum/core/runtime";
+import { type EditorHost, LifeCycleWatcher } from "@virgultum/core/runtime";
+import type { BlockModel } from "@virgultum/core/store";
+import type { Subscription } from "rxjs";
 
-import { EmbedEdgelessSyncedDocBlockComponent } from "./embed-edgeless-synced-doc-block";
+import type { EmbedEdgelessSyncedDocBlockComponent } from "./embed-edgeless-synced-doc-block";
 import { calcSyncedDocFullHeight } from "./utils";
 
 export class HeightInitializationExtension extends LifeCycleWatcher {
   static override key = "embed-synced-doc-block-height-initialization";
 
-  override mounted() {
-    super.mounted();
+  private createdHere = new WeakSet<BlockModel>();
+  private subscription?: Subscription;
 
-    this._disposables.add(
-      this.std.store.slots.blockUpdated.subscribe((payload) => {
+  override mounted() {
+    this.subscription = this.std.store.slots.blockUpdated.subscribe(
+      (payload) => {
         if (
           payload.type === "add" &&
           payload.isLocal &&
           payload.flavour === EmbedSyncedDocBlockSchema.model.flavour &&
           payload.model.parent?.flavour === "myoxus:surface"
-        ) {
-          this._initQueue.add(payload.id);
-        }
-      }),
-    );
-
-    this._disposables.add(
-      this.std.view.viewUpdated.subscribe((payload) => {
-        if (
-          payload.type === "block" &&
-          payload.method === "add" &&
-          this._initQueue.has(payload.id)
-        ) {
-          this._initQueue.delete(payload.id);
-          if (!(payload.view instanceof EmbedEdgelessSyncedDocBlockComponent)) {
-            return;
-          }
-          const block = payload.view;
-
-          block.updateComplete
-            .then(() => {
-              if (!block.contentElement) return;
-              const resizeObserver = new ResizeObserver(() => {
-                const { x, y, w } = block.model.elementBound;
-                const h = calcSyncedDocFullHeight(block);
-                block.model.xywh$.value = `[${x},${y},${w},${h}]`;
-
-                resizeObserver.disconnect();
-              });
-              resizeObserver.observe(block.contentElement);
-            })
-            .catch(console.error);
-        }
-      }),
+        )
+          this.createdHere.add(payload.model);
+      },
     );
   }
 
-  override unmounted(): void {
-    this._disposables.dispose();
+  /** Only fit a newly created local card, once its nested text has laid out. */
+  async fitPreview(
+    block: EmbedEdgelessSyncedDocBlockComponent,
+    preview: EditorHost,
+  ) {
+    const { model } = block;
+    if (!this.createdHere.has(model)) return;
+    const originalSize = model.xywh;
+    // The caller returns this host to its owner; connection precedes readiness.
+    await Promise.resolve();
+    if (
+      !(await preview.updateComplete) ||
+      !block.contains(preview) ||
+      block.store.readonly ||
+      !this.createdHere.delete(model) ||
+      originalSize !== model.xywh
+    )
+      return;
+    const { x, y, w } = model.elementBound;
+    const height = calcSyncedDocFullHeight(block);
+    model.xywh$.value = `[${x},${y},${w},${height}]`;
   }
 
-  private readonly _initQueue = new Set<string>();
-
-  private readonly _disposables = new DisposableGroup();
+  override unmounted() {
+    this.subscription?.unsubscribe();
+    this.createdHere = new WeakSet();
+  }
 }

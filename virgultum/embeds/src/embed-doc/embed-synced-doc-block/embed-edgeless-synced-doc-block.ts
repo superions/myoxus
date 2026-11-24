@@ -19,6 +19,7 @@ import { classMap } from "lit/directives/class-map.js";
 import { guard } from "lit/directives/guard.js";
 import { styleMap } from "lit/directives/style-map.js";
 
+import { HeightInitializationExtension } from "./init-height-extension";
 import { EmbedSyncedDocConfigExtension } from "./configs";
 import { EmbedSyncedDocBlockComponent } from "./embed-synced-doc-block";
 
@@ -72,14 +73,22 @@ export class EmbedEdgelessSyncedDocBlockComponent extends toEdgelessEmbedBlock(
       return choose(editorMode, [
         [
           "page",
-          () => html`
-            <div class="myoxus-page-viewport" data-theme=${appTheme}>
-              ${new BlockStdScope({
-                store: syncedDoc,
-                extensions: this._buildPreviewSpec("preview-page"),
-              }).render()}
-            </div>
-          `,
+          () => {
+            const preview = new BlockStdScope({
+              store: syncedDoc,
+              extensions: this._buildPreviewSpec("preview-page"),
+            }).render();
+            void this.std
+              .getOptional(HeightInitializationExtension)
+              ?.fitPreview(this, preview)
+              .catch(console.error);
+            return html`<div
+              class="myoxus-page-viewport"
+              data-theme=${appTheme}
+            >
+              ${preview}
+            </div>`;
+          },
         ],
         [
           "edgeless",

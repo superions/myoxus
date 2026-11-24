@@ -5,14 +5,14 @@ import type { MountReactPortal, ReactToLit } from "@myoxus/lit-react";
 import { useConfirmModal } from "@myoxus/ui-facade";
 import { useMemo } from "react";
 
-import { useEnableAI } from "./use-enable-ai";
+import { useEditorCopilot } from "./use-enable-ai";
 
 export const useAISpecs = (
   reactToLit: ReactToLit,
   mountPortal: MountReactPortal,
 ) => {
   const framework = useFramework();
-  const enableAI = useEnableAI();
+  const enableAI = useEditorCopilot();
   const { openConfirmModal, closeConfirmModal } = useConfirmModal();
   // The hook returns a fresh object; specs must not be recreated for every
   // portal update merely because the two stable modal commands were repackaged.

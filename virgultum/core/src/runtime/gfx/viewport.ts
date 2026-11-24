@@ -315,6 +315,15 @@ export class Viewport {
     this.panning$.complete();
   }
 
+  /** Keep linked Canvas elements clear of the bottom toolbar in both readers and editors. */
+  focusLinkedBounds(bounds: Bound) {
+    const { zoom, centerX, centerY } = this.getFitToScreenData(
+      bounds,
+      [20, 20, 100, 20],
+    );
+    this.setViewport(zoom, [centerX, centerY]);
+  }
+
   getFitToScreenData(
     bounds?: Bound | null,
     padding: [number, number, number, number] = [0, 0, 0, 0],

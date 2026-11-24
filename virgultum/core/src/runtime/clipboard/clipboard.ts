@@ -697,59 +697,60 @@ export class Clipboard extends LifeCycleWatcher {
     return job.sliceToSnapshot(slice);
   }
 
-  async writeToClipboard(
-    updateItems: <T extends Record<string, unknown>>(
-      items: T,
-    ) => Promise<T> | T,
-    assertCurrent?: () => void | Promise<void>,
-  ) {
-    const items = await updateItems<
-      Partial<{
-        "text/plain": string;
-        "text/html": string;
-        "image/png": string | Blob;
-      }>
-    >({
-      "text/plain": "",
-      "text/html": "",
-      "image/png": "",
-    });
-    const text = items["text/plain"] ?? "";
-    const innerHTML = items["text/html"] ?? "";
-    const image = items["image/png"];
+  writeToClipboard = writeClipboardItems;
+}
 
-    delete items["text/plain"];
-    delete items["text/html"];
+/** Encode the editor clipboard formats without allocating a document view or editing scope. */
+export async function writeClipboardItems(
+  updateItems: <T extends Record<string, unknown>>(items: T) => Promise<T> | T,
+  assertCurrent?: () => void | Promise<void>,
+) {
+  const items = await updateItems<
+    Partial<{
+      "text/plain": string;
+      "text/html": string;
+      "image/png": string | Blob;
+    }>
+  >({
+    "text/plain": "",
+    "text/html": "",
+    "image/png": "",
+  });
+  const text = items["text/plain"] ?? "";
+  const innerHTML = items["text/html"] ?? "";
+  const image = items["image/png"];
 
-    const clipboardItems: Record<string, Blob> = {};
+  delete items["text/plain"];
+  delete items["text/html"];
 
-    if (image) {
-      const type = "image/png";
-      delete items[type];
-      if (typeof image === "string") {
-        clipboardItems[type] = new Blob([image], { type });
-      } else if (image instanceof Blob) {
-        clipboardItems[type] = image;
-      }
+  const clipboardItems: Record<string, Blob> = {};
+
+  if (image) {
+    const type = "image/png";
+    delete items[type];
+    if (typeof image === "string") {
+      clipboardItems[type] = new Blob([image], { type });
+    } else if (image instanceof Blob) {
+      clipboardItems[type] = image;
     }
-
-    if (text.length > 0) {
-      const type = "text/plain";
-      clipboardItems[type] = new Blob([text], { type });
-    }
-
-    const hasInnerHTML = Boolean(innerHTML.length);
-    const isEmpty = Object.keys(clipboardItems).length === 0;
-
-    // If there are no items, fall back to snapshot.
-    if (hasInnerHTML || isEmpty) {
-      const type = "text/html";
-      const snapshot = lz.compressToEncodedURIComponent(JSON.stringify(items));
-      const html = `<div data-virgultum-snapshot="${snapshot}">${innerHTML}</div>`;
-      clipboardItems[type] = new Blob([html], { type });
-    }
-
-    await assertCurrent?.();
-    await navigator.clipboard.write([new ClipboardItem(clipboardItems)]);
   }
+
+  if (text.length > 0) {
+    const type = "text/plain";
+    clipboardItems[type] = new Blob([text], { type });
+  }
+
+  const hasInnerHTML = Boolean(innerHTML.length);
+  const isEmpty = Object.keys(clipboardItems).length === 0;
+
+  // If there are no items, fall back to snapshot.
+  if (hasInnerHTML || isEmpty) {
+    const type = "text/html";
+    const snapshot = lz.compressToEncodedURIComponent(JSON.stringify(items));
+    const html = `<div data-virgultum-snapshot="${snapshot}">${innerHTML}</div>`;
+    clipboardItems[type] = new Blob([html], { type });
+  }
+
+  await assertCurrent?.();
+  await navigator.clipboard.write([new ClipboardItem(clipboardItems)]);
 }

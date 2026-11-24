@@ -44,6 +44,39 @@ export class StoreSelectionExtension extends StoreExtension {
     return ctor.fromJSON(json);
   };
 
+  private readonly _receive = (change: {
+    updated: number[];
+    added: number[];
+    removed: number[];
+  }) => {
+    const all = change.updated.concat(change.added).concat(change.removed);
+    const local = this.store.awarenessStore.awareness.clientID;
+    if (all.every((id) => id === local)) return;
+    const map = new Map<number, BaseSelection[]>();
+    this.store.awarenessStore.getStates().forEach((state, id) => {
+      if (id === local) return;
+      // One peer can have multiple editor sessions for the same document.
+      const selection = Object.entries(state.selectionV2 ?? {})
+        .filter(([key]) => key.startsWith(this.store.id + ":"))
+        .flatMap(([_, selection]) => selection);
+
+      const selections = selection
+        .map((json) => {
+          try {
+            return this._jsonToSelection(json);
+          } catch (error) {
+            console.error("Parse remote selection failed:", id, json, error);
+            return null;
+          }
+        })
+        .filter((sel): sel is BaseSelection => !!sel);
+
+      map.set(id, selections);
+    });
+    this._remoteSelections.value = map;
+    this.slots.remoteChanged.next(map);
+  };
+
   slots = {
     changed: new Subject<BaseSelection[]>(),
     remoteChanged: new Subject<Map<number, BaseSelection[]>>(),
@@ -56,46 +89,13 @@ export class StoreSelectionExtension extends StoreExtension {
       });
     });
 
-    this.store.awarenessStore.awareness.on(
-      "change",
-      (change: { updated: number[]; added: number[]; removed: number[] }) => {
-        const all = change.updated.concat(change.added).concat(change.removed);
-        const localClientID = this.store.awarenessStore.awareness.clientID;
-        const exceptLocal = all.filter((id) => id !== localClientID);
-
-        // Only consider remote selections from other clients
-        if (exceptLocal.length > 0) {
-          const map = new Map<number, BaseSelection[]>();
-          this.store.awarenessStore.getStates().forEach((state, id) => {
-            if (id === this.store.awarenessStore.awareness.clientID) return;
-            // selection id starts with the same block collection id from others clients would be considered as remote selections
-            const selection = Object.entries(state.selectionV2)
-              .filter(([key]) => key.startsWith(this.store.id))
-              .flatMap(([_, selection]) => selection);
-
-            const selections = selection
-              .map((json) => {
-                try {
-                  return this._jsonToSelection(json);
-                } catch (error) {
-                  console.error(
-                    "Parse remote selection failed:",
-                    id,
-                    json,
-                    error,
-                  );
-                  return null;
-                }
-              })
-              .filter((sel): sel is BaseSelection => !!sel);
-
-            map.set(id, selections);
-          });
-          this._remoteSelections.value = map;
-          this.slots.remoteChanged.next(map);
-        }
-      },
-    );
+    const awareness = this.store.awarenessStore.awareness;
+    awareness.on("change", this._receive);
+    this._receive({
+      updated: [...awareness.getStates().keys()],
+      added: [],
+      removed: [],
+    });
 
     this.store.history.undoManager.on("stack-item-added", this._itemAdded);
     this.store.history.undoManager.on("stack-item-popped", this._itemPopped);
@@ -103,6 +103,7 @@ export class StoreSelectionExtension extends StoreExtension {
 
   override disposed() {
     super.disposed();
+    this.store.awarenessStore.awareness.off("change", this._receive);
     this.store.history.undoManager.off("stack-item-added", this._itemAdded);
     this.store.history.undoManager.off("stack-item-popped", this._itemPopped);
   }
