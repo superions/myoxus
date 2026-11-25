@@ -13,10 +13,13 @@ import {
   Group,
   MonoText,
   notify,
-  SimpleGrid,
+  SettingsDefinitionItem,
+  SettingsDefinitionList,
+  SettingsDetailHeader,
   SettingsEmptyState,
   SettingsNotice,
   SettingsStatusText,
+  SimpleGrid,
   Stack,
   Table,
   TableScrollContainer,
@@ -38,11 +41,6 @@ import {
   type TemplateImportResult,
   type TemplateImportStatusModel,
 } from "./status-models";
-import {
-  MetaField,
-  MetaGrid,
-  TemplateTabFrame,
-} from "./template-role-primitives";
 
 function ImportResultSection({
   title,
@@ -174,10 +172,12 @@ export function ImportTab() {
   }, [selectedFile, isUploading, revalidateCatalog, i18n]);
 
   return (
-    <TemplateTabFrame
-      title={i18n.t("admin.templates.import.title")}
-      description={i18n.t("admin.templates.import.description")}
-    >
+    <Stack component="section">
+      <SettingsDetailHeader
+        title={i18n.t("admin.templates.import.title")}
+        description={i18n.t("admin.templates.import.description")}
+        headingLevel={2}
+      />
       <Stack>
         <UploadTarget
           title={i18n.t("admin.templates.import.dropzone.hint")}
@@ -191,18 +191,20 @@ export function ImportTab() {
 
         {/* Selected file info */}
         {selectedFile && (
-          <MetaGrid>
-            <MetaField
+          <SettingsDefinitionList>
+            <SettingsDefinitionItem
               label={i18n.t("admin.templates.import.file-label")}
-              value={selectedFile.name}
               mono
-            />
-            <MetaField
+            >
+              {selectedFile.name}
+            </SettingsDefinitionItem>
+            <SettingsDefinitionItem
               label={i18n.t("admin.templates.import.size-label")}
-              value={`${(selectedFile.size / 1024).toFixed(1)} KB`}
               mono
-            />
-          </MetaGrid>
+            >
+              {`${(selectedFile.size / 1024).toFixed(1)} KB`}
+            </SettingsDefinitionItem>
+          </SettingsDefinitionList>
         )}
 
         <SimpleGrid cols={2}>
@@ -302,28 +304,27 @@ export function ImportTab() {
             }
           >
             <Stack>
-              <SimpleGrid cols={2}>
-                <div>
-                  <strong>
-                    {importResult.package
+              <SettingsDefinitionList>
+                <SettingsDefinitionItem
+                  label={
+                    importResult.package
                       ? i18n.t("admin.templates.import.package.label")
-                      : i18n.t("admin.templates.import.field.template")}
-                  </strong>{" "}
+                      : i18n.t("admin.templates.import.field.template")
+                  }
+                >
                   {importResult.package
                     ? importResult.package.package_id
                     : `${importResult.entry!.title} (${importResult.entry!.slug})`}
-                </div>
-                <div>
-                  <strong>
-                    {i18n.t("admin.templates.import.field.version")}
-                  </strong>{" "}
+                </SettingsDefinitionItem>
+                <SettingsDefinitionItem
+                  label={i18n.t("admin.templates.import.field.version")}
+                >
                   {importResult.package?.version ??
                     importResult.revision!.version}
-                </div>
-                <div>
-                  <strong>
-                    {i18n.t("admin.templates.import.field.state")}
-                  </strong>{" "}
+                </SettingsDefinitionItem>
+                <SettingsDefinitionItem
+                  label={i18n.t("admin.templates.import.field.state")}
+                >
                   <Badge tone={importResult.error ? "warning" : "info"}>
                     {importResult.package
                       ? importResult.error
@@ -333,44 +334,43 @@ export function ImportTab() {
                           })
                       : importResult.revision!.state}
                   </Badge>
-                </div>
-                {importStatus?.detectedFormat && (
-                  <div>
-                    <strong>
-                      {i18n.t("admin.templates.import.field.detected-format")}
-                    </strong>{" "}
-                    <span>
-                      {visibleImportFormat(i18n, importStatus.detectedFormat)}
-                    </span>
-                  </div>
-                )}
-                {importStatus?.normalized !== null && (
-                  <div>
-                    <strong>
-                      {i18n.t("admin.templates.import.field.normalized")}
-                    </strong>{" "}
+                </SettingsDefinitionItem>
+                {importStatus?.detectedFormat ? (
+                  <SettingsDefinitionItem
+                    label={i18n.t(
+                      "admin.templates.import.field.detected-format",
+                    )}
+                  >
+                    {visibleImportFormat(i18n, importStatus.detectedFormat)}
+                  </SettingsDefinitionItem>
+                ) : null}
+                {importStatus?.normalized !== null ? (
+                  <SettingsDefinitionItem
+                    label={i18n.t("admin.templates.import.field.normalized")}
+                  >
                     {importStatus?.normalized
                       ? i18n.t("admin.templates.import.field.normalized-yes")
                       : i18n.t("admin.templates.import.field.normalized-no")}
-                  </div>
-                )}
-                {importStatus?.ignoredEntriesCount != null && (
-                  <div>
-                    <strong>
-                      {i18n.t("admin.templates.import.field.ignored-entries")}
-                    </strong>{" "}
+                  </SettingsDefinitionItem>
+                ) : null}
+                {importStatus?.ignoredEntriesCount != null ? (
+                  <SettingsDefinitionItem
+                    label={i18n.t(
+                      "admin.templates.import.field.ignored-entries",
+                    )}
+                  >
                     {importStatus.ignoredEntriesCount}
-                  </div>
-                )}
-                {importStatus?.errorCatalogVersion && (
-                  <div>
-                    <strong>
-                      {i18n.t("admin.templates.import.field.error-catalog")}
-                    </strong>{" "}
+                  </SettingsDefinitionItem>
+                ) : null}
+                {importStatus?.errorCatalogVersion ? (
+                  <SettingsDefinitionItem
+                    label={i18n.t("admin.templates.import.field.error-catalog")}
+                    mono
+                  >
                     <MonoText>{importStatus.errorCatalogVersion}</MonoText>
-                  </div>
-                )}
-              </SimpleGrid>
+                  </SettingsDefinitionItem>
+                ) : null}
+              </SettingsDefinitionList>
               {importResult.package && (
                 <TableScrollContainer>
                   <Table>
@@ -462,6 +462,6 @@ export function ImportTab() {
           />
         )}
       </Stack>
-    </TemplateTabFrame>
+    </Stack>
   );
 }

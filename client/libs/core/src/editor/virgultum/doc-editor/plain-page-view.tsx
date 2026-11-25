@@ -24,6 +24,7 @@ import { resolveLinkToDoc } from "../../../modules/navigation/utils";
 import { createPortal } from "react-dom";
 import type { PageInlineObject } from "./page-inline-object";
 import {
+  Checkbox,
   DetailPageEditorViewport,
   DocumentEditorRoot,
   DocumentEditorPageViewport,
@@ -103,6 +104,7 @@ const Table = lazy(() => import("./page-table"));
 const InlineObject = lazy(() => import("./page-inline-object"));
 const LinkMenu = lazy(() => import("./page-link"));
 const Picker = lazy(() => import("./page-picker"));
+const PageSlash = lazy(() => import("./page-slash"));
 const Annotation = lazy(async () => ({
   default: (await import("../../view-extensions/editor-view/annotation"))
     .AnnotationBlock,
@@ -586,6 +588,8 @@ function PageView({
   const [selection, setSelection] = useState<DOMRect | null>(null);
   const [picker, setPicker] = useState<PickerStart | null>(null);
   const dismissPicker = useCallback(() => setPicker(null), []);
+  const [slash, setSlash] = useState<PickerStart | null>(null);
+  const dismissSlash = useCallback(() => setSlash(null), []);
   const [epoch, repaint] = useReducer((n) => n + 1, 0);
   useLayoutEffect(() => {
     if (!editor) return;
@@ -606,6 +610,7 @@ function PageView({
       handoff,
       setPicker,
       editor.framework,
+      setSlash,
     );
     controller.current = owner;
     if (editor.pageSelection) {
@@ -772,7 +777,6 @@ function PageView({
                       enableAI={enableAI}
                       model={line.model}
                       readonly={readonly || page.readonly}
-                      handoff={(intent) => handoff(null, intent)}
                     />
                   </Suspense>
                 ) : line.kind === "footnote" ? (
@@ -787,7 +791,6 @@ function PageView({
                     <Iframe
                       model={line.model}
                       readonly={readonly || page.readonly}
-                      handoff={(intent) => handoff(null, intent)}
                     />
                   </Suspense>
                 ) : line.kind === "document" ? (
@@ -803,7 +806,6 @@ function PageView({
                     <Forge
                       model={line.model}
                       readonly={readonly || page.readonly}
-                      handoff={(intent) => handoff(null, intent)}
                     />
                   </Suspense>
                 ) : line.kind === "html" ? (
@@ -811,7 +813,6 @@ function PageView({
                     <Html
                       model={line.model}
                       readonly={readonly || page.readonly}
-                      handoff={(intent) => handoff(null, intent)}
                     />
                   </Suspense>
                 ) : line.kind === "player" ? (
@@ -819,7 +820,6 @@ function PageView({
                     <Player
                       model={line.model}
                       readonly={readonly || page.readonly}
-                      handoff={(intent) => handoff(null, intent)}
                     />
                   </Suspense>
                 ) : line.kind === "image" ? (
@@ -827,7 +827,6 @@ function PageView({
                     <PageImage
                       model={line.model}
                       readonly={readonly || page.readonly}
-                      handoff={(intent) => handoff(null, intent)}
                     />
                   </Suspense>
                 ) : line.kind === "bookmark" ? (
@@ -835,7 +834,6 @@ function PageView({
                     <Bookmark
                       model={line.model}
                       readonly={readonly || page.readonly}
-                      handoff={(intent) => handoff(null, intent)}
                     />
                   </Suspense>
                 ) : line.kind === "annotation" ? (
@@ -872,7 +870,6 @@ function PageView({
                     <Attachment
                       model={line.model}
                       readonly={readonly || page.readonly}
-                      handoff={(intent) => handoff(null, intent)}
                     />
                   </Suspense>
                 ) : line.kind === "event" ? (
@@ -1003,15 +1000,19 @@ function PageView({
                         {line.kind === "numbered" ? (
                           `${line.ordinal}.`
                         ) : line.kind === "todo" ? (
-                          <input
-                            type="checkbox"
-                            checked={line.checked}
+                          <Checkbox
+                            size="sm"
+                            checked={Boolean(line.checked)}
                             disabled={readonly}
-                            onChange={() => {
-                              if (!readonly && !page.readonly)
-                                page.updateBlock(line.model, {
-                                  checked: !line.checked,
-                                });
+                            aria-label={t[
+                              "com.myoxus.editor.slash.todo-list"
+                            ]()}
+                            onChange={(_event, checked) => {
+                              if (!readonly && !page.readonly) {
+                                page.captureSync();
+                                page.updateBlock(line.model, { checked });
+                                page.captureSync();
+                              }
                             }}
                           />
                         ) : (
@@ -1055,7 +1056,6 @@ function PageView({
               anchor={link}
               readonly={readonly || page.readonly}
               dismiss={() => setLink(null)}
-              handoff={handoff}
             />
           </Suspense>
         )}
@@ -1066,6 +1066,18 @@ function PageView({
               start={picker}
               root={root.current}
               close={dismissPicker}
+            />
+          </Suspense>
+        )}
+        {slash && !readonly && controller.current && root.current && (
+          <Suspense fallback={null}>
+            <PageSlash
+              owner={controller.current}
+              page={page}
+              start={slash}
+              root={root.current}
+              enableAI={enableAI}
+              close={dismissSlash}
             />
           </Suspense>
         )}

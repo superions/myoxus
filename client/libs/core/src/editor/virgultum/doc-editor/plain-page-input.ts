@@ -11,10 +11,6 @@ type RelativePoint = { id: string; position: Y.RelativePosition };
 export type PageBookmark = { anchor: RelativePoint; focus: RelativePoint };
 export type PageIntent =
   | {
-      kind: "convert-link";
-      url: string;
-    }
-  | {
       kind: "table-cell";
       id: string;
       row: string;
@@ -24,16 +20,7 @@ export type PageIntent =
       menu?: "cell" | "row";
       paste?: DataTransfer;
     }
-  | {
-      kind: "block-command";
-      id: string;
-      flavour?: string;
-      control?: string;
-      clipboard?: "copy" | "cut" | "paste";
-      data?: DataTransfer;
-    }
   | { kind: "range-clipboard"; action: "copy" | "cut" }
-  | { kind: "block-paste"; id: string; data: DataTransfer }
   | { kind: "slash"; trigger: string; start: PageBookmark }
   | { kind: "paste"; data: DataTransfer }
   | { kind: "input"; inputType: string; data: string | null }
@@ -274,7 +261,15 @@ export function replacePageRange(
     return null;
   if (parts.some((p) => page.hasFixedText(p.line.model))) return null;
   const pieces = value.replaceAll("\r\n", "\n").split("\n");
-  if (pieces.length > 1 && parts.some((p) => p.line.heading)) return null;
+  if (
+    pieces.length > 1 &&
+    parts.some(
+      (p) =>
+        p.line.heading &&
+        (p.line.model.props as { collapsed?: boolean }).collapsed,
+    )
+  )
+    return null;
   // Splitting the callout's own text is a structural callout command; never
   // clone the hub as though it were an ordinary sibling paragraph.
   if (
@@ -348,9 +343,10 @@ export function replacePageRange(
         ? -1
         : parent.children.findIndex((m) => m.id === first.line.model.id);
       for (const [i, piece] of pieces.slice(1).entries()) {
+        const asText = title || Boolean(first.line.heading);
         const id = page.addBlock(
-          title ? "myoxus:paragraph" : first.line.model.flavour,
-          { type: title ? "text" : first.line.kind },
+          asText ? "myoxus:paragraph" : first.line.model.flavour,
+          { type: asText ? "text" : first.line.kind },
           parent,
           index + i + 1,
         );

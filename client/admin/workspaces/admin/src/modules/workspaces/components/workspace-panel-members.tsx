@@ -12,7 +12,6 @@
  * and `memberQuery` variables. Mutations use the admin workspace-member
  * surface so all workspace memberships use one authoritative model.
  */
-import { adminToast as toast } from "@myoxus/admin/notifications";
 import {
   adminAddWorkspaceMemberMutation,
   adminRemoveWorkspaceMemberMutation,
@@ -34,6 +33,7 @@ import {
   IconButton,
   Modal,
   MyoxusSelect,
+  notify,
   Pagination,
   NavigationLink,
   SettingsEmptyState,
@@ -214,7 +214,9 @@ function AddMemberDialog({
     if (!selectedUserId) return;
     addMember({ workspaceId, userId: selectedUserId, role })
       .then(async () => {
-        toast.success(i18n.t("admin.workspaces.members.add-success"));
+        notify.success({
+          title: i18n.t("admin.workspaces.members.add-success"),
+        });
         await revalidate(
           adminWorkspaceQuery,
           (vars: { id?: string } | undefined) => vars?.id === workspaceId,
@@ -223,9 +225,11 @@ function AddMemberDialog({
         onOpenChange(false);
       })
       .catch((e: Error) => {
-        toast.error(
-          i18n.t("admin.workspaces.members.add-failed", { message: e.message }),
-        );
+        notify.error({
+          title: i18n.t("admin.workspaces.members.add-failed", {
+            message: e.message,
+          }),
+        });
       });
   }, [
     addMember,
@@ -423,11 +427,11 @@ export function WorkspaceMembersSection({
     if (!removeTarget) return;
     removeMember({ workspaceId, userId: removeTarget.id })
       .then(async () => {
-        toast.success(
-          i18n.t("admin.workspaces.members.remove-success", {
+        notify.success({
+          title: i18n.t("admin.workspaces.members.remove-success", {
             name: removeTarget.name,
           }),
-        );
+        });
         setRemoveTarget(null);
         await revalidate(
           adminWorkspaceQuery,
@@ -435,11 +439,11 @@ export function WorkspaceMembersSection({
         );
       })
       .catch((e: Error) => {
-        toast.error(
-          i18n.t("admin.workspaces.members.remove-failed", {
+        notify.error({
+          title: i18n.t("admin.workspaces.members.remove-failed", {
             message: e.message,
           }),
-        );
+        });
       });
   }, [i18n, removeMember, removeTarget, revalidate, workspaceId]);
 
@@ -458,23 +462,23 @@ export function WorkspaceMembersSection({
       setRoleUpdatingUserId(member.id);
       updateMemberRole({ workspaceId, userId: member.id, role: nextRole })
         .then(async () => {
-          toast.success(
-            i18n.t("admin.workspaces.members.role-update-success", {
+          notify.success({
+            title: i18n.t("admin.workspaces.members.role-update-success", {
               name: displayName,
               role: roleLabel(i18n, nextRole),
             }),
-          );
+          });
           await revalidate(
             adminWorkspaceQuery,
             (vars: { id?: string } | undefined) => vars?.id === workspaceId,
           );
         })
         .catch((e: Error) => {
-          toast.error(
-            i18n.t("admin.workspaces.members.role-update-failed", {
+          notify.error({
+            title: i18n.t("admin.workspaces.members.role-update-failed", {
               message: e.message,
             }),
-          );
+          });
         })
         .finally(() => setRoleUpdatingUserId(null));
     },

@@ -2,13 +2,23 @@
 
 import { MyoxusEmbeddedUIProvider } from "@myoxus/ui-facade/provider";
 import {
+  createContext,
   type PropsWithChildren,
   useCallback,
+  useContext,
   useEffect,
   useId,
   useLayoutEffect,
   useState,
 } from "react";
+
+const EditorColorSchemeContext = createContext<"dark" | "light" | undefined>(
+  undefined,
+);
+
+export function useEditorColorScheme(): "dark" | "light" | undefined {
+  return useContext(EditorColorSchemeContext);
+}
 
 function findEditorThemeScope(element: Element): Element | null {
   let current: Element | null = element;
@@ -62,12 +72,14 @@ export function EditorEmbeddedUIRoot({
   }, [portalRoot]);
 
   return (
-    <MyoxusEmbeddedUIProvider
-      colorScheme={colorScheme}
-      cssVariablesSelector={cssVariablesSelector}
-      getRootElement={getRootElement}
-    >
-      {children}
-    </MyoxusEmbeddedUIProvider>
+    <EditorColorSchemeContext.Provider value={colorScheme}>
+      <MyoxusEmbeddedUIProvider
+        colorScheme={colorScheme}
+        cssVariablesSelector={cssVariablesSelector}
+        getRootElement={getRootElement}
+      >
+        {children}
+      </MyoxusEmbeddedUIProvider>
+    </EditorColorSchemeContext.Provider>
   );
 }

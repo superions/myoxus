@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { createPortal } from "react-dom";
+import {
+  MermaidRuntimePortal,
+  useMermaidCaptureDrag,
+} from "../mermaid-runtime-portal";
 import { GripVerticalIcon } from "@myoxus/icons";
 import { isValidUrl } from "@virgultum/core/utils";
 import { useEffect, useRef, useState } from "react";
@@ -393,16 +396,15 @@ export function SequenceParticipantHandle({
 }) {
   const [target, setTarget] = useState<string | null>(null),
     [diagnostic, setDiagnostic] = useState<string | null>(null),
-    dispose = useRef<(() => void) | null>(null),
+    drag = useMermaidCaptureDrag(),
     basis = useRef(props.sourceBasis),
     latest = useRef(props);
   latest.current = props;
-  useEffect(() => () => dispose.current?.(), []);
   useEffect(() => {
     basis.current = props.sourceBasis;
-    dispose.current?.();
+    drag.cancel();
     setTarget(null);
-  }, [props.sourceBasis, props.readonly, id]);
+  }, [props.sourceBasis, props.readonly, id, drag]);
   const participant = props.model.participants.find((p) => p.sourceKey === id),
     siblings = props.model.participants.filter(
       (p) => !p.createdBy && p.boxId === participant?.boxId,
@@ -463,63 +465,56 @@ export function SequenceParticipantHandle({
           if (props.readonly || participant?.createdBy) return;
           event.preventDefault();
           event.stopPropagation();
-          dispose.current?.();
+          drag.cancel();
           basis.current = props.sourceBasis;
           let candidate: string | null = null;
-          const move = (event: PointerEvent) => {
-            const next = latest.current.resolveParticipantDropBefore(
-              { left: event.clientX, top: event.clientY },
-              id,
-            );
-            if (next === candidate) return;
-            candidate = next;
-            setTarget(next);
-            if (next !== null) run(true, next);
-            else latest.current.onCancelPreview();
-          };
-          const cleanup = () => {
-            document.removeEventListener("pointermove", move, true);
-            document.removeEventListener("pointerup", up, true);
-            document.removeEventListener("pointercancel", cleanup, true);
-            latest.current.onCancelPreview();
-            setTarget(null);
-            dispose.current = null;
-          };
-          const up = () => {
-            const chosen = candidate;
-            cleanup();
-            if (chosen !== null) run(false, chosen);
-          };
-          dispose.current = cleanup;
-          document.addEventListener("pointermove", move, true);
-          document.addEventListener("pointerup", up, true);
-          document.addEventListener("pointercancel", cleanup, true);
+          const cleanup = drag.start({
+            onMove: (event) => {
+              const next = latest.current.resolveParticipantDropBefore(
+                { left: event.clientX, top: event.clientY },
+                id,
+              );
+              if (next === candidate) return;
+              candidate = next;
+              setTarget(next);
+              if (next !== null) run(true, next);
+              else latest.current.onCancelPreview();
+            },
+            onUp: () => {
+              const chosen = candidate;
+              cleanup();
+              if (chosen !== null) run(false, chosen);
+            },
+            onCleanup: () => {
+              latest.current.onCancelPreview();
+              setTarget(null);
+            },
+          });
         }}
       >
         <GripVerticalIcon />
       </IconButton>
-      {target !== null
-        ? createPortal(
-            <Box
-              pos="fixed"
-              role="status"
-              style={{
-                left: point?.left,
-                top: point?.top,
-                pointerEvents: "none",
-                zIndex: "var(--myoxus-z-index-popover)",
-              }}
-            >
-              <Badge>
-                {diagnostic ||
-                  (target
-                    ? `${m.sequenceBefore()} · ${siblings.find((p) => p.sourceKey === target)?.label}`
-                    : m.sequenceEnd())}
-              </Badge>
-            </Box>,
-            document.body,
-          )
-        : null}
+      {target !== null ? (
+        <MermaidRuntimePortal>
+          <Box
+            pos="fixed"
+            role="status"
+            style={{
+              left: point?.left,
+              top: point?.top,
+              pointerEvents: "none",
+              zIndex: "var(--myoxus-z-index-popover)",
+            }}
+          >
+            <Badge>
+              {diagnostic ||
+                (target
+                  ? `${m.sequenceBefore()} · ${siblings.find((p) => p.sourceKey === target)?.label}`
+                  : m.sequenceEnd())}
+            </Badge>
+          </Box>
+        </MermaidRuntimePortal>
+      ) : null}
     </>
   );
 }

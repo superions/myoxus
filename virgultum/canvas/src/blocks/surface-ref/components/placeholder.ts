@@ -3,72 +3,25 @@ import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import {
   editorMessage,
   resolveEditorMessage,
+  type EditorChromeHost,
   type EditorI18nService,
+  type EditorSurfaceRefPlaceholderControls,
 } from "@virgultum/core/services";
-import { DeleteIcon } from "@myoxus/icons/native";
 import { ColorScheme } from "@virgultum/core/models";
-import {
-  installEditorStyles,
-  NativeViewElement,
-} from "@virgultum/core/runtime";
+import { NativeViewElement } from "@virgultum/core/runtime";
 import { type GfxModel } from "@virgultum/core/runtime/gfx";
 
-import { DarkDeletedSmallBanner, LightDeletedSmallBanner } from "../icons";
-import { getReferenceModelTitle, TYPE_ICON_MAP } from "../utils";
+import { getReferenceModelTitle } from "../utils";
 
-const placeholderStyles = `
-  .surface-ref-placeholder {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px;
-  }
-
-  .surface-ref-placeholder.not-found {
-    background: var(--myoxus-background-secondary-color);
-  }
-
-  .surface-ref-placeholder-heading {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    align-self: stretch;
-
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 22px;
-
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-
-    color: var(--myoxus-text-primary-color);
-  }
-
-  .surface-ref-placeholder-body {
-    position: relative;
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 20px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-    color: var(--myoxus-text-disable-color);
-  }
-
-  .surface-ref-not-found-background {
-    position: absolute;
-    right: 12px;
-    bottom: -5px;
-  }
-`;
-
-function parseSvg(doc: Document, markup: string) {
-  const tpl = doc.createElement("template");
-  tpl.innerHTML = markup;
-  return tpl.content.firstElementChild;
-}
+const TYPE_GLYPH_MAP: Record<
+  string,
+  EditorSurfaceRefPlaceholderControls["icon"]
+> = {
+  "myoxus:frame": "FrameIcon",
+  group: "GroupIcon",
+  mindmap: "MindmapIcon",
+  edgeless: "EdgelessIcon",
+};
 
 export class SurfaceRefPlaceHolder extends NativeViewElement {
   private _disposables = new DisposableGroup();
@@ -77,6 +30,12 @@ export class SurfaceRefPlaceHolder extends NativeViewElement {
   private readonly _inEdgeless$ = signal(false);
   private readonly _theme$ = signal<ColorScheme>(ColorScheme.Light);
   private readonly _i18n$ = signal<EditorI18nService | undefined>(undefined);
+  private readonly _chromeState$ =
+    signal<EditorSurfaceRefPlaceholderControls | null>(null);
+  private _chromeUnmount?: () => void;
+  private _mountedChrome?: EditorChromeHost;
+
+  chromeHost?: EditorChromeHost;
 
   get referenceModel() {
     return this._referenceModel$.value;
@@ -118,7 +77,6 @@ export class SurfaceRefPlaceHolder extends NativeViewElement {
   }
 
   connectedCallback() {
-    installEditorStyles(this, placeholderStyles);
     this._disposables.dispose();
     this._disposables = new DisposableGroup();
 
@@ -138,58 +96,24 @@ export class SurfaceRefPlaceHolder extends NativeViewElement {
         const referenceModel = this._referenceModel$.value;
         const refFlavour = this._refFlavour$.value;
         const inEdgeless = this._inEdgeless$.value;
-        const theme = this._theme$.value;
+        void this._theme$.value;
         const i18n = this._i18n$.value;
         void i18n?.locale$.value;
 
         untracked(() => {
-          // When surface ref is in page mode and reference exists, don't render placeholder
           if (referenceModel && !inEdgeless) {
-            this.replaceChildren();
+            this._chromeState$.value = null;
+            if (!this._chromeUnmount) this.replaceChildren();
             return;
           }
 
           const text = (message: ReturnType<typeof editorMessage>) =>
             resolveEditorMessage(message, i18n);
           const modelNotFound = !referenceModel;
-          const matchedType =
-            TYPE_ICON_MAP[refFlavour] ?? TYPE_ICON_MAP["edgeless"];
           const typeName = text(
             names[refFlavour as keyof typeof names] ?? names.edgeless,
           );
-          const title =
-            (referenceModel && getReferenceModelTitle(referenceModel)) ??
-            typeName;
-
-          const container = doc.createElement("div");
-          container.className = modelNotFound
-            ? "surface-ref-placeholder not-found"
-            : "surface-ref-placeholder";
-
-          if (modelNotFound) {
-            const bg = doc.createElement("div");
-            bg.className = "surface-ref-not-found-background";
-            const banner = parseSvg(
-              doc,
-              theme === ColorScheme.Light
-                ? LightDeletedSmallBanner
-                : DarkDeletedSmallBanner,
-            );
-            if (banner) bg.append(banner);
-            container.append(bg);
-          }
-
-          const heading = doc.createElement("div");
-          heading.className = "surface-ref-placeholder-heading";
-          const iconEl = parseSvg(
-            doc,
-            modelNotFound ? DeleteIcon : matchedType.icon,
-          );
-          if (iconEl) heading.append(iconEl);
-
-          const titleSpan = doc.createElement("span");
-          titleSpan.className = "surface-ref-title";
-          titleSpan.textContent = modelNotFound
+          const title = modelNotFound
             ? text(
                 editorMessage(
                   "com.myoxus.editor.surface-ref.unavailable",
@@ -197,14 +121,8 @@ export class SurfaceRefPlaceHolder extends NativeViewElement {
                   { type: typeName },
                 ),
               )
-            : `${title}`;
-          heading.append(titleSpan);
-
-          const body = doc.createElement("div");
-          body.className = "surface-ref-placeholder-body";
-          const bodySpan = doc.createElement("span");
-          bodySpan.className = "surface-ref-text";
-          bodySpan.textContent = modelNotFound
+            : `${(referenceModel && getReferenceModelTitle(referenceModel)) ?? typeName}`;
+          const description = modelNotFound
             ? text(
                 editorMessage(
                   "com.myoxus.editor.surface-ref.deleted",
@@ -217,9 +135,43 @@ export class SurfaceRefPlaceHolder extends NativeViewElement {
                   "This content is inserted but cannot display in Edgeless mode. Switch to Page mode to view it.",
                 ),
               );
-          body.append(bodySpan);
 
-          container.append(heading, body);
+          const controls: EditorSurfaceRefPlaceholderControls = {
+            notFound: modelNotFound,
+            icon: modelNotFound
+              ? "DeleteIcon"
+              : (TYPE_GLYPH_MAP[refFlavour] ?? "EdgelessIcon"),
+            title,
+            description,
+          };
+
+          const chrome = this.chromeHost;
+          if (chrome?.mountSurfaceRefPlaceholder) {
+            this._chromeState$.value = controls;
+            if (this._mountedChrome !== chrome) {
+              this._chromeUnmount?.();
+              this._mountedChrome = chrome;
+              const host = doc.createElement("div");
+              this.replaceChildren(host);
+              this._chromeUnmount = chrome.mountSurfaceRefPlaceholder(
+                host,
+                this._chromeState$,
+              );
+            }
+            return;
+          }
+
+          const container = doc.createElement("div");
+          container.className = modelNotFound
+            ? "surface-ref-placeholder not-found"
+            : "surface-ref-placeholder";
+          const titleEl = doc.createElement("div");
+          titleEl.className = "surface-ref-title";
+          titleEl.textContent = title;
+          const bodyEl = doc.createElement("div");
+          bodyEl.className = "surface-ref-text";
+          bodyEl.textContent = description;
+          container.append(titleEl, bodyEl);
           this.replaceChildren(container);
         });
       }),
@@ -227,6 +179,9 @@ export class SurfaceRefPlaceHolder extends NativeViewElement {
   }
 
   disconnectedCallback() {
+    this._chromeUnmount?.();
+    this._chromeUnmount = undefined;
+    this._mountedChrome = undefined;
     this._disposables.dispose();
     this.replaceChildren();
   }

@@ -1,33 +1,34 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { i18nTime, isI18nString, useI18n } from "@myoxus/i18n";
+import { SearchIcon } from "@myoxus/icons/react";
 import {
+  Alert,
+  Box,
   Button,
+  Center,
   DialogFooter,
-  CommandPaletteEmpty,
-  CommandPaletteError,
-  CommandPaletteGroup,
-  CommandPaletteGroupHeading,
-  CommandPaletteGroupStatus,
-  CommandPaletteInput,
-  CommandPaletteItem,
-  CommandPaletteItemBody,
-  CommandPaletteItemIcon,
-  CommandPaletteItemSubtitle,
-  CommandPaletteItemTitle,
-  CommandPaletteList,
-  CommandPaletteRoot,
-  CommandPaletteSearchRow,
-  CommandPaletteShortcut,
-  CommandPaletteShortcutKey,
-  CommandPaletteTimestamp,
-  CommandPaletteTitle,
-  CommandPaletteTitleRow,
+  Group,
+  Input,
+  Kbd,
+  Loading,
+  MyoxusText,
+  NavLink,
+  SpotlightAction,
+  SpotlightActionsGroup,
+  SpotlightActionsList,
+  SpotlightEmpty,
+  SpotlightFooter,
+  Stack,
+  Text,
+  ThemeIcon,
 } from "@myoxus/ui-facade";
 import {
   type ReactNode,
   useCallback,
+  useContext,
   useEffect,
   useId,
-  useLayoutEffect,
   useMemo,
   useReducer,
   useRef,
@@ -38,6 +39,7 @@ import type { QuickSearchSourceState } from "../providers/quick-search-provider"
 import type { QuickSearchGroup } from "../types/group";
 import type { QuickSearchItem } from "../types/item";
 import { HighlightText } from "./highlight-text";
+import { QuickSearchSpotlightContext } from "./modal";
 
 type Groups = {
   group?: QuickSearchGroup;
@@ -83,7 +85,7 @@ export const CMDK = ({
   onQueryChange?: (query: string) => void;
 }>) => {
   const i18n = useI18n();
-  const [opening, setOpening] = useState(false);
+  const inSpotlight = useContext(QuickSearchSpotlightContext);
   const [loading, setLoading] = useState(false);
   const listId = useId();
   const inputId = useId();
@@ -99,7 +101,7 @@ export const CMDK = ({
         | { type: "reset-select" }
         | { type: "update-groups"; payload: Groups },
     ) => {
-      // control the currently selected item so that when the item list changes, the selected item remains controllable
+      // Control the currently selected item so async group updates keep selection stable.
       if (action.type === "select") {
         return {
           ...state,
@@ -120,7 +122,6 @@ export const CMDK = ({
         const prevFirstItem = firstSearchResult(prevGroups)?.id ?? "";
         const newFirstItem = firstSearchResult(action.payload)?.id ?? "";
         const isSelectingFirstItem = prevSelectedValue === prevFirstItem;
-        // if previous selected item is the first item, select the new first item
         if (isSelectingFirstItem) {
           return {
             ...state,
@@ -132,7 +133,6 @@ export const CMDK = ({
         const selectedExists = action.payload.some(({ items }) =>
           items.some((item) => item.id === prevSelectedValue),
         );
-        // if previous selected item exists in the new list, keep it
         if (selectedExists) {
           return {
             ...state,
@@ -141,7 +141,6 @@ export const CMDK = ({
           };
         }
 
-        // if previous selected item does not exist in the new list, select the new first item
         return {
           ...state,
           groups: action.payload,
@@ -155,28 +154,21 @@ export const CMDK = ({
 
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const selectedItemRef = useRef<HTMLDivElement | null>(null);
-
-  // fix list height animation on opening
-  useLayoutEffect(() => {
-    setOpening(true);
-    const timeout = setTimeout(() => {
-      setOpening(false);
-      inputRef.current?.focus();
-    }, 150);
-    return () => {
-      clearTimeout(timeout);
-    };
-  }, []);
+  const selectedItemRef = useRef<HTMLButtonElement | null>(null);
 
   const handleValueChange = useCallback(
-    (query: string) => {
-      onQueryChange?.(query);
+    (nextQuery: string) => {
+      onQueryChange?.(nextQuery);
       dispatch({
         type: "reset-select",
       });
       requestAnimationFrame(() => {
-        if (listRef.current) listRef.current.scrollTop = 0;
+        if (!listRef.current) return;
+        const viewport =
+          listRef.current.querySelector<HTMLElement>(
+            ".mantine-ScrollArea-viewport",
+          ) ?? listRef.current;
+        viewport.scrollTop = 0;
       });
     },
     [onQueryChange],
@@ -232,7 +224,9 @@ export const CMDK = ({
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
       // Footer and source-retry buttons retain native Tab/Enter activation.
-      if ((event.target as Element).closest("button")) return;
+      if ((event.target as Element).closest("button:not([role='option'])")) {
+        return;
+      }
       switch (event.key) {
         case "ArrowDown":
           event.preventDefault();
@@ -262,7 +256,6 @@ export const CMDK = ({
   );
 
   useEffect(() => {
-    // on group change
     dispatch({
       type: "update-groups",
       payload: newGroups,
@@ -270,7 +263,6 @@ export const CMDK = ({
   }, [newGroups]);
 
   useEffect(() => {
-    // debounce loading state
     const timeout = setTimeout(() => setLoading(newLoading), 1000);
     return () => clearTimeout(timeout);
   }, [newLoading]);
@@ -281,8 +273,60 @@ export const CMDK = ({
     });
   }, [selectedValue]);
 
+  const isEmpty =
+    !error &&
+    !loading &&
+    Boolean(query.trim()) &&
+    groups.every(({ items, state }) => items.length === 0 && !state);
+
+  const listContent = (
+    <>
+      {error ? (
+        <Box px="sm" py="xs">
+          <MyoxusText component="p" tone="danger" typographySlot="caption">
+            {error}
+          </MyoxusText>
+        </Box>
+      ) : null}
+      {isEmpty ? (
+        inSpotlight ? (
+          <SpotlightEmpty>
+            {i18n["com.myoxus.cmdk.no-results"]()}
+          </SpotlightEmpty>
+        ) : (
+          <Center py="md">
+            <MyoxusText tone="secondary" typographySlot="body">
+              {i18n["com.myoxus.cmdk.no-results"]()}
+            </MyoxusText>
+          </Center>
+        )
+      ) : null}
+      {groups.map(({ group, items, state }) => (
+        <CMDKGroup
+          key={group?.id ?? ""}
+          inSpotlight={inSpotlight}
+          selectedItemRef={selectedItemRef}
+          selectedValue={selectedValue}
+          onSelectChange={handleSelectChange}
+          onSubmit={onSubmit}
+          query={query}
+          wrapLabels={wrapLabels}
+          group={{
+            group,
+            items,
+            state,
+          }}
+        />
+      ))}
+    </>
+  );
+
   return (
-    <CommandPaletteRoot
+    <Stack
+      gap={0}
+      h="100%"
+      mih={0}
+      maw="100%"
       data-cmdk-root=""
       data-testid="cmdk-quick-search"
       role="combobox"
@@ -293,14 +337,26 @@ export const CMDK = ({
       onKeyDown={handleKeyDown}
     >
       {inputLabel ? (
-        <CommandPaletteTitleRow>
-          <CommandPaletteTitle>{inputLabel}</CommandPaletteTitle>
-        </CommandPaletteTitleRow>
+        <Box px="md" pt="sm">
+          <MyoxusText
+            component="span"
+            tone="secondary"
+            typographySlot="caption"
+          >
+            {inputLabel}
+          </MyoxusText>
+        </Box>
       ) : null}
-      <CommandPaletteSearchRow hasLabel={!!inputLabel}>
-        <CommandPaletteInput
+      <Box px="sm" py="xs">
+        <Input
           id={inputId}
           data-autofocus
+          variant="unstyled"
+          noBorder
+          block
+          size="large"
+          preFix={<SearchIcon aria-hidden="true" />}
+          endFix={loading ? <Loading size="sm" /> : undefined}
           aria-label={placeholder}
           placeholder={placeholder}
           ref={inputRef}
@@ -309,59 +365,90 @@ export const CMDK = ({
           aria-autocomplete="list"
           aria-controls={listId}
           aria-activedescendant={selectedValue || undefined}
-          loading={loading}
         />
-      </CommandPaletteSearchRow>
+      </Box>
 
-      <CommandPaletteList
-        data-cmdk-list=""
-        id={listId}
-        ref={listRef}
-        role="listbox"
-        aria-labelledby={inputId}
-        data-opening={opening ? true : undefined}
-      >
-        {error && <CommandPaletteError>{error}</CommandPaletteError>}
-        {!error &&
-        !loading &&
-        query.trim() &&
-        groups.every(({ items, state }) => items.length === 0 && !state) ? (
-          <CommandPaletteEmpty>
-            {i18n["com.myoxus.cmdk.no-results"]()}
-          </CommandPaletteEmpty>
-        ) : null}
-        {groups.map(({ group, items, state }) => {
-          return (
-            <CMDKGroup
-              key={group?.id ?? ""}
-              selectedItemRef={selectedItemRef}
-              selectedValue={selectedValue}
-              onSelectChange={handleSelectChange}
-              onSubmit={onSubmit}
-              query={query}
-              wrapLabels={wrapLabels}
-              group={{
-                group,
-                items,
-                state,
-              }}
-            />
-          );
-        })}
-      </CommandPaletteList>
+      {inSpotlight ? (
+        <SpotlightActionsList
+          data-cmdk-list=""
+          id={listId}
+          ref={listRef}
+          mah={420}
+          mih={0}
+          role="listbox"
+          aria-labelledby={inputId}
+        >
+          {listContent}
+        </SpotlightActionsList>
+      ) : (
+        <Box
+          data-cmdk-list=""
+          id={listId}
+          ref={listRef}
+          role="listbox"
+          aria-labelledby={inputId}
+          mah={400}
+          px="xs"
+          py="xs"
+          style={{ overflowY: "auto" }}
+        >
+          {listContent}
+        </Box>
+      )}
+
       {onOpenPage && query.trim() ? (
-        <DialogFooter>
-          <Button onClick={() => onOpenPage(query)}>
-            {i18n["com.myoxus.search.results.open"]()}
-          </Button>
-        </DialogFooter>
+        inSpotlight ? (
+          <SpotlightFooter>
+            <Group justify="flex-end">
+              <Button onClick={() => onOpenPage(query)}>
+                {i18n["com.myoxus.search.results.open"]()}
+              </Button>
+            </Group>
+          </SpotlightFooter>
+        ) : (
+          <DialogFooter>
+            <Button onClick={() => onOpenPage(query)}>
+              {i18n["com.myoxus.search.results.open"]()}
+            </Button>
+          </DialogFooter>
+        )
       ) : null}
-    </CommandPaletteRoot>
+    </Stack>
   );
 };
 
+function GroupStatusFeedback({ state }: { state: QuickSearchSourceState }) {
+  const i18n = useI18n();
+  if (state.error) {
+    return (
+      <Alert color="myoxusError" mx="xs" my="xs">
+        <Group justify="space-between" wrap="nowrap">
+          <MyoxusText tone="danger" typographySlot="caption">
+            {i18n["com.myoxus.common.operation-failed"]()}
+          </MyoxusText>
+          {state.retry ? (
+            <Button type="button" variant="plain" onClick={state.retry}>
+              {i18n["com.myoxus.error.retry"]()}
+            </Button>
+          ) : null}
+        </Group>
+      </Alert>
+    );
+  }
+  if (!state.loading) return null;
+  return (
+    <Group gap="xs" px="sm" py="xs">
+      <Loading size="sm" />
+      <MyoxusText tone="secondary" typographySlot="caption">
+        {i18n["com.myoxus.loading"]()}
+      </MyoxusText>
+    </Group>
+  );
+}
+
 export const CMDKGroup = ({
   group: { group, items, state },
+  inSpotlight = false,
   selectedItemRef,
   selectedValue,
   onSelectChange,
@@ -374,7 +461,8 @@ export const CMDKGroup = ({
     items: QuickSearchItem[];
     state?: QuickSearchSourceState;
   };
-  selectedItemRef: React.MutableRefObject<HTMLDivElement | null>;
+  inSpotlight?: boolean;
+  selectedItemRef: React.MutableRefObject<HTMLButtonElement | null>;
   selectedValue: string;
   onSelectChange: (value: string) => void;
   onSubmit?: (item: QuickSearchItem) => void;
@@ -382,90 +470,210 @@ export const CMDKGroup = ({
   wrapLabels?: boolean;
 }) => {
   const i18n = useI18n();
-  return (
-    <CommandPaletteGroup
-      data-cmdk-group=""
-      key={query + ":" + (group?.id ?? "")}
-      role="group"
-      aria-label={group ? i18n.t(group.label) : undefined}
-    >
-      {group ? (
-        <CommandPaletteGroupHeading data-cmdk-group-heading="">
-          {i18n.t(group.label)}
-        </CommandPaletteGroupHeading>
-      ) : null}
-      {state ? (
-        <CommandPaletteGroupStatus
-          error={
-            state.error
-              ? i18n["com.myoxus.common.operation-failed"]()
-              : undefined
-          }
-          loading={state.loading}
-          loadingLabel={i18n["com.myoxus.loading"]()}
-          retryLabel={i18n["com.myoxus.error.retry"]()}
-          onRetry={state.retry}
-        />
-      ) : null}
-      {items.map((item) => {
-        const [title, subTitle] = isI18nString(item.label)
-          ? [i18n.t(item.label), null]
-          : [
-              i18n.t(item.label.title),
-              item.label.subTitle ? i18n.t(item.label.subTitle) : null,
-            ];
-        const selected = item.id === selectedValue;
+  const groupLabel = group ? i18n.t(group.label) : undefined;
 
-        return (
-          <CommandPaletteItem
-            data-cmdk-item=""
-            id={item.id}
-            key={item.id}
-            ref={selected ? selectedItemRef : undefined}
-            selected={selected}
-            disabled={item.disabled}
-            tone={
-              item.id === "editor:page-move-to-trash" ||
-              item.id === "editor:edgeless-move-to-trash"
-                ? "danger"
-                : "default"
-            }
-            onMouseEnter={() => {
-              if (!item.disabled) onSelectChange(item.id);
-            }}
-            onClick={() => {
-              if (!item.disabled) onSubmit?.(item);
-            }}
+  const renderedItems = items.map((item) => {
+    const [title, subTitle] = isI18nString(item.label)
+      ? [i18n.t(item.label), null]
+      : [
+          i18n.t(item.label.title),
+          item.label.subTitle ? i18n.t(item.label.subTitle) : null,
+        ];
+    const selected = item.id === selectedValue;
+    const isDanger =
+      item.id === "editor:page-move-to-trash" ||
+      item.id === "editor:edgeless-move-to-trash";
+
+    const iconNode = item.icon ? (
+      selected && inSpotlight ? (
+        <Center aria-hidden="true">
+          {typeof item.icon === "function" ? <item.icon /> : item.icon}
+        </Center>
+      ) : (
+        <ThemeIcon
+          variant="transparent"
+          size="md"
+          color={isDanger ? "myoxusError" : undefined}
+        >
+          {typeof item.icon === "function" ? <item.icon /> : item.icon}
+        </ThemeIcon>
+      )
+    ) : null;
+
+    const bodyNode = (
+      <Stack
+        flex={1}
+        gap={0}
+        miw={0}
+        data-testid="cmdk-label"
+        data-value={item.id}
+      >
+        {selected && inSpotlight ? (
+          <Text component="div" truncate={!wrapLabels} size="body" c="inherit">
+            <HighlightText text={title} start="<b>" end="</b>" />
+          </Text>
+        ) : (
+          <MyoxusText
+            component="div"
+            truncate={!wrapLabels}
+            tone={isDanger ? "danger" : "primary"}
+            typographySlot="body"
           >
-            <CommandPaletteItemIcon>
-              {item.icon &&
-                (typeof item.icon === "function" ? <item.icon /> : item.icon)}
-            </CommandPaletteItemIcon>
-            <CommandPaletteItemBody
-              data-testid="cmdk-label"
-              data-value={item.id}
+            <HighlightText text={title} start="<b>" end="</b>" />
+          </MyoxusText>
+        )}
+        {subTitle ? (
+          selected && inSpotlight ? (
+            <Text
+              component="div"
+              truncate={!wrapLabels}
+              size="caption"
+              c="inherit"
+              opacity={0.8}
             >
-              <CommandPaletteItemTitle truncate={!wrapLabels}>
-                <HighlightText text={title} start="<b>" end="</b>" />
-              </CommandPaletteItemTitle>
-              {subTitle && (
-                <CommandPaletteItemSubtitle truncate={!wrapLabels}>
-                  <HighlightText text={subTitle} start="<b>" end="</b>" />
-                </CommandPaletteItemSubtitle>
-              )}
-            </CommandPaletteItemBody>
-            {item.timestamp ? (
-              <CommandPaletteTimestamp>
+              <HighlightText text={subTitle} start="<b>" end="</b>" />
+            </Text>
+          ) : (
+            <MyoxusText
+              component="div"
+              truncate={!wrapLabels}
+              tone="secondary"
+              typographySlot="caption"
+            >
+              <HighlightText text={subTitle} start="<b>" end="</b>" />
+            </MyoxusText>
+          )
+        ) : null}
+      </Stack>
+    );
+
+    const trailingNode =
+      item.timestamp || item.keyBinding ? (
+        <Group gap="xs" wrap="nowrap">
+          {item.timestamp ? (
+            selected && inSpotlight ? (
+              <Text
+                component="div"
+                ta="end"
+                size="caption"
+                c="inherit"
+                opacity={0.8}
+              >
                 {i18nTime(new Date(item.timestamp))}
-              </CommandPaletteTimestamp>
-            ) : null}
-            {item.keyBinding ? (
-              <CMDKKeyBinding keyBinding={item.keyBinding} />
-            ) : null}
-          </CommandPaletteItem>
-        );
-      })}
-    </CommandPaletteGroup>
+              </Text>
+            ) : (
+              <MyoxusText
+                component="div"
+                ta="end"
+                tone="secondary"
+                typographySlot="caption"
+              >
+                {i18nTime(new Date(item.timestamp))}
+              </MyoxusText>
+            )
+          ) : null}
+          {item.keyBinding ? (
+            <CMDKKeyBinding keyBinding={item.keyBinding} />
+          ) : null}
+        </Group>
+      ) : null;
+
+    if (inSpotlight) {
+      return (
+        <SpotlightAction
+          key={item.id}
+          id={item.id}
+          ref={selected ? selectedItemRef : undefined}
+          role="option"
+          data-cmdk-item=""
+          data-action={undefined}
+          aria-selected={selected}
+          aria-disabled={item.disabled || undefined}
+          data-selected={selected ? "true" : undefined}
+          disabled={item.disabled}
+          onMouseEnter={() => {
+            if (!item.disabled) onSelectChange(item.id);
+          }}
+          onClick={() => {
+            if (!item.disabled) onSubmit?.(item);
+          }}
+        >
+          <Group gap="sm" wrap="nowrap" w="100%" miw={0}>
+            {iconNode}
+            {bodyNode}
+            {trailingNode}
+          </Group>
+        </SpotlightAction>
+      );
+    }
+
+    return (
+      <NavLink
+        key={item.id}
+        component="button"
+        type="button"
+        id={item.id}
+        ref={selected ? selectedItemRef : undefined}
+        role="option"
+        tabIndex={-1}
+        data-cmdk-item=""
+        active={selected}
+        disabled={item.disabled}
+        color={isDanger ? "myoxusError" : undefined}
+        aria-selected={selected}
+        aria-disabled={item.disabled || undefined}
+        data-selected={selected ? "true" : undefined}
+        leftSection={iconNode}
+        rightSection={trailingNode}
+        label={bodyNode}
+        onMouseEnter={() => {
+          if (!item.disabled) onSelectChange(item.id);
+        }}
+        onClick={() => {
+          if (!item.disabled) onSubmit?.(item);
+        }}
+      />
+    );
+  });
+
+  if (inSpotlight) {
+    return (
+      <SpotlightActionsGroup
+        key={`${query}:${group?.id ?? ""}`}
+        data-cmdk-group=""
+        role="group"
+        label={groupLabel}
+        aria-label={groupLabel}
+      >
+        {state ? <GroupStatusFeedback state={state} /> : null}
+        {renderedItems}
+      </SpotlightActionsGroup>
+    );
+  }
+
+  return (
+    <Stack
+      key={`${query}:${group?.id ?? ""}`}
+      gap={2}
+      data-cmdk-group=""
+      role="group"
+      aria-label={groupLabel}
+    >
+      {groupLabel ? (
+        <Box px="sm" pt="xs">
+          <MyoxusText
+            component="div"
+            tone="secondary"
+            typographySlot="caption"
+            data-cmdk-group-heading=""
+          >
+            {groupLabel}
+          </MyoxusText>
+        </Box>
+      ) : null}
+      {state ? <GroupStatusFeedback state={state} /> : null}
+      {renderedItems}
+    </Stack>
   );
 };
 
@@ -499,14 +707,12 @@ const CMDKKeyBinding = ({ keyBinding }: { keyBinding: string }) => {
   }, [isMacOS, keyBinding]);
 
   return (
-    <CommandPaletteShortcut>
-      {fragments.map((fragment) => {
-        return (
-          <CommandPaletteShortcutKey key={fragment}>
-            {fragment}
-          </CommandPaletteShortcutKey>
-        );
-      })}
-    </CommandPaletteShortcut>
+    <Group gap={4} wrap="nowrap">
+      {fragments.map((fragment) => (
+        <Kbd key={fragment} size="sm">
+          {fragment}
+        </Kbd>
+      ))}
+    </Group>
   );
 };

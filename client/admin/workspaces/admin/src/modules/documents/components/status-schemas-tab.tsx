@@ -1,15 +1,18 @@
 import { useI18n } from "@myoxus/i18n";
 import { Plus, ArrowRight, Save } from "@myoxus/icons/react";
 import {
+  Badge,
   Button,
   Group,
   DialogFooterActions,
+  Input,
   Modal,
   MultiSelect,
   NavigationLink,
   NumberInput,
   SettingsCollectionToolbar,
   SettingsEmptyState,
+  SettingsSwitchRow,
   Stack,
   Select,
   Switch,
@@ -34,14 +37,6 @@ import {
   useUpsertDocumentStatusTransitionMutation,
   useUpsertDocumentStatusValueMutation,
 } from "../api";
-import {
-  BooleanField,
-  BooleanStatus,
-  EmptyState,
-  ErrorText,
-  SelectField,
-  TextField,
-} from "./shared";
 
 const SCHEMA_COMPLEXITY = ["simple", "review", "controlled", "custom"];
 const CREATES_VERSION = ["never", "optional", "required"];
@@ -335,7 +330,11 @@ export function StatusSchemasTab() {
           </Button>
         }
       />
-      {actionError && !editorOpen ? <ErrorText>{actionError}</ErrorText> : null}
+      {actionError && !editorOpen ? (
+        <SettingsStatusText role="alert" tone="error">
+          {actionError}
+        </SettingsStatusText>
+      ) : null}
       <SettingsMasterDetailLayout
         detailOpen={Boolean(selectedSchema)}
         detailPriority="detail"
@@ -346,7 +345,15 @@ export function StatusSchemasTab() {
                 title={selectedSchema.label}
                 description={selectedSchema.description}
                 headingLevel={2}
-                actions={<BooleanStatus value={selectedSchema.isActive} />}
+                actions={
+                  <Badge tone={selectedSchema.isActive ? "success" : "neutral"}>
+                    {i18n.t(
+                      selectedSchema.isActive
+                        ? "admin.common.yes"
+                        : "admin.common.no",
+                    )}
+                  </Badge>
+                }
               />
               <SettingsCollectionToolbar
                 search={null}
@@ -416,7 +423,15 @@ export function StatusSchemasTab() {
                           <TableCell>{value.key}</TableCell>
                           <TableCell>{value.sortOrder}</TableCell>
                           <TableCell>
-                            <BooleanStatus value={value.terminal} />
+                            <Badge
+                              tone={value.terminal ? "success" : "neutral"}
+                            >
+                              {i18n.t(
+                                value.terminal
+                                  ? "admin.common.yes"
+                                  : "admin.common.no",
+                              )}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             <Select
@@ -491,12 +506,20 @@ export function StatusSchemasTab() {
                 active={selectedSchema?.id === schema.id}
                 aria-pressed={selectedSchema?.id === schema.id}
                 disabled={saving}
-                rightSection={<BooleanStatus value={schema.isActive} />}
+                rightSection={
+                  <Badge tone={schema.isActive ? "success" : "neutral"}>
+                    {i18n.t(
+                      schema.isActive ? "admin.common.yes" : "admin.common.no",
+                    )}
+                  </Badge>
+                }
                 onClick={() => setSelectedSchemaKey(schema.key)}
               />
             ))
           ) : (
-            <EmptyState>{i18n.t("admin.documents.status.empty")}</EmptyState>
+            <SettingsEmptyState
+              title={i18n.t("admin.documents.status.empty")}
+            />
           )}
         </Stack>
       </SettingsMasterDetailLayout>
@@ -519,16 +542,20 @@ export function StatusSchemasTab() {
           description={editor === "schema" ? undefined : editorSchema?.label}
           contentOptions={{ "data-testid": "documents-status-editor" }}
         >
-          {actionError ? <ErrorText>{actionError}</ErrorText> : null}
+          {actionError ? (
+            <SettingsStatusText role="alert" tone="error">
+              {actionError}
+            </SettingsStatusText>
+          ) : null}
           {editor === "schema" ? (
             <Stack component="form" onSubmit={createSchema}>
-              <TextField
+              <Input
                 id="schema-key"
                 label={i18n.t("admin.documents.field.key")}
                 value={schemaDraft.key}
                 onChange={(key) => setSchemaDraft((old) => ({ ...old, key }))}
               />
-              <TextField
+              <Input
                 id="schema-label"
                 label={i18n.t("admin.documents.field.label")}
                 value={schemaDraft.label}
@@ -536,7 +563,7 @@ export function StatusSchemasTab() {
                   setSchemaDraft((old) => ({ ...old, label }))
                 }
               />
-              <TextField
+              <Input
                 id="schema-description"
                 label={i18n.t("admin.documents.field.description")}
                 value={schemaDraft.description}
@@ -544,12 +571,17 @@ export function StatusSchemasTab() {
                   setSchemaDraft((old) => ({ ...old, description }))
                 }
               />
-              <SelectField
+              <Select
                 id="schema-complexity"
                 label={i18n.t("admin.documents.field.complexity")}
                 value={schemaDraft.complexity}
-                values={SCHEMA_COMPLEXITY}
-                optionLabels={complexityLabels}
+                block
+                data={SCHEMA_COMPLEXITY.map((item) => ({
+                  value: item,
+                  label:
+                    complexityLabels[item as keyof typeof complexityLabels] ??
+                    item,
+                }))}
                 onChange={(complexity) =>
                   setSchemaDraft((old) => ({ ...old, complexity }))
                 }
@@ -581,7 +613,7 @@ export function StatusSchemasTab() {
             </Stack>
           ) : editor === "value" ? (
             <Stack component="form" onSubmit={createStatusValue}>
-              <TextField
+              <Input
                 id="status-value-key"
                 label={i18n.t("admin.documents.field.key")}
                 value={statusValueDraft.key}
@@ -589,7 +621,7 @@ export function StatusSchemasTab() {
                   setStatusValueDraft((old) => ({ ...old, key }))
                 }
               />
-              <TextField
+              <Input
                 id="status-value-label"
                 label={i18n.t("admin.documents.field.label")}
                 value={statusValueDraft.label}
@@ -597,7 +629,7 @@ export function StatusSchemasTab() {
                   setStatusValueDraft((old) => ({ ...old, label }))
                 }
               />
-              <TextField
+              <Input
                 id="status-value-description"
                 label={i18n.t("admin.documents.field.description")}
                 value={statusValueDraft.description}
@@ -605,7 +637,7 @@ export function StatusSchemasTab() {
                   setStatusValueDraft((old) => ({ ...old, description }))
                 }
               />
-              <TextField
+              <Input
                 id="status-value-color"
                 label={i18n.t("admin.documents.field.color")}
                 value={statusValueDraft.color}
@@ -613,7 +645,7 @@ export function StatusSchemasTab() {
                   setStatusValueDraft((old) => ({ ...old, color }))
                 }
               />
-              <TextField
+              <Input
                 id="status-value-icon"
                 label={i18n.t("admin.documents.field.icon")}
                 value={statusValueDraft.icon}
@@ -643,10 +675,11 @@ export function StatusSchemasTab() {
                   setStatusValueDraft((old) => ({ ...old, okfStatus }))
                 }
               />
-              <BooleanField
+              <SettingsSwitchRow
                 label={i18n.t("admin.documents.field.terminal")}
                 checked={statusValueDraft.terminal}
-                onCheckedChange={(terminal) =>
+                separated
+                onChange={(terminal) =>
                   setStatusValueDraft((old) => ({ ...old, terminal }))
                 }
               />
@@ -678,26 +711,28 @@ export function StatusSchemasTab() {
             </Stack>
           ) : (
             <Stack component="form" onSubmit={saveTransition}>
-              <SelectField
+              <Select
                 id="transition-from"
                 label={i18n.t("admin.documents.field.from-status")}
                 value={transitionDraft.fromStatusId}
-                values={sortedValues.map((value) => value.id)}
-                optionLabels={Object.fromEntries(
-                  sortedValues.map((value) => [value.id, value.label]),
-                )}
+                block
+                data={sortedValues.map((value) => ({
+                  value: value.id,
+                  label: value.label,
+                }))}
                 onChange={(fromStatusId) =>
                   setTransitionDraft((old) => ({ ...old, fromStatusId }))
                 }
               />
-              <SelectField
+              <Select
                 id="transition-to"
                 label={i18n.t("admin.documents.field.to-status")}
                 value={transitionDraft.toStatusId}
-                values={sortedValues.map((value) => value.id)}
-                optionLabels={Object.fromEntries(
-                  sortedValues.map((value) => [value.id, value.label]),
-                )}
+                block
+                data={sortedValues.map((value) => ({
+                  value: value.id,
+                  label: value.label,
+                }))}
                 onChange={(toStatusId) =>
                   setTransitionDraft((old) => ({ ...old, toStatusId }))
                 }
@@ -719,7 +754,7 @@ export function StatusSchemasTab() {
                   }))
                 }
               />
-              <TextField
+              <Input
                 id="transition-roles"
                 label={i18n.t("admin.documents.field.required-roles")}
                 value={transitionDraft.requiredRoles}
@@ -728,34 +763,52 @@ export function StatusSchemasTab() {
                 }
                 placeholder="role-a, role-b"
               />
-              <SelectField
+              <Select
                 id="transition-creates-version"
                 label={i18n.t("admin.documents.field.creates-version")}
                 value={transitionDraft.createsVersion}
-                values={CREATES_VERSION}
-                optionLabels={createsVersionLabels}
+                block
+                data={CREATES_VERSION.map((item) => ({
+                  value: item,
+                  label:
+                    createsVersionLabels[
+                      item as keyof typeof createsVersionLabels
+                    ] ?? item,
+                }))}
                 onChange={(createsVersion) =>
                   setTransitionDraft((old) => ({ ...old, createsVersion }))
                 }
               />
               {transitionDraft.createsVersion !== "never" ? (
-                <SelectField
+                <Select
                   id="transition-version-kind"
                   label={i18n.t("admin.documents.field.version-kind")}
                   value={transitionDraft.setsVersionKind}
-                  values={VERSION_KINDS}
-                  optionLabels={versionKindLabels}
+                  block
+                  data={VERSION_KINDS.map((item) => ({
+                    value: item,
+                    label:
+                      versionKindLabels[
+                        item as keyof typeof versionKindLabels
+                      ] ?? item,
+                  }))}
                   onChange={(setsVersionKind) =>
                     setTransitionDraft((old) => ({ ...old, setsVersionKind }))
                   }
                 />
               ) : null}
-              <SelectField
+              <Select
                 id="transition-date-enforcement"
                 label={i18n.t("admin.documents.field.date-enforcement")}
                 value={transitionDraft.dateEnforcement}
-                values={DATE_ENFORCEMENT}
-                optionLabels={dateEnforcementLabels}
+                block
+                data={DATE_ENFORCEMENT.map((item) => ({
+                  value: item,
+                  label:
+                    dateEnforcementLabels[
+                      item as keyof typeof dateEnforcementLabels
+                    ] ?? item,
+                }))}
                 onChange={(dateEnforcement) =>
                   setTransitionDraft((old) => ({ ...old, dateEnforcement }))
                 }

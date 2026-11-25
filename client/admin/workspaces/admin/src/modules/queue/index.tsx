@@ -66,13 +66,8 @@ import { AdminPageFrame, AdminPageScroll, AdminSubnav } from "../admin-shell";
 import { useUrlSyncedAdminTab } from "../admin-tabs";
 import { useAdminContext, useRevalidateServerConfig } from "../common";
 import { ALL_CONFIG_DESCRIPTORS, type AppConfig } from "../settings/config";
-import {
-  ConfigBooleanField,
-  type ConfigControlType,
-  ConfigNumberField,
-  ConfigSelectField,
-  ConfigTextField,
-} from "../settings/config-form-fields";
+import { AdminConfigFieldDispatcher } from "../settings/config-field-dispatcher";
+import { type ConfigControlType } from "../settings/config-form-fields";
 import { ConfigPageSaveButtons } from "../settings/config-page-save-buttons";
 import {
   type AdminConfigSchemaField,
@@ -174,47 +169,27 @@ function QueueConfigField({
   const type = (field.type ??
     schemaField?.valueType ??
     "String") as ConfigControlType;
-  const commonProps = {
-    field: fieldPath,
-    desc: field.descKey ? field.descKey : (descriptor?.desc ?? ""),
-    defaultValue,
-    onChange: onUpdate,
-    databaseWritable: schemaField?.databaseWritable,
-    restartRequired: Boolean(schemaField?.restart_required),
-    error,
-    onErrorChange,
-  };
-  const sensitive = Boolean(schemaField?.sensitive);
-
-  if (type === "Boolean") {
-    return (
-      <ConfigBooleanField
-        {...commonProps}
-        immediateApply={Boolean(schemaField?.immediate_apply)}
-        onSave={schemaField?.immediate_apply ? onSaveField : undefined}
-      />
-    );
-  }
-  if (type === "Number") {
-    return (
-      <ConfigNumberField
-        {...commonProps}
-        suffix={field.suffix ?? descriptor?.suffix}
-        min={field.min ?? schemaField?.min ?? undefined}
-        max={field.max ?? schemaField?.max ?? undefined}
-      />
-    );
-  }
-  if (type === "Enum") {
-    return (
-      <ConfigSelectField
-        {...commonProps}
-        options={field.options ?? []}
-        labels={labels}
-      />
-    );
-  }
-  return <ConfigTextField {...commonProps} sensitive={sensitive} />;
+  return (
+    <AdminConfigFieldDispatcher
+      field={fieldPath}
+      type={type}
+      desc={field.descKey ? field.descKey : (descriptor?.desc ?? "")}
+      defaultValue={defaultValue}
+      onChange={onUpdate}
+      databaseWritable={schemaField?.databaseWritable}
+      restartRequired={Boolean(schemaField?.restart_required)}
+      error={error}
+      onErrorChange={onErrorChange}
+      sensitive={Boolean(schemaField?.sensitive)}
+      immediateApply={Boolean(schemaField?.immediate_apply)}
+      onSave={onSaveField}
+      suffix={field.suffix ?? descriptor?.suffix}
+      min={field.min ?? schemaField?.min ?? undefined}
+      max={field.max ?? schemaField?.max ?? undefined}
+      options={field.options}
+      labels={labels}
+    />
+  );
 }
 
 /**

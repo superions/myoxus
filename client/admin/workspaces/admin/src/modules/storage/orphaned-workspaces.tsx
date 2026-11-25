@@ -13,7 +13,6 @@
  * the irreversible `deleteWorkspaceMutation`.
  * After reassignment or deletion both the list and count queries are revalidated.
  */
-import { adminToast as toast } from "@myoxus/admin/notifications";
 import {
   adminDeleteWorkspaceMutation,
   listUsersQuery,
@@ -25,6 +24,7 @@ import { useI18n } from "@myoxus/i18n";
 import {
   Button,
   Group,
+  notify,
   Select,
   SettingsEmptyState,
   SettingsNotice,
@@ -117,10 +117,14 @@ export function OrphanedWorkspacesContent() {
           i18n.t("admin.workspaces.orphaned-page.reassign-failed"),
         );
       setReassigning(null);
-      toast.success(i18n.t("admin.workspaces.orphaned-page.reassign-success"));
+      notify.success({
+        title: i18n.t("admin.workspaces.orphaned-page.reassign-success"),
+      });
       await refresh();
     } catch {
-      toast.error(i18n.t("admin.workspaces.orphaned-page.reassign-failed"));
+      notify.error({
+        title: i18n.t("admin.workspaces.orphaned-page.reassign-failed"),
+      });
     } finally {
       setReassignPending(false);
     }
@@ -133,19 +137,19 @@ export function OrphanedWorkspacesContent() {
       const result = await deleteWorkspace({ id: deleteTarget.id });
       if (result?.admin?.deleteWorkspace !== true)
         throw new Error(i18n.t("com.myoxus.common.operation-failed"));
-      toast.success(
-        i18n.t("admin.workspaces.orphaned-page.delete-success", {
+      notify.success({
+        title: i18n.t("admin.workspaces.orphaned-page.delete-success", {
           name: deleteTarget.name ?? deleteTarget.id,
         }),
-      );
+      });
       setDeleteTarget(null);
       await refresh();
     } catch (e) {
-      toast.error(
-        i18n.t("admin.workspaces.orphaned-page.delete-failed", {
+      notify.error({
+        title: i18n.t("admin.workspaces.orphaned-page.delete-failed", {
           message: (e as Error).message,
         }),
-      );
+      });
     } finally {
       setDeleting(false);
     }

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useRef, useState, useId } from "react";
-import { createPortal } from "react-dom";
+import {
+  MermaidRuntimePortal,
+  useMermaidCaptureDrag,
+} from "../mermaid-runtime-portal";
 import { GripVerticalIcon } from "@myoxus/icons";
 import {
   Alert,
@@ -285,16 +288,15 @@ export function SequenceTimelineHandle({
     [impact, setImpact] = useState<readonly { id: string; label: string }[]>(
       [],
     ),
-    dispose = useRef<(() => void) | null>(null),
+    drag = useMermaidCaptureDrag(),
     basis = useRef(props.sourceBasis),
     latest = useRef(props);
   latest.current = props;
-  useEffect(() => () => dispose.current?.(), []);
   useEffect(() => {
     basis.current = props.sourceBasis;
-    dispose.current?.();
+    drag.cancel();
     setTarget(null);
-  }, [props.sourceBasis, props.readonly, id]);
+  }, [props.sourceBasis, props.readonly, id, drag]);
   const args = (anchor: SequenceTimelineAnchor) =>
     [id, boundary ? { [boundary]: anchor } : anchor] as SequenceCommandArgs<
       typeof command
@@ -375,81 +377,73 @@ export function SequenceTimelineHandle({
           event.preventDefault();
           event.stopPropagation();
           basis.current = props.sourceBasis;
-          dispose.current?.();
+          drag.cancel();
           let candidate: SequenceTimelineAnchor | null = null;
-          const move = (event: PointerEvent) => {
-            const next = latest.current.resolveTimelineDropAnchor(
-              { left: event.clientX, top: event.clientY },
-              id,
-            );
-            if (
-              next?.key === candidate?.key &&
-              next?.position === candidate?.position
-            )
-              return;
-            candidate = next;
-            setTarget(candidate);
-            if (candidate) execute(true, candidate);
-            else latest.current.onCancelPreview();
-          };
-          const cleanup = () => {
-            document.removeEventListener("pointermove", move, true);
-            document.removeEventListener("pointerup", up, true);
-            document.removeEventListener("pointercancel", cancel, true);
-            latest.current.onCancelPreview();
-            setTarget(null);
-            dispose.current = null;
-          };
-          const up = () => {
-            const selected = candidate;
-            cleanup();
-            if (selected) execute(false, selected);
-          };
-          const cancel = () => cleanup();
-          dispose.current = cleanup;
-          document.addEventListener("pointermove", move, true);
-          document.addEventListener("pointerup", up, true);
-          document.addEventListener("pointercancel", cancel, true);
+          const cleanup = drag.start({
+            onMove: (event) => {
+              const next = latest.current.resolveTimelineDropAnchor(
+                { left: event.clientX, top: event.clientY },
+                id,
+              );
+              if (
+                next?.key === candidate?.key &&
+                next?.position === candidate?.position
+              )
+                return;
+              candidate = next;
+              setTarget(candidate);
+              if (candidate) execute(true, candidate);
+              else latest.current.onCancelPreview();
+            },
+            onUp: () => {
+              const selected = candidate;
+              cleanup();
+              if (selected) execute(false, selected);
+            },
+            onCleanup: () => {
+              latest.current.onCancelPreview();
+              setTarget(null);
+            },
+          });
         }}
       >
         <GripVerticalIcon />
       </IconButton>
-      {anchorPosition
-        ? createPortal(
-            <Box
-              pos="fixed"
-              role="status"
-              style={{
-                left: anchorPosition.left,
-                top: anchorPosition.top,
-                pointerEvents: "none",
-                zIndex: "var(--myoxus-z-index-popover)",
-              }}
-            >
-              <Stack>
-                <Badge>
-                  {diagnostic ||
-                    `${target?.position === "before" ? m.sequenceBefore() : m.sequenceAfter()} · ${target?.key ? sequenceTimelineLabel(props.model, target.key) : ""}`}
-                </Badge>
-                {target?.key ? (
-                  <MyoxusText>
-                    {props.model.controls.find(
-                      (c) =>
-                        c.id ===
-                        props.model.sourceDocument.records.find(
-                          (r) => r.sourceKey === target.key,
-                        )?.parentId,
-                    )?.label || m.controlsLabel()}
-                  </MyoxusText>
-                ) : null}
-                {impact.map((record) => (
-                  <MyoxusText key={record.id}>{record.label}</MyoxusText>
-                ))}
-              </Stack>
-            </Box>,
-            document.body,
-          )
-        : null}
+      {anchorPosition ? (
+        <MermaidRuntimePortal>
+          <Box
+            pos="fixed"
+            role="status"
+            style={{
+              left: anchorPosition.left,
+              top: anchorPosition.top,
+              pointerEvents: "none",
+              zIndex: "var(--myoxus-z-index-popover)",
+            }}
+          >
+            <Stack>
+              <Badge>
+                {diagnostic ||
+                  `${target?.position === "before" ? m.sequenceBefore() : m.sequenceAfter()} · ${target?.key ? sequenceTimelineLabel(props.model, target.key) : ""}`}
+              </Badge>
+              {target?.key ? (
+                <MyoxusText>
+                  {props.model.controls.find(
+                    (c) =>
+                      c.id ===
+                      props.model.sourceDocument.records.find(
+                        (r) => r.sourceKey === target.key,
+                      )?.parentId,
+                  )?.label || m.controlsLabel()}
+                </MyoxusText>
+              ) : null}
+              {impact.map((record) => (
+                <MyoxusText key={record.id}>{record.label}</MyoxusText>
+              ))}
+            </Stack>
+          </Box>
+        </MermaidRuntimePortal>
+      ) : null}
     </>
   );
 }

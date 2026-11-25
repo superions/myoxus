@@ -20,7 +20,7 @@
 import { useI18n } from "@myoxus/i18n";
 import {
   Group,
-  Input,
+  NumberInput,
   SettingsEmptyState,
   SettingsHeadingGroup,
   SettingsPanelDescription,
@@ -117,18 +117,21 @@ export function TelemetryCategoriesGrid({ patchedAppConfig, update }: Props) {
                   </TableCell>
                   <TableCell>
                     <Group wrap="nowrap">
-                      <Input
-                        type="number"
+                      <NumberInput
                         step={0.05}
                         min={0}
                         max={1}
-                        value={String(rate)}
+                        decimalScale={2}
+                        value={rate}
                         onChange={(raw) => {
                           if (raw === "") {
                             update(`telemetry/samplingRates/${key}`, 0);
                             return;
                           }
-                          const parsed = Number.parseFloat(raw);
+                          const parsed =
+                            typeof raw === "number"
+                              ? raw
+                              : Number.parseFloat(raw);
                           if (!Number.isFinite(parsed)) return;
                           const clamped = Math.min(1, Math.max(0, parsed));
                           update(`telemetry/samplingRates/${key}`, clamped);

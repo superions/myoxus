@@ -12,7 +12,6 @@
 import { CaBundleManagement } from "./ca-bundle-management";
 import { OidcGroupPicker } from "./oidc-group-picker";
 import { useOidcGroupDirectory } from "./oidc-group-directory";
-import { adminToast as toast } from "@myoxus/admin/notifications";
 import { UserFriendlyError } from "@myoxus/error";
 import {
   adminConfigValuesQuery,
@@ -85,11 +84,9 @@ import { useUrlSyncedAdminTab } from "../admin-tabs";
 import { useRevalidateServerConfig } from "../common";
 import { OperationalReadinessNotice } from "../operational-readiness-notice";
 import { ALL_CONFIG_DESCRIPTORS, type AppConfig } from "../settings/config";
+import { AdminConfigFieldDispatcher } from "../settings/config-field-dispatcher";
 import {
-  ConfigArrayField,
-  ConfigBooleanField,
   type ConfigControlType,
-  ConfigNumberField,
   ConfigTextField,
   YamlOnlyBanner,
 } from "../settings/config-form-fields";
@@ -182,32 +179,25 @@ function SecurityConfigField({
   const type = (field.type ??
     schemaField?.valueType ??
     "String") as ConfigControlType;
-  const commonProps = {
-    field: uiPath,
-    desc: field.desc ?? descriptor?.desc ?? "",
-    defaultValue: getByPath(sourceConfig, valuePath),
-    onChange: update,
-    databaseWritable: schemaField?.databaseWritable,
-    restartRequired: Boolean(schemaField?.restart_required),
-    suppressYamlBanner: showYamlBanner,
-    error,
-    onErrorChange,
-  };
-  const sensitive = Boolean(schemaField?.sensitive);
 
-  if (type === "Boolean") return <ConfigBooleanField {...commonProps} />;
-  if (type === "Number") {
-    return (
-      <ConfigNumberField
-        {...commonProps}
-        suffix={field.suffix ?? descriptor?.suffix}
-        min={field.min ?? schemaField?.min ?? undefined}
-        max={field.max ?? schemaField?.max ?? undefined}
-      />
-    );
-  }
-  if (type === "Array") return <ConfigArrayField {...commonProps} />;
-  return <ConfigTextField {...commonProps} sensitive={sensitive} />;
+  return (
+    <AdminConfigFieldDispatcher
+      field={uiPath}
+      type={type}
+      desc={field.desc ?? descriptor?.desc ?? ""}
+      defaultValue={getByPath(sourceConfig, valuePath)}
+      onChange={update}
+      databaseWritable={schemaField?.databaseWritable}
+      restartRequired={Boolean(schemaField?.restart_required)}
+      suppressYamlBanner={showYamlBanner}
+      error={error}
+      onErrorChange={onErrorChange}
+      sensitive={Boolean(schemaField?.sensitive)}
+      suffix={field.suffix ?? descriptor?.suffix}
+      min={field.min ?? schemaField?.min ?? undefined}
+      max={field.max ?? schemaField?.max ?? undefined}
+    />
+  );
 }
 
 const AUTH_FIELDS: ConfigFieldDef[] = [
@@ -382,8 +372,9 @@ const ConfigTab = memo(function ConfigTab({
           onReset={() => resetGroup(module)}
           onSave={() => {
             saveGroup(module).catch((err) => {
-              toast.error(i18n.t("admin.common.save-failed"), {
-                description: err?.message ?? String(err),
+              notify.error({
+                title: i18n.t("admin.common.save-failed"),
+                message: err?.message ?? String(err),
               });
             });
           }}

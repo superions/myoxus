@@ -17,6 +17,7 @@ import {
   type PageRange,
 } from "./plain-page-input";
 import { readPageContent, type PageLine } from "./plain-page-model";
+import { pasteAfterPageBlock } from "./page-block-actions";
 export type PickerStart = { start: PageBookmark; trigger: string };
 
 /** The DOM owns an IME preedit; the Store owns its final replacement. Remote
@@ -44,6 +45,7 @@ export class PageInteraction {
     ) => void,
     private readonly picker: (start: PickerStart) => void,
     private readonly framework: FrameworkProvider,
+    private readonly slash?: (start: PickerStart) => void,
   ) {
     const { signal } = this.stop;
     root.addEventListener("beforeinput", this.input, { signal });
@@ -328,6 +330,69 @@ export class PageInteraction {
         mode: "page" as const,
       };
     };
+  }
+  consumeSlash(
+    start: PickerStart,
+    query: string,
+    run?: (ctx: {
+      line: PageLine;
+      offset: number;
+    }) => { id: string; offset: number } | void,
+  ): { line: PageLine; offset: number } | undefined {
+    const range = this.pickerRange(start);
+    if (
+      !range ||
+      range.query !== query ||
+      this.page.hasFixedText(range.line.model)
+    )
+      return;
+    const { line, from, end } = range;
+    let nextPoint: { id: string; offset: number } | undefined;
+    this.page.captureSync();
+    this.page.transact(() => {
+      line.text.delete(from.offset, end.offset - from.offset);
+      nextPoint = run?.({ line, offset: from.offset }) ?? undefined;
+    });
+    this.page.captureSync();
+    const target = nextPoint ?? from;
+    if (this.page.getModelById(target.id)?.text) {
+      this.root
+        .querySelector<HTMLElement>("[data-page-body]")
+        ?.focus({ preventScroll: true });
+      this.after = { anchor: target, focus: target };
+    }
+    this.refresh();
+    return { line, offset: from.offset };
+  }
+  focusPoint(id: string, offset = 0) {
+    if (this.retired) return;
+    const model = this.page.getModelById(id);
+    const clamped = Math.max(0, Math.min(model?.text?.length ?? 0, offset));
+    const point = { id, offset: clamped };
+    this.root
+      .querySelector<HTMLElement>("[data-page-body]")
+      ?.focus({ preventScroll: true });
+    this.after = { anchor: point, focus: point };
+    this.refresh();
+  }
+  openLinkPicker(blockId: string, offset: number) {
+    if (!this.canWrite()) return;
+    const line = this.lines().find((l) => l.model.id === blockId);
+    if (!line || this.page.hasFixedText(line.model)) return;
+    const clamped = Math.max(0, Math.min(line.text.length, offset));
+    const at = { id: blockId, offset: clamped };
+    const start = bookmark(this.lines(), { anchor: at, focus: at });
+    if (!start) return;
+    this.page.captureSync();
+    this.page.transact(() => line.text.insert(clamped, "[["));
+    this.page.captureSync();
+    const after = { id: blockId, offset: clamped + 2 };
+    this.root
+      .querySelector<HTMLElement>("[data-page-body]")
+      ?.focus({ preventScroll: true });
+    this.after = { anchor: after, focus: after };
+    this.refresh();
+    this.picker({ start, trigger: "[[" });
   }
   private remember = () => {
     if (this.composing || this.after || this.retired) return;
@@ -780,15 +845,27 @@ export class PageInteraction {
           (e.data === "/" || e.data === "、") &&
           range.focus.id !== this.page.root?.id
         ) {
-          if (this.write(range, e.data)) {
-            this.current = bookmark(lines, this.after!) ?? undefined;
-            this.after = undefined;
-            if (this.current)
-              this.handoff(this.current, {
-                kind: "slash",
-                trigger: e.data,
-                start: this.current,
-              });
+          if (this.write(range, e.data) && this.after) {
+            if (this.slash) {
+              const at = {
+                id: this.after.focus.id,
+                offset: Math.max(0, this.after.focus.offset - e.data.length),
+              };
+              const start = bookmark(this.lines(), { anchor: at, focus: at });
+              if (start) {
+                this.slash({ start, trigger: e.data });
+                break;
+              }
+            } else {
+              this.current = bookmark(lines, this.after) ?? undefined;
+              this.after = undefined;
+              if (this.current)
+                this.handoff(this.current, {
+                  kind: "slash",
+                  trigger: e.data,
+                  start: this.current,
+                });
+            }
           }
         } else {
           const line = lines.find((l) => l.model.id === range.focus.id);
@@ -973,11 +1050,7 @@ export class PageInteraction {
     if (block && e.clipboardData) {
       e.preventDefault();
       if (!this.canWrite()) return;
-      const data = new DataTransfer();
-      for (const type of e.clipboardData.types)
-        if (type !== "Files") data.setData(type, e.clipboardData.getData(type));
-      for (const file of e.clipboardData.files) data.items.add(file);
-      this.handoff(null, { kind: "block-paste", id: block.id, data });
+      void pasteAfterPageBlock(block, e.clipboardData).catch(console.error);
       return;
     }
     const data = e.clipboardData,

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { autoUpdate } from "@floating-ui/dom";
 import { useI18n } from "@myoxus/i18n";
 import type { LatexBlockModel } from "@virgultum/core/models";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { EditorEquation } from "../../view-extensions/editor-view/editor-chrome/equation-editor";
+import { usePageFloatingAnchor } from "./page-floating-anchor";
 import type { PageLine } from "./plain-page-model";
 import type { PageInlineObject } from "./page-inline-object";
 import { restorePageRange } from "./plain-page-input";
@@ -41,21 +41,11 @@ export function InlineEquation({
       el.textContent = t["com.myoxus.editor.equation.invalid"]();
     }
   }, [draft, t]);
-  useLayoutEffect(() => {
-    const target = output.current;
-    if (!open || !anchor || !target) return;
-    return autoUpdate(target, anchor, () => {
-      const r = target.getBoundingClientRect();
-      Object.assign(anchor.style, {
-        position: "fixed",
-        pointerEvents: "none",
-        top: `${r.top}px`,
-        left: `${r.left}px`,
-        width: `${r.width}px`,
-        height: `${r.height}px`,
-      });
-    });
-  }, [open, anchor]);
+  usePageFloatingAnchor({
+    active: open,
+    reference: output.current,
+    anchor,
+  });
   const getIndex = () => {
     if (!field.isConnected || store.getModelById(line.model.id) !== line.model)
       return;
@@ -148,21 +138,11 @@ export default function PageEquation({
       el.textContent = t["com.myoxus.editor.equation.invalid"]();
     }
   }, [latex, t]);
-  useLayoutEffect(() => {
-    const target = block.current;
-    if (!open || !anchor || !target) return;
-    return autoUpdate(target, anchor, () => {
-      const r = target.getBoundingClientRect();
-      Object.assign(anchor.style, {
-        position: "fixed",
-        left: `${r.left}px`,
-        top: `${r.top}px`,
-        width: `${r.width}px`,
-        height: `${r.height}px`,
-        pointerEvents: "none",
-      });
-    });
-  }, [open, anchor]);
+  usePageFloatingAnchor({
+    active: open,
+    reference: block.current,
+    anchor,
+  });
   useLayoutEffect(() => {
     if (!open) return;
     model.store.captureSync();

@@ -35,7 +35,9 @@ import {
 } from "../../ai/_common/code-actions";
 import { bindPageTextarea } from "./page-textarea";
 import { usePageCaption } from "./page-caption";
-import type { PageIntent } from "./plain-page-input";
+import { duplicatePageBlock } from "./page-block-actions";
+import { resolveInsertParent } from "./page-slash-registry";
+import { ViewService } from "../../../modules/workbench";
 
 const Preview = lazy(async () => ({
   default: (await import("../../view-extensions/code-block-preview/preview"))
@@ -45,7 +47,6 @@ const Preview = lazy(async () => ({
 export default function PageCode({
   model,
   readonly,
-  handoff,
   enableComment,
   enableAI,
 }: {
@@ -53,7 +54,6 @@ export default function PageCode({
   enableAI: boolean;
   enableComment: boolean;
   readonly: boolean;
-  handoff: (intent: PageIntent) => void;
 }) {
   const t = useI18n(),
     { resolvedTheme } = useMyoxusTheme();
@@ -153,13 +153,31 @@ export default function PageCode({
       : undefined;
   const writable = () =>
     !readonly && !store.readonly && store.getModelById(model.id) === model;
-  const command = (control: string) =>
-    handoff({
-      kind: "block-command",
-      id: model.id,
-      flavour: model.flavour,
-      control,
-    });
+  const convertToMermaid = () => {
+    if (!writable()) return;
+    const rawSource = model.props.text.toString();
+    void (async () => {
+      const { createMermaidBlockInsertProps } =
+        await import("@virgultum/block-mermaid");
+      if (!writable()) return;
+      const target = resolveInsertParent(store, model, "myoxus:mermaid");
+      if (!target) return;
+      const { flavour: _f, ...mermaidProps } = createMermaidBlockInsertProps({
+        source: rawSource,
+      });
+      store.captureSync();
+      store.transact(() => {
+        store.addBlock(
+          "myoxus:mermaid",
+          mermaidProps,
+          target.parent,
+          target.index + 1,
+        );
+        if (target.anchor === model) store.deleteBlock(model);
+      });
+      store.captureSync();
+    })().catch(console.error);
+  };
   const action = (
     id: string,
     label: string,
@@ -219,7 +237,10 @@ export default function PageCode({
                     disabled: false,
                     actions: items.map(({ testId, name, iconName }) =>
                       action(testId, name, iconName, () => {
-                        if (writable()) command(testId);
+                        if (writable())
+                          framework
+                            .getOptional(ViewService)
+                            ?.view.showTool("chat");
                       }),
                     ),
                   }),
@@ -254,7 +275,8 @@ export default function PageCode({
                 "comment",
                 t["com.myoxus.editor.toolbar.comment"](),
                 "CommentIcon",
-                () => command("comment"),
+                () =>
+                  framework.getOptional(ViewService)?.view.showTool("comment"),
               ),
               disabled: false,
             },
@@ -305,7 +327,9 @@ export default function PageCode({
         "duplicate",
         t["com.myoxus.editor.keyboard.duplicate"](),
         "DuplicateIcon",
-        () => command("duplicate"),
+        () => {
+          if (writable()) duplicatePageBlock(model);
+        },
       ),
       {
         ...action("delete", t.Delete(), "DeleteIcon", () => {
@@ -506,9 +530,7 @@ export default function PageCode({
             source={source}
             convertMermaid={
               previewLanguage === "mermaid" && !readonly
-                ? () => {
-                    if (writable()) command("convert-mermaid");
-                  }
+                ? convertToMermaid
                 : undefined
             }
           />

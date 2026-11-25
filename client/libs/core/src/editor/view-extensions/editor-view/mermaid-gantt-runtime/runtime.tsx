@@ -23,6 +23,7 @@ import {
   Select,
   Stack,
   Tooltip,
+  useElementSize,
 } from "@myoxus/ui-facade";
 import { GanttView, type GanttMoveIntent } from "@myoxus/ui-facade";
 import {
@@ -37,7 +38,14 @@ import {
   type MermaidFamilyReactRendererRegistration,
   type MermaidGanttReactHostProps,
 } from "@virgultum/block-mermaid";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { ChartEditorSurface } from "../mermaid-chart-runtime/common";
 import { GanttAccessibilityPopover } from "./accessibility-popover";
@@ -122,7 +130,16 @@ export function MermaidGanttRuntime({
     });
   };
   const [locale] = useState(() => navigator.language);
-  const [width, setWidth] = useState(900);
+  const { ref: measuredContainerRef, width: measuredWidth } =
+    useElementSize<HTMLDivElement>();
+  const mergedContainerRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      containerRef.current = node;
+      measuredContainerRef(node);
+    },
+    [measuredContainerRef],
+  );
+  const width = measuredWidth > 0 ? measuredWidth : 900;
   const [selection, setSelection] = useState<GanttSelection>(props.selection);
   const [popover, setPopover] = useState<PopoverKind>();
   const [dependencyId, setDependencyId] = useState<string | null>(null);
@@ -157,14 +174,6 @@ export function MermaidGanttRuntime({
     setConnectMode(false);
   }, [source, props.readonly, props.displayOnly]);
   useEffect(() => setSelection(props.selection), [props.selection]);
-  useEffect(() => {
-    const element = containerRef.current;
-    if (!element) return undefined;
-    const observer = new ResizeObserver(() => setWidth(element.clientWidth));
-    observer.observe(element);
-    setWidth(element.clientWidth);
-    return () => observer.disconnect();
-  }, []);
   const [zoom, setZoom] = useState<
     "day" | "week" | "month" | "quarter" | "year" | null
   >(null);
@@ -598,7 +607,7 @@ export function MermaidGanttRuntime({
     }
   };
   return (
-    <div ref={containerRef}>
+    <div ref={mergedContainerRef}>
       <ChartEditorSurface
         actionTarget={props.actionTarget}
         context={null}

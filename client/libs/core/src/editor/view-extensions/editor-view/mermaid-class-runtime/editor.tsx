@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createPortal } from "react-dom";
+import { MermaidRuntimePortal } from "../mermaid-runtime-portal";
 import { useClassSelection } from "./selection";
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import {
@@ -372,9 +372,9 @@ export function MermaidClassRuntimeEditor({
           </MyoxusText>
         ) : null}
         {selectedControl}
-        {markers && typeof document !== "undefined"
-          ? createPortal(markers, document.body)
-          : null}
+        {markers ? (
+          <MermaidRuntimePortal>{markers}</MermaidRuntimePortal>
+        ) : null}
       </Group>
     );
   const controls =

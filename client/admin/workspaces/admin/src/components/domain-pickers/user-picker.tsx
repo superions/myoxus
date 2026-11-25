@@ -20,7 +20,13 @@ import {
   managerSearchUsersQuery,
 } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
-import { Avatar, SearchCombobox, StatusDot } from "@myoxus/ui-facade";
+import {
+  Avatar,
+  SearchCombobox,
+  StatusDot,
+  useDebouncedValue,
+  useDisclosure,
+} from "@myoxus/ui-facade";
 import {
   type KeyboardEvent,
   useCallback,
@@ -67,18 +73,14 @@ export function UserPicker(props: UserPickerProps) {
   const listboxId = useId();
 
   const [query, setQuery] = useState("");
-  const [debounced, setDebounced] = useState("");
-  const [open, setOpen] = useState(false);
+  const [debouncedRaw] = useDebouncedValue(query.trim(), DEBOUNCE_MS);
+  const debounced = query.trim().length === 0 ? "" : debouncedRaw;
+  const [open, { open: openDropdown, close: closeDropdown }] =
+    useDisclosure(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [options, setOptions] = useState<UserOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<unknown>(null);
-
-  // Debounce search input → server query.
-  useEffect(() => {
-    const handle = setTimeout(() => setDebounced(query.trim()), DEBOUNCE_MS);
-    return () => clearTimeout(handle);
-  }, [query]);
 
   const shouldFetch = debounced.length >= 1;
   const adminFeaturesKey =
@@ -194,9 +196,9 @@ export function UserPicker(props: UserPickerProps) {
     (option: UserOption) => {
       props.onChange(option.id);
       setQuery(option.email);
-      setOpen(false);
+      closeDropdown();
     },
-    [props],
+    [closeDropdown, props],
   );
 
   const handleKeyDown = useCallback(
@@ -204,13 +206,13 @@ export function UserPicker(props: UserPickerProps) {
       if (props.disabled) return;
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        setOpen(true);
+        openDropdown();
         setActiveIndex((i) => Math.min(i + 1, Math.max(options.length - 1, 0)));
         return;
       }
       if (event.key === "ArrowUp") {
         event.preventDefault();
-        setOpen(true);
+        openDropdown();
         setActiveIndex((i) => Math.max(i - 1, 0));
         return;
       }
@@ -233,10 +235,18 @@ export function UserPicker(props: UserPickerProps) {
       }
       if (event.key === "Escape") {
         event.preventDefault();
-        setOpen(false);
+        closeDropdown();
       }
     },
-    [props.disabled, options, open, activeIndex, commitSelection],
+    [
+      props.disabled,
+      options,
+      open,
+      activeIndex,
+      commitSelection,
+      openDropdown,
+      closeDropdown,
+    ],
   );
 
   const optionId = (idx: number) => `${listboxId}-opt-${idx}`;
@@ -313,12 +323,12 @@ export function UserPicker(props: UserPickerProps) {
       data-testid={props["data-testid"]}
       onInputChange={(next) => {
         setQuery(next);
-        setOpen(true);
+        openDropdown();
         if (props.value !== null) {
           props.onChange(null);
         }
       }}
-      onInputFocus={() => setOpen(true)}
+      onInputFocus={openDropdown}
       onInputKeyDown={handleKeyDown}
       onOptionHover={setActiveIndex}
       onOptionCommit={(facadeOption) => {
@@ -327,7 +337,7 @@ export function UserPicker(props: UserPickerProps) {
         );
         if (target) commitSelection(target);
       }}
-      onClose={() => setOpen(false)}
+      onClose={closeDropdown}
     />
   );
 }

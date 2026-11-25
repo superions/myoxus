@@ -5,7 +5,6 @@ import { TemplateDocService } from "../../../modules/template-doc";
 import { notify } from "@myoxus/ui-facade";
 import { configureEditorI18n } from "../editor-i18n";
 import { DefaultEditorI18nService } from "@virgultum/core/services";
-import { autoUpdate } from "@floating-ui/dom";
 import type { TableBlockModel } from "@virgultum/core/models";
 import type { SelectionAction } from "@virgultum/core/services";
 import {
@@ -36,6 +35,7 @@ import { EditorTableControl } from "../../view-extensions/editor-view/editor-chr
 import { EditorActionMenu } from "../../view-extensions/editor-view/editor-chrome/action-menu";
 import type { PageIntent } from "./plain-page-input";
 import { bindPageTextarea } from "./page-textarea";
+import { usePageFloatingAnchor } from "./page-floating-anchor";
 
 type Address = { row: string; column: string };
 type Rectangle = { first: Address; last: Address };
@@ -223,20 +223,11 @@ export default function PageTable({
     r <= selected.rowEndIndex &&
     c >= selected.columnStartIndex &&
     c <= selected.columnEndIndex;
-  useLayoutEffect(() => {
-    if (!menu || !anchor || !menu.anchor.isConnected) return;
-    return autoUpdate(menu.anchor, anchor, () => {
-      const rect = menu.anchor.getBoundingClientRect();
-      Object.assign(anchor.style, {
-        position: "fixed",
-        pointerEvents: "none",
-        left: `${rect.left}px`,
-        top: `${rect.top}px`,
-        width: `${rect.width}px`,
-        height: `${rect.height}px`,
-      });
-    });
-  }, [menu, anchor]);
+  usePageFloatingAnchor({
+    active: Boolean(menu && menu.anchor.isConnected),
+    reference: menu?.anchor ?? null,
+    anchor,
+  });
   const transfer = (
     at: Address,
     extras: Pick<Extract<PageIntent, { kind: "table-cell" }>, "menu" | "paste">,

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { MermaidRuntimePortal } from "../mermaid-runtime-portal";
 import { useI18n } from "@myoxus/i18n";
 import { MindmapCommentsPopover } from "./comment-popover";
 import { MindmapNodeHandles } from "./node-handles";
@@ -590,20 +590,17 @@ export function MermaidMindmapRuntimeEditor({
       >
         {actions}
         {deleteConfirmation}
-        {createPortal(
-          <>
-            {markers}
-            {dropFeedback}
-            <MindmapNodeHandles
-              props={{
-                ...props,
-                intent,
-                draftActive: props.draftActive || dragActive,
-              }}
-            />
-          </>,
-          document.body,
-        )}
+        <MermaidRuntimePortal>
+          {markers}
+          {dropFeedback}
+          <MindmapNodeHandles
+            props={{
+              ...props,
+              intent,
+              draftActive: props.draftActive || dragActive,
+            }}
+          />
+        </MermaidRuntimePortal>
       </Group>
     );
   const selectedControls =

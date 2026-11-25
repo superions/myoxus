@@ -16,6 +16,7 @@ import {
   Center,
   Group,
   Divider,
+  OverflowList,
   ToolbarSurface,
   IconButton,
   MenuTrigger,
@@ -180,12 +181,18 @@ export function RegisteredCanvasToolbar({
   return controls && <EditorCanvasToolbar controls={controls} />;
 }
 
+function toolbarItemKey(item: EditorCanvasToolbarItem, index: number): string {
+  if (item.type === "control") return item.controls.action.id;
+  return item.tags.join(",") || String(index);
+}
+
 function EditorCanvasToolbar({
   controls,
 }: {
   controls: EditorCanvasToolbarControls;
 }) {
   const moreMenu = useRef<MenuRef>(null);
+  const t = useI18n();
   // Tool poppers and retained artwork extend beyond the canvas dock bounds.
   return (
     <ToolbarSurface
@@ -199,16 +206,62 @@ function EditorCanvasToolbar({
         className="edgeless-toolbar-container"
         wrap="nowrap"
         gap="xs"
+        maw="100%"
       >
         {controls.presentation ? (
           createElement("presentation-toolbar", controls.presentation)
         ) : (
           <>
-            <Group wrap="nowrap" gap="xs">
-              {controls.quick.map((content, index) => (
-                <Box key={index}>{renderToolbarItem(content)}</Box>
-              ))}
-            </Group>
+            <OverflowList
+              data={[...controls.quick]}
+              gap="xs"
+              getItemKey={toolbarItemKey}
+              renderItem={(content, index) => (
+                <Box key={toolbarItemKey(content, index)}>
+                  {renderToolbarItem(content)}
+                </Box>
+              )}
+              renderOverflow={(hiddenItems) => {
+                const menuActions = hiddenItems
+                  .map((item) => item.menu)
+                  .filter(
+                    (
+                      action,
+                    ): action is NonNullable<EditorCanvasToolbarItem["menu"]> =>
+                      Boolean(action),
+                  );
+                if (!menuActions.length) return <Box component="span" />;
+                return (
+                  <Box component="span">
+                    <Menu
+                      ref={moreMenu}
+                      noPortal
+                      items={
+                        <SelectionActions
+                          actions={menuActions}
+                          menu
+                          afterAction={() =>
+                            moreMenu.current?.changeOpen(false)
+                          }
+                          renderControl={renderControl}
+                        />
+                      }
+                    >
+                      <ActionButton
+                        action={{
+                          id: "canvas-more-tools",
+                          icon: "MoreHorizontalIcon",
+                          label:
+                            controls.moreLabel ??
+                            t["com.myoxus.editor.toolbar.more-tools"](),
+                          disabled: false,
+                        }}
+                      />
+                    </Menu>
+                  </Box>
+                );
+              }}
+            />
             {controls.more && (
               <Menu
                 ref={moreMenu}
@@ -232,7 +285,7 @@ function EditorCanvasToolbar({
             <Group wrap="nowrap" gap={0}>
               {controls.senior.map((content, index) => (
                 // Existing artwork and drag hit boxes retain their canvas geometry.
-                <Center key={index} w={96} h={64}>
+                <Center key={toolbarItemKey(content, index)} w={96} h={64}>
                   {renderToolbarItem(content)}
                 </Center>
               ))}

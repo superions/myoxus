@@ -19,6 +19,7 @@ import {
   Button,
   DialogFooterActions,
   Divider,
+  EmptyState,
   FormSelect,
   Group,
   Input,
@@ -35,7 +36,7 @@ import {
   MonoText,
   MyoxusText,
   SettingsNotice,
-  Skeleton,
+  SettingsSkeleton,
   Stack,
   UploadTarget,
 } from "@myoxus/ui-facade";
@@ -54,7 +55,6 @@ import {
   type PdfIccProfileViewModel,
 } from "../format-adapters";
 import { logPdfExportUiEvent } from "../logging";
-import { EmptyState as RoleEmptyState } from "../pdf-role-primitives";
 
 // ---------------------------------------------------------------------------
 // Error mapping + upload helpers
@@ -289,7 +289,7 @@ function IccProfilesTabContent() {
           {i18n.t("admin.pdf-icc.system-default-hint")}
         </SettingsNotice>
         {profiles.length === 0 ? (
-          <RoleEmptyState title={i18n.t("admin.pdf-icc.list.empty")} />
+          <EmptyState title={i18n.t("admin.pdf-icc.list.empty")} />
         ) : (
           <TableScrollContainer>
             <Table aria-label={i18n.t("admin.pdf-icc.list.aria-label")}>
@@ -380,7 +380,7 @@ function IccProfilesTabContent() {
 /** Render the ICC profile admin table behind the shared Suspense boundary. */
 export function IccProfilesTab() {
   return (
-    <Suspense fallback={<Skeleton h={256} />}>
+    <Suspense fallback={<SettingsSkeleton />}>
       <IccProfilesTabContent />
     </Suspense>
   );

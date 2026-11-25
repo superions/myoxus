@@ -5,7 +5,6 @@
  * allows admins to toggle boolean flags, rename the workspace, and manage
  * feature entitlements. Dirty-change tracking is surfaced via the right panel header.
  */
-import { adminToast as toast } from "@myoxus/admin/notifications";
 import {
   adminAssignOrganizationUnitWorkspaceMutation,
   type AdminAuditLogEntryType,
@@ -34,6 +33,7 @@ import {
   SettingsDetailHeader,
   SettingsListItemMeta,
   SettingsListItemTitle,
+  notify,
   SettingsHeadingGroup,
   SettingsSectionDescription,
   SettingsSectionHeading,
@@ -220,32 +220,32 @@ function WorkspacePanelContent({
   const handleReindex = useCallback(() => {
     triggerReindex({ workspaceId: workspace.id })
       .then(() => {
-        toast.success(i18n.t("admin.workspace.reindex-success"));
+        notify.success({ title: i18n.t("admin.workspace.reindex-success") });
         setReindexDialogOpen(false);
       })
       .catch((e) => {
-        toast.error(
-          i18n.t("admin.workspace.reindex-error", {
+        notify.error({
+          title: i18n.t("admin.workspace.reindex-error", {
             message: (e as Error).message,
           }),
-        );
+        });
       });
   }, [triggerReindex, workspace.id, i18n]);
 
   const handleDeleteWorkspace = useCallback(() => {
     triggerDeleteWorkspace({ id: workspace.id })
       .then(async () => {
-        toast.success(i18n.t("admin.workspace.delete-success"));
+        notify.success({ title: i18n.t("admin.workspace.delete-success") });
         setDeleteDialogOpen(false);
         await revalidate(adminWorkspacesListQuery);
         onClose();
       })
       .catch((e) => {
-        toast.error(
-          i18n.t("admin.workspace.delete-error", {
+        notify.error({
+          title: i18n.t("admin.workspace.delete-error", {
             message: (e as Error).message,
           }),
-        );
+        });
       });
   }, [triggerDeleteWorkspace, workspace.id, i18n, revalidate, onClose]);
 
@@ -387,18 +387,20 @@ function WorkspacePanelContent({
           revalidate(adminWorkspacesListQuery),
           revalidate(adminWorkspaceQuery, (vars) => vars?.id === workspace.id),
         ]);
-        toast.success(i18n.t("admin.workspaces.panel.update-success"));
+        notify.success({
+          title: i18n.t("admin.workspaces.panel.update-success"),
+        });
         setBaseline({
           flags: { ...flags },
           features: [...featureSelection],
           storageQuotaMb,
         });
       } catch (e) {
-        toast.error(
-          i18n.t("admin.workspaces.panel.update-failed", {
+        notify.error({
+          title: i18n.t("admin.workspaces.panel.update-failed", {
             message: (e as Error).message,
           }),
-        );
+        });
       }
     };
     update().catch(() => {});
@@ -635,15 +637,17 @@ function WorkspaceOuLinkSection({
           relationship,
         },
       });
-      toast.success(i18n.t("admin.workspaces.drawer.ou-link.add-success"));
+      notify.success({
+        title: i18n.t("admin.workspaces.drawer.ou-link.add-success"),
+      });
       setSelectedUnitId(null);
       await refreshLinks();
     } catch (e) {
-      toast.error(
-        i18n.t("admin.workspaces.drawer.ou-link.add-failed", {
+      notify.error({
+        title: i18n.t("admin.workspaces.drawer.ou-link.add-failed", {
           message: (e as Error).message,
         }),
-      );
+      });
     }
   }, [
     assignWorkspace,
@@ -665,14 +669,16 @@ function WorkspaceOuLinkSection({
           workspaceId,
           relationship: linkRelationship,
         });
-        toast.success(i18n.t("admin.workspaces.drawer.ou-link.remove-success"));
+        notify.success({
+          title: i18n.t("admin.workspaces.drawer.ou-link.remove-success"),
+        });
         await refreshLinks();
       } catch (e) {
-        toast.error(
-          i18n.t("admin.workspaces.drawer.ou-link.remove-failed", {
+        notify.error({
+          title: i18n.t("admin.workspaces.drawer.ou-link.remove-failed", {
             message: (e as Error).message,
           }),
-        );
+        });
       }
     },
     [i18n, refreshLinks, unassignWorkspace, workspaceId],
@@ -691,14 +697,16 @@ function WorkspaceOuLinkSection({
             relationship: nextRelationship,
           },
         });
-        toast.success(i18n.t("admin.workspaces.panel.update-success"));
+        notify.success({
+          title: i18n.t("admin.workspaces.panel.update-success"),
+        });
         await refreshLinks();
       } catch (e) {
-        toast.error(
-          i18n.t("admin.workspaces.drawer.ou-link.add-failed", {
+        notify.error({
+          title: i18n.t("admin.workspaces.drawer.ou-link.add-failed", {
             message: (e as Error).message,
           }),
-        );
+        });
       }
     },
     [assignWorkspace, i18n, refreshLinks, workspaceId],

@@ -30,7 +30,7 @@ import {
   type MermaidRuntimeTransactionOptions,
 } from "@virgultum/block-mermaid";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { MermaidRuntimePortal } from "../../mermaid-runtime-portal";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 
 import { ChartEditorSurface, stopEditorEvent } from "../common";
@@ -580,16 +580,15 @@ function RadarRuntimeBody({
     !props.displayOnly && (commentsVisible || props.readonly);
   return (
     <>
-      {showCommentMarkers && props.headerActionTarget
-        ? createPortal(
-            <MermaidRadarCommentMarker
-              anchor={{ kind: "diagram" }}
-              onCommand={(command) => dispatch(command)}
-              props={props}
-            />,
-            props.headerActionTarget,
-          )
-        : null}
+      {showCommentMarkers && props.headerActionTarget ? (
+        <MermaidRuntimePortal target={props.headerActionTarget}>
+          <MermaidRadarCommentMarker
+            anchor={{ kind: "diagram" }}
+            onCommand={(command) => dispatch(command)}
+            props={props}
+          />
+        </MermaidRuntimePortal>
+      ) : null}
       <div
         data-testid="mermaid-radar-view"
         onClick={props.embedded ? undefined : stopEditorEvent}

@@ -318,13 +318,19 @@ export type EditorCanvasToolbarItem =
       readonly tags: readonly `edgeless-${string}`[];
       readonly edgeless: BlockComponent;
       readonly toolbarContainer?: HTMLElement;
+      readonly menu?: SelectionAction;
     }
-  | { readonly type: "control"; readonly controls: EditorCanvasToolControls };
+  | {
+      readonly type: "control";
+      readonly controls: EditorCanvasToolControls;
+      readonly menu?: SelectionAction;
+    };
 
 /** Tools can contribute existing controls directly alongside retained drag hosts. */
 export type EditorCanvasToolbarControls = {
   quick: readonly EditorCanvasToolbarItem[];
   senior: readonly EditorCanvasToolbarItem[];
+  moreLabel?: string;
   navigation: readonly SelectionAction[];
   more?: SelectionAction & {
     control: Extract<SelectionAction["control"], { type: "menu" }>;
@@ -335,7 +341,6 @@ export type EditorCanvasToolbarControls = {
     frameMenuShow: boolean;
     setSettingMenuShow: (show: boolean) => void;
     setFrameMenuShow: (show: boolean) => void;
-    containerWidth: number;
   };
   setContainer: (element: HTMLDivElement | null) => void;
 };
@@ -439,6 +444,66 @@ export type EditorIconPickerControls = EditorInlinePopupControls & {
   onSelect: (icon?: import("./icon-picker-service/index.js").IconData) => void;
 };
 
+export type EditorCanvasPopoverPosition =
+  "top" | "bottom" | "top-start" | "top-end" | "bottom-start" | "bottom-end";
+
+export type EditorCanvasPopoverContent =
+  | Readonly<{ kind: "menu"; controls: EditorCanvasMenuControls }>
+  | Readonly<{ kind: "frame-order"; controls: EditorFrameOrderControls }>
+  | Readonly<{ kind: "templates"; controls: EditorCanvasTemplateControls }>
+  | Readonly<{
+      kind: "menu-with-frame-order";
+      menu: EditorCanvasMenuControls;
+      frameOrder: EditorFrameOrderControls;
+    }>
+  | Readonly<{
+      kind: "native";
+      mount: (host: HTMLElement) => (() => void) | void;
+    }>;
+
+/** Native Mantine Popover host for canvas dock submenus, templates, and frame menus. */
+export type EditorCanvasPopoverControls = Readonly<{
+  opened: boolean;
+  onClose: () => void;
+  position?: EditorCanvasPopoverPosition;
+  offset?: number;
+  withArrow?: boolean;
+  closeOnClickOutside?: boolean;
+  label?: string;
+  trigger?: EditorCanvasToolControls;
+  content: EditorCanvasPopoverContent;
+}>;
+
+/** Presentation toolbar rendered natively through Mantine ToolbarSurface and Popover. */
+export type EditorPresentationToolbarControls = Readonly<{
+  previous: EditorCanvasToolControls;
+  next: EditorCanvasToolControls;
+  title: string;
+  count: string;
+  focusCurrentFrame: () => void;
+  fullscreen: EditorCanvasToolControls;
+  frameOrder?: EditorCanvasPopoverControls;
+  settings: EditorCanvasPopoverControls;
+  stop: EditorCanvasToolControls;
+}>;
+
+export type EditorSurfaceRefPlaceholderControls = Readonly<{
+  notFound: boolean;
+  icon: MyoxusIconExportName;
+  title: string;
+  description: string;
+}>;
+
+export type EditorHtmlEmbedControls = Readonly<{
+  empty: boolean;
+  emptyLabel: string;
+  title: string;
+  selected: boolean;
+  select: (event: MouseEvent) => void;
+  open: (event: MouseEvent) => void;
+  mountFrame: (host: HTMLElement) => (() => void) | void;
+}>;
+
 export type EditorChromeHost = {
   mountTableControl: (
     anchor: HTMLElement,
@@ -451,6 +516,22 @@ export type EditorChromeHost = {
   mountIconPicker?: (
     anchor: HTMLElement,
     controls: EditorIconPickerControls,
+  ) => () => void;
+  mountCanvasPopover?: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorCanvasPopoverControls | null>,
+  ) => () => void;
+  mountPresentationToolbar?: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorPresentationToolbarControls | null>,
+  ) => () => void;
+  mountSurfaceRefPlaceholder?: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorSurfaceRefPlaceholderControls | null>,
+  ) => () => void;
+  mountHtmlEmbed?: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorHtmlEmbedControls | null>,
   ) => () => void;
   mountAutoCompleteTrigger: (
     anchor: HTMLElement,

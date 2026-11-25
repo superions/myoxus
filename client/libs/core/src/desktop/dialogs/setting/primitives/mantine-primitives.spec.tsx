@@ -47,7 +47,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "./index";
-import { MyoxusSettingsMantineProvider } from "./mantine-provider";
+import { MyoxusUIProvider } from "@myoxus/ui-facade/provider";
 
 const readUiFacadeSource = () =>
   readFileSync(`${process.cwd()}/client/libs/ui-facade/src/button.tsx`, "utf8");
@@ -86,7 +86,7 @@ describe("Mantine-backed settings primitives", () => {
   test("render Myoxus settings roles through the Mantine provider", () => {
     const onSwitch = vi.fn();
     render(
-      <MyoxusSettingsMantineProvider>
+      <MyoxusUIProvider>
         <SettingsPage title="Appearance" subtitle="Theme and language">
           <SettingsSection title="Theme">
             <SettingsRow name="Dark mode" desc="Use dark colors">
@@ -116,7 +116,7 @@ describe("Mantine-backed settings primitives", () => {
             </SettingsDangerZone>
           </SettingsSection>
         </SettingsPage>
-      </MyoxusSettingsMantineProvider>,
+      </MyoxusUIProvider>,
     );
 
     expectExactText("Appearance");
@@ -133,7 +133,7 @@ describe("Mantine-backed settings primitives", () => {
 
   test("puts legacy modal test id on visible Mantine content", () => {
     render(
-      <MyoxusSettingsMantineProvider>
+      <MyoxusUIProvider>
         <Modal
           open
           title="Settings dialog"
@@ -143,7 +143,7 @@ describe("Mantine-backed settings primitives", () => {
         >
           Modal body
         </Modal>
-      </MyoxusSettingsMantineProvider>,
+      </MyoxusUIProvider>,
     );
 
     expect(screen.getByTestId("setting-modal").dataset.testid).toBe(
@@ -161,11 +161,11 @@ describe("Mantine-backed settings primitives", () => {
 
   test("normalizes icon-only buttons instead of inheriting parent font weight", () => {
     render(
-      <MyoxusSettingsMantineProvider>
+      <MyoxusUIProvider>
         <div style={{ fontWeight: 700 }}>
           <IconButton aria-label="Icon only">×</IconButton>
         </div>
-      </MyoxusSettingsMantineProvider>,
+      </MyoxusUIProvider>,
     );
 
     const button = screen.getByRole("button", { name: "Icon only" });
@@ -177,7 +177,7 @@ describe("Mantine-backed settings primitives", () => {
 
   test("encodes icon-only button roles by rendered control size", () => {
     render(
-      <MyoxusSettingsMantineProvider>
+      <MyoxusUIProvider>
         <IconButton aria-label="Small icon" size="16">
           ×
         </IconButton>
@@ -191,7 +191,7 @@ describe("Mantine-backed settings primitives", () => {
         >
           ×
         </IconButton>
-      </MyoxusSettingsMantineProvider>,
+      </MyoxusUIProvider>,
     );
 
     expect(
@@ -208,7 +208,7 @@ describe("Mantine-backed settings primitives", () => {
 
   test("normalizes nested segmented control labels with Myoxus roles", () => {
     render(
-      <MyoxusSettingsMantineProvider>
+      <MyoxusUIProvider>
         <RadioGroup
           value="one"
           items={[
@@ -222,7 +222,7 @@ describe("Mantine-backed settings primitives", () => {
           ]}
           onChange={vi.fn()}
         />
-      </MyoxusSettingsMantineProvider>,
+      </MyoxusUIProvider>,
     );
 
     expectRoleAncestor("One", "settings-radio-label");
@@ -234,7 +234,7 @@ describe("Mantine-backed settings primitives", () => {
 
   test("applies segmented control sizing props instead of silently ignoring them", () => {
     render(
-      <MyoxusSettingsMantineProvider>
+      <MyoxusUIProvider>
         <RadioGroup
           borderRadius={8}
           gap={6}
@@ -248,7 +248,7 @@ describe("Mantine-backed settings primitives", () => {
           ]}
           onChange={vi.fn()}
         />
-      </MyoxusSettingsMantineProvider>,
+      </MyoxusUIProvider>,
     );
 
     const root = screen
@@ -269,11 +269,11 @@ describe("Mantine-backed settings primitives", () => {
 
   test("passes implicit settings-row labels to Mantine slider thumbs", () => {
     render(
-      <MyoxusSettingsMantineProvider>
+      <MyoxusUIProvider>
         <SettingsRow name="Base font size">
           <Slider min={12} max={24} value={16} />
         </SettingsRow>
-      </MyoxusSettingsMantineProvider>,
+      </MyoxusUIProvider>,
     );
 
     expectElementByRole("slider", { name: "Base font size" });
@@ -282,7 +282,7 @@ describe("Mantine-backed settings primitives", () => {
   test("keeps segmented-control item test ids clickable for theme settings", () => {
     const onChange = vi.fn();
     render(
-      <MyoxusSettingsMantineProvider>
+      <MyoxusUIProvider>
         <MyoxusSegmentedControl
           value="light"
           data={[
@@ -291,7 +291,7 @@ describe("Mantine-backed settings primitives", () => {
           ]}
           onChange={onChange}
         />
-      </MyoxusSettingsMantineProvider>,
+      </MyoxusUIProvider>,
     );
 
     const lightTrigger = screen.getByTestId("light-theme-trigger");
@@ -309,10 +309,10 @@ describe("Mantine-backed settings primitives", () => {
 
   test("keeps status badges on Myoxus theme tokens instead of Mantine defaults", () => {
     render(
-      <MyoxusSettingsMantineProvider>
+      <MyoxusUIProvider>
         <Badge tone="success">Ready</Badge>
         <Badge tone="warning">Review</Badge>
-      </MyoxusSettingsMantineProvider>,
+      </MyoxusUIProvider>,
     );
 
     const successBadge = screen
@@ -337,7 +337,7 @@ describe("Mantine-backed settings primitives", () => {
 
   test("renders the admin-parity primitive surface through the shared facade", () => {
     render(
-      <MyoxusSettingsMantineProvider>
+      <MyoxusUIProvider>
         <Tabs defaultValue="general">
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
@@ -371,7 +371,7 @@ describe("Mantine-backed settings primitives", () => {
         <Drawer open={false} title="Details">
           Hidden drawer
         </Drawer>
-      </MyoxusSettingsMantineProvider>,
+      </MyoxusUIProvider>,
     );
 
     expectExactText("General");

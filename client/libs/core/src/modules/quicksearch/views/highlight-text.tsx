@@ -1,8 +1,7 @@
-import {
-  CommandPaletteHighlight,
-  CommandPaletteHighlightKeyword,
-} from "@myoxus/ui-facade";
-import { Fragment, useMemo } from "react";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+import { Highlight } from "@myoxus/ui-facade";
+import { useMemo } from "react";
 
 type HighlightProps = {
   text: string;
@@ -10,38 +9,47 @@ type HighlightProps = {
   end: string;
 };
 
+/**
+ * Projects search highlighter markers (`start` ... `end`, typically `<b>...</b>`)
+ * onto Mantine's native `Highlight` component without custom DOM highlight wrappers.
+ */
 export const HighlightText = ({ text = "", end, start }: HighlightProps) => {
-  const parts = useMemo(
-    () =>
-      text.split(start).flatMap((part) => {
-        if (part.includes(end)) {
-          const [highlighted, ...ending] = part.split(end);
+  const { plainText, terms } = useMemo(() => {
+    if (!start || !end || !text.includes(start)) {
+      return { plainText: text, terms: [] as string[] };
+    }
+    const extracted: string[] = [];
+    let plain = "";
+    let cursor = 0;
+    while (cursor < text.length) {
+      const startIndex = text.indexOf(start, cursor);
+      if (startIndex === -1) {
+        plain += text.slice(cursor);
+        break;
+      }
+      plain += text.slice(cursor, startIndex);
+      const contentStart = startIndex + start.length;
+      const endIndex = text.indexOf(end, contentStart);
+      if (endIndex === -1) {
+        plain += text.slice(contentStart);
+        break;
+      }
+      const match = text.slice(contentStart, endIndex);
+      if (match) {
+        extracted.push(match);
+        plain += match;
+      }
+      cursor = endIndex + end.length;
+    }
+    return {
+      plainText: plain,
+      terms: Array.from(new Set(extracted)),
+    };
+  }, [end, start, text]);
 
-          return [
-            {
-              h: highlighted,
-            },
-            ending.join(),
-          ];
-        } else {
-          return part;
-        }
-      }),
-    [end, start, text],
-  );
-
-  // Full matches leave repeated empty fragments on both sides of the keyword.
   return (
-    <CommandPaletteHighlight>
-      {parts.map((part, index) =>
-        typeof part === "string" ? (
-          <Fragment key={index}>{part}</Fragment>
-        ) : (
-          <CommandPaletteHighlightKeyword key={part.h + "." + index}>
-            {part.h}
-          </CommandPaletteHighlightKeyword>
-        ),
-      )}
-    </CommandPaletteHighlight>
+    <Highlight component="span" highlight={terms} inherit c="inherit">
+      {plainText}
+    </Highlight>
   );
 };

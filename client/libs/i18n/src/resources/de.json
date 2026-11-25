@@ -11197,5 +11197,16 @@
   "com.myoxus.editor.mermaid.owner-missing": "Die Mermaid-Diagrammprojektion ist nicht verfügbar.",
   "com.myoxus.editor.mermaid.page-selection-count": "{{count}} ausgewählt",
   "com.myoxus.editor.mermaid.quadrant-height": "Höhe",
-  "com.myoxus.editor.mermaid.quadrant-width": "Breite"
+  "com.myoxus.editor.mermaid.quadrant-width": "Breite",
+  "com.myoxus.desktop.window-controls.minimize": "Fenster minimieren",
+  "com.myoxus.desktop.window-controls.maximize": "Fenster maximieren",
+  "com.myoxus.desktop.window-controls.restore": "Fenster wiederherstellen",
+  "com.myoxus.desktop.window-controls.close": "Fenster schließen",
+  "com.myoxus.editor.presentation.no-frame": "Kein Rahmen",
+  "com.myoxus.editor.presentation.no-frame-toast": "Die Präsentation erfordert mindestens 1 Rahmen. Erstelle zuerst einen Rahmen.",
+  "com.myoxus.editor.drag-preview.shape": "Edgeless-Form",
+  "com.myoxus.editor.drag-preview.image": "Bildblock",
+  "com.myoxus.editor.drag-preview.note": "Notizblock",
+  "com.myoxus.editor.drag-preview.frame": "Rahmenblock",
+  "com.myoxus.editor.drag-preview.embed": "Einbettungsblock"
 }

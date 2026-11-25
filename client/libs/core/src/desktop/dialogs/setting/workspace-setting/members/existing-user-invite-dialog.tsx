@@ -44,22 +44,13 @@ import {
   SurfaceListItem,
   SurfaceListItemMain,
   SurfaceListMeta,
+  useDebouncedValue,
 } from "../../primitives";
 
 interface ServerUserResult {
   id: string;
   name: string;
   avatarUrl: string | null;
-}
-
-/** Debounce hook: returns a debounced version of the value after `delay` ms. */
-function useDebounced<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debounced;
 }
 
 export const ExistingUserInviteDialog = ({
@@ -77,7 +68,7 @@ export const ExistingUserInviteDialog = ({
   const [isSearching, setIsSearching] = useState(false);
   const [invitingId, setInvitingId] = useState<string | null>(null);
 
-  const debouncedSearch = useDebounced(search, 300);
+  const [debouncedSearch] = useDebouncedValue(search, 300);
 
   const memberIds = new Set(members?.map((member) => member.id) ?? []);
 

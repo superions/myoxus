@@ -14,7 +14,6 @@
  * modules.  The pattern follows the dedicated config-section pattern used by
  * the System page (`modules/system/index.tsx`).
  */
-import { adminToast as toast } from "@myoxus/admin/notifications";
 import {
   adminCacheTuningHistoryQuery,
   adminCacheTuningStatusQuery,
@@ -28,6 +27,7 @@ import {
 import { useI18n } from "@myoxus/i18n";
 import {
   Button,
+  notify,
   Sparkline,
   SettingsListItemMeta,
   SettingsStatusText,
@@ -55,15 +55,9 @@ import { useQuery } from "../../use-query";
 import { AdminPageFrame, AdminPageScroll, AdminSubnav } from "../admin-shell";
 import { useRevalidateServerConfig } from "../common";
 import { ALL_CONFIG_DESCRIPTORS } from "../settings/config";
+import { AdminConfigFieldDispatcher } from "../settings/config-field-dispatcher";
 import {
-  ConfigArrayField,
-  ConfigBooleanField,
-  ConfigCheckboxGroupField,
   type ConfigControlType,
-  ConfigJsonField,
-  ConfigNumberField,
-  ConfigSelectField,
-  ConfigTextField,
   YamlOnlyBanner,
 } from "../settings/config-form-fields";
 import { ConfigPageSaveButtons } from "../settings/config-page-save-buttons";
@@ -128,70 +122,47 @@ function PerformanceConfigField({
   const type = (field.type ??
     schemaField?.valueType ??
     "String") as ConfigControlType;
-  const commonProps = {
-    field: fieldPath,
-    desc: field.desc ?? descriptor?.desc ?? "",
-    defaultValue: getByPath(sourceConfig, field.key),
-    onChange: update,
-    databaseWritable: schemaField?.databaseWritable,
-    restartRequired: Boolean(
-      fieldState?.requiresRestart ?? schemaField?.restart_required,
-    ),
-    suppressYamlBanner: showGroupYamlBanner,
-    error,
-    onErrorChange,
-  };
-  const sensitive = Boolean(schemaField?.sensitive);
+  const feedback =
+    type === "Number" &&
+    fieldState?.requiresRestart &&
+    typeof fieldState.runtimeEffectiveValue === "number" ? (
+      <SettingsStatusText>
+        {i18n.t(
+          fieldState.runtimeEffectiveState === "PENDING_RESTART"
+            ? "admin.config.runtime.pending"
+            : "admin.config.runtime.active",
+          {
+            value:
+              `${new Intl.NumberFormat(i18n.language).format(fieldState.runtimeEffectiveValue)} ${field.suffix ?? descriptor?.suffix ?? ""}`.trim(),
+          },
+        )}
+      </SettingsStatusText>
+    ) : undefined;
 
-  if (type === "Boolean") {
-    return (
-      <ConfigBooleanField
-        {...commonProps}
-        immediateApply={Boolean(schemaField?.immediate_apply)}
-        onSave={schemaField?.immediate_apply ? saveField : undefined}
-      />
-    );
-  }
-  if (type === "Number") {
-    return (
-      <ConfigNumberField
-        {...commonProps}
-        suffix={field.suffix ?? descriptor?.suffix}
-        min={schemaField?.min ?? undefined}
-        max={schemaField?.max ?? undefined}
-        feedback={
-          fieldState?.requiresRestart &&
-          typeof fieldState.runtimeEffectiveValue === "number" ? (
-            <SettingsStatusText>
-              {i18n.t(
-                fieldState.runtimeEffectiveState === "PENDING_RESTART"
-                  ? "admin.config.runtime.pending"
-                  : "admin.config.runtime.active",
-                {
-                  value:
-                    `${new Intl.NumberFormat(i18n.language).format(fieldState.runtimeEffectiveValue)} ${field.suffix ?? descriptor?.suffix ?? ""}`.trim(),
-                },
-              )}
-            </SettingsStatusText>
-          ) : undefined
-        }
-      />
-    );
-  }
-  if (type === "Enum") {
-    return <ConfigSelectField {...commonProps} options={field.options ?? []} />;
-  }
-  if (type === "CheckboxGroup") {
-    return (
-      <ConfigCheckboxGroupField
-        {...commonProps}
-        options={field.options ?? []}
-      />
-    );
-  }
-  if (type === "Array") return <ConfigArrayField {...commonProps} />;
-  if (type === "JSON") return <ConfigJsonField {...commonProps} />;
-  return <ConfigTextField {...commonProps} sensitive={sensitive} />;
+  return (
+    <AdminConfigFieldDispatcher
+      field={fieldPath}
+      type={type}
+      desc={field.desc ?? descriptor?.desc ?? ""}
+      defaultValue={getByPath(sourceConfig, field.key)}
+      onChange={update}
+      databaseWritable={schemaField?.databaseWritable}
+      restartRequired={Boolean(
+        fieldState?.requiresRestart ?? schemaField?.restart_required,
+      )}
+      suppressYamlBanner={showGroupYamlBanner}
+      error={error}
+      onErrorChange={onErrorChange}
+      sensitive={Boolean(schemaField?.sensitive)}
+      immediateApply={Boolean(schemaField?.immediate_apply)}
+      onSave={saveField}
+      suffix={field.suffix ?? descriptor?.suffix}
+      min={schemaField?.min ?? undefined}
+      max={schemaField?.max ?? undefined}
+      feedback={feedback}
+      options={field.options}
+    />
+  );
 }
 
 type PerformanceTabId =
@@ -944,16 +915,18 @@ function DocCacheFlushSection() {
     triggerFlushSnapshot()
       .then((res) => {
         const count = res?.admin?.adminFlushDocSnapshotCache ?? 0;
-        toast.success(
-          i18n.t("admin.performance.flush-snapshot-cache-success", { count }),
-        );
+        notify.success({
+          title: i18n.t("admin.performance.flush-snapshot-cache-success", {
+            count,
+          }),
+        });
       })
       .catch((e) => {
-        toast.error(
-          i18n.t("admin.performance.flush-cache-error", {
+        notify.error({
+          title: i18n.t("admin.performance.flush-cache-error", {
             message: (e as Error).message,
           }),
-        );
+        });
       });
   }, [triggerFlushSnapshot, i18n]);
 
@@ -961,16 +934,18 @@ function DocCacheFlushSection() {
     triggerFlushMetadata()
       .then((res) => {
         const count = res?.admin?.adminFlushDocMetadataCache ?? 0;
-        toast.success(
-          i18n.t("admin.performance.flush-metadata-cache-success", { count }),
-        );
+        notify.success({
+          title: i18n.t("admin.performance.flush-metadata-cache-success", {
+            count,
+          }),
+        });
       })
       .catch((e) => {
-        toast.error(
-          i18n.t("admin.performance.flush-cache-error", {
+        notify.error({
+          title: i18n.t("admin.performance.flush-cache-error", {
             message: (e as Error).message,
           }),
-        );
+        });
       });
   }, [triggerFlushMetadata, i18n]);
 
@@ -978,18 +953,21 @@ function DocCacheFlushSection() {
     triggerFlushMetadataProjection()
       .then((res) => {
         const count = res?.admin?.adminFlushDocMetadataProjectionCache ?? 0;
-        toast.success(
-          i18n.t("admin.performance.flush-metadata-projection-cache-success", {
-            count,
-          }),
-        );
+        notify.success({
+          title: i18n.t(
+            "admin.performance.flush-metadata-projection-cache-success",
+            {
+              count,
+            },
+          ),
+        });
       })
       .catch((e) => {
-        toast.error(
-          i18n.t("admin.performance.flush-cache-error", {
+        notify.error({
+          title: i18n.t("admin.performance.flush-cache-error", {
             message: (e as Error).message,
           }),
-        );
+        });
       });
   }, [triggerFlushMetadataProjection, i18n]);
 
@@ -997,16 +975,18 @@ function DocCacheFlushSection() {
     triggerFlushAll()
       .then((res) => {
         const count = res?.admin?.adminFlushAllDocCaches ?? 0;
-        toast.success(
-          i18n.t("admin.performance.flush-all-doc-caches-success", { count }),
-        );
+        notify.success({
+          title: i18n.t("admin.performance.flush-all-doc-caches-success", {
+            count,
+          }),
+        });
       })
       .catch((e) => {
-        toast.error(
-          i18n.t("admin.performance.flush-cache-error", {
+        notify.error({
+          title: i18n.t("admin.performance.flush-cache-error", {
             message: (e as Error).message,
           }),
-        );
+        });
       });
   }, [triggerFlushAll, i18n]);
 
@@ -1118,15 +1098,17 @@ export function PerformancePage() {
   const handleFullReindex = useCallback(() => {
     triggerFullReindex()
       .then(() => {
-        toast.success(i18n.t("admin.performance.full-reindex-success"));
+        notify.success({
+          title: i18n.t("admin.performance.full-reindex-success"),
+        });
         setFullReindexDialogOpen(false);
       })
       .catch((e) => {
-        toast.error(
-          i18n.t("admin.performance.full-reindex-error", {
+        notify.error({
+          title: i18n.t("admin.performance.full-reindex-error", {
             message: (e as Error).message,
           }),
-        );
+        });
       });
   }, [triggerFullReindex, i18n]);
 
@@ -1140,17 +1122,19 @@ export function PerformancePage() {
     triggerCleanup()
       .then((res) => {
         const count = res?.admin?.triggerCleanupTrashedDocEmbeddings ?? 0;
-        toast.success(
-          i18n.t("admin.performance.cleanup-embeddings-success", { count }),
-        );
+        notify.success({
+          title: i18n.t("admin.performance.cleanup-embeddings-success", {
+            count,
+          }),
+        });
         setCleanupDialogOpen(false);
       })
       .catch((e) => {
-        toast.error(
-          i18n.t("admin.performance.cleanup-embeddings-error", {
+        notify.error({
+          title: i18n.t("admin.performance.cleanup-embeddings-error", {
             message: (e as Error).message,
           }),
-        );
+        });
       });
   }, [triggerCleanup, i18n]);
 
@@ -1287,15 +1271,17 @@ export function PerformancePage() {
             onReset={handleReset}
             onRestoreBaseline={() => {
               handleRestoreBaseline().catch((err) => {
-                toast.error(i18n.t("admin.common.save-failed"), {
-                  description: err?.message ?? String(err),
+                notify.error({
+                  title: i18n.t("admin.common.save-failed"),
+                  message: err?.message ?? String(err),
                 });
               });
             }}
             onSave={() => {
               handleSave().catch((err) => {
-                toast.error(i18n.t("admin.common.save-failed"), {
-                  description: err?.message ?? String(err),
+                notify.error({
+                  title: i18n.t("admin.common.save-failed"),
+                  message: err?.message ?? String(err),
                 });
               });
             }}

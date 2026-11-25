@@ -26,21 +26,18 @@ const noteToolbarArtworkStyles = `
   }
 
   .note-root[data-app-theme="light"] {
-    --paper-border-color: var(--myoxus-pure-white);
-    --paper-foriegn-color: rgba(0, 0, 0, 0.1);
-    --paper-shadow: 0px 2px 4px rgba(0, 0, 0, 0.25);
-    --icon-card-bg: #fff;
-    --icon-card-shadow:
-      0px 2px 4px rgba(0, 0, 0, 0.22), inset 0px -2px 1px rgba(0, 0, 0, 0.14);
+    --paper-border-color: var(--myoxus-border-color);
+    --paper-foriegn-color: var(--myoxus-divider-color);
+    --paper-shadow: var(--myoxus-shadow-1);
+    --icon-card-bg: var(--myoxus-background-primary-color);
+    --icon-card-shadow: var(--myoxus-shadow-1);
   }
   .note-root[data-app-theme="dark"] {
     --paper-border-color: var(--myoxus-divider-color);
-    --paper-foriegn-color: rgba(255, 255, 255, 0.12);
-    --paper-shadow: 0px 2px 6px rgba(0, 0, 0, 0.8);
-    --icon-card-bg: #343434;
-    --icon-card-shadow:
-      0px 2px 4px rgba(0, 0, 0, 0.6),
-      inset 0px -2px 1px rgba(255, 255, 255, 0.06);
+    --paper-foriegn-color: var(--myoxus-border-color);
+    --paper-shadow: var(--myoxus-shadow-2);
+    --icon-card-bg: var(--myoxus-background-overlay-panel-color);
+    --icon-card-shadow: var(--myoxus-shadow-2);
   }
 
   .note-root {

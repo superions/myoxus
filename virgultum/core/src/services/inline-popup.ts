@@ -41,14 +41,14 @@ export function mountInlinePopup(
   }
   let release: (() => void) | undefined;
   let stopPositioning: (() => void) | undefined;
-  const observer = new MutationObserver(() => {
-    if (!std.host.isConnected) abort.abort();
+  let disposed = false;
+  std.host.disposables?.add(() => {
+    if (!disposed) abort.abort();
   });
-  observer.observe(doc.body, { childList: true, subtree: true });
   abort.signal.addEventListener(
     "abort",
     () => {
-      observer.disconnect();
+      disposed = true;
       stopPositioning?.();
       release?.();
       root.remove();
@@ -94,7 +94,7 @@ export function mountInlinePopup(
               height: `${rect.height}px`,
             });
           },
-          { animationFrame: true, elementResize: false },
+          { animationFrame: false, elementResize: false },
         );
         if (abort.signal.aborted) stopPositioning();
       },

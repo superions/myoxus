@@ -9,16 +9,23 @@ import {
   AccordionControl,
   AccordionItem,
   AccordionPanel,
+  Badge,
+  Button,
   NavigationLink,
   Input,
+  Select,
   SettingsCollectionToolbar,
   SettingsDetailHeader,
   SettingsEmptyState,
   SettingsMasterDetailLayout,
   SettingsNotice,
+  SettingsStatusText,
+  SettingsSwitchRow,
+  SettingsToolbar,
   SimpleGrid,
   Stack,
   SurfaceList,
+  Textarea,
 } from "@myoxus/ui-facade";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -28,19 +35,7 @@ import {
   useDocumentMetadataFieldDefinitionsQuery,
   useUpdateDocumentMetadataFieldDefinitionMutation,
 } from "../api";
-import {
-  asJson,
-  BooleanField,
-  BooleanStatus,
-  EmptyState,
-  ErrorText,
-  fieldError,
-  FormActions,
-  JsonField,
-  parseJsonField,
-  SelectField,
-  TextField,
-} from "./shared";
+import { asJson, fieldError, parseJsonField } from "./shared";
 
 const REQUIRED_MODES = [
   "never",
@@ -194,48 +189,61 @@ function MetadataFieldEditor({
       />
       <Stack component="form" onSubmit={save}>
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
-          <TextField
+          <Input
             id="metadata-field-key"
             label={i18n.t("admin.documents.field.key")}
             value={draft.key}
             disabled
             onChange={() => {}}
           />
-          <TextField
+          <Input
             id="metadata-field-label"
             label={i18n.t("admin.documents.field.label")}
             value={draft.label}
             onChange={(label) => setDraft((old) => ({ ...old, label }))}
             error={fieldError(mutation.error, "label")}
           />
-          <SelectField
+          <Select
             id="metadata-field-required-mode"
             label={i18n.t("admin.documents.field.required-mode")}
             value={draft.requiredMode}
-            values={REQUIRED_MODES}
-            optionLabels={requiredModeLabels}
+            block
+            data={REQUIRED_MODES.map((item) => ({
+              value: item,
+              label:
+                requiredModeLabels[item as keyof typeof requiredModeLabels] ??
+                item,
+            }))}
             onChange={(requiredMode) =>
               setDraft((old) => ({ ...old, requiredMode }))
             }
             error={fieldError(mutation.error, "requiredMode")}
           />
-          <SelectField
+          <Select
             id="metadata-field-export-mode"
             label={i18n.t("admin.documents.field.export-mode")}
             value={draft.exportMode}
-            values={EXPORT_MODES}
-            optionLabels={exportModeLabels}
+            block
+            data={EXPORT_MODES.map((item) => ({
+              value: item,
+              label:
+                exportModeLabels[item as keyof typeof exportModeLabels] ?? item,
+            }))}
             onChange={(exportMode) =>
               setDraft((old) => ({ ...old, exportMode }))
             }
             error={fieldError(mutation.error, "exportMode")}
           />
-          <SelectField
+          <Select
             id="metadata-field-editable-by"
             label={i18n.t("admin.documents.field.editable-by")}
             value={draft.editableBy}
-            values={EDITABLE_BY}
-            optionLabels={editableByLabels}
+            block
+            data={EDITABLE_BY.map((item) => ({
+              value: item,
+              label:
+                editableByLabels[item as keyof typeof editableByLabels] ?? item,
+            }))}
             onChange={(editableBy) =>
               setDraft((old) => ({ ...old, editableBy }))
             }
@@ -244,31 +252,33 @@ function MetadataFieldEditor({
         </SimpleGrid>
 
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
-          <BooleanField
+          <SettingsSwitchRow
             label={i18n.t("admin.documents.field.enabled")}
             checked={draft.enabled}
-            onCheckedChange={(enabled) =>
-              setDraft((old) => ({ ...old, enabled }))
-            }
+            separated
+            onChange={(enabled) => setDraft((old) => ({ ...old, enabled }))}
           />
-          <BooleanField
+          <SettingsSwitchRow
             label={i18n.t("admin.documents.field.visible-header")}
             checked={draft.visibleInHeader}
-            onCheckedChange={(visibleInHeader) =>
+            separated
+            onChange={(visibleInHeader) =>
               setDraft((old) => ({ ...old, visibleInHeader }))
             }
           />
-          <BooleanField
+          <SettingsSwitchRow
             label={i18n.t("admin.documents.field.visible-properties")}
             checked={draft.visibleInProperties}
-            onCheckedChange={(visibleInProperties) =>
+            separated
+            onChange={(visibleInProperties) =>
               setDraft((old) => ({ ...old, visibleInProperties }))
             }
           />
-          <BooleanField
+          <SettingsSwitchRow
             label={i18n.t("admin.documents.field.visible-lists")}
             checked={draft.visibleInLists}
-            onCheckedChange={(visibleInLists) =>
+            separated
+            onChange={(visibleInLists) =>
               setDraft((old) => ({ ...old, visibleInLists }))
             }
           />
@@ -284,10 +294,11 @@ function MetadataFieldEditor({
               {i18n.t("admin.documents.field.validation-config")}
             </AccordionControl>
             <AccordionPanel>
-              <JsonField
+              <Textarea
                 id="metadata-field-validation-config"
                 label={i18n.t("admin.documents.field.validation-config")}
                 value={draft.validationConfig}
+                spellCheck={false}
                 onChange={(validationConfig) =>
                   setDraft((old) => ({ ...old, validationConfig }))
                 }
@@ -302,10 +313,11 @@ function MetadataFieldEditor({
               {i18n.t("admin.documents.field.metadata")}
             </AccordionControl>
             <AccordionPanel>
-              <JsonField
+              <Textarea
                 id="metadata-field-metadata"
                 label={i18n.t("admin.documents.field.metadata")}
                 value={draft.metadata}
+                spellCheck={false}
                 onChange={(metadata) =>
                   setDraft((old) => ({ ...old, metadata }))
                 }
@@ -317,21 +329,35 @@ function MetadataFieldEditor({
 
         <SettingsNotice tone="neutral">{validationPreview}</SettingsNotice>
         {jsonError || saveError || mutation.error ? (
-          <ErrorText>
+          <SettingsStatusText role="alert" tone="error">
             {jsonError ?? saveError ?? mutation.error?.message}
-          </ErrorText>
+          </SettingsStatusText>
         ) : null}
-        <FormActions
-          dirty={dirty}
-          saving={saving}
-          onReset={() => {
-            setDraft(clean);
-            setBaseline(clean);
-            setJsonError(null);
-            setSaveError(null);
-          }}
-          saveTestId="documents-metadata-field-save"
-        />
+        <SettingsToolbar>
+          <Button
+            type="button"
+            variant="plain"
+            disabled={!dirty || saving}
+            onClick={() => {
+              setDraft(clean);
+              setBaseline(clean);
+              setJsonError(null);
+              setSaveError(null);
+            }}
+          >
+            {i18n.t("admin.actions.reset")}
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={!dirty || saving}
+            data-testid="documents-metadata-field-save"
+          >
+            {saving
+              ? i18n.t("admin.common.saving")
+              : i18n.t("admin.common.save")}
+          </Button>
+        </SettingsToolbar>
       </Stack>
     </Stack>
   );
@@ -365,7 +391,9 @@ export function MetadataFieldsTab() {
 
   if (definitions.length === 0) {
     return (
-      <EmptyState>{i18n.t("admin.documents.metadata-fields.empty")}</EmptyState>
+      <SettingsEmptyState
+        title={i18n.t("admin.documents.metadata-fields.empty")}
+      />
     );
   }
 
@@ -384,9 +412,9 @@ export function MetadataFieldsTab() {
               onSaved={() => query.mutate()}
             />
           ) : (
-            <EmptyState>
-              {i18n.t("admin.documents.metadata-fields.select")}
-            </EmptyState>
+            <SettingsEmptyState
+              title={i18n.t("admin.documents.metadata-fields.select")}
+            />
           )
         }
       >
@@ -426,7 +454,15 @@ export function MetadataFieldsTab() {
                 data-testid={`documents-metadata-field-row-${definition.key}`}
                 active={selected?.key === definition.key}
                 aria-pressed={selected?.key === definition.key}
-                rightSection={<BooleanStatus value={definition.enabled} />}
+                rightSection={
+                  <Badge tone={definition.enabled ? "success" : "neutral"}>
+                    {i18n.t(
+                      definition.enabled
+                        ? "admin.common.yes"
+                        : "admin.common.no",
+                    )}
+                  </Badge>
+                }
                 disabled={detailBusy}
                 onClick={() => selectDefinition(definition.key)}
               />

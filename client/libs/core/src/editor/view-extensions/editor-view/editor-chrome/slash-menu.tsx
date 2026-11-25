@@ -12,7 +12,7 @@ import {
   Tooltip,
   useCommandCombobox,
 } from "@myoxus/ui-facade";
-import type { EditorSlashControls } from "@virgultum/editor/shared/services";
+import type { EditorSlashControls } from "@virgultum/core/services";
 import {
   useCallback,
   useId,

@@ -1,4 +1,8 @@
-import { DocEmbedProvider, EditorI18nProvider } from "@virgultum/core/services";
+import {
+  DocEmbedProvider,
+  EditorChromeHostIdentifier,
+  EditorI18nProvider,
+} from "@virgultum/core/services";
 import { effect, signal, untracked } from "@preact/signals-core";
 import { FrameBlockComponent } from "../frame/index";
 import {
@@ -546,6 +550,8 @@ export class SurfaceRefBlockComponent extends NativeBlockComponent<SurfaceRefBlo
               ) as SurfaceRefPlaceHolder;
               refBox.replaceChildren(placeholderEl);
             }
+            placeholderEl.chromeHost =
+              this.std.getOptional(EditorChromeHostIdentifier) ?? undefined;
             placeholderEl.i18n =
               this.std.getOptional(EditorI18nProvider) ?? undefined;
             placeholderEl.referenceModel = referencedModel;

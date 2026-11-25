@@ -13,20 +13,21 @@ import {
   Button,
   Checkbox,
   Input,
+  NumberInput,
+  OnboardingActions,
+  OnboardingFieldList,
+  OnboardingStep,
+  OnboardingStepHeader,
   PasswordInput,
   Select,
   SettingsField,
   SettingsNotice,
+  SettingsSectionDescription,
+  SettingsSectionHeading,
 } from "@myoxus/ui-facade";
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { useAdminUpdateConfig } from "../../../hooks/use-admin-update-config";
-import {
-  ConfigWizardActions,
-  ConfigWizardFieldList,
-  ConfigWizardStep,
-  ConfigWizardStepHeader,
-} from "../primitives";
 
 interface SmtpStepProps {
   onNext: () => void;
@@ -206,11 +207,15 @@ export function SmtpStep({ onNext, onBusyChange }: SmtpStepProps) {
   ]);
 
   return (
-    <ConfigWizardStep>
-      <ConfigWizardStepHeader
-        title={i18n.t("admin.configWizard.smtp.title")}
-        description={i18n.t("admin.configWizard.smtp.description")}
-      />
+    <OnboardingStep compact>
+      <OnboardingStepHeader>
+        <SettingsSectionHeading level={2}>
+          {i18n.t("admin.configWizard.smtp.title")}
+        </SettingsSectionHeading>
+        <SettingsSectionDescription>
+          {i18n.t("admin.configWizard.smtp.description")}
+        </SettingsSectionDescription>
+      </OnboardingStepHeader>
 
       {error && <SettingsNotice tone="error">{error}</SettingsNotice>}
 
@@ -218,7 +223,7 @@ export function SmtpStep({ onNext, onBusyChange }: SmtpStepProps) {
         <SettingsNotice tone="success">{successMessage}</SettingsNotice>
       )}
 
-      <ConfigWizardFieldList>
+      <OnboardingFieldList>
         <SettingsField
           label={i18n.t("admin.configWizard.smtp.host")}
           labelFor={hostInputId}
@@ -279,23 +284,21 @@ export function SmtpStep({ onNext, onBusyChange }: SmtpStepProps) {
           labelFor={portInputId}
           description={i18n.t("admin.configWizard.smtp.portHint")}
         >
-          <Input
+          <NumberInput
             id={portInputId}
-            type="number"
             required
             placeholder="587"
-            value={port}
+            value={port === "" ? "" : Number(port)}
             onChange={(value) => {
-              setPort(value);
+              setPort(value === "" ? "" : String(value));
               setError("");
             }}
-            min="1"
-            max="65535"
-            status={
-              error && (parseInt(port, 10) < 1 || parseInt(port, 10) > 65535)
-                ? "error"
-                : "default"
-            }
+            min={1}
+            max={65535}
+            allowDecimal={false}
+            error={Boolean(
+              error && (parseInt(port, 10) < 1 || parseInt(port, 10) > 65535),
+            )}
           />
         </SettingsField>
 
@@ -350,7 +353,7 @@ export function SmtpStep({ onNext, onBusyChange }: SmtpStepProps) {
           />
         </SettingsField>
 
-        <ConfigWizardActions centered={false}>
+        <OnboardingActions fullWidth justify="flex-end">
           <Button
             type="button"
             variant="outline"
@@ -361,10 +364,10 @@ export function SmtpStep({ onNext, onBusyChange }: SmtpStepProps) {
               ? i18n.t("common.testing")
               : i18n.t("admin.configWizard.smtp.test")}
           </Button>
-        </ConfigWizardActions>
-      </ConfigWizardFieldList>
+        </OnboardingActions>
+      </OnboardingFieldList>
 
-      <ConfigWizardActions centered={false}>
+      <OnboardingActions fullWidth justify="flex-end">
         <Button
           variant="primary"
           onClick={handleSave}
@@ -379,7 +382,7 @@ export function SmtpStep({ onNext, onBusyChange }: SmtpStepProps) {
         >
           {i18n.t("admin.configWizard.smtp.skipForNow")}
         </Button>
-      </ConfigWizardActions>
-    </ConfigWizardStep>
+      </OnboardingActions>
+    </OnboardingStep>
   );
 }

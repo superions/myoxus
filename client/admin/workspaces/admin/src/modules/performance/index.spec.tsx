@@ -82,7 +82,16 @@ vi.mock("../../use-mutation", () => ({
 }));
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
-vi.mock("@myoxus/admin/notifications", () => ({ adminToast: toast }));
+vi.mock("@myoxus/ui-facade", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@myoxus/ui-facade")>();
+  return {
+    ...actual,
+    notify: {
+      ...actual.notify,
+      ...toast,
+    },
+  };
+});
 vi.mock("../../use-query", () => ({
   useQuery: (...args: unknown[]) => useQueryMock(...args),
 }));

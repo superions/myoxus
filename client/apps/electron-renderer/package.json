@@ -11,6 +11,7 @@
     "@myoxus/debug": "workspace:*",
     "@myoxus/desktop-api-contract": "workspace:*",
     "@myoxus/i18n": "workspace:*",
+    "@myoxus/icons": "workspace:*",
     "@myoxus/infra": "workspace:*",
     "@myoxus/storage": "workspace:*",
     "@myoxus/theme": "workspace:*",

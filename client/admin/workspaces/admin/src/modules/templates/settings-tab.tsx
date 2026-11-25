@@ -7,6 +7,8 @@
 import { useI18n } from "@myoxus/i18n";
 import {
   Button,
+  MetricStack,
+  SettingsDetailHeader,
   SettingsFieldGroup,
   SettingsStatusText,
   SettingsToolbar,
@@ -24,7 +26,6 @@ import {
 } from "../settings/config-form-fields";
 import { buildSchemaFieldMap } from "../settings/schema-utils";
 import type { TemplateSettingsTabProps } from "./index";
-import { TemplateShoulder, TemplateTabFrame } from "./template-role-primitives";
 
 // ---------------------------------------------------------------------------
 // Field Definitions
@@ -113,29 +114,29 @@ export function SettingsTab({
   }, []);
 
   return (
-    <TemplateTabFrame
-      title={i18n.t("admin.templates.settings.title")}
-      description={i18n.t("admin.templates.settings.description")}
-      shoulder={
-        <TemplateShoulder
-          rows={[
-            {
-              label: i18n.t("admin.templates.settings.metric.fields"),
-              value: SETTINGS_FIELDS.length + 1,
-              tone: "info",
-            },
-            {
-              label: i18n.t("admin.templates.settings.metric.state"),
-              value:
-                dirty || rootDirty
-                  ? i18n.t("admin.state.unsaved-changes")
-                  : i18n.t("admin.state.saved"),
-              tone: dirty || rootDirty ? "warning" : "success",
-            },
-          ]}
-        />
-      }
-    >
+    <Stack component="section">
+      <SettingsDetailHeader
+        title={i18n.t("admin.templates.settings.title")}
+        description={i18n.t("admin.templates.settings.description")}
+        actions={
+          <MetricStack
+            rows={[
+              {
+                label: i18n.t("admin.templates.settings.metric.fields"),
+                value: SETTINGS_FIELDS.length + 1,
+              },
+              {
+                label: i18n.t("admin.templates.settings.metric.state"),
+                value:
+                  dirty || rootDirty
+                    ? i18n.t("admin.state.unsaved-changes")
+                    : i18n.t("admin.state.saved"),
+              },
+            ]}
+          />
+        }
+        headingLevel={2}
+      />
       <Stack key={`${rootModule}-${getGroupVersion(rootModule)}`}>
         <SettingsFieldGroup>
           <ConfigTextField
@@ -277,6 +278,6 @@ export function SettingsTab({
           </SettingsToolbar>
         </SettingsToolbar>
       </Stack>
-    </TemplateTabFrame>
+    </Stack>
   );
 }

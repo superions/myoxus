@@ -16,14 +16,22 @@ import {
   Button,
   Drawer,
   Group,
+  MetricStack,
   MonoText,
   Select,
+  SettingsDefinitionItem,
+  SettingsDefinitionList,
+  SettingsDetailHeader,
   SettingsEmptyState,
+  SettingsListItemMeta,
+  SettingsListItemTitle,
   SettingsNotice,
   SettingsSkeleton,
   SettingsStatusText,
-  Skeleton,
   Stack,
+  SurfaceList,
+  SurfaceListItem,
+  SurfaceListItemMain,
 } from "@myoxus/ui-facade";
 import { Suspense, useCallback, useState } from "react";
 
@@ -47,15 +55,6 @@ import {
   parseTemplateExportFilename,
   readTemplateExportError,
 } from "./status-models";
-import {
-  MetaField,
-  MetaGrid,
-  SoftList,
-  SoftListItem,
-  TemplateCardTitle,
-  TemplateShoulder,
-  TemplateTabFrame,
-} from "./template-role-primitives";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -202,26 +201,30 @@ function RevisionsList({
       >
         {detailRevision ? (
           <Stack>
-            <MetaGrid>
-              <MetaField
+            <SettingsDefinitionList>
+              <SettingsDefinitionItem
                 label={i18n.t("admin.templates.versions.col.version")}
-                value={detailRevision.version}
                 mono
-              />
-              <MetaField
+              >
+                {detailRevision.version}
+              </SettingsDefinitionItem>
+              <SettingsDefinitionItem
                 label={i18n.t("admin.templates.versions.col.state")}
-                value={detailRevision.state}
                 mono
-              />
-              <MetaField
+              >
+                {detailRevision.state}
+              </SettingsDefinitionItem>
+              <SettingsDefinitionItem
                 label={i18n.t("admin.templates.versions.col.created")}
-                value={formatDate(i18n.language, detailRevision.createdAt)}
-              />
-              <MetaField
+              >
+                {formatDate(i18n.language, detailRevision.createdAt)}
+              </SettingsDefinitionItem>
+              <SettingsDefinitionItem
                 label={i18n.t("admin.templates.versions.col.published")}
-                value={formatDate(i18n.language, detailRevision.publishedAt)}
-              />
-            </MetaGrid>
+              >
+                {formatDate(i18n.language, detailRevision.publishedAt)}
+              </SettingsDefinitionItem>
+            </SettingsDefinitionList>
             <SettingsNotice
               tone="neutral"
               title={i18n.t("admin.templates.versions.detail.release-notes")}
@@ -233,16 +236,24 @@ function RevisionsList({
           </Stack>
         ) : null}
       </Drawer>
-      <SoftList data-testid="templates-versions-soft-list">
+      <SurfaceList data-testid="templates-versions-soft-list">
         {revisions.map((entry: any) => (
-          <SoftListItem key={entry.id}>
+          <SurfaceListItem key={entry.id}>
             <Group align="flex-start" justify="space-between" wrap="wrap">
               <Stack flex={1}>
-                <TemplateCardTitle
-                  title={entry.version}
-                  subtitle={i18n.t("admin.templates.versions.detail.subtitle")}
-                  mono={entry.id}
-                />
+                <SurfaceListItemMain grow>
+                  <SettingsListItemTitle truncate>
+                    {entry.version}
+                  </SettingsListItemTitle>
+                  <SettingsListItemMeta lineClamp={2}>
+                    {i18n.t("admin.templates.versions.detail.subtitle")}
+                  </SettingsListItemMeta>
+                  {entry.id ? (
+                    <SettingsStatusText mono truncate>
+                      <MonoText>{entry.id}</MonoText>
+                    </SettingsStatusText>
+                  ) : null}
+                </SurfaceListItemMain>
                 <TemplateRevisionStateBadge
                   state={entry.state as TemplateRevisionState}
                 />
@@ -300,28 +311,32 @@ function RevisionsList({
                 )}
               </Group>
             </Group>
-            <MetaGrid>
-              <MetaField
+            <SettingsDefinitionList>
+              <SettingsDefinitionItem
                 label={i18n.t("admin.templates.versions.col.published")}
-                value={formatDate(i18n.language, entry.publishedAt)}
-              />
-              <MetaField
+              >
+                {formatDate(i18n.language, entry.publishedAt)}
+              </SettingsDefinitionItem>
+              <SettingsDefinitionItem
                 label={i18n.t("admin.templates.versions.col.created")}
-                value={formatDate(i18n.language, entry.createdAt)}
-              />
-              <MetaField
+              >
+                {formatDate(i18n.language, entry.createdAt)}
+              </SettingsDefinitionItem>
+              <SettingsDefinitionItem
                 label={i18n.t("admin.templates.versions.col.state")}
-                value={entry.state}
                 mono
-              />
-              <MetaField
+              >
+                {entry.state}
+              </SettingsDefinitionItem>
+              <SettingsDefinitionItem
                 label={i18n.t("admin.templates.versions.col.actions")}
-                value={"\u2014"}
-              />
-            </MetaGrid>
-          </SoftListItem>
+              >
+                {"\u2014"}
+              </SettingsDefinitionItem>
+            </SettingsDefinitionList>
+          </SurfaceListItem>
         ))}
-      </SoftList>
+      </SurfaceList>
     </>
   );
 }
@@ -345,26 +360,26 @@ function VersionsContent() {
   const isBuiltin = selectedTemplate?.source === "Builtin";
 
   return (
-    <TemplateTabFrame
-      title={i18n.t("admin.templates.versions.title")}
-      description={i18n.t("admin.templates.versions.description")}
-      shoulder={
-        <TemplateShoulder
-          rows={[
-            {
-              label: i18n.t("admin.templates.versions.metric.templates"),
-              value: templates.length,
-              tone: templates.length > 0 ? "info" : "neutral",
-            },
-            {
-              label: i18n.t("admin.templates.versions.metric.selected"),
-              value: selectedTemplateId ? "01" : "00",
-              tone: selectedTemplateId ? "success" : "neutral",
-            },
-          ]}
-        />
-      }
-    >
+    <Stack component="section">
+      <SettingsDetailHeader
+        title={i18n.t("admin.templates.versions.title")}
+        description={i18n.t("admin.templates.versions.description")}
+        actions={
+          <MetricStack
+            rows={[
+              {
+                label: i18n.t("admin.templates.versions.metric.templates"),
+                value: templates.length,
+              },
+              {
+                label: i18n.t("admin.templates.versions.metric.selected"),
+                value: selectedTemplateId ? "01" : "00",
+              },
+            ]}
+          />
+        }
+        headingLevel={2}
+      />
       <Stack>
         {templates.length === 0 ? (
           <SettingsEmptyState
@@ -392,8 +407,7 @@ function VersionsContent() {
               <Suspense
                 fallback={
                   <Stack>
-                    <Skeleton h={32} />
-                    <Skeleton h={32} />
+                    <SettingsSkeleton />
                   </Stack>
                 }
               >
@@ -410,7 +424,7 @@ function VersionsContent() {
           </>
         )}
       </Stack>
-    </TemplateTabFrame>
+    </Stack>
   );
 }
 

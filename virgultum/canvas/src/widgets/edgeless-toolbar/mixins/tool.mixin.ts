@@ -11,11 +11,25 @@ import {
   type ToolType,
 } from "@virgultum/core/runtime/gfx";
 
-import { createPopper, type MenuPopper } from "../create-popper";
 import {
+  EditorChromeHostIdentifier,
+  type EditorCanvasPopoverControls,
+} from "@virgultum/core/services";
+import {
+  type CanvasToolPopper,
   EDGELESS_TOOLBAR_WIDGET,
   type EdgelessToolbarWidget,
 } from "../edgeless-toolbar";
+
+export type MenuPopper<T extends HTMLElement> = CanvasToolPopper & {
+  element: T;
+};
+
+export type CreatePopperOptions<T extends keyof HTMLElementTagNameMap> = {
+  duration?: number;
+  onDispose?: () => void;
+  setProps?: (ele: HTMLElementTagNameMap[T]) => void;
+};
 
 export interface NativeReactiveController {
   hostConnected?: () => void;
@@ -29,7 +43,11 @@ export declare abstract class EdgelessToolbarToolClass {
 
   active: boolean;
 
-  createPopper: typeof createPopper;
+  createPopper: <T extends keyof HTMLElementTagNameMap>(
+    tagName: T,
+    reference: HTMLElement,
+    options?: CreatePopperOptions<T>,
+  ) => MenuPopper<HTMLElementTagNameMap[T]>;
 
   edgeless: BlockComponent;
 
@@ -266,21 +284,78 @@ export const EdgelessToolbarToolMixin = <T extends Constructor<HTMLElement>>(
       this._ensureBound();
     }
 
-    // TODO: move to toolbar-tool-with-menu.mixin
-    createPopper(...args: Parameters<typeof createPopper>) {
-      if (this.toolbar.activePopper) {
+    createPopper<T extends keyof HTMLElementTagNameMap>(
+      tagName: T,
+      reference: HTMLElement,
+      options?: CreatePopperOptions<T>,
+    ): MenuPopper<HTMLElementTagNameMap[T]> {
+      if (this.toolbar?.activePopper) {
         this.toolbar.activePopper.dispose();
         this.toolbar.activePopper = null;
       }
-      this.popper = createPopper(args[0], args[1], {
-        ...args[2],
-        onDispose: () => {
-          args[2]?.onDispose?.();
-          this.popper = null;
-        },
-      }) as MenuPopper<HTMLElement>;
-      this.toolbar.activePopper = this.popper;
-      return this.popper;
+
+      const menu = reference.ownerDocument.createElement(tagName);
+      options?.setProps?.(menu);
+
+      let disposed = false;
+      const chrome = this.edgeless.std.getOptional(EditorChromeHostIdentifier);
+      let unmountPopover: (() => void) | null = null;
+      let popoverAnchor: HTMLSpanElement | null = null;
+
+      const cleanup = () => {
+        if (disposed) return;
+        disposed = true;
+        unmountPopover?.();
+        unmountPopover = null;
+        popoverAnchor?.remove();
+        popoverAnchor = null;
+        menu.remove();
+        if (this.toolbar?.activePopper === popper) {
+          this.toolbar.activePopper = null;
+        }
+        this.popper = null;
+        options?.onDispose?.();
+      };
+
+      const popper: MenuPopper<HTMLElementTagNameMap[T]> = {
+        element: menu,
+        dispose: cleanup,
+      };
+
+      if (chrome?.mountCanvasPopover) {
+        reference.style.position ||= "relative";
+        popoverAnchor = reference.ownerDocument.createElement("span");
+        popoverAnchor.style.position = "absolute";
+        popoverAnchor.style.inset = "0";
+        popoverAnchor.style.pointerEvents = "none";
+        reference.append(popoverAnchor);
+
+        const state$ = signal<EditorCanvasPopoverControls | null>({
+          opened: true,
+          onClose: cleanup,
+          position: "top",
+          offset: 16,
+          closeOnClickOutside: false,
+          content: {
+            kind: "native",
+            mount: (host) => {
+              host.append(menu);
+              return () => {
+                menu.remove();
+              };
+            },
+          },
+        });
+        unmountPopover = chrome.mountCanvasPopover(popoverAnchor, state$);
+      } else {
+        reference.append(menu);
+      }
+
+      this.popper = popper;
+      if (this.toolbar) {
+        this.toolbar.activePopper = popper;
+      }
+      return popper;
     }
 
     disconnectedCallback() {

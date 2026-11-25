@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useState } from "react";
-import { createPortal } from "react-dom";
+import { MermaidRuntimePortal } from "../mermaid-runtime-portal";
 import {
   Alert,
   Box,
@@ -497,15 +497,12 @@ export function MermaidSequenceRuntimeEditor({
       >
         {actions}
         {selectedActions}
-        {markers || intervalHandles
-          ? createPortal(
-              <>
-                {markers}
-                {intervalHandles}
-              </>,
-              document.body,
-            )
-          : null}
+        {markers || intervalHandles ? (
+          <MermaidRuntimePortal>
+            {markers}
+            {intervalHandles}
+          </MermaidRuntimePortal>
+        ) : null}
       </Group>
     );
   const selectedControls =

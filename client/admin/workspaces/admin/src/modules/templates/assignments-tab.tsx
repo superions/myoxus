@@ -20,12 +20,22 @@ import {
   Button,
   Group,
   Label,
+  MetricStack,
+  MonoText,
   Select,
+  SettingsDefinitionItem,
+  SettingsDefinitionList,
+  SettingsDetailHeader,
   SettingsEmptyState,
+  SettingsListItemMeta,
+  SettingsListItemTitle,
   SettingsSection,
   SettingsStatusText,
-  Skeleton,
+  SettingsSkeleton,
   Stack,
+  SurfaceList,
+  SurfaceListItem,
+  SurfaceListItemMain,
 } from "@myoxus/ui-facade";
 import { Suspense, useCallback, useState } from "react";
 
@@ -54,15 +64,6 @@ import {
   templateDisplayLabel,
   templateDisplayTitle,
 } from "./localized-builtins";
-import {
-  MetaField,
-  MetaGrid,
-  SoftList,
-  SoftListItem,
-  TemplateCardTitle,
-  TemplateShoulder,
-  TemplateTabFrame,
-} from "./template-role-primitives";
 
 // ---------------------------------------------------------------------------
 function formatDate(language: string | undefined, iso: string | null): string {
@@ -488,22 +489,28 @@ function AssignmentsList({ workspaceId }: { workspaceId: string }) {
           description={i18n.t("admin.templates.assignments.empty-hint")}
         />
       ) : (
-        <SoftList data-testid="templates-assignments-soft-list">
+        <SurfaceList data-testid="templates-assignments-soft-list">
           {assignments.map((entry: any) => (
-            <SoftListItem key={entry.id}>
+            <SurfaceListItem key={entry.id}>
               <Group align="flex-start" justify="space-between" wrap="wrap">
-                <TemplateCardTitle
-                  title={
-                    templateById.has(entry.templateId)
+                <SurfaceListItemMain grow>
+                  <SettingsListItemTitle truncate>
+                    {templateById.has(entry.templateId)
                       ? templateDisplayTitle(
                           i18n,
                           templateById.get(entry.templateId),
                         )
-                      : entry.templateId
-                  }
-                  subtitle={i18n.t("admin.templates.assignments.card.subtitle")}
-                  mono={entry.id}
-                />
+                      : entry.templateId}
+                  </SettingsListItemTitle>
+                  <SettingsListItemMeta lineClamp={2}>
+                    {i18n.t("admin.templates.assignments.card.subtitle")}
+                  </SettingsListItemMeta>
+                  {entry.id ? (
+                    <SettingsStatusText mono truncate>
+                      <MonoText>{entry.id}</MonoText>
+                    </SettingsStatusText>
+                  ) : null}
+                </SurfaceListItemMain>
                 <Button
                   type="button"
                   variant="destructive"
@@ -534,37 +541,37 @@ function AssignmentsList({ workspaceId }: { workspaceId: string }) {
                   )}
                 />
               )}
-              <MetaGrid>
-                <MetaField
+              <SettingsDefinitionList>
+                <SettingsDefinitionItem
                   label={i18n.t("admin.templates.assignments.col.selection")}
-                  value={
-                    entry.selectedRevisionId
-                      ? `${entry.selectionMode} · ${entry.selectedRevisionId}`
-                      : entry.selectionMode
-                  }
                   mono
-                />
-                <MetaField
+                >
+                  {entry.selectedRevisionId
+                    ? `${entry.selectionMode} · ${entry.selectedRevisionId}`
+                    : entry.selectionMode}
+                </SettingsDefinitionItem>
+                <SettingsDefinitionItem
                   label={i18n.t("admin.templates.assignments.col.provisioning")}
-                  value={entry.provisioningMode}
                   mono
-                />
-                <MetaField
+                >
+                  {entry.provisioningMode}
+                </SettingsDefinitionItem>
+                <SettingsDefinitionItem
                   label={i18n.t("admin.templates.assignments.col.enabled")}
-                  value={
-                    entry.isEnabled
-                      ? i18n.t("admin.templates.badge.yes")
-                      : i18n.t("admin.templates.badge.no")
-                  }
-                />
-                <MetaField
+                >
+                  {entry.isEnabled
+                    ? i18n.t("admin.templates.badge.yes")
+                    : i18n.t("admin.templates.badge.no")}
+                </SettingsDefinitionItem>
+                <SettingsDefinitionItem
                   label={i18n.t("admin.templates.assignments.col.updated")}
-                  value={formatDate(i18n.language, entry.updatedAt)}
-                />
-              </MetaGrid>
-            </SoftListItem>
+                >
+                  {formatDate(i18n.language, entry.updatedAt)}
+                </SettingsDefinitionItem>
+              </SettingsDefinitionList>
+            </SurfaceListItem>
           ))}
-        </SoftList>
+        </SurfaceList>
       )}
     </>
   );
@@ -595,26 +602,26 @@ export function AssignmentsTab() {
   }, []);
 
   return (
-    <TemplateTabFrame
-      title={i18n.t("admin.templates.assignments.title")}
-      description={i18n.t("admin.templates.assignments.description")}
-      shoulder={
-        <TemplateShoulder
-          rows={[
-            {
-              label: i18n.t("admin.templates.assignments.metric.workspace"),
-              value: activeWorkspaceId ? "01" : "00",
-              tone: activeWorkspaceId ? "success" : "neutral",
-            },
-            {
-              label: i18n.t("admin.templates.assignments.metric.mode"),
-              value: i18n.t("admin.templates.assignments.metric.picker"),
-              tone: "info",
-            },
-          ]}
-        />
-      }
-    >
+    <Stack component="section">
+      <SettingsDetailHeader
+        title={i18n.t("admin.templates.assignments.title")}
+        description={i18n.t("admin.templates.assignments.description")}
+        actions={
+          <MetricStack
+            rows={[
+              {
+                label: i18n.t("admin.templates.assignments.metric.workspace"),
+                value: activeWorkspaceId ? "01" : "00",
+              },
+              {
+                label: i18n.t("admin.templates.assignments.metric.mode"),
+                value: i18n.t("admin.templates.assignments.metric.picker"),
+              },
+            ]}
+          />
+        }
+        headingLevel={2}
+      />
       <Stack>
         <SettingsSection
           description={i18n.t("admin.templates.assignments.picker-hint")}
@@ -644,8 +651,7 @@ export function AssignmentsTab() {
           <Suspense
             fallback={
               <Stack>
-                <Skeleton h={32} />
-                <Skeleton h={32} />
+                <SettingsSkeleton />
               </Stack>
             }
           >
@@ -660,6 +666,6 @@ export function AssignmentsTab() {
           />
         )}
       </Stack>
-    </TemplateTabFrame>
+    </Stack>
   );
 }

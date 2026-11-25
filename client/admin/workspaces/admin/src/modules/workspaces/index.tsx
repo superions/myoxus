@@ -6,7 +6,6 @@
  * Large installations therefore keep the bounded master-detail workflow
  * without loading the full workspace set in the browser.
  */
-import { adminToast as toast } from "@myoxus/admin/notifications";
 import {
   adminWorkspacesListQuery,
   AdminWorkspaceSort,
@@ -26,6 +25,7 @@ import {
   Modal,
   MyoxusSegmentedControl,
   NavigationLink,
+  notify,
   Pagination,
   SettingsEmptyState,
   SettingsMasterDetailLayout,
@@ -257,13 +257,13 @@ export function WorkspacePage() {
       setOwnerUnitId("");
 
       await revalidate(adminWorkspacesListQuery);
-      toast.success(i18n.t("admin.workspaces.create.created"));
+      notify.success({ title: i18n.t("admin.workspaces.create.created") });
     } catch (error) {
-      toast.error(
-        i18n.t("admin.workspaces.create.failed", {
+      notify.error({
+        title: i18n.t("admin.workspaces.create.failed", {
           message: error instanceof Error ? error.message : String(error),
         }),
-      );
+      });
     }
   }, [
     createSharedWorkspace,

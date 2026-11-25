@@ -15,6 +15,7 @@ import { encodeStateAsUpdate } from "yjs";
 import {
   type BuildingBlockTarget,
   BuildingBlockTargetError,
+  buildingBlockTargetStore,
   resolveBuildingBlockTarget,
 } from "../../../editor/virgultum/doc-editor/building-block-target";
 import { DocsService } from "../../doc";
@@ -175,9 +176,23 @@ export class TemplateSectionInsertionService extends Service {
       initializeTemplateDocumentFields(body);
       prepareTemplateTextProtection(body, true);
       const placement = resolveBuildingBlockTarget(target);
-      const prepared = await target.std.clipboard.prepareNativeSlice(
+      const targetDoc = buildingBlockTargetStore(target);
+      let ephemeralStd: BlockStdScope | null = null;
+      const stdForSlice =
+        target.std ??
+        (ephemeralStd = await (async () => {
+          const [{ BlockStdScope }, { clipboardConfigs }] = await Promise.all([
+            import("@virgultum/core/runtime"),
+            import("@virgultum/editor/foundation/clipboard"),
+          ]);
+          return new BlockStdScope({
+            store: targetDoc,
+            extensions: [...clipboardConfigs],
+          });
+        })());
+      const prepared = await stdForSlice.clipboard.prepareNativeSlice(
         body,
-        target.std.store,
+        targetDoc,
         placement.note.id,
       );
       try {
@@ -204,18 +219,24 @@ export class TemplateSectionInsertionService extends Service {
         signal.throwIfAborted();
         const inserted = commitBuildingBlockSection(target, prepared, signal);
         onCommitted();
-        target.std.selection.setGroup(
-          "note",
-          inserted.content.map(
-            (block) => new BlockSelection({ blockId: block.id }),
-          ),
-        );
+        if (target.std) {
+          target.std.selection.setGroup(
+            "note",
+            inserted.content.map(
+              (block) => new BlockSelection({ blockId: block.id }),
+            ),
+          );
+        } else {
+          const firstTextBlock = inserted.content.find((block) => block.text);
+          if (firstTextBlock) target.restoreFocus?.(firstTextBlock.id, 0);
+        }
         await waitForTemplateOperation(
           workspace.engine.doc.waitForSynced(target.docId, signal),
           signal,
         );
       } finally {
         prepared.dispose();
+        ephemeralStd?.unmount();
       }
     } finally {
       stage.dispose();
@@ -238,7 +259,7 @@ export function commitBuildingBlockSection(
   const anchor = resolveBuildingBlockTarget(target);
   signal.throwIfAborted();
   prepared.assertCurrent();
-  const doc = target.std.store;
+  const doc = buildingBlockTargetStore(target);
   const paragraph =
     anchor.block.flavour === "myoxus:paragraph" ? anchor.block : null;
   const caret = paragraph?.text && anchor.caret !== null ? anchor.caret : null;

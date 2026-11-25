@@ -1,11 +1,14 @@
 import { useI18n } from "@myoxus/i18n";
 import { Plus, Save } from "@myoxus/icons/react";
 import {
+  Badge,
   Button,
   DialogFooterActions,
+  Input,
   Loading,
   Modal,
   SettingsDetailHeader,
+  SettingsEmptyState,
   SettingsStatusText,
   Stack,
   Switch,
@@ -20,7 +23,6 @@ import {
 import { useRef, useState } from "react";
 
 import { useDocumentTypesQuery, useUpsertDocumentTypeMutation } from "../api";
-import { BooleanStatus, EmptyState, ErrorText, TextField } from "./shared";
 
 const emptyDraft = { key: "", label: "", description: "", icon: "", color: "" };
 
@@ -113,9 +115,15 @@ export function DocumentTypesTab() {
           </Button>
         }
       />
-      {actionError && !editorOpen ? <ErrorText>{actionError}</ErrorText> : null}
+      {actionError && !editorOpen ? (
+        <SettingsStatusText role="alert" tone="error">
+          {actionError}
+        </SettingsStatusText>
+      ) : null}
       {typesQuery.error ? (
-        <ErrorText>{typesQuery.error.message}</ErrorText>
+        <SettingsStatusText role="alert" tone="error">
+          {typesQuery.error.message}
+        </SettingsStatusText>
       ) : null}
       {typesQuery.isLoading ? (
         <Loading />
@@ -148,7 +156,13 @@ export function DocumentTypesTab() {
                   </TableCell>
                   <TableCell>{type.key}</TableCell>
                   <TableCell>
-                    <BooleanStatus value={type.isSuggested} />
+                    <Badge tone={type.isSuggested ? "success" : "neutral"}>
+                      {i18n.t(
+                        type.isSuggested
+                          ? "admin.common.yes"
+                          : "admin.common.no",
+                      )}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Switch
@@ -168,7 +182,7 @@ export function DocumentTypesTab() {
           </Table>
         </TableScrollContainer>
       ) : !typesQuery.error ? (
-        <EmptyState>{i18n.t("admin.documents.types.empty")}</EmptyState>
+        <SettingsEmptyState title={i18n.t("admin.documents.types.empty")} />
       ) : null}
       <Modal
         open={editorOpen}
@@ -184,21 +198,21 @@ export function DocumentTypesTab() {
         persistent={busy}
       >
         <Stack component="form" onSubmit={createType}>
-          <TextField
+          <Input
             id="type-key"
             label={i18n.t("admin.documents.field.key")}
             value={draft.key}
             disabled={busy}
             onChange={(key) => setDraft((old) => ({ ...old, key }))}
           />
-          <TextField
+          <Input
             id="type-label"
             label={i18n.t("admin.documents.field.label")}
             value={draft.label}
             disabled={busy}
             onChange={(label) => setDraft((old) => ({ ...old, label }))}
           />
-          <TextField
+          <Input
             id="type-description"
             label={i18n.t("admin.documents.field.description")}
             value={draft.description}
@@ -207,21 +221,25 @@ export function DocumentTypesTab() {
               setDraft((old) => ({ ...old, description }))
             }
           />
-          <TextField
+          <Input
             id="type-icon"
             label={i18n.t("admin.documents.field.icon")}
             value={draft.icon}
             disabled={busy}
             onChange={(icon) => setDraft((old) => ({ ...old, icon }))}
           />
-          <TextField
+          <Input
             id="type-color"
             label={i18n.t("admin.documents.field.color")}
             value={draft.color}
             disabled={busy}
             onChange={(color) => setDraft((old) => ({ ...old, color }))}
           />
-          {actionError ? <ErrorText>{actionError}</ErrorText> : null}
+          {actionError ? (
+            <SettingsStatusText role="alert" tone="error">
+              {actionError}
+            </SettingsStatusText>
+          ) : null}
           <DialogFooterActions>
             <Button
               type="button"

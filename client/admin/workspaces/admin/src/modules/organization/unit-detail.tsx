@@ -42,6 +42,7 @@ import {
   InlineLink,
   Input,
   notify,
+  NumberInput,
   ResponsiveGrid,
   SelectableCardRow,
   SettingsDefinitionItem,
@@ -1368,14 +1369,16 @@ export function UnitDetail({
                   "admin.organization.unit-detail.quota.members-limit",
                 )}
               >
-                <Input
+                <NumberInput
                   id={`${fieldId}-quota-member-limit`}
-                  type="number"
                   min={1}
-                  inputMode="numeric"
-                  value={quotaMemberLimit}
-                  onChange={setQuotaMemberLimit}
-                  mono
+                  allowDecimal={false}
+                  value={
+                    quotaMemberLimit === "" ? "" : Number(quotaMemberLimit)
+                  }
+                  onChange={(value) =>
+                    setQuotaMemberLimit(value === "" ? "" : String(value))
+                  }
                   data-testid="unit-detail-quota-member-limit"
                 />
               </SettingsField>

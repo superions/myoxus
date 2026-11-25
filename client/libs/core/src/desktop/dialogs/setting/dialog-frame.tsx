@@ -4,7 +4,6 @@
 import { useCurrentServerService } from "@myoxus/core/components/providers/current-server-scope";
 import type { SettingTab } from "@myoxus/core/modules/dialogs/constant";
 import { DefaultServerService } from "@myoxus/core/modules/server/services/default-server";
-import { createIsland, type Island } from "@myoxus/core/utils/island";
 import { FrameworkScope, useService } from "@myoxus/infra";
 import {
   type ReactNode,
@@ -18,6 +17,7 @@ import {
 import { flushSync } from "react-dom";
 
 import {
+  Box,
   Loading,
   Modal,
   Scrollable,
@@ -29,11 +29,11 @@ import {
   SettingsDialogShell,
   WorkspaceDetailSkeleton,
 } from "./primitives";
-import { MyoxusSettingsMantineProvider } from "./primitives/mantine-provider";
 import {
+  type SettingsSubPageEntry,
   SubPageContext,
   type SubPageContextType,
-  SubPageTarget,
+  SubPageView,
 } from "./sub-page";
 
 type SettingsDialogState<T extends SettingTab> = {
@@ -68,7 +68,7 @@ const SettingsDialogBody = <T extends SettingTab>({
   renderSidebar,
   scrollAnchor,
 }: Omit<SettingsDialogFrameProps<T>, "close">) => {
-  const [subPageIslands, setSubPageIslands] = useState<Island[]>([]);
+  const [subPages, setSubPages] = useState<SettingsSubPageEntry[]>([]);
   const [dialogState, setDialogState] = useState<SettingsDialogState<T>>({
     activeTab: initialActiveTab,
     scrollAnchor,
@@ -82,26 +82,39 @@ const SettingsDialogBody = <T extends SettingTab>({
   const onTabChange = useCallback((activeTab: T) => {
     setDialogState({ activeTab });
   }, []);
-  const addSubPageIsland = useCallback(() => {
-    const island = createIsland();
-    setSubPageIslands((previous) => [...previous, island]);
-    return {
-      island,
-      dispose: () => {
-        setSubPageIslands((previous) =>
-          previous.filter((candidate) => candidate !== island),
-        );
-      },
-    };
+
+  const upsertSubPage = useCallback((entry: SettingsSubPageEntry) => {
+    setSubPages((previous) => {
+      const index = previous.findIndex((item) => item.id === entry.id);
+      if (index === -1) {
+        return [...previous, entry];
+      }
+      const next = [...previous];
+      next[index] = entry;
+      return next;
+    });
   }, []);
+
+  const removeSubPage = useCallback((id: string) => {
+    setSubPages((previous) =>
+      previous.some((item) => item.id === id)
+        ? previous.filter((item) => item.id !== id)
+        : previous,
+    );
+  }, []);
+
   const contextValue = useMemo(
     () =>
       ({
-        islands: subPageIslands,
-        addIsland: addSubPageIsland,
+        subPages,
+        upsertSubPage,
+        removeSubPage,
       }) satisfies SubPageContextType,
-    [addSubPageIsland, subPageIslands],
+    [removeSubPage, subPages, upsertSubPage],
   );
+  const activeSubPage = subPages.at(-1) ?? null;
+  const activeSubPageId = activeSubPage?.id ?? null;
+
   const renderProps: SettingsDialogRenderProps<T> = {
     activeTab: dialogState.activeTab,
     onTabChange,
@@ -118,6 +131,10 @@ const SettingsDialogBody = <T extends SettingTab>({
     }
     modalContentWrapperRef.current?.scrollTo({ top: 0 });
   }, [dialogState]);
+
+  useEffect(() => {
+    modalContentWrapperRef.current?.scrollTo({ top: 0 });
+  }, [activeSubPageId]);
 
   return (
     <FrameworkScope scope={currentServer.scope}>
@@ -136,14 +153,16 @@ const SettingsDialogBody = <T extends SettingTab>({
             >
               <SettingsDialogContentCenter>
                 <SettingsDialogContentPanel ref={modalContentRef}>
-                  <Suspense fallback={<WorkspaceDetailSkeleton />}>
-                    {renderContent(renderProps)}
-                  </Suspense>
+                  <Box hidden={Boolean(activeSubPage)}>
+                    <Suspense fallback={<WorkspaceDetailSkeleton />}>
+                      {renderContent(renderProps)}
+                    </Suspense>
+                  </Box>
+                  {activeSubPage ? <SubPageView entry={activeSubPage} /> : null}
                 </SettingsDialogContentPanel>
               </SettingsDialogContentCenter>
               <Scrollable.Scrollbar />
             </SettingsDialogContentViewport>
-            <SubPageTarget />
           </SettingsDialogScrollRoot>
         </SubPageContext.Provider>
       </SettingsDialogShell>
@@ -159,35 +178,28 @@ export const SettingsDialogFrame = <T extends SettingTab>({
   renderSidebar,
   scrollAnchor,
 }: SettingsDialogFrameProps<T>) => {
-  const settingsDialogViewportMargin = "var(--mantine-spacing-lg)";
   return (
-    <MyoxusSettingsMantineProvider>
-      <Modal
-        width={"780px"}
-        height={`min(720px, calc(100dvh - ${settingsDialogViewportMargin}))`}
-        contentOptions={{
-          ["data-testid" as string]: "setting-modal",
-          "aria-label": ariaLabel,
-          style: {
-            maxHeight: `calc(100dvh - ${settingsDialogViewportMargin})`,
-            maxWidth: `calc(100dvw - ${settingsDialogViewportMargin})`,
-            padding: 0,
-            overflow: "hidden",
-          },
-        }}
-        open
-        onOpenChange={close}
-      >
-        <Suspense fallback={<CenteredLoading />}>
-          <SettingsDialogBody
-            ariaLabel={ariaLabel}
-            initialActiveTab={initialActiveTab}
-            renderContent={renderContent}
-            renderSidebar={renderSidebar}
-            scrollAnchor={scrollAnchor}
-          />
-        </Suspense>
-      </Modal>
-    </MyoxusSettingsMantineProvider>
+    <Modal
+      width="xl"
+      height="80dvh"
+      contentOptions={{
+        "data-testid": "setting-modal",
+        "aria-label": ariaLabel,
+        bodyPadding: "none",
+        bodyOverflow: "hidden",
+      }}
+      open
+      onOpenChange={close}
+    >
+      <Suspense fallback={<CenteredLoading />}>
+        <SettingsDialogBody
+          ariaLabel={ariaLabel}
+          initialActiveTab={initialActiveTab}
+          renderContent={renderContent}
+          renderSidebar={renderSidebar}
+          scrollAnchor={scrollAnchor}
+        />
+      </Suspense>
+    </Modal>
   );
 };

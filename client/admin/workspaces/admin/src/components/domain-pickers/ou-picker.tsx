@@ -24,7 +24,11 @@
  */
 import { searchOrganizationUnitsQuery } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
-import { SearchCombobox } from "@myoxus/ui-facade";
+import {
+  SearchCombobox,
+  useDebouncedValue,
+  useDisclosure,
+} from "@myoxus/ui-facade";
 import {
   type KeyboardEvent,
   useCallback,
@@ -87,8 +91,10 @@ export function OuPicker({
   const optionIdPrefix = useId();
 
   const [query, setQuery] = useState<string>("");
-  const [debouncedQuery, setDebouncedQuery] = useState<string>("");
-  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [debouncedRaw] = useDebouncedValue(query, 200);
+  const debouncedQuery = query.length === 0 ? "" : debouncedRaw;
+  const [isOpen, { open: openDropdown, close: closeDropdown }] =
+    useDisclosure(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(0);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [options, setOptions] = useState<OuOption[]>([]);
@@ -107,14 +113,6 @@ export function OuPicker({
       setSelectedLabel(displayValue);
     }
   }, [value, displayValue]);
-
-  // Debounce the query input by 200ms before firing the GraphQL request.
-  useEffect(() => {
-    const handle = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, 200);
-    return () => clearTimeout(handle);
-  }, [query]);
 
   useEffect(() => {
     if (debouncedQuery.length < 1) {
@@ -166,41 +164,40 @@ export function OuPicker({
       onChange(option.id);
       setSelectedLabel(option.name);
       setQuery("");
-      setDebouncedQuery("");
-      setIsOpen(false);
+      closeDropdown();
       setHighlightedIndex(0);
     },
-    [onChange],
+    [closeDropdown, onChange],
   );
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        setIsOpen(false);
+        closeDropdown();
         return;
       }
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        setIsOpen(true);
+        openDropdown();
         setHighlightedIndex((prev) => wrapIndex(prev + 1, options.length));
         return;
       }
       if (event.key === "ArrowUp") {
         event.preventDefault();
-        setIsOpen(true);
+        openDropdown();
         setHighlightedIndex((prev) => wrapIndex(prev - 1, options.length));
         return;
       }
       if (event.key === "Home") {
         event.preventDefault();
-        setIsOpen(true);
+        openDropdown();
         setHighlightedIndex(0);
         return;
       }
       if (event.key === "End") {
         event.preventDefault();
-        setIsOpen(true);
+        openDropdown();
         if (options.length > 0) {
           setHighlightedIndex(options.length - 1);
         }
@@ -215,7 +212,7 @@ export function OuPicker({
         }
       }
     },
-    [options, highlightedIndex, commitSelection],
+    [options, highlightedIndex, commitSelection, openDropdown, closeDropdown],
   );
 
   const inputValue = isOpen || query.length > 0 ? query : (selectedLabel ?? "");
@@ -283,14 +280,14 @@ export function OuPicker({
       data-testid={dataTestId}
       onInputChange={(next) => {
         setQuery(next);
-        setIsOpen(true);
+        openDropdown();
         setHighlightedIndex(0);
         if (next.length === 0) {
           // The parent decides whether typing-to-empty clears persisted value.
           setSelectedLabel(null);
         }
       }}
-      onInputFocus={() => setIsOpen(true)}
+      onInputFocus={openDropdown}
       onInputKeyDown={handleKeyDown}
       onOptionHover={setHighlightedIndex}
       onOptionCommit={(option) => {
@@ -299,7 +296,7 @@ export function OuPicker({
         );
         if (target) commitSelection(target);
       }}
-      onClose={() => setIsOpen(false)}
+      onClose={closeDropdown}
     />
   );
 }

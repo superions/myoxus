@@ -151,11 +151,16 @@ const toastMock = vi.hoisted(() => ({
   dismiss: vi.fn(),
 }));
 
-vi.mock("@myoxus/admin/notifications", () => ({
-  adminToast: toastMock,
-}));
-
-import { adminToast as toast } from "@myoxus/admin/notifications";
+vi.mock("@myoxus/ui-facade", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@myoxus/ui-facade")>();
+  return {
+    ...actual,
+    notify: {
+      ...actual.notify,
+      ...toastMock,
+    },
+  };
+});
 
 import { DesignPage } from "./index";
 
@@ -296,8 +301,8 @@ function setup(
 describe("DesignPage", () => {
   beforeEach(() => {
     tMock.mockClear();
-    vi.mocked(toast.error).mockClear();
-    vi.mocked(toast.success).mockClear();
+    toastMock.error.mockClear();
+    toastMock.success.mockClear();
     setup();
   });
 
@@ -314,7 +319,7 @@ describe("DesignPage", () => {
         themeMode: "system",
       });
     });
-    expect(toast.success).toHaveBeenCalledWith("Saved");
+    expect(toastMock.success).toHaveBeenCalledWith({ title: "Saved" });
   });
 
   test("inv_selecting_mode_preserves_active_theme_slug", async () => {
@@ -336,7 +341,9 @@ describe("DesignPage", () => {
 
     fireEvent.click(screen.getByTestId("select-harbor"));
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("mutation failed");
+      expect(toastMock.error).toHaveBeenCalledWith({
+        title: "mutation failed",
+      });
     });
   });
 });

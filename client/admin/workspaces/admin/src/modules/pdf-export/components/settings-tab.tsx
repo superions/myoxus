@@ -10,16 +10,19 @@ import { useI18n } from "@myoxus/i18n";
 import {
   Button,
   DialogFooterActions,
+  EmptyState,
   ErrorMessage,
+  FieldLabel,
   Input,
   NumberInput,
   notify,
   ResponsiveGrid,
   FormSelect,
+  SettingsDetailHeader,
   SettingsField,
   SettingsNotice,
   SettingsToolbar,
-  Skeleton,
+  SettingsSkeleton,
   Stack,
   Switch,
   Table,
@@ -48,11 +51,6 @@ import {
 import { buildColorProfileOptions } from "../color-profile-options";
 import { adaptPdfTemplate, type PdfTemplateRaw } from "../format-adapters";
 import { logPdfExportUiEvent } from "../logging";
-import {
-  EmptyState as RoleEmptyState,
-  FieldLabel,
-  PdfPanelHeader,
-} from "../pdf-role-primitives";
 import { pdfTemplateDisplayName } from "../template-localization";
 
 // ---------------------------------------------------------------------------
@@ -230,7 +228,7 @@ function WorkspaceDefaultsForm({ workspaceId }: { workspaceId: string }) {
     return error ? (
       <ErrorMessage>{error.message}</ErrorMessage>
     ) : (
-      <Skeleton h={256} />
+      <SettingsSkeleton />
     );
   }
   return (
@@ -362,9 +360,11 @@ function WorkspaceDefaultsEditor({
 
   return (
     <Stack>
-      <PdfPanelHeader
+      <SettingsDetailHeader
         title={i18n.t("admin.pdf-settings.workspace.title")}
         description={i18n.t("admin.pdf-settings.workspace.description")}
+        headingLevel={2}
+        divider={false}
       />
       <Stack>
         <ResponsiveGrid cols={{ base: 1, md: 2 }}>
@@ -578,9 +578,11 @@ function GlobalLimitsForm() {
 
   return (
     <Stack>
-      <PdfPanelHeader
+      <SettingsDetailHeader
         title={i18n.t("admin.pdf-settings.global.title")}
         description={i18n.t("admin.pdf-settings.global.description")}
+        headingLevel={2}
+        divider={false}
       />
       <Stack>
         <ResponsiveGrid cols={{ base: 1, md: 2 }}>
@@ -718,11 +720,13 @@ function DocumentVersioningDefaultsForm() {
 
   return (
     <Stack>
-      <PdfPanelHeader
+      <SettingsDetailHeader
         title={i18n.t("admin.pdf-settings.doc-versioning.defaults.title")}
         description={i18n.t(
           "admin.pdf-settings.doc-versioning.defaults.description",
         )}
+        headingLevel={2}
+        divider={false}
       />
       <Stack>
         <Stack>
@@ -919,11 +923,13 @@ function DocumentVersioningWorkspaceOverrides() {
 
   return (
     <Stack>
-      <PdfPanelHeader
+      <SettingsDetailHeader
         title={i18n.t("admin.pdf-settings.doc-versioning.workspace.title")}
         description={i18n.t(
           "admin.pdf-settings.doc-versioning.workspace.description",
         )}
+        headingLevel={2}
+        divider={false}
       />
       <div>
         <TableScrollContainer>
@@ -1091,12 +1097,12 @@ function SettingsTabContent() {
       </Stack>
 
       {workspaceId ? (
-        <Suspense fallback={<Skeleton h={256} />}>
+        <Suspense fallback={<SettingsSkeleton />}>
           <WorkspaceDefaultsForm key={workspaceId} workspaceId={workspaceId} />
         </Suspense>
       ) : (
         <Stack>
-          <RoleEmptyState
+          <EmptyState
             title={i18n.t("admin.pdf-settings.workspace.select-prompt")}
           />
         </Stack>
@@ -1112,7 +1118,7 @@ function SettingsTabContent() {
 /** Render workspace defaults and global limits for PDF export. */
 export function SettingsTab() {
   return (
-    <Suspense fallback={<Skeleton h={256} />}>
+    <Suspense fallback={<SettingsSkeleton />}>
       <SettingsTabContent />
     </Suspense>
   );

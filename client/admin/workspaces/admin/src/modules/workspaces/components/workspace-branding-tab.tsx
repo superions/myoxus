@@ -9,13 +9,13 @@
  * values; choosing a preset creates a server-side workspace profile, and reset
  * removes that profile so the workspace inherits the global profile again.
  */
-import { adminToast as toast } from "@myoxus/admin/notifications";
 import { useI18n } from "@myoxus/i18n";
 import {
   Badge,
   Button,
   FormFieldset,
   Group,
+  notify,
   SettingsListItemTitle,
   SettingsHeadingGroup,
   SettingsSectionHeading,
@@ -123,13 +123,14 @@ export function WorkspaceBrandingTab({
       setPending(true);
       try {
         await setThemeProfile({ workspaceId, themeSlug, themeMode });
-        toast.success(i18n.t("admin.state.saved"));
+        notify.success({ title: i18n.t("admin.state.saved") });
       } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : i18n.t("admin.workspaces.branding.save-failed"),
-        );
+        notify.error({
+          title:
+            error instanceof Error
+              ? error.message
+              : i18n.t("admin.workspaces.branding.save-failed"),
+        });
       } finally {
         operationLock.current = false;
         setPending(false);
@@ -144,13 +145,16 @@ export function WorkspaceBrandingTab({
     setPending(true);
     try {
       await resetWorkspaceThemeProfile({ workspaceId });
-      toast.success(i18n.t("admin.workspaces.branding.reset-success"));
+      notify.success({
+        title: i18n.t("admin.workspaces.branding.reset-success"),
+      });
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : i18n.t("admin.workspaces.branding.reset-failed"),
-      );
+      notify.error({
+        title:
+          error instanceof Error
+            ? error.message
+            : i18n.t("admin.workspaces.branding.reset-failed"),
+      });
     } finally {
       operationLock.current = false;
       setPending(false);

@@ -7,18 +7,21 @@
 import { useI18n } from "@myoxus/i18n";
 import { CheckIcon } from "@myoxus/icons/react";
 import { ROUTES } from "@myoxus/routes";
-import { Button, SettingsNotice } from "@myoxus/ui-facade";
+import {
+  Button,
+  OnboardingActions,
+  OnboardingCompleteIcon,
+  OnboardingStep,
+  OnboardingStepHeader,
+  SettingsNotice,
+  SettingsSectionDescription,
+  SettingsSectionHeading,
+} from "@myoxus/ui-facade";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { useAdminUpdateConfig } from "../../../hooks/use-admin-update-config";
 import { useServerSetupStatus } from "../../../hooks/use-server-setup-status";
-import {
-  ConfigWizardActions,
-  ConfigWizardCompleteIcon,
-  ConfigWizardStep,
-  ConfigWizardStepHeader,
-} from "../primitives";
 
 export function CompleteStep() {
   const i18n = useI18n();
@@ -78,26 +81,26 @@ export function CompleteStep() {
   ]);
 
   return (
-    <ConfigWizardStep centered>
+    <OnboardingStep centered compact>
       {completed && (
-        <ConfigWizardCompleteIcon>
+        <OnboardingCompleteIcon>
           <CheckIcon size="var(--mantine-spacing-xl)" aria-hidden="true" />
-        </ConfigWizardCompleteIcon>
+        </OnboardingCompleteIcon>
       )}
-      <ConfigWizardStepHeader
-        title={
-          completed
+      <OnboardingStepHeader>
+        <SettingsSectionHeading level={2}>
+          {completed
             ? i18n.t("admin.configWizard.complete.title")
-            : i18n.t("admin.configWizard.step.complete")
-        }
-        description={
-          completed
+            : i18n.t("admin.configWizard.step.complete")}
+        </SettingsSectionHeading>
+        <SettingsSectionDescription>
+          {completed
             ? i18n.t("admin.configWizard.complete.description")
             : completionError
               ? ""
-              : i18n.t("common.saving")
-        }
-      />
+              : i18n.t("common.saving")}
+        </SettingsSectionDescription>
+      </OnboardingStepHeader>
 
       {completionError ? (
         <SettingsNotice tone="error" data-testid="setup-completion-error">
@@ -109,15 +112,15 @@ export function CompleteStep() {
       ) : null}
 
       {completed && (
-        <ConfigWizardActions>
+        <OnboardingActions justify="center">
           <Button
             variant="primary"
             onClick={() => navigate(ROUTES.admin.dashboard)}
           >
             {i18n.t("admin.configWizard.complete.goToDashboard")}
           </Button>
-        </ConfigWizardActions>
+        </OnboardingActions>
       )}
-    </ConfigWizardStep>
+    </OnboardingStep>
   );
 }

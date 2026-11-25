@@ -63,7 +63,7 @@ export function EditorCanvasTemplates({
 }) {
   const t = useI18n();
   return (
-    <Card withBorder>
+    <Card withBorder={false}>
       <MenuPanel
         panelWidth="large"
         role="dialog"

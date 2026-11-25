@@ -22,7 +22,7 @@ import {
   type MermaidClassMember,
 } from "@virgultum/block-mermaid";
 import { useState } from "react";
-import { createPortal } from "react-dom";
+import { MermaidRuntimePortal } from "../mermaid-runtime-portal";
 import { changedClassFields, useClassDraft } from "./drafts";
 export function ClassMemberForm({
   props,
@@ -60,25 +60,24 @@ export function ClassMemberForm({
     !member && v.before ? props.resolveMemberInsertAnchor(v.before) : null;
   return (
     <>
-      {insertion
-        ? createPortal(
-            <Box
-              pos="fixed"
-              role="status"
-              data-myoxus-ui-role="mermaid-member-insertion"
-              style={{
-                left: insertion.left,
-                top: insertion.top,
-                transform: "translate(-100%, -50%)",
-                pointerEvents: "none",
-                zIndex: "var(--myoxus-z-index-popover)",
-              }}
-            >
-              <Badge>{m.timelineInsertPosition()}</Badge>
-            </Box>,
-            document.body,
-          )
-        : null}
+      {insertion ? (
+        <MermaidRuntimePortal>
+          <Box
+            pos="fixed"
+            role="status"
+            data-myoxus-ui-role="mermaid-member-insertion"
+            style={{
+              left: insertion.left,
+              top: insertion.top,
+              transform: "translate(-100%, -50%)",
+              pointerEvents: "none",
+              zIndex: "var(--myoxus-z-index-popover)",
+            }}
+          >
+            <Badge>{m.timelineInsertPosition()}</Badge>
+          </Box>
+        </MermaidRuntimePortal>
+      ) : null}
       <Stack
         onKeyDown={(event) => {
           if (

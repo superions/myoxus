@@ -116,14 +116,19 @@ vi.mock("../../../use-mutation", () => ({
   },
 }));
 
-vi.mock("@myoxus/admin/notifications", () => ({
-  adminToast: {
-    success: (...args: any[]) => toastSuccessMock(...args),
-    error: (...args: any[]) => toastErrorMock(...args),
-    warning: vi.fn(),
-    dismiss: vi.fn(),
-  },
-}));
+vi.mock("@myoxus/ui-facade", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@myoxus/ui-facade")>();
+  return {
+    ...actual,
+    notify: {
+      ...actual.notify,
+      success: (...args: any[]) => toastSuccessMock(...args),
+      error: (...args: any[]) => toastErrorMock(...args),
+      warning: vi.fn(),
+      dismiss: vi.fn(),
+    },
+  };
+});
 
 import { WorkspaceTemplateDrawer } from "./workspace-template-drawer";
 
@@ -305,9 +310,9 @@ describe("WorkspaceTemplateDrawer", () => {
     fireEvent.click(screen.getByText("Reconcile Now"));
 
     await waitFor(() => {
-      expect(toastErrorMock).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to trigger reconciliation"),
-      );
+      expect(toastErrorMock).toHaveBeenCalledWith({
+        title: expect.stringContaining("Failed to trigger reconciliation"),
+      });
     });
   });
 
@@ -390,9 +395,9 @@ describe("WorkspaceTemplateDrawer", () => {
       });
     });
     await waitFor(() => {
-      expect(toastSuccessMock).toHaveBeenCalledWith(
-        expect.stringContaining("updated to ManualUpdate"),
-      );
+      expect(toastSuccessMock).toHaveBeenCalledWith({
+        title: expect.stringContaining("updated to ManualUpdate"),
+      });
     });
   });
 
@@ -425,9 +430,9 @@ describe("WorkspaceTemplateDrawer", () => {
     fireEvent.click(screen.getByText("Save Changes"));
 
     await waitFor(() => {
-      expect(toastErrorMock).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to change policy"),
-      );
+      expect(toastErrorMock).toHaveBeenCalledWith({
+        title: expect.stringContaining("Failed to change policy"),
+      });
     });
   });
 });

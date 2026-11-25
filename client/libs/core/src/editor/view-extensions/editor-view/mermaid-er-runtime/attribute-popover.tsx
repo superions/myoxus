@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "@myoxus/i18n";
 import {
   Alert,
@@ -21,7 +21,10 @@ import {
   Stack,
 } from "@myoxus/ui-facade";
 import { GripVerticalIcon } from "@myoxus/icons";
-import { createPortal } from "react-dom";
+import {
+  MermaidRuntimePortal,
+  useMermaidCaptureDrag,
+} from "../mermaid-runtime-portal";
 import {
   mermaidMessages as m,
   type ErReactHostProps,
@@ -81,24 +84,23 @@ export function ErAttributeForm({
   };
   return (
     <>
-      {insertion
-        ? createPortal(
-            <Box
-              pos="fixed"
-              role="status"
-              style={{
-                left: insertion.left,
-                top: insertion.top,
-                transform: "translate(0, -50%)",
-                pointerEvents: "none",
-                zIndex: "var(--myoxus-z-index-popover)",
-              }}
-            >
-              <Badge>{m.timelineInsertPosition()}</Badge>
-            </Box>,
-            document.body,
-          )
-        : null}
+      {insertion ? (
+        <MermaidRuntimePortal>
+          <Box
+            pos="fixed"
+            role="status"
+            style={{
+              left: insertion.left,
+              top: insertion.top,
+              transform: "translate(0, -50%)",
+              pointerEvents: "none",
+              zIndex: "var(--myoxus-z-index-popover)",
+            }}
+          >
+            <Badge>{m.timelineInsertPosition()}</Badge>
+          </Box>
+        </MermaidRuntimePortal>
+      ) : null}
       <Stack
         onKeyDown={(event) => {
           handleErDraftKeyDown(event, props.readonly, save, onClose);
@@ -304,17 +306,16 @@ export function ErAttributeReorderHandle({
 }) {
   const d = useErDraft({}, props),
     [target, setTarget] = useState<string | null | undefined>(undefined),
-    cancel = useRef<(() => void) | null>(null);
-  useEffect(() => () => cancel.current?.(), []);
+    drag = useMermaidCaptureDrag();
   useEffect(() => {
-    cancel.current?.();
+    drag.cancel();
     setTarget(undefined);
-  }, [props.sourceBasis, props.readonly]);
+  }, [props.sourceBasis, props.readonly, drag]);
   const anchor = props.resolveAttributeInsertAnchor(attribute.id),
     preview = target ? props.resolveAttributeInsertAnchor(target) : null;
   if (!anchor || props.readonly || props.displayOnly) return null;
-  return createPortal(
-    <>
+  return (
+    <MermaidRuntimePortal>
       <Box
         pos="fixed"
         style={{
@@ -331,50 +332,43 @@ export function ErAttributeReorderHandle({
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
-            cancel.current?.();
+            drag.cancel();
             const startY = event.clientY;
             let before: string | null = attribute.id,
               moved = false;
             const siblings =
               props.model.entities.find((e) => e.sourceKey === entityKey)
                 ?.attributes ?? [];
-            const move = (e: PointerEvent) => {
-              moved ||= Math.abs(e.clientY - startY) > 4;
-              if (!moved) return;
-              before =
-                siblings.find(
-                  (a) =>
-                    a.id !== attribute.id &&
-                    (props.resolveAttributeInsertAnchor(a.id)?.top ??
-                      Infinity) > e.clientY,
-                )?.id ?? null;
-              setTarget(before);
-            };
-            const cleanup = () => {
-              document.removeEventListener("pointermove", move, true);
-              document.removeEventListener("pointerup", up, true);
-              document.removeEventListener("pointercancel", cleanup, true);
-              document.removeEventListener("keydown", key, true);
-              cancel.current = null;
-              setTarget(undefined);
-            };
-            const up = (e: PointerEvent) => {
-              e.stopPropagation();
-              cleanup();
-              if (moved) d.commit("reorderErAttribute", [attribute.id, before]);
-            };
-            const key = (e: KeyboardEvent) => {
-              if (e.key === "Escape") {
-                e.preventDefault();
+            const cleanup = drag.start({
+              onMove: (e) => {
+                moved ||= Math.abs(e.clientY - startY) > 4;
+                if (!moved) return;
+                before =
+                  siblings.find(
+                    (a) =>
+                      a.id !== attribute.id &&
+                      (props.resolveAttributeInsertAnchor(a.id)?.top ??
+                        Infinity) > e.clientY,
+                  )?.id ?? null;
+                setTarget(before);
+              },
+              onUp: (e) => {
                 e.stopPropagation();
                 cleanup();
-              }
-            };
-            cancel.current = cleanup;
-            document.addEventListener("pointermove", move, true);
-            document.addEventListener("pointerup", up, true);
-            document.addEventListener("pointercancel", cleanup, true);
-            document.addEventListener("keydown", key, true);
+                if (moved)
+                  d.commit("reorderErAttribute", [attribute.id, before]);
+              },
+              onKeyDown: (e) => {
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  cleanup();
+                }
+              },
+              onCleanup: () => {
+                setTarget(undefined);
+              },
+            });
           }}
         />
       </Box>
@@ -392,7 +386,6 @@ export function ErAttributeReorderHandle({
           <Badge>{m.timelineInsertPosition()}</Badge>
         </Box>
       ) : null}
-    </>,
-    document.body,
+    </MermaidRuntimePortal>
   );
 }

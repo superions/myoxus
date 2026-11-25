@@ -1,5 +1,6 @@
 import { useI18n } from "@myoxus/i18n";
 import {
+  Badge,
   MetricCard,
   SettingsDefinitionItem,
   SettingsDefinitionList,
@@ -22,7 +23,6 @@ import {
   useDocumentTypesQuery,
   useDocumentVersionPoliciesQuery,
 } from "../api";
-import { ErrorText, KeyBadge } from "./shared";
 
 type RuntimeBucket = {
   key?: string | null;
@@ -95,7 +95,9 @@ export function OverviewTab() {
           description={i18n.t("admin.documents.overview.runtime.description")}
         />
         {runtimeQuery.error ? (
-          <ErrorText>{runtimeQuery.error.message}</ErrorText>
+          <SettingsStatusText role="alert" tone="error">
+            {runtimeQuery.error.message}
+          </SettingsStatusText>
         ) : null}
         <SimpleGrid cols={3}>
           {distributions.map(({ name, buckets }) => {
@@ -150,8 +152,8 @@ export function OverviewTab() {
                 label={definition.label}
               >
                 <SettingsToolbar>
-                  <KeyBadge value={definition.key} />
-                  <KeyBadge value={definition.requiredMode} />
+                  <Badge>{definition.key}</Badge>
+                  <Badge>{definition.requiredMode}</Badge>
                 </SettingsToolbar>
               </SettingsDefinitionItem>
             ))}
@@ -175,7 +177,7 @@ export function OverviewTab() {
                 label={definition.label}
                 mono
               >
-                <KeyBadge value={definition.key} />
+                <Badge>{definition.key}</Badge>
               </SettingsDefinitionItem>
             ))}
             {exportRequired.length === 0 ? (

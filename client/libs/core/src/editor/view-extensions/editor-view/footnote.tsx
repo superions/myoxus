@@ -22,7 +22,7 @@ import {
 import { useRef } from "react";
 import { ArrowLeftIcon, MoreHorizontalIcon, TrashIcon } from "@myoxus/icons";
 
-function FootnoteInsertion({
+export function FootnoteInsertion({
   placement,
   definitions,
   choose,

@@ -17,6 +17,7 @@ import {
   Card,
   ConfirmModal,
   Group,
+  HiddenFileInput,
   IconButton,
   IconButtonGroup,
   InlineEdit,
@@ -28,6 +29,7 @@ import {
   Textarea,
   ThemeIcon,
   Tooltip,
+  useResizeObserver,
   WorkbenchContextPanelLayout,
 } from "@myoxus/ui-facade";
 import {
@@ -57,8 +59,7 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { createPortal } from "react-dom";
-
+import { MermaidRuntimePortal } from "./mermaid-runtime-portal";
 import { ReadingSnapshotContext } from "../../virgultum/doc-editor/reading-snapshot-context";
 
 export function MermaidEmbeddedTitle({
@@ -308,11 +309,13 @@ export function MermaidEditorWorkbench({
       onMouseDown={stopOwnedPointerEvent}
       onPointerDown={stopOwnedPointerEvent}
     >
-      {actionTarget === undefined
-        ? toolbar
-        : actionTarget && toolbar
-          ? createPortal(toolbar, actionTarget)
-          : null}
+      {actionTarget === undefined ? (
+        toolbar
+      ) : actionTarget && toolbar ? (
+        <MermaidRuntimePortal target={actionTarget}>
+          {toolbar}
+        </MermaidRuntimePortal>
+      ) : null}
       {embeddedActions ? (
         <Box pos="relative">
           {workarea}
@@ -407,37 +410,44 @@ export function MermaidGfxEditorWorkbench({
     };
   }, [contextOpened, selectionKey]);
 
+  const embeddedActionsNodeRef = useRef<HTMLDivElement | null>(null);
+  const [observeEmbeddedActions, embeddedActionsRect] =
+    useResizeObserver<HTMLDivElement>();
+  const attachEmbeddedActionsRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      embeddedActionsNodeRef.current = node;
+      observeEmbeddedActions(node);
+    },
+    [observeEmbeddedActions],
+  );
+
   useEffect(() => {
-    const workareaElement = workareaRef.current;
-    const actionsElement = workareaElement?.querySelector<HTMLElement>(
-      '[data-myoxus-ui-role="mermaid-embedded-actions"]',
-    );
-    if (!actionsElement) {
+    if (!hasEmbeddedActions) {
       onEmbeddedActionsInsetChangeRef.current?.(0);
       return;
     }
     const reportInset = () => {
-      onEmbeddedActionsInsetChangeRef.current?.(actionsElement.offsetHeight);
+      const measured =
+        embeddedActionsNodeRef.current?.querySelector<HTMLElement>(
+          '[data-myoxus-ui-role="mermaid-embedded-actions"]',
+        )?.offsetHeight ?? Math.round(embeddedActionsRect.height);
+      onEmbeddedActionsInsetChangeRef.current?.(measured);
     };
-    reportInset();
-    if (typeof ResizeObserver === "undefined") return;
-    let frame: number | undefined;
-    // Reporting the inset can refit the nested GFX viewport. Defer that layout
-    // work beyond ResizeObserver delivery rather than resizing its own cycle.
-    const observer = new ResizeObserver(() => {
-      if (frame !== undefined) return;
-      frame = requestAnimationFrame(() => {
-        frame = undefined;
-        reportInset();
-      });
-    });
-    observer.observe(actionsElement);
+    const frame = requestAnimationFrame(reportInset);
     return () => {
-      observer.disconnect();
-      if (frame !== undefined) cancelAnimationFrame(frame);
+      cancelAnimationFrame(frame);
+    };
+  }, [hasEmbeddedActions, embeddedActionsRect.height]);
+
+  useEffect(() => {
+    return () => {
       onEmbeddedActionsInsetChangeRef.current?.(0);
     };
-  }, [hasEmbeddedActions]);
+  }, []);
+
+  const measuredEmbeddedActions = embeddedActions ? (
+    <Box ref={attachEmbeddedActionsRef}>{embeddedActions}</Box>
+  ) : null;
 
   return (
     <>
@@ -480,19 +490,23 @@ export function MermaidGfxEditorWorkbench({
               {workareaHeader}
               {workarea ? workarea : null}
             </Stack>
-            {overlayTarget && selectionControls
-              ? createPortal(selectionControls, overlayTarget)
-              : null}
-            {embeddedActions}
+            {overlayTarget && selectionControls ? (
+              <MermaidRuntimePortal target={overlayTarget}>
+                {selectionControls}
+              </MermaidRuntimePortal>
+            ) : null}
+            {measuredEmbeddedActions}
           </Box>
         ) : (
           <Box pos="relative" ref={workareaRef}>
             {workareaHeader}
             {workarea ? workarea : null}
-            {overlayTarget && selectionControls
-              ? createPortal(selectionControls, overlayTarget)
-              : null}
-            {embeddedActions}
+            {overlayTarget && selectionControls ? (
+              <MermaidRuntimePortal target={overlayTarget}>
+                {selectionControls}
+              </MermaidRuntimePortal>
+            ) : null}
+            {measuredEmbeddedActions}
           </Box>
         )}
       </MermaidEditorWorkbench>
@@ -1342,14 +1356,12 @@ export function MermaidBlockShell({
                 >
                   {props.labels.emptyPaste}
                 </Button>
-                <input
+                <HiddenFileInput
                   accept=".mmd,.mermaid,text/plain,text/markdown"
                   className="myoxus-mermaid-file-input"
-                  hidden
                   onChange={(event) =>
                     props.emptyVisual?.onFileImport(event.nativeEvent)
                   }
-                  type="file"
                 />
               </Group>
             ) : null}

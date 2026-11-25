@@ -2,6 +2,7 @@
  * @vitest-environment happy-dom
  */
 import { FeatureType } from "@myoxus/graphql";
+import { MyoxusUIProvider } from "@myoxus/ui-facade/provider";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -35,11 +36,13 @@ describe("Auth compatibility route", () => {
 
   test("redirects unauthenticated users to the shared sign-in page", () => {
     render(
-      <MemoryRouter initialEntries={["/adminfrontend/auth"]}>
-        <Routes>
-          <Route path="/adminfrontend/auth" element={<Auth />} />
-        </Routes>
-      </MemoryRouter>,
+      <MyoxusUIProvider>
+        <MemoryRouter initialEntries={["/adminfrontend/auth"]}>
+          <Routes>
+            <Route path="/adminfrontend/auth" element={<Auth />} />
+          </Routes>
+        </MemoryRouter>
+      </MyoxusUIProvider>,
     );
 
     const redirect = screen.getByTestId("shared-sign-in-redirect");

@@ -59,13 +59,12 @@ import { PageConfigErrorBoundary } from "../../components/page-config-error-boun
 import { AdminPageFrame, AdminPageScroll, AdminSubnav } from "../admin-shell";
 import { useUrlSyncedAdminTab } from "../admin-tabs";
 import { ALL_CONFIG_DESCRIPTORS, type AppConfig } from "../settings/config";
+import { AdminConfigFieldDispatcher } from "../settings/config-field-dispatcher";
 import {
   ConfigArrayField,
   ConfigBooleanField,
   type ConfigControlType,
-  ConfigJsonField,
   ConfigNumberField,
-  ConfigSelectField,
   ConfigTextField,
   YamlOnlyBanner,
 } from "../settings/config-form-fields";
@@ -170,43 +169,28 @@ function AiConfigField({
   const type = (field.type ??
     schemaField?.valueType ??
     "String") as ConfigControlType;
-  const commonProps = {
-    field: fieldPath,
-    desc: field.desc ?? descriptor?.desc ?? "",
-    defaultValue: getByPath(sourceConfig, field.key),
-    onChange: update,
-    databaseWritable: schemaField?.databaseWritable,
-    restartRequired: Boolean(schemaField?.restart_required),
-    suppressYamlBanner: showGroupYamlBanner,
-    error,
-    onErrorChange,
-  };
-  const sensitive = Boolean(schemaField?.sensitive);
 
-  if (type === "Boolean") {
-    return (
-      <ConfigBooleanField
-        {...commonProps}
-        immediateApply={Boolean(schemaField?.immediate_apply)}
-        onSave={schemaField?.immediate_apply ? saveField : undefined}
-      />
-    );
-  }
-  if (type === "Number") {
-    return (
-      <ConfigNumberField
-        {...commonProps}
-        suffix={field.suffix}
-        min={schemaField?.min ?? undefined}
-        max={schemaField?.max ?? undefined}
-      />
-    );
-  }
-  if (type === "Enum") {
-    return <ConfigSelectField {...commonProps} options={field.options ?? []} />;
-  }
-  if (type === "JSON") return <ConfigJsonField {...commonProps} />;
-  return <ConfigTextField {...commonProps} sensitive={sensitive} />;
+  return (
+    <AdminConfigFieldDispatcher
+      field={fieldPath}
+      type={type}
+      desc={field.desc ?? descriptor?.desc ?? ""}
+      defaultValue={getByPath(sourceConfig, field.key)}
+      onChange={update}
+      databaseWritable={schemaField?.databaseWritable}
+      restartRequired={Boolean(schemaField?.restart_required)}
+      suppressYamlBanner={showGroupYamlBanner}
+      error={error}
+      onErrorChange={onErrorChange}
+      sensitive={Boolean(schemaField?.sensitive)}
+      immediateApply={Boolean(schemaField?.immediate_apply)}
+      onSave={saveField}
+      suffix={field.suffix}
+      min={schemaField?.min ?? undefined}
+      max={schemaField?.max ?? undefined}
+      options={field.options}
+    />
+  );
 }
 
 function AiSubConfigField({
@@ -239,25 +223,26 @@ function AiSubConfigField({
     desc: "",
     type: "JSON",
   };
-  const commonProps = {
-    field: fieldPath,
-    desc: field.desc,
-    defaultValue: getByPath(sourceConfig, `${field.parentKey}.${field.subKey}`),
-    onChange: update,
-    databaseWritable: schemaField?.databaseWritable,
-    restartRequired: Boolean(schemaField?.restart_required),
-    suppressYamlBanner: showGroupYamlBanner,
-    error,
-    onErrorChange,
-  };
-  const sensitive = isSensitiveConfigField(module, field.parentKey, descriptor);
 
-  if (field.type === "Number") return <ConfigNumberField {...commonProps} />;
-  if (field.type === "Enum") {
-    return <ConfigSelectField {...commonProps} options={field.options ?? []} />;
-  }
-  if (field.type === "Boolean") return <ConfigBooleanField {...commonProps} />;
-  return <ConfigTextField {...commonProps} sensitive={sensitive} />;
+  return (
+    <AdminConfigFieldDispatcher
+      field={fieldPath}
+      type={field.type}
+      desc={field.desc}
+      defaultValue={getByPath(
+        sourceConfig,
+        `${field.parentKey}.${field.subKey}`,
+      )}
+      onChange={update}
+      databaseWritable={schemaField?.databaseWritable}
+      restartRequired={Boolean(schemaField?.restart_required)}
+      suppressYamlBanner={showGroupYamlBanner}
+      error={error}
+      onErrorChange={onErrorChange}
+      sensitive={isSensitiveConfigField(module, field.parentKey, descriptor)}
+      options={field.options}
+    />
+  );
 }
 
 const SIMPLE_SECTIONS: SimpleSection[] = [

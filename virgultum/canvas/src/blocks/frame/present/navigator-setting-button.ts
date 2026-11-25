@@ -1,38 +1,32 @@
 import { effect, signal, type Signal } from "@preact/signals-core";
-import { EdgelessLegacySlotIdentifier } from "@virgultum/canvas-runtime/surface";
+import {
+  EdgelessCRUDIdentifier,
+  EdgelessLegacySlotIdentifier,
+} from "@virgultum/canvas-runtime/surface";
 import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import {
   EditPropsStore,
   EditorChromeHostIdentifier,
   type EditorCanvasMenuControls,
-  type EditorCanvasToolControls,
+  type EditorCanvasPopoverControls,
+  type EditorFrameOrderControls,
   editorMessage,
   EditorI18nProvider,
   resolveEditorMessage,
   type EditorI18nMessage,
 } from "@virgultum/core/services";
-import { createButtonPopper } from "@virgultum/core/utils";
 import {
   type BlockComponent,
   NativeViewElement,
 } from "@virgultum/core/runtime";
-import type { EdgelessFrameOrderMenu } from "./frame-order-menu.js";
+import { generateKeyBetweenV2 } from "@virgultum/core/runtime/gfx";
 
-// The owning popper controls visibility; native chrome owns appearance and density.
-const navigatorSettingStyles = `
-  edgeless-navigator-setting-button .navigator-setting-menu {
-    display: none;
-  }
-  edgeless-navigator-setting-button .navigator-setting-menu[data-show] {
-    display: block;
-  }
-`;
+import { EdgelessFrameManagerIdentifier } from "../frame-manager.js";
 
 export class EdgelessNavigatorSettingButton extends NativeViewElement {
   private _disposables = new DisposableGroup();
   private readonly _revision$ = signal(0);
   private _bound = false;
-  private _domReady = false;
   private _blackBackground = false;
   private _edgeless!: BlockComponent;
   private _hideToolbar = false;
@@ -42,23 +36,11 @@ export class EdgelessNavigatorSettingButton extends NativeViewElement {
   private _popperShow = false;
   private _setPopperShow: (show: boolean) => void = () => {};
 
-  private _navigatorSettingButton!: HTMLSpanElement;
-  private _navigatorSettingMenu!: HTMLDivElement;
-  private _embeddedFrameOrder: EdgelessFrameOrderMenu | null = null;
-  private _toolChrome?: {
+  private _chrome?: {
     host: HTMLSpanElement;
-    state$: Signal<EditorCanvasToolControls | null>;
+    state$: Signal<EditorCanvasPopoverControls | null>;
     unmount: () => void;
   };
-  private _menuChrome?: {
-    host: HTMLSpanElement;
-    state$: Signal<EditorCanvasMenuControls | null>;
-    unmount: () => void;
-  };
-
-  private _navigatorSettingPopper?: ReturnType<
-    typeof createButtonPopper
-  > | null = null;
 
   private _text(message: EditorI18nMessage) {
     return resolveEditorMessage(
@@ -84,9 +66,6 @@ export class EdgelessNavigatorSettingButton extends NativeViewElement {
   set edgeless(value: BlockComponent) {
     if (this._edgeless === value) return;
     this._edgeless = value;
-    if (this._embeddedFrameOrder) {
-      this._embeddedFrameOrder.edgeless = value;
-    }
     if (this.isConnected) {
       this._ensureBound();
       this._requestUpdate();
@@ -163,24 +142,33 @@ export class EdgelessNavigatorSettingButton extends NativeViewElement {
     this.blackBackground = blackBackground ?? false;
   }
 
-  private _ensureDom() {
-    if (this._domReady) return;
-    this._domReady = true;
-    const style = this.ownerDocument.createElement("style");
-    style.textContent = navigatorSettingStyles;
-    this._navigatorSettingButton = this.ownerDocument.createElement("span");
-    this._navigatorSettingButton.className = "navigator-setting-button";
-    this._navigatorSettingMenu = this.ownerDocument.createElement("div");
-    this._navigatorSettingMenu.className = "navigator-setting-menu";
-    this._navigatorSettingMenu.addEventListener("click", (e) => {
-      e.stopPropagation();
+  private _moveFrame = (id: string, before: string | null) => {
+    if (this.edgeless.store.readonly || id === before) return;
+    const manager = this.edgeless.std.get(EdgelessFrameManagerIdentifier);
+    const frames = manager.frames;
+    const source = frames.findIndex((frame) => frame.id === id);
+    const target =
+      before === null
+        ? frames.length
+        : frames.findIndex((frame) => frame.id === before);
+    if (source < 0 || target < 0 || target === source || target === source + 1)
+      return;
+
+    manager.refreshLegacyFrameOrder();
+    const neighbours = manager.frames.filter((frame) => frame.id !== id);
+    const insertion =
+      before === null
+        ? neighbours.length
+        : neighbours.findIndex((frame) => frame.id === before);
+    this.edgeless.std.get(EdgelessCRUDIdentifier).updateElement(id, {
+      presentationIndex: generateKeyBetweenV2(
+        neighbours[insertion - 1]?.props.presentationIndex || null,
+        neighbours[insertion]?.props.presentationIndex || null,
+      ),
     });
-    this.append(
-      style,
-      this._navigatorSettingButton,
-      this._navigatorSettingMenu,
-    );
-  }
+    this.edgeless.store.captureSync();
+    this._requestUpdate();
+  };
 
   private _ensureBound() {
     if (this._bound || !this.isConnected || !this._edgeless) return;
@@ -188,15 +176,7 @@ export class EdgelessNavigatorSettingButton extends NativeViewElement {
     if (this._disposables.disposed) {
       this._disposables = new DisposableGroup();
     }
-    this._ensureDom();
     this._tryRestoreSettings();
-    this._navigatorSettingPopper = createButtonPopper({
-      reference: this._navigatorSettingButton,
-      popperElement: this._navigatorSettingMenu,
-      stateUpdated: ({ display }) => this.setPopperShow(display === "show"),
-      mainAxis: 22,
-    });
-    // A remounted popper starts closed; do not retain the previous session's expanded flag.
     this.setPopperShow(false);
 
     this._disposables.add(
@@ -213,17 +193,10 @@ export class EdgelessNavigatorSettingButton extends NativeViewElement {
   }
 
   disconnectedCallback(): void {
-    this._navigatorSettingPopper?.dispose();
-    this._navigatorSettingPopper = null;
-    if (this._toolChrome) {
-      this._toolChrome.unmount();
-      this._toolChrome.host.remove();
-      this._toolChrome = undefined;
-    }
-    if (this._menuChrome) {
-      this._menuChrome.unmount();
-      this._menuChrome.host.remove();
-      this._menuChrome = undefined;
+    if (this._chrome) {
+      this._chrome.unmount();
+      this._chrome.host.remove();
+      this._chrome = undefined;
     }
     this._disposables.dispose();
     this._bound = false;
@@ -231,33 +204,13 @@ export class EdgelessNavigatorSettingButton extends NativeViewElement {
 
   private _paint() {
     const chrome = this.edgeless.std.getOptional(EditorChromeHostIdentifier);
-    if (!chrome) return;
+    if (!chrome?.mountCanvasPopover) return;
     const i18n = this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined;
     void i18n?.locale$.value;
 
-    const toolControls: EditorCanvasToolControls = {
-      action: {
-        id: "presentation-settings",
-        label: this._text(
-          editorMessage("com.myoxus.sidebar.outline.settings", "Settings"),
-        ),
-        icon: "SettingsIcon",
-        disabled: false,
-        run: () => this._navigatorSettingPopper?.toggle(),
-      },
-      expanded: this.popperShow,
-    };
-
-    if (!this._toolChrome) {
-      const host = this.ownerDocument.createElement("span");
-      host.style.display = "contents";
-      this._navigatorSettingButton.append(host);
-      const state$ = signal<EditorCanvasToolControls | null>(toolControls);
-      const unmount = chrome.mountCanvasTool(host, state$);
-      this._toolChrome = { host, state$, unmount };
-    } else {
-      this._toolChrome.state$.value = toolControls;
-    }
+    const settingsLabel = this._text(
+      editorMessage("com.myoxus.sidebar.outline.settings", "Settings"),
+    );
 
     const menuControls: EditorCanvasMenuControls = {
       actions: [
@@ -318,32 +271,60 @@ export class EdgelessNavigatorSettingButton extends NativeViewElement {
       ],
     };
 
-    if (!this._menuChrome) {
+    const frameOrderControls: EditorFrameOrderControls | null = this
+      .includeFrameOrder
+      ? {
+          items: this.edgeless.std
+            .get(EdgelessFrameManagerIdentifier)
+            .frames.map((frame) => ({
+              id: frame.id,
+              title: frame.props.title.toString(),
+            })),
+          embedded: true,
+          readonly: this.edgeless.store.readonly,
+          move: this._moveFrame,
+        }
+      : null;
+
+    const popoverControls: EditorCanvasPopoverControls = {
+      opened: this.popperShow,
+      onClose: () => this.setPopperShow(false),
+      position: "top",
+      offset: 16,
+      label: settingsLabel,
+      trigger: {
+        action: {
+          id: "presentation-settings",
+          label: settingsLabel,
+          icon: "SettingsIcon",
+          disabled: false,
+          run: () => this.setPopperShow(!this.popperShow),
+        },
+        expanded: this.popperShow,
+      },
+      content: frameOrderControls
+        ? {
+            kind: "menu-with-frame-order",
+            menu: menuControls,
+            frameOrder: frameOrderControls,
+          }
+        : {
+            kind: "menu",
+            controls: menuControls,
+          },
+    };
+
+    if (!this._chrome) {
       const host = this.ownerDocument.createElement("span");
       host.style.display = "contents";
-      this._navigatorSettingMenu.insertBefore(
-        host,
-        this._navigatorSettingMenu.firstChild,
+      this.replaceChildren(host);
+      const state$ = signal<EditorCanvasPopoverControls | null>(
+        popoverControls,
       );
-      const state$ = signal<EditorCanvasMenuControls | null>(menuControls);
-      const unmount = chrome.mountCanvasMenu(host, state$);
-      this._menuChrome = { host, state$, unmount };
+      const unmount = chrome.mountCanvasPopover(host, state$);
+      this._chrome = { host, state$, unmount };
     } else {
-      this._menuChrome.state$.value = menuControls;
-    }
-
-    if (this.includeFrameOrder) {
-      if (!this._embeddedFrameOrder) {
-        this._embeddedFrameOrder = this.ownerDocument.createElement(
-          "edgeless-frame-order-menu",
-        );
-        this._embeddedFrameOrder.embed = true;
-        this._navigatorSettingMenu.append(this._embeddedFrameOrder);
-      }
-      this._embeddedFrameOrder.edgeless = this.edgeless;
-    } else if (this._embeddedFrameOrder) {
-      this._embeddedFrameOrder.remove();
-      this._embeddedFrameOrder = null;
+      this._chrome.state$.value = popoverControls;
     }
   }
 }

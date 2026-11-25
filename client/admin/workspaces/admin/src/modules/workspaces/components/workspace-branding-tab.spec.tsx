@@ -46,12 +46,17 @@ vi.mock("@myoxus/i18n", () => ({
     t: (key: string) => en[key] ?? key,
   }),
 }));
-vi.mock("@myoxus/admin/notifications", () => ({
-  adminToast: {
-    success: (...args: unknown[]) => success(...args),
-    error: (...args: unknown[]) => failure(...args),
-  },
-}));
+vi.mock("@myoxus/ui-facade", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@myoxus/ui-facade")>();
+  return {
+    ...actual,
+    notify: {
+      ...actual.notify,
+      success: (...args: unknown[]) => success(...args),
+      error: (...args: unknown[]) => failure(...args),
+    },
+  };
+});
 vi.mock("../../theme/theme-api", () => ({
   useThemeCatalogQuery: () => ({ ...catalogState, mutate: loadCatalog }),
   useEffectiveThemeProfileQuery: (id: string | null) =>

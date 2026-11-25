@@ -41,7 +41,7 @@ import {
   SettingsSectionHeading,
   SettingsStatusText,
   SettingsToolbar,
-  Skeleton,
+  SettingsSkeleton,
   Stack,
   SurfaceList,
   SurfaceListItem,
@@ -267,7 +267,7 @@ function FilesTab({ templateId }: { templateId: string }) {
   const query = usePdfTemplateFilesQuery(templateId);
   const files = query.files ?? [];
 
-  if (query.isLoading) return <Skeleton h={96} />;
+  if (query.isLoading) return <SettingsSkeleton />;
   if (files.length === 0) {
     return (
       <SettingsStatusText>
@@ -311,7 +311,7 @@ function WorkspacesTab({ templateId }: { templateId: string }) {
   const query = usePdfTemplateAssignedWorkspacesQuery(templateId);
   const assignments = query.assignments ?? [];
 
-  if (query.isLoading) return <Skeleton h={96} />;
+  if (query.isLoading) return <SettingsSkeleton />;
   if (assignments.length === 0) {
     return (
       <SettingsStatusText>
@@ -485,7 +485,7 @@ function PdfJsPreviewCanvas({ pdfBase64 }: { pdfBase64: string }) {
         </PdfPreviewToolbar>
       ) : null}
       <PdfPreviewViewport>
-        {state === "loading" || state === "idle" ? <Skeleton h="70vh" /> : null}
+        {state === "loading" || state === "idle" ? <SettingsSkeleton /> : null}
         <PdfPreviewCanvas
           ref={canvasRef}
           aria-label={i18n.t("admin.pdf-export.detail.preview.aria")}
@@ -534,7 +534,7 @@ function PreviewTab({ template }: { template: PdfTemplateViewModel }) {
       {query.pdfBase64 ? (
         <PdfJsPreviewCanvas pdfBase64={query.pdfBase64} />
       ) : (
-        <Skeleton h="70vh" />
+        <SettingsSkeleton />
       )}
     </Stack>
   );

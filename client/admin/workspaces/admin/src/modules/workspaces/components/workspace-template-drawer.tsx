@@ -6,7 +6,6 @@
  *   - Catalog: browse available templates and assign them to the workspace
  *   - Assigned: view/manage existing template assignments (remove, reconcile)
  */
-import { adminToast as toast } from "@myoxus/admin/notifications";
 import { ProvisioningModeType, SelectionModeType } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
 import {
@@ -15,6 +14,7 @@ import {
   Drawer,
   Group,
   MyoxusSelect,
+  notify,
   SettingsEmptyState,
   SettingsListItemTitle,
   SettingsNotice,
@@ -266,22 +266,22 @@ function CatalogEntry({
         provisioningMode,
         selectionMode: SelectionModeType.Published,
       });
-      toast.success(
-        i18n.t("admin.workspaces.templates.assign-success", {
+      notify.success({
+        title: i18n.t("admin.workspaces.templates.assign-success", {
           title: entry.title,
         }),
-      );
+      });
       setShowModeSelect(false);
       await Promise.all([
         revalidateAssignments(workspaceId),
         revalidateWorkspaceInstances(workspaceId),
       ]);
     } catch (e) {
-      toast.error(
-        i18n.t("admin.workspaces.templates.assign-failed", {
+      notify.error({
+        title: i18n.t("admin.workspaces.templates.assign-failed", {
           message: (e as Error).message,
         }),
-      );
+      });
     }
   }, [
     assignTemplate,
@@ -537,21 +537,21 @@ function AssignmentEntry({
     setRemoveOpen(false);
     try {
       await removeAssignment({ policyId: assignment.id });
-      toast.success(
-        i18n.t("admin.workspaces.templates.remove-success", {
+      notify.success({
+        title: i18n.t("admin.workspaces.templates.remove-success", {
           title: assignment.templateName,
         }),
-      );
+      });
       await Promise.all([
         revalidateAssignments(workspaceId),
         revalidateWorkspaceInstances(workspaceId),
       ]);
     } catch (e) {
-      toast.error(
-        i18n.t("admin.workspaces.templates.remove-failed", {
+      notify.error({
+        title: i18n.t("admin.workspaces.templates.remove-failed", {
           message: (e as Error).message,
         }),
-      );
+      });
     }
   }, [
     assignment.id,
@@ -568,14 +568,16 @@ function AssignmentEntry({
       await reconcile({
         workspaceId,
       });
-      toast.success(i18n.t("admin.workspaces.templates.reconcile-success"));
+      notify.success({
+        title: i18n.t("admin.workspaces.templates.reconcile-success"),
+      });
       await revalidateWorkspaceInstances(workspaceId);
     } catch (e) {
-      toast.error(
-        i18n.t("admin.workspaces.templates.reconcile-failed", {
+      notify.error({
+        title: i18n.t("admin.workspaces.templates.reconcile-failed", {
           message: (e as Error).message,
         }),
-      );
+      });
     }
   }, [i18n, reconcile, revalidateWorkspaceInstances, workspaceId]);
 
@@ -599,23 +601,23 @@ function AssignmentEntry({
         provisioningMode: changePolicy.provisioningMode,
         selectionMode: SelectionModeType.Published,
       });
-      toast.success(
-        i18n.t("admin.workspaces.templates.policy-updated", {
+      notify.success({
+        title: i18n.t("admin.workspaces.templates.policy-updated", {
           title: assignment.templateName,
           mode: changePolicy.provisioningMode,
         }),
-      );
+      });
       setChangePolicy({ active: false });
       await Promise.all([
         revalidateAssignments(workspaceId),
         revalidateWorkspaceInstances(workspaceId),
       ]);
     } catch (e) {
-      toast.error(
-        i18n.t("admin.workspaces.templates.policy-failed", {
+      notify.error({
+        title: i18n.t("admin.workspaces.templates.policy-failed", {
           message: (e as Error).message,
         }),
-      );
+      });
     }
   }, [
     assignTemplate,

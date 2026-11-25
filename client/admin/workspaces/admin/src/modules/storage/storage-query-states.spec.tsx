@@ -40,9 +40,17 @@ vi.mock("../../use-mutation", () => ({
         : mocks.remove,
   }),
 }));
-vi.mock("@myoxus/admin/notifications", () => ({
-  adminToast: { success: mocks.success, error: mocks.error },
-}));
+vi.mock("@myoxus/ui-facade", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@myoxus/ui-facade")>();
+  return {
+    ...actual,
+    notify: {
+      ...actual.notify,
+      success: mocks.success,
+      error: mocks.error,
+    },
+  };
+});
 
 import { OrphanedWorkspacesContent } from "./orphaned-workspaces";
 
@@ -127,7 +135,9 @@ describe("Storage query state and mutation ownership", () => {
     await selectOwner();
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
-      expect(mocks.error).toHaveBeenCalledWith("Failed to reassign owner"),
+      expect(mocks.error).toHaveBeenCalledWith({
+        title: "Failed to reassign owner",
+      }),
     );
     expect(
       (

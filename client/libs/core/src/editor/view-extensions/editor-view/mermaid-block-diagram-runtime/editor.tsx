@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+import { MermaidRuntimePortal } from "../mermaid-runtime-portal";
 import {
   Box,
   Button,
@@ -580,9 +580,7 @@ export function MermaidBlockRuntimeEditor({
           </MyoxusText>
         ) : null}
         {selectedControls}
-        {typeof document !== "undefined"
-          ? createPortal(markers, document.body)
-          : null}
+        <MermaidRuntimePortal>{markers}</MermaidRuntimePortal>
       </Group>
     );
   return (

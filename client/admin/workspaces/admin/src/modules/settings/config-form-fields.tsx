@@ -12,6 +12,7 @@ import { InfoIcon } from "@myoxus/icons/react";
 import {
   Badge,
   Checkbox,
+  ColorInput,
   ErrorMessage,
   FormSelect,
   Input,
@@ -21,7 +22,6 @@ import {
   RadioGroup,
   SettingsControlList,
   SettingsField,
-  SettingsInlineControl,
   SettingsStatusText,
   SettingsSwitchRow,
   TagsInput,
@@ -802,12 +802,6 @@ export function ConfigColorField({
     setValidationError(undefined);
   }, [fallbackText, setValidationError]);
 
-  const pickerValue = useMemo(() => {
-    if (isValidHexColor(text)) return text;
-    if (fallbackColor && isValidHexColor(fallbackColor)) return fallbackColor;
-    return null;
-  }, [fallbackColor, text]);
-
   const handleTextChange = (next: string) => {
     setText(next);
     if (isValidHexColor(next)) {
@@ -831,31 +825,14 @@ export function ConfigColorField({
       provenance={props.provenance}
       error={mergedError}
     >
-      <SettingsInlineControl>
-        {pickerValue ? (
-          <Input
-            aria-label={i18n.t("admin.config.input.color-picker")}
-            type="color"
-            value={pickerValue}
-            disabled={resolvedDisabled}
-            status={mergedError ? "error" : "default"}
-            onChange={(next) => {
-              setText(next);
-              setValidationError(undefined);
-              props.onChange(props.field, next);
-            }}
-          />
-        ) : null}
-        <Input
-          aria-label={copy.title}
-          type="text"
-          value={text}
-          disabled={resolvedDisabled}
-          placeholder={i18n.t("admin.config.input.color-placeholder")}
-          status={mergedError ? "error" : "default"}
-          onChange={handleTextChange}
-        />
-      </SettingsInlineControl>
+      <ColorInput
+        aria-label={copy.title}
+        value={text}
+        disabled={resolvedDisabled}
+        placeholder={i18n.t("admin.config.input.color-placeholder")}
+        error={Boolean(mergedError)}
+        onChange={handleTextChange}
+      />
     </FieldFrame>
   );
 }

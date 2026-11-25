@@ -8,6 +8,7 @@ import {
   readC4RelationshipAppearance,
   type C4ReactHostProps,
 } from "@virgultum/block-mermaid";
+import { useMermaidCaptureDrag } from "../mermaid-runtime-portal";
 
 type Offset = { offsetX: number; offsetY: number };
 /** Pointer and keyboard drafts share the Source command; only release/Enter writes history. */
@@ -21,7 +22,7 @@ export function C4LabelOffsetHandle({
   const t = useI18n(),
     latest = useRef(props),
     candidate = useRef<Offset | null>(null),
-    gesture = useRef<(() => void) | null>(null),
+    drag = useMermaidCaptureDrag(),
     preview = useRef<(() => void) | null>(null),
     basis = useRef(props.sourceBasis),
     viewport = useRef(props.viewportIdentity),
@@ -32,8 +33,7 @@ export function C4LabelOffsetHandle({
     preview.current = null;
   };
   const cancel = () => {
-    gesture.current?.();
-    gesture.current = null;
+    drag.cancel();
     clearPreview();
     candidate.current = null;
   };
@@ -114,8 +114,7 @@ export function C4LabelOffsetHandle({
             commit();
             return;
           }
-          gesture.current?.();
-          gesture.current = null;
+          drag.cancel();
           const current =
             candidate.current ??
             readC4RelationshipAppearance(latest.current.model, selectionId);
@@ -172,23 +171,17 @@ export function C4LabelOffsetHandle({
               offsetY: Math.trunc(initial.offsetY + point.y - start.y),
             });
           };
-          const cleanup = () => {
-            document.removeEventListener("pointermove", move, true);
-            document.removeEventListener("pointerup", up, true);
-            document.removeEventListener("pointercancel", abort, true);
-          };
-          const up = (event: PointerEvent) => {
-            if (event.pointerId !== pointerId) return;
-            move(event);
-            commit();
-          };
-          const abort = (event: PointerEvent) => {
-            if (event.pointerId === pointerId) cancel();
-          };
-          gesture.current = cleanup;
-          document.addEventListener("pointermove", move, true);
-          document.addEventListener("pointerup", up, true);
-          document.addEventListener("pointercancel", abort, true);
+          drag.start({
+            onMove: move,
+            onUp: (event) => {
+              if (event.pointerId !== pointerId) return;
+              move(event);
+              commit();
+            },
+            onCancel: (event) => {
+              if (!event || event.pointerId === pointerId) cancel();
+            },
+          });
         }}
       >
         <GripVerticalIcon />

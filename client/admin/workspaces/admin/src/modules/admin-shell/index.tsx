@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 /**
  * Shared Admin shell primitives.
  *
@@ -27,15 +30,12 @@ export type AdminSubnavItem = {
   badge?: ReactNode;
   disabled?: boolean;
   testId?: string;
-  className?: string;
 };
 
 export function AdminPageFrame({
   title,
   actions,
   children,
-  className,
-  bodyClassName,
   routeAnchor,
   testId = "admin-page-frame",
 }: {
@@ -43,8 +43,6 @@ export function AdminPageFrame({
   /** Page-wide actions/status stay with the stable title, outside tab panels. */
   actions?: ReactNode;
   children: ReactNode;
-  className?: string;
-  bodyClassName?: string;
   /** Stable route-level anchor consumed by the live Admin UI facade E2E matrix. */
   routeAnchor?: string;
   testId?: string;
@@ -55,7 +53,6 @@ export function AdminPageFrame({
       data-admin-route-anchor={routeAnchor}
       data-admin-shell
       data-testid={testId}
-      className={className}
       data-myoxus-ui-role="admin-page-frame"
     >
       <VisuallyHidden aria-hidden data-testid="admin-page-title">
@@ -67,10 +64,7 @@ export function AdminPageFrame({
       <PageContentRail width="data" scroll>
         <SettingsPageHeader title={title} actions={actions} />
       </PageContentRail>
-      <PageFrameBody
-        className={bodyClassName}
-        data-myoxus-ui-role="admin-page-frame-body"
-      >
+      <PageFrameBody data-myoxus-ui-role="admin-page-frame-body">
         {children}
       </PageFrameBody>
     </PageFrame>
@@ -79,27 +73,19 @@ export function AdminPageFrame({
 
 export function AdminPageScroll({
   children,
-  className,
-  contentClassName,
   gap,
   width = "data",
 }: {
   children: ReactNode;
-  className?: string;
-  contentClassName?: string;
   gap?: "spacious";
   width?: AdminPageWidth;
 }) {
   return (
-    <PageScrollViewport
-      className={className}
-      data-myoxus-ui-role="admin-page-scroll"
-    >
+    <PageScrollViewport data-myoxus-ui-role="admin-page-scroll">
       <PageContentRail
         width={width}
         scroll
         spacious={gap === "spacious"}
-        className={contentClassName}
         data-myoxus-ui-role="admin-page-scroll-rail"
       >
         {children}
@@ -111,14 +97,10 @@ export function AdminPageScroll({
 export function AdminSubnav({
   children,
   items,
-  className,
-  contentClassName,
   width = "data",
 }: {
   children?: ReactNode;
   items?: readonly AdminSubnavItem[];
-  className?: string;
-  contentClassName?: string;
   width?: AdminPageWidth;
 }) {
   const content = items ? (
@@ -129,7 +111,6 @@ export function AdminSubnav({
           value={item.value}
           disabled={item.disabled}
           data-testid={item.testId}
-          className={item.className}
           leftSection={item.icon}
           rightSection={item.badge}
         >
@@ -145,9 +126,6 @@ export function AdminSubnav({
     <PageContentRail
       width={width}
       data-testid="admin-page-subnav"
-      className={
-        [className, contentClassName].filter(Boolean).join(" ") || undefined
-      }
       data-myoxus-ui-role="admin-page-subnav"
     >
       {content}

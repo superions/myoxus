@@ -203,13 +203,7 @@ function EditablePage(props: EditorProps) {
       const request = pending.current;
       pending.current = null;
       const abort = new AbortController();
-      if (
-        request &&
-        (request.range ||
-          request.intent?.kind === "block-paste" ||
-          request.intent?.kind === "block-command" ||
-          request.intent?.kind === "table-cell")
-      )
+      if (request && (request.range || request.intent?.kind === "table-cell"))
         void import("./page-handoff")
           .then(async ({ resumePageIntent }) => {
             if (!abort.signal.aborted)

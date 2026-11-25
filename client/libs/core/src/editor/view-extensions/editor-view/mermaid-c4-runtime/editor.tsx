@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { useState } from "react";
-import { createPortal } from "react-dom";
+import { MermaidRuntimePortal } from "../mermaid-runtime-portal";
 import {
   Box,
   Button,
@@ -280,7 +280,7 @@ export function MermaidC4RuntimeEditor({
       >
         {selectionBounds ? (
           <>
-            {createPortal(
+            <MermaidRuntimePortal>
               <PopoverTarget>
                 {/* Only the reference uses renderer geometry. Native flip/shift
                     keeps the form beside the body while its trigger stays in its slot. */}
@@ -290,9 +290,8 @@ export function MermaidC4RuntimeEditor({
                 >
                   <VisuallyHidden>{selectionLabel}</VisuallyHidden>
                 </Box>
-              </PopoverTarget>,
-              document.body,
-            )}
+              </PopoverTarget>
+            </MermaidRuntimePortal>
             {selectionButton}
           </>
         ) : (
@@ -443,7 +442,9 @@ export function MermaidC4RuntimeEditor({
             </PopoverContent>
           </Popover>
         ) : null}
-        {markers ? createPortal(markers, document.body) : null}
+        {markers ? (
+          <MermaidRuntimePortal>{markers}</MermaidRuntimePortal>
+        ) : null}
       </Group>
     );
   }

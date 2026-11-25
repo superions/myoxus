@@ -13,11 +13,9 @@ import { adminDashboardQuery } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
 import { ROUTES } from "@myoxus/routes";
 import {
+  AreaChart,
+  type AreaChartProps,
   Button,
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
   DashboardChartAxis,
   DashboardChartFrame,
   DashboardSignalBar,
@@ -50,14 +48,6 @@ import {
 } from "@myoxus/ui-facade";
 import { type ReactNode, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router";
-import {
-  Area,
-  CartesianGrid,
-  ComposedChart,
-  Line,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 import { useMutateQueryResource } from "../../use-mutation";
 import { AdminPageFrame, AdminPageScroll } from "../admin-shell";
@@ -329,7 +319,6 @@ function TrendChart({
   primaryLabel,
   primaryFormatter,
   secondaryLabel,
-  secondaryFormatter,
   start,
   end,
 }: {
@@ -338,15 +327,10 @@ function TrendChart({
   primaryLabel: string;
   primaryFormatter: (value: number) => string;
   secondaryLabel?: string;
-  secondaryFormatter?: (value: number) => string;
   start: string;
   end: string;
 }) {
   const i18n = useI18n();
-  const formatters = useMemo(
-    () => createDashboardFormatters(i18n.language),
-    [i18n.language],
-  );
   if (points.length === 0) {
     return (
       <Stack>
@@ -356,105 +340,54 @@ function TrendChart({
     );
   }
 
-  const chartPoints = points;
   const hasSecondary =
     Boolean(secondaryLabel) &&
-    chartPoints.some((point) => typeof point.secondary === "number");
-  const config: ChartConfig = {
-    primary: { label: primaryLabel, color: "var(--myoxus-text-primary-color)" },
+    points.some((point) => typeof point.secondary === "number");
+  const series: AreaChartProps["series"] = [
+    {
+      name: "primary",
+      label: primaryLabel,
+      color: "myoxus-text-primary.6",
+    },
     ...(hasSecondary
-      ? {
-          secondary: {
+      ? [
+          {
+            name: "secondary",
             label: secondaryLabel,
-            color: "var(--myoxus-processing-color)",
+            color: "myoxusInfo.6",
+            strokeDasharray: "6 4",
           },
-        }
-      : {}),
-  };
+        ]
+      : []),
+  ];
 
   return (
     <Stack>
       <DashboardChartFrame aria-label={ariaLabel} role="img">
-        <ChartContainer config={config}>
-          <ComposedChart
-            data={chartPoints}
-            margin={{ top: 8, right: 0, bottom: 0, left: 0 }}
-          >
-            <CartesianGrid
-              vertical={false}
-              stroke="var(--myoxus-border-color)"
-              strokeDasharray="3 4"
-            />
-            <XAxis
-              dataKey="x"
-              type="number"
-              hide
-              allowDecimals={false}
-              domain={["dataMin", "dataMax"]}
-            />
-            <YAxis
-              hide
-              domain={[
-                0,
-                (max: number) => (max <= 0 ? 1 : Math.ceil(max * 1.1)),
-              ]}
-            />
-            <ChartTooltip
-              cursor={{
-                stroke: "var(--myoxus-border-color)",
-                strokeDasharray: "4 4",
-                strokeWidth: 1,
-              }}
-              content={
-                <ChartTooltipContent
-                  labelFormatter={(_, payload) =>
-                    payload?.[0]?.payload?.label ?? ""
-                  }
-                  valueFormatter={(value, key) =>
-                    key === "secondary"
-                      ? secondaryFormatter
-                        ? secondaryFormatter(value)
-                        : formatters.int.format(value)
-                      : primaryFormatter(value)
-                  }
-                />
-              }
-            />
-            <Area
-              dataKey="primary"
-              type="monotone"
-              fill="var(--color-primary)"
-              fillOpacity={0.12}
-              stroke="none"
-              isAnimationActive={false}
-            />
-            <Line
-              dataKey="primary"
-              type="monotone"
-              stroke="var(--color-primary)"
-              strokeWidth={3}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              dot={points.length === 1 ? { r: 3 } : false}
-              activeDot={{ r: 4 }}
-              isAnimationActive={false}
-            />
-            {hasSecondary ? (
-              <Line
-                dataKey="secondary"
-                type="monotone"
-                stroke="var(--color-secondary)"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                dot={points.length === 1 ? { r: 3 } : false}
-                activeDot={{ r: 3 }}
-                strokeDasharray="6 4"
-                isAnimationActive={false}
-              />
-            ) : null}
-          </ComposedChart>
-        </ChartContainer>
+        <AreaChart
+          h="100%"
+          data={points}
+          dataKey="label"
+          series={series}
+          curveType="monotone"
+          withXAxis={false}
+          withYAxis={false}
+          gridAxis="x"
+          strokeDasharray="3 4"
+          strokeWidth={2}
+          fillOpacity={0.12}
+          withDots={points.length === 1}
+          dotProps={{ r: 3 }}
+          activeDotProps={{ r: 4 }}
+          connectNulls={false}
+          valueFormatter={primaryFormatter}
+          yAxisProps={{
+            domain: [0, (max: number) => (max <= 0 ? 1 : Math.ceil(max * 1.1))],
+          }}
+          areaProps={{
+            isAnimationActive: false,
+          }}
+        />
       </DashboardChartFrame>
       <DashboardChartAxis start={start} end={end} />
     </Stack>
@@ -1438,7 +1371,6 @@ function DashboardOverview({
                 primaryLabel={i18n.t("admin.dashboard.workspace-storage")}
                 primaryFormatter={(value) => formatBytes(value)}
                 secondaryLabel={i18n.t("admin.dashboard.blob-storage")}
-                secondaryFormatter={(value) => formatBytes(value)}
               />
             </Stack>
             <Stack component="section">

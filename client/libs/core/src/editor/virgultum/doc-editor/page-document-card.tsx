@@ -11,7 +11,7 @@ import {
 import { createPortal } from "react-dom";
 import { effect } from "@preact/signals-core";
 import { useI18n } from "@myoxus/i18n";
-import { useService } from "@myoxus/infra";
+import { useFramework, useService } from "@myoxus/infra";
 import { MyoxusText, ReferenceCard } from "@myoxus/ui-facade";
 import { LinkIcon } from "@myoxus/icons/react";
 import { nanoid } from "nanoid";
@@ -20,7 +20,7 @@ import type {
   EmbedSyncedDocModel,
   NoteBlockModel,
 } from "@virgultum/core/models";
-import type { BlockModel } from "@virgultum/core/store";
+import { Text, type BlockModel } from "@virgultum/core/store";
 import { supportedText } from "./plain-page-model";
 import { pageTextRun } from "./page-text-run";
 import { EMBED_CARD_HEIGHT, EMBED_CARD_WIDTH } from "@virgultum/core/consts";
@@ -31,6 +31,17 @@ import { WorkbenchService } from "../../../modules/workbench";
 import { PeekViewService } from "../../../modules/peek-view";
 import { useNavigateHelper } from "../../../components/hooks/use-navigate-helper";
 import { EditorDocumentCard } from "../../view-extensions/editor-view/editor-chrome/document-card";
+import { EditorEmbedCardEdit } from "../../view-extensions/editor-view/editor-chrome/embed-card-edit";
+import { EditorSelectionToolbar } from "../../view-extensions/editor-view/editor-chrome/selection-toolbar";
+import {
+  copyOrCutPageBlock,
+  deletePageBlock,
+  duplicatePageBlock,
+  leaveAtomicPageBlock,
+  notifyCopied,
+  pasteAfterPageBlock,
+} from "./page-block-actions";
+import { usePageFloatingAnchor } from "./page-floating-anchor";
 import type { PageBookmark, PageIntent } from "./plain-page-input";
 import { readRasterSurface } from "./raster-surface";
 import type { SurfaceBlockModel } from "@virgultum/core/runtime/gfx";
@@ -89,6 +100,7 @@ export default function PageDocumentCard({
 }) {
   const caption = usePageCaption(model, readonly);
   const t = useI18n(),
+    framework = useFramework(),
     guard = useService(GuardService),
     docs = useService(DocsService),
     workspace = useService(WorkspaceService).workspace;
@@ -284,20 +296,198 @@ export default function PageDocumentCard({
       (style === "cube"
         ? stamp.toLocaleTimeString(t.language)
         : stamp.toLocaleString(t.language));
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [selected, setSelected] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const [floating, setFloating] = useState<HTMLElement | null>(null);
+  const writable = () =>
+    !readonly &&
+    !model.store.readonly &&
+    model.store.getModelById(model.id) === model;
+  usePageFloatingAnchor({
+    active: selected || editing,
+    reference: cardRef.current,
+    anchor,
+    floating,
+    onDismiss: () => {
+      setSelected(false);
+      setEditing(false);
+    },
+  });
+  const switchDocView = (nextKind: "inline" | "linked" | "synced") => {
+    if (!writable()) return;
+    const store = model.store;
+    const parent = store.getParent(model);
+    if (!parent) return;
+    const index = parent.children.indexOf(model);
+    if (index < 0) return;
+    if (nextKind === "inline") {
+      const refText = new Text();
+      refText.insert(" ", 0, {
+        reference: {
+          type: synced ? "Subpage" : "LinkedPage",
+          pageId: model.props.pageId,
+          params: model.props.params,
+        },
+      });
+      store.captureSync();
+      store.transact(() => {
+        store.addBlock("myoxus:paragraph", { text: refText }, parent, index);
+        store.deleteBlock(model);
+      });
+      store.captureSync();
+      setSelected(false);
+      return;
+    }
+    const targetFlavour =
+      nextKind === "synced"
+        ? "myoxus:embed-synced-doc"
+        : "myoxus:embed-linked-doc";
+    if (model.flavour === targetFlavour) return;
+    store.captureSync();
+    store.transact(() => {
+      store.addBlock(
+        targetFlavour,
+        {
+          pageId: model.props.pageId,
+          params: model.props.params,
+          caption: model.props.caption,
+        },
+        parent,
+        index,
+      );
+      store.deleteBlock(model);
+    });
+    store.captureSync();
+    setSelected(false);
+  };
   const select = (e: React.MouseEvent) => {
     if (!synced && (e.ctrlKey || e.metaKey || e.button === 1)) {
       open(e, false);
       return;
     }
-    if (!readonly && !model.store.readonly)
-      handoff(null, {
-        kind: "block-command",
-        id: model.id,
-        flavour: model.flavour,
-      });
+    if (!readonly && !model.store.readonly) {
+      setSelected(true);
+      cardRef.current?.focus({ preventScroll: true });
+    }
+  };
+  const toolbarState = {
+    open: selected && !editing && !readonly,
+    key: model.id,
+    placement: "top" as const,
+    primary: [
+      {
+        id: "open",
+        label: label || t.Untitled(),
+        icon: "LinkedPageIcon" as const,
+        showLabel: true,
+        disabled: !state?.target,
+        run: (_el: HTMLElement, e: MouseEvent) =>
+          open(e as unknown as React.MouseEvent, false),
+      },
+      {
+        id: "peek",
+        label: t["com.myoxus.editor.toolbar.open-in-peek"](),
+        icon: "CenterPeekIcon" as const,
+        disabled: !state?.target,
+        run: (_el: HTMLElement, e: MouseEvent) =>
+          open(e as unknown as React.MouseEvent, true),
+      },
+      ...(!synced
+        ? [
+            {
+              id: "edit",
+              label: t["com.myoxus.editor.toolbar.edit-description"](),
+              icon: "EditIcon" as const,
+              disabled: false,
+              run: () => setEditing(true),
+            },
+          ]
+        : []),
+      {
+        id: "switch-view",
+        label: t["com.myoxus.keyboardShortcuts.switch"](),
+        icon: "LinkIcon" as const,
+        disabled: false,
+        control: {
+          type: "choice" as const,
+          value: synced ? "synced" : "linked",
+          options: [
+            {
+              value: "inline",
+              label: t["com.myoxus.editor.toolbar.inline-view"](),
+            },
+            {
+              value: "linked",
+              label: t["com.myoxus.editor.toolbar.card-view"](),
+            },
+            {
+              value: "synced",
+              label: t["com.myoxus.editor.toolbar.embed-view"](),
+            },
+          ],
+          change: (value: string) => {
+            if (value === "inline" || value === "linked" || value === "synced")
+              switchDocView(value);
+          },
+        },
+      },
+      {
+        id: "caption",
+        label: t["com.myoxus.editor.toolbar.caption"](),
+        icon: "CaptionIcon" as const,
+        disabled: false,
+        run: caption.show,
+      },
+    ],
+    more: [
+      {
+        id: "reload",
+        label: t["com.myoxus.editor.toolbar.reload"](),
+        icon: "ResetIcon" as const,
+        disabled: false,
+        run: () => setRetry((n) => n + 1),
+      },
+      {
+        id: "copy",
+        label: t["Copy"](),
+        icon: "CopyIcon" as const,
+        disabled: false,
+        run: () => {
+          const abort = new AbortController();
+          void copyOrCutPageBlock(model, "copy", framework, abort.signal)
+            .then(() => notifyCopied(t["Copied to clipboard"]()))
+            .catch(console.error);
+          setSelected(false);
+        },
+      },
+      {
+        id: "duplicate",
+        label: t["com.myoxus.editor.keyboard.duplicate"](),
+        icon: "DuplicateIcon" as const,
+        disabled: false,
+        run: () => {
+          duplicatePageBlock(model);
+          setSelected(false);
+        },
+      },
+      {
+        id: "delete",
+        label: t["Delete"](),
+        icon: "DeleteIcon" as const,
+        variant: "destructive" as const,
+        disabled: false,
+        run: () => {
+          deletePageBlock(model);
+          setSelected(false);
+        },
+      },
+    ],
   };
   return (
     <div
+      ref={cardRef}
       data-block-id={model.id}
       data-page-doc-card={model.flavour}
       contentEditable={false}
@@ -308,6 +498,49 @@ export default function PageDocumentCard({
       }}
       onDoubleClick={(e) => {
         if (!synced) open(e, true);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          setSelected(false);
+          setEditing(false);
+          return;
+        }
+        if (e.target !== cardRef.current || !writable()) return;
+        if (
+          ["Delete", "Backspace", "Enter", "ArrowDown", "ArrowUp"].includes(
+            e.key,
+          )
+        ) {
+          e.preventDefault();
+          leaveAtomicPageBlock(
+            cardRef.current.closest<HTMLElement>("[data-page-renderer]"),
+            model,
+            e.key === "ArrowUp" || e.key === "Backspace" ? -1 : 1,
+            e.key === "Delete" || e.key === "Backspace",
+            e.key === "Enter",
+          );
+        }
+      }}
+      onCopy={(e) => {
+        if (document.activeElement !== cardRef.current) return;
+        e.preventDefault();
+        const abort = new AbortController();
+        void copyOrCutPageBlock(model, "copy", framework, abort.signal).catch(
+          console.error,
+        );
+      }}
+      onCut={(e) => {
+        if (document.activeElement !== cardRef.current || !writable()) return;
+        e.preventDefault();
+        const abort = new AbortController();
+        void copyOrCutPageBlock(model, "cut", framework, abort.signal).catch(
+          console.error,
+        );
+      }}
+      onPaste={(e) => {
+        if (document.activeElement !== cardRef.current || !writable()) return;
+        e.preventDefault();
+        void pasteAfterPageBlock(model, e.clipboardData).catch(console.error);
       }}
     >
       {state?.canvas ? (
@@ -362,6 +595,53 @@ export default function PageDocumentCard({
           )
         : null}
       {caption.field}
+      {selected && !editing && !readonly ? (
+        <EditorSelectionToolbar
+          controls={{
+            getSnapshot: () => toolbarState,
+            subscribe: () => () => {},
+            setAnchor,
+            setFloating,
+            activate: () => cardRef.current?.focus({ preventScroll: true }),
+            dismiss: () => setSelected(false),
+          }}
+        />
+      ) : null}
+      {editing && !synced && !readonly ? (
+        <EditorEmbedCardEdit
+          controls={{
+            mode: "linked",
+            internal: true,
+            title: title ?? "",
+            description: description ?? "",
+            canReset: Boolean(title || description),
+            reset: () => {
+              if (writable()) {
+                model.store.captureSync();
+                model.store.updateBlock(model, {
+                  title: null,
+                  description: null,
+                });
+                model.store.captureSync();
+              }
+              setEditing(false);
+            },
+            setAnchor,
+            confirm: (nextTitle, nextDescription) => {
+              if (writable()) {
+                model.store.captureSync();
+                model.store.updateBlock(model, {
+                  title: nextTitle.trim() || null,
+                  description: nextDescription.trim() || null,
+                });
+                model.store.captureSync();
+              }
+              setEditing(false);
+            },
+            close: () => setEditing(false),
+          }}
+        />
+      ) : null}
     </div>
   );
 }

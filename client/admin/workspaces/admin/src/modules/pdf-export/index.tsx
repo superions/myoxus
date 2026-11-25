@@ -26,7 +26,12 @@
  *  - `docs/ops/data/pdf-export-templates.md` (operator runbook)
  */
 import { useI18n } from "@myoxus/i18n";
-import { Stack, Tabs, TabsContent } from "@myoxus/ui-facade";
+import {
+  SettingsDetailHeader,
+  Stack,
+  Tabs,
+  TabsContent,
+} from "@myoxus/ui-facade";
 
 import { AdminPageFrame, AdminPageScroll, AdminSubnav } from "../admin-shell";
 import { useUrlSyncedAdminTab } from "../admin-tabs";
@@ -36,7 +41,6 @@ import { JobsTab } from "./components/jobs-tab";
 import { SettingsTab } from "./components/settings-tab";
 import { TemplatesTab } from "./components/templates-tab";
 import { WorkspacesTab } from "./components/workspaces-tab";
-import { PdfTabFrame } from "./pdf-role-primitives";
 
 const TAB_IDS = [
   "templates",
@@ -90,63 +94,81 @@ export function PdfExportPage() {
         <AdminPageScroll>
           <Stack>
             <TabsContent value="templates">
-              <PdfTabFrame
-                title={i18n.t("admin.pdf-export.tab.templates")}
-                description={i18n.t(
-                  "admin.pdf-export.tab.templates.description",
-                )}
-              >
+              <Stack component="section">
+                <SettingsDetailHeader
+                  title={i18n.t("admin.pdf-export.tab.templates")}
+                  description={i18n.t(
+                    "admin.pdf-export.tab.templates.description",
+                  )}
+                  headingLevel={2}
+                  divider={false}
+                />
                 <TemplatesTab />
-              </PdfTabFrame>
+              </Stack>
             </TabsContent>
 
             <TabsContent value="workspaces">
-              <PdfTabFrame
-                title={i18n.t("admin.pdf-export.tab.workspaces")}
-                description={i18n.t(
-                  "admin.pdf-export.tab.workspaces.description",
-                )}
-              >
+              <Stack component="section">
+                <SettingsDetailHeader
+                  title={i18n.t("admin.pdf-export.tab.workspaces")}
+                  description={i18n.t(
+                    "admin.pdf-export.tab.workspaces.description",
+                  )}
+                  headingLevel={2}
+                  divider={false}
+                />
                 <WorkspacesTab />
-              </PdfTabFrame>
+              </Stack>
             </TabsContent>
 
             <TabsContent value="brand">
-              <PdfTabFrame
-                title={i18n.t("admin.pdf-export.tab.brand")}
-                description={i18n.t("admin.pdf-export.tab.brand.description")}
-              >
+              <Stack component="section">
+                <SettingsDetailHeader
+                  title={i18n.t("admin.pdf-export.tab.brand")}
+                  description={i18n.t("admin.pdf-export.tab.brand.description")}
+                  headingLevel={2}
+                  divider={false}
+                />
                 <BrandAssetsTab />
-              </PdfTabFrame>
+              </Stack>
             </TabsContent>
 
             <TabsContent value="icc">
-              <PdfTabFrame
-                title={i18n.t("admin.pdf-export.tab.icc")}
-                description={i18n.t("admin.pdf-export.tab.icc.description")}
-              >
+              <Stack component="section">
+                <SettingsDetailHeader
+                  title={i18n.t("admin.pdf-export.tab.icc")}
+                  description={i18n.t("admin.pdf-export.tab.icc.description")}
+                  headingLevel={2}
+                  divider={false}
+                />
                 <IccProfilesTab />
-              </PdfTabFrame>
+              </Stack>
             </TabsContent>
 
             <TabsContent value="jobs">
-              <PdfTabFrame
-                title={i18n.t("admin.pdf-export.tab.jobs")}
-                description={i18n.t("admin.pdf-export.tab.jobs.description")}
-              >
+              <Stack component="section">
+                <SettingsDetailHeader
+                  title={i18n.t("admin.pdf-export.tab.jobs")}
+                  description={i18n.t("admin.pdf-export.tab.jobs.description")}
+                  headingLevel={2}
+                  divider={false}
+                />
                 <JobsTab />
-              </PdfTabFrame>
+              </Stack>
             </TabsContent>
 
             <TabsContent value="settings">
-              <PdfTabFrame
-                title={i18n.t("admin.pdf-export.tab.settings")}
-                description={i18n.t(
-                  "admin.pdf-export.tab.settings.description",
-                )}
-              >
+              <Stack component="section">
+                <SettingsDetailHeader
+                  title={i18n.t("admin.pdf-export.tab.settings")}
+                  description={i18n.t(
+                    "admin.pdf-export.tab.settings.description",
+                  )}
+                  headingLevel={2}
+                  divider={false}
+                />
                 <SettingsTab />
-              </PdfTabFrame>
+              </Stack>
             </TabsContent>
           </Stack>
         </AdminPageScroll>

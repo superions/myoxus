@@ -8,6 +8,7 @@ import {
   type GitGraphReactHostProps,
   type GitGraphInsertAnchor,
 } from "@virgultum/block-mermaid";
+import { useMermaidCaptureDrag } from "../mermaid-runtime-portal";
 /** Explicit temporal handle: generic canvas drag never enters this command. */
 export function GitGraphReorderHandle({
   props,
@@ -21,14 +22,13 @@ export function GitGraphReorderHandle({
     latest = useRef(props),
     basis = useRef(props.sourceBasis),
     dragged = useRef(false),
-    dispose = useRef<(() => void) | null>(null);
+    drag = useMermaidCaptureDrag();
   latest.current = props;
-  useEffect(() => () => dispose.current?.(), []);
   useEffect(() => {
-    dispose.current?.();
+    drag.cancel();
     basis.current = props.sourceBasis;
     setTarget(null);
-  }, [props.sourceBasis, props.readonly, props.selected?.sourceKey]);
+  }, [props.sourceBasis, props.readonly, props.selected?.sourceKey, drag]);
   const execute = (preview: boolean, anchor: GitGraphInsertAnchor) => {
     const p = latest.current;
     if (p.selectionProblem) {
@@ -112,55 +112,46 @@ export function GitGraphReorderHandle({
           // Escape can cancel while the pointer is still held. Keep its release
           // on the handle so the canvas cannot treat it as a fresh object hit.
           e.currentTarget.setPointerCapture(e.pointerId);
-          dispose.current?.();
+          drag.cancel();
           basis.current = props.sourceBasis;
           dragged.current = false;
           let candidate: GitGraphInsertAnchor | null = null;
-          const move = (event: PointerEvent) => {
-            dragged.current = true;
-            const p = latest.current,
-              next = p.resolveSequenceAnchor(
-                { left: event.clientX, top: event.clientY },
-                p.selectedKeys[0] ?? "",
-              );
-            if (
-              next?.sourceKey === candidate?.sourceKey &&
-              next?.position === candidate?.position
-            )
-              return;
-            candidate = next;
-            setTarget(next);
-            if (next) execute(true, next);
-            else p.onCancelPreview();
-          };
-          const cleanup = () => {
-            document.removeEventListener("pointermove", move, true);
-            document.removeEventListener("pointerup", up, true);
-            document.removeEventListener("pointercancel", cancel, true);
-            document.removeEventListener("keydown", key, true);
-            latest.current.onCancelPreview();
-            setTarget(null);
-            dispose.current = null;
-          };
-          const up = () => {
-            const anchor = candidate;
-            if (anchor) execute(false, anchor);
-            cleanup();
-          };
-          const cancel = () => cleanup();
-          const key = (event: KeyboardEvent) => {
-            if (event.key === "Escape") {
-              consumeMyoxusEditorEscape(event);
-              event.preventDefault();
-              event.stopImmediatePropagation();
+          const cleanup = drag.start({
+            onMove: (event) => {
+              dragged.current = true;
+              const p = latest.current,
+                next = p.resolveSequenceAnchor(
+                  { left: event.clientX, top: event.clientY },
+                  p.selectedKeys[0] ?? "",
+                );
+              if (
+                next?.sourceKey === candidate?.sourceKey &&
+                next?.position === candidate?.position
+              )
+                return;
+              candidate = next;
+              setTarget(next);
+              if (next) execute(true, next);
+              else p.onCancelPreview();
+            },
+            onUp: () => {
+              const anchor = candidate;
+              if (anchor) execute(false, anchor);
               cleanup();
-            }
-          };
-          dispose.current = cleanup;
-          document.addEventListener("pointermove", move, true);
-          document.addEventListener("pointerup", up, true);
-          document.addEventListener("pointercancel", cancel, true);
-          document.addEventListener("keydown", key, true);
+            },
+            onKeyDown: (event) => {
+              if (event.key === "Escape") {
+                consumeMyoxusEditorEscape(event);
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                cleanup();
+              }
+            },
+            onCleanup: () => {
+              latest.current.onCancelPreview();
+              setTarget(null);
+            },
+          });
         }}
       >
         <SortIcon />

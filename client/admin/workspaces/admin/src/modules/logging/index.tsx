@@ -28,6 +28,7 @@ import {
   Input,
   MonoText,
   MyoxusSelect,
+  NumberInput,
   SettingsNotice,
   SettingsSkeleton,
   SettingsField,
@@ -575,14 +576,16 @@ export function LoggingContent() {
           </SettingsField>
 
           <SettingsField label={i18n.t("admin.logging.max-files")}>
-            <Input
-              type="number"
+            <NumberInput
               aria-label={i18n.t("admin.logging.max-files")}
               min={1}
               max={365}
               step={1}
+              allowDecimal={false}
               value={maxFiles}
-              onChange={handleMaxFilesChange}
+              onChange={(value) =>
+                handleMaxFilesChange(value === "" ? "" : String(value))
+              }
               onBlur={handleMaxFilesBlur}
             />
           </SettingsField>

@@ -10,9 +10,21 @@ import { ArchiveRestoreIcon } from "@myoxus/icons/react";
 import {
   Button,
   Group,
+  MetricStack,
+  MonoText,
   notify,
+  SettingsDefinitionItem,
+  SettingsDefinitionList,
+  SettingsDetailHeader,
   SettingsEmptyState,
+  SettingsListItemMeta,
+  SettingsListItemTitle,
   SettingsSkeleton,
+  SettingsStatusText,
+  Stack,
+  SurfaceList,
+  SurfaceListItem,
+  SurfaceListItemMain,
 } from "@myoxus/ui-facade";
 import { Suspense, useCallback } from "react";
 
@@ -28,15 +40,6 @@ import {
   templateDisplayTitle,
   translateTemplateCategory,
 } from "./localized-builtins";
-import {
-  MetaField,
-  MetaGrid,
-  SoftList,
-  SoftListItem,
-  TemplateCardTitle,
-  TemplateShoulder,
-  TemplateTabFrame,
-} from "./template-role-primitives";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -92,42 +95,53 @@ function ArchiveContent() {
   );
 
   return (
-    <TemplateTabFrame
-      title={i18n.t("admin.templates.archive.title")}
-      description={i18n.t("admin.templates.archive.description", {
-        count: totalCount,
-      })}
-      shoulder={
-        <TemplateShoulder
-          rows={[
-            {
-              label: i18n.t("admin.templates.archive.metric.count"),
-              value: totalCount,
-              tone: totalCount > 0 ? "warning" : "neutral",
-            },
-          ]}
-        />
-      }
-    >
+    <Stack component="section">
+      <SettingsDetailHeader
+        title={i18n.t("admin.templates.archive.title")}
+        description={i18n.t("admin.templates.archive.description", {
+          count: totalCount,
+        })}
+        actions={
+          <MetricStack
+            rows={[
+              {
+                label: i18n.t("admin.templates.archive.metric.count"),
+                value: totalCount,
+              },
+            ]}
+          />
+        }
+        headingLevel={2}
+      />
       {entries.length === 0 ? (
         <SettingsEmptyState
           title={i18n.t("admin.templates.archive.empty")}
           description={i18n.t("admin.templates.archive.empty-hint")}
         />
       ) : (
-        <SoftList data-testid="templates-archive-soft-list">
+        <SurfaceList data-testid="templates-archive-soft-list">
           {entries.map((entry: any) => {
             const displayTitle = templateDisplayTitle(i18n, entry);
             const displayDescription = templateDisplayDescription(i18n, entry);
 
             return (
-              <SoftListItem key={entry.id}>
+              <SurfaceListItem key={entry.id}>
                 <Group align="flex-start" justify="space-between" wrap="wrap">
-                  <TemplateCardTitle
-                    title={displayTitle}
-                    subtitle={displayDescription}
-                    mono={entry.slug}
-                  />
+                  <SurfaceListItemMain grow>
+                    <SettingsListItemTitle truncate>
+                      {displayTitle}
+                    </SettingsListItemTitle>
+                    {displayDescription ? (
+                      <SettingsListItemMeta lineClamp={2}>
+                        {displayDescription}
+                      </SettingsListItemMeta>
+                    ) : null}
+                    {entry.slug ? (
+                      <SettingsStatusText mono truncate>
+                        <MonoText>{entry.slug}</MonoText>
+                      </SettingsStatusText>
+                    ) : null}
+                  </SurfaceListItemMain>
                   <Button
                     type="button"
                     variant="plain"
@@ -140,23 +154,25 @@ function ArchiveContent() {
                 <Group align="center" wrap="wrap">
                   <TemplateStatusBadge status="ARCHIVED" />
                 </Group>
-                <MetaGrid>
-                  <MetaField
+                <SettingsDefinitionList>
+                  <SettingsDefinitionItem
                     label={i18n.t("admin.templates.archive.col.category")}
-                    value={translateTemplateCategory(i18n, entry.category)}
-                  />
-                  <MetaField
+                  >
+                    {translateTemplateCategory(i18n, entry.category)}
+                  </SettingsDefinitionItem>
+                  <SettingsDefinitionItem
                     label={i18n.t("admin.templates.archive.col.status")}
-                    value={entry.status ?? "ARCHIVED"}
                     mono
-                  />
-                </MetaGrid>
-              </SoftListItem>
+                  >
+                    {entry.status ?? "ARCHIVED"}
+                  </SettingsDefinitionItem>
+                </SettingsDefinitionList>
+              </SurfaceListItem>
             );
           })}
-        </SoftList>
+        </SurfaceList>
       )}
-    </TemplateTabFrame>
+    </Stack>
   );
 }
 

@@ -22297,6 +22297,28 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.editor.mermaid.quadrant-height"](): string;
   /** Width */
   ["com.myoxus.editor.mermaid.quadrant-width"](): string;
+  /** Minimize window */
+  ["com.myoxus.desktop.window-controls.minimize"](): string;
+  /** Maximize window */
+  ["com.myoxus.desktop.window-controls.maximize"](): string;
+  /** Restore window */
+  ["com.myoxus.desktop.window-controls.restore"](): string;
+  /** Close window */
+  ["com.myoxus.desktop.window-controls.close"](): string;
+  /** No frame */
+  ["com.myoxus.editor.presentation.no-frame"](): string;
+  /** The presentation requires at least 1 frame. Create a frame first. */
+  ["com.myoxus.editor.presentation.no-frame-toast"](): string;
+  /** Edgeless shape */
+  ["com.myoxus.editor.drag-preview.shape"](): string;
+  /** Image block */
+  ["com.myoxus.editor.drag-preview.image"](): string;
+  /** Note block */
+  ["com.myoxus.editor.drag-preview.note"](): string;
+  /** Frame block */
+  ["com.myoxus.editor.drag-preview.frame"](): string;
+  /** Embed block */
+  ["com.myoxus.editor.drag-preview.embed"](): string;
 }
 
 export function useMyoxusI18N(): MyoxusI18nFunctions {

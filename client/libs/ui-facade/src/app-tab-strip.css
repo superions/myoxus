@@ -5,9 +5,15 @@
  * These roles centralize Electron drag-region, split-view overflow and close
  * affordance behavior so product packages do not carry route-local tab CSS.
  */
+:root {
+  --myoxus-app-tab-strip-height: calc(
+    var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)
+  );
+}
+
 .myoxus-app-tab-strip {
   width: 100%;
-  height: calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm));
+  height: var(--myoxus-app-tab-strip-height);
   box-sizing: border-box;
   display: flex;
   align-items: center;

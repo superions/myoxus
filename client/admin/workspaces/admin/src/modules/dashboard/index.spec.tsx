@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 /** @vitest-environment happy-dom */
 import { MyoxusUIProvider } from "@myoxus/ui-facade/provider";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -25,50 +24,28 @@ vi.mock("../operational-readiness-notice", () => ({
   OperationalReadinessNotice: () => null,
 }));
 
-vi.mock("recharts", () => ({
-  ResponsiveContainer: ({ children }: { children: ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
-  ),
-  Tooltip: ({ content }: { content?: ReactNode }) => (
-    <div data-testid="chart-tooltip">{content}</div>
-  ),
-  Area: ({ children }: { children?: ReactNode }) => (
-    <div data-testid="area">{children}</div>
-  ),
-  CartesianGrid: ({ children }: { children?: ReactNode }) => (
-    <div data-testid="grid">{children}</div>
-  ),
-  Line: ({
-    children,
-    strokeLinecap,
-    strokeLinejoin,
-  }: {
-    children?: ReactNode;
-    strokeLinecap?: string;
-    strokeLinejoin?: string;
-  }) => (
-    <div
-      data-testid="line"
-      data-stroke-linecap={strokeLinecap}
-      data-stroke-linejoin={strokeLinejoin}
-    >
-      {children}
-    </div>
-  ),
-  ComposedChart: ({
-    children,
-    data,
-  }: {
-    children?: ReactNode;
-    data: unknown;
-  }) => (
-    <div data-testid="composed-chart" data-points={JSON.stringify(data)}>
-      {children}
-    </div>
-  ),
-  XAxis: () => <div data-testid="x-axis" />,
-  YAxis: () => <div data-testid="y-axis" />,
-}));
+vi.mock("@myoxus/ui-facade", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@myoxus/ui-facade")>();
+  return {
+    ...actual,
+    AreaChart: ({
+      data,
+      series,
+      connectNulls,
+    }: {
+      data: unknown;
+      series: unknown;
+      connectNulls?: boolean;
+    }) => (
+      <div
+        data-testid="mantine-area-chart"
+        data-points={JSON.stringify(data)}
+        data-series={JSON.stringify(series)}
+        data-connect-nulls={String(connectNulls)}
+      />
+    ),
+  };
+});
 
 import { DashboardPage } from "./index";
 
@@ -251,15 +228,14 @@ describe("DashboardPage", () => {
     );
   });
 
-  test("renders dashboard graphs with composed rounded chart lines and sane meter scales", () => {
+  test("renders dashboard graphs with Facade AreaChart and sane meter scales", () => {
     renderDashboard();
 
-    expect(screen.getAllByTestId("composed-chart")).toHaveLength(2);
-    expect(screen.getAllByTestId("area")).toHaveLength(2);
-    for (const line of screen.getAllByTestId("line")) {
-      expect(line.getAttribute("data-stroke-linecap")).toBe("round");
-      expect(line.getAttribute("data-stroke-linejoin")).toBe("round");
-    }
+    const charts = screen.getAllByTestId("mantine-area-chart");
+    expect(charts).toHaveLength(2);
+    expect(charts[0].getAttribute("data-connect-nulls")).toBe("false");
+    expect(JSON.parse(charts[0].getAttribute("data-series")!)).toHaveLength(1);
+    expect(JSON.parse(charts[1].getAttribute("data-series")!)).toHaveLength(2);
 
     expect(
       screen
@@ -298,7 +274,9 @@ describe("DashboardPage", () => {
     });
     renderDashboard();
     const points = JSON.parse(
-      screen.getAllByTestId("composed-chart")[1].getAttribute("data-points")!,
+      screen
+        .getAllByTestId("mantine-area-chart")[1]
+        .getAttribute("data-points")!,
     );
     expect(points).toEqual([
       { label: "2/14/2026", primary: 0, x: 0 },

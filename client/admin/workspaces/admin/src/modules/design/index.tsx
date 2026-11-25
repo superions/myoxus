@@ -9,9 +9,8 @@
  * Brand Identity projection so theme selection never carries logos or PDF
  * defaults.
  */
-import { adminToast as toast } from "@myoxus/admin/notifications";
 import { useI18n } from "@myoxus/i18n";
-import { MetricStack, Tabs, TabsContent } from "@myoxus/ui-facade";
+import { MetricStack, notify, Tabs, TabsContent } from "@myoxus/ui-facade";
 import { useCallback } from "react";
 
 import { AdminPageFrame, AdminPageScroll, AdminSubnav } from "../admin-shell";
@@ -60,10 +59,12 @@ export function DesignPage() {
       if (!themeSlug) return;
       try {
         await setThemeProfile({ themeSlug, themeMode });
-        toast.success(i18n.t("admin.state.saved"));
+        notify.success({ title: i18n.t("admin.state.saved") });
       } catch (error) {
         const message = error instanceof Error ? error.message : undefined;
-        toast.error(message ?? i18n.t("admin.design.failed-save"));
+        notify.error({
+          title: message ?? i18n.t("admin.design.failed-save"),
+        });
       }
     },
     [i18n, setThemeProfile],

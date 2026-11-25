@@ -31,7 +31,7 @@ import {
   type MermaidXyTextForm,
 } from "@virgultum/block-mermaid";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { MermaidRuntimePortal } from "../../mermaid-runtime-portal";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 
 import { ChartEditorSurface, stopEditorEvent } from "../common";
@@ -712,16 +712,15 @@ function MermaidXyRuntimeBody({
   const showCommentMarkers = commentsOpen || props.readonly;
   return (
     <>
-      {showCommentMarkers && props.headerActionTarget
-        ? createPortal(
-            <MermaidXyCommentMarker
-              anchor={{ kind: "diagram" }}
-              onCommand={(command) => Boolean(dispatch(command))}
-              props={props}
-            />,
-            props.headerActionTarget,
-          )
-        : null}
+      {showCommentMarkers && props.headerActionTarget ? (
+        <MermaidRuntimePortal target={props.headerActionTarget}>
+          <MermaidXyCommentMarker
+            anchor={{ kind: "diagram" }}
+            onCommand={(command) => Boolean(dispatch(command))}
+            props={props}
+          />
+        </MermaidRuntimePortal>
+      ) : null}
       <div
         data-testid="mermaid-xy-view"
         onClick={props.embedded ? undefined : stopEditorEvent}

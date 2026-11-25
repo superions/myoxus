@@ -3,6 +3,7 @@ import { Plus, Save } from "@myoxus/icons/react";
 import {
   Button,
   DialogFooterActions,
+  Input,
   Modal,
   NumberInput,
   Switch,
@@ -15,6 +16,7 @@ import {
   TableRow,
   MyoxusSegmentedControl,
   SettingsDetailHeader,
+  SettingsEmptyState,
   SettingsStatusText,
   Stack,
 } from "@myoxus/ui-facade";
@@ -25,7 +27,6 @@ import {
   useDocumentMetadataValueDefinitionsQuery,
   useUpsertDocumentMetadataValueDefinitionMutation,
 } from "../api";
-import { EmptyState, ErrorText, TextField } from "./shared";
 
 const VALUE_LIST_METADATA_FIELD_KEYS = new Set([
   "classification",
@@ -183,7 +184,9 @@ export function ValueListsTab() {
           onChange={setMetadataFieldKey}
         />
       ) : (
-        <EmptyState>{i18n.t("admin.documents.value-lists.empty")}</EmptyState>
+        <SettingsEmptyState
+          title={i18n.t("admin.documents.value-lists.empty")}
+        />
       )}
       {selectedDefinition ? (
         <SettingsDetailHeader
@@ -192,7 +195,11 @@ export function ValueListsTab() {
           headingLevel={3}
         />
       ) : null}
-      {actionError && !editorOpen ? <ErrorText>{actionError}</ErrorText> : null}
+      {actionError && !editorOpen ? (
+        <SettingsStatusText role="alert" tone="error">
+          {actionError}
+        </SettingsStatusText>
+      ) : null}
       {valuesQuery.values.length ? (
         <TableScrollContainer>
           <Table
@@ -240,9 +247,9 @@ export function ValueListsTab() {
           </Table>
         </TableScrollContainer>
       ) : selectedKey ? (
-        <EmptyState>
-          {i18n.t("admin.documents.value-lists.values-empty")}
-        </EmptyState>
+        <SettingsEmptyState
+          title={i18n.t("admin.documents.value-lists.values-empty")}
+        />
       ) : null}
       {editorFieldKey ? (
         <Modal
@@ -261,21 +268,25 @@ export function ValueListsTab() {
           }
           contentOptions={{ "data-testid": "documents-value-editor" }}
         >
-          {actionError ? <ErrorText>{actionError}</ErrorText> : null}
+          {actionError ? (
+            <SettingsStatusText role="alert" tone="error">
+              {actionError}
+            </SettingsStatusText>
+          ) : null}
           <Stack component="form" onSubmit={createValue}>
-            <TextField
+            <Input
               id="value-key"
               label={i18n.t("admin.documents.field.key")}
               value={draft.key}
               onChange={(key) => setDraft((old) => ({ ...old, key }))}
             />
-            <TextField
+            <Input
               id="value-label"
               label={i18n.t("admin.documents.field.label")}
               value={draft.label}
               onChange={(label) => setDraft((old) => ({ ...old, label }))}
             />
-            <TextField
+            <Input
               id="value-description"
               label={i18n.t("admin.documents.field.description")}
               value={draft.description}
@@ -283,13 +294,13 @@ export function ValueListsTab() {
                 setDraft((old) => ({ ...old, description }))
               }
             />
-            <TextField
+            <Input
               id="value-color"
               label={i18n.t("admin.documents.field.color")}
               value={draft.color}
               onChange={(color) => setDraft((old) => ({ ...old, color }))}
             />
-            <TextField
+            <Input
               id="value-icon"
               label={i18n.t("admin.documents.field.icon")}
               value={draft.icon}

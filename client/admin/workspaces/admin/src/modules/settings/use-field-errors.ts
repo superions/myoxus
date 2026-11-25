@@ -1,12 +1,16 @@
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 /**
- * Shared field error state for config pages.
+ * Shared field error state for Admin config pages, backed by Facade `useForm`
+ * (`@mantine/form`).
  *
- * Provides `fieldErrors`, `hasFieldError`, and `onFieldErrorChange` which are
- * identical in every config page (AI, Performance, Queue, System).
- * Extracting this hook eliminates the duplication and gives a single
- * testable unit.
+ * Preserves the server-backed draft baseline in `useAppConfig` (so native
+ * disclosure/tab switches never wipe unsaved edits) while delegating per-field
+ * error storage and clearing to `@mantine/form`.
  */
-import { useCallback, useState } from "react";
+import { useForm } from "@myoxus/ui-facade";
+import { useCallback, useMemo } from "react";
 
 export type FieldErrorMap = Record<string, string>;
 
@@ -19,24 +23,27 @@ export type UseFieldErrorsResult = {
    */
   hasFieldError: (modules: string[]) => boolean;
   /**
-   * Callback to pass to config form field `onErrorChange`. Sets or clears the error
-   * for the given field path.
+   * Callback to pass to config form field `onErrorChange`. Sets or clears the
+   * error for the given field path in the backing Mantine form.
    */
   onFieldErrorChange: (field: string, error?: string) => void;
 };
 
-/**
- * Hook for managing per-field validation errors on config pages.
- *
- * Usage:
- * ```tsx
- * const { fieldErrors, hasFieldError, onFieldErrorChange } = useFieldErrors();
- * // Pass onFieldErrorChange to each config form field
- * // Use hasFieldError(['moduleName']) to disable Save button
- * ```
- */
 export function useFieldErrors(): UseFieldErrorsResult {
-  const [fieldErrors, setFieldErrors] = useState<FieldErrorMap>({});
+  const form = useForm<Record<string, unknown>>({
+    initialValues: {},
+  });
+  const { setFieldError, clearFieldError } = form;
+
+  const fieldErrors = useMemo<FieldErrorMap>(() => {
+    const out: FieldErrorMap = {};
+    for (const [key, value] of Object.entries(form.errors)) {
+      if (typeof value === "string" && value.length > 0) {
+        out[key] = value;
+      }
+    }
+    return out;
+  }, [form.errors]);
 
   const hasFieldError = useCallback(
     (modules: string[]) =>
@@ -46,18 +53,16 @@ export function useFieldErrors(): UseFieldErrorsResult {
     [fieldErrors],
   );
 
-  const onFieldErrorChange = useCallback((field: string, error?: string) => {
-    setFieldErrors((prev) => {
+  const onFieldErrorChange = useCallback(
+    (field: string, error?: string) => {
       if (error) {
-        if (prev[field] === error) return prev;
-        return { ...prev, [field]: error };
+        setFieldError(field, error);
+      } else {
+        clearFieldError(field);
       }
-      if (!(field in prev)) return prev;
-      const next = { ...prev };
-      delete next[field];
-      return next;
-    });
-  }, []);
+    },
+    [clearFieldError, setFieldError],
+  );
 
   return { fieldErrors, hasFieldError, onFieldErrorChange };
 }

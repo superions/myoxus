@@ -6,6 +6,10 @@ import { EditorEmbeddedUIRoot } from "../embedded-ui-root";
 import { RegisteredTableControl } from "./table-control";
 import { EditorDisclosureToggle } from "./disclosure-toggle";
 import { EditorIconPickerPopup } from "./icon-picker-popup";
+import { EditorCanvasPopover } from "./canvas-popover";
+import { EditorPresentationToolbar } from "./presentation-toolbar";
+import { EditorSurfaceRefPlaceholder } from "./surface-ref-placeholder";
+import { EditorHtmlEmbedCard } from "./html-embed-card";
 import { EditorDocumentCard } from "./document-card";
 import { RegisteredAttachmentCard } from "./attachment-card";
 import { RegisteredBookmarkCard } from "./bookmark-card";
@@ -124,6 +128,16 @@ export function patchEditorChromeHost(mountPortal: MountReactPortal) {
       ),
     mountDisclosureControl: mountStateControl(EditorDisclosureToggle, true),
     mountIconPicker: mountControl(EditorIconPickerPopup),
+    mountCanvasPopover: mountStateControl(EditorCanvasPopover, true),
+    mountPresentationToolbar: mountStateControl(
+      EditorPresentationToolbar,
+      true,
+    ),
+    mountSurfaceRefPlaceholder: mountStateControl(
+      EditorSurfaceRefPlaceholder,
+      true,
+    ),
+    mountHtmlEmbed: mountStateControl(EditorHtmlEmbedCard, true),
     mountAutoCompleteTrigger: mountStateControl(
       EditorAutoCompleteTrigger,
       true,

@@ -7,16 +7,22 @@
  * - Save via `adminUpdateConfig` mutation
  */
 import { useI18n } from "@myoxus/i18n";
-import { Button, Group, Input, SettingsNotice, Text } from "@myoxus/ui-facade";
+import {
+  Button,
+  Group,
+  Input,
+  MonoText,
+  OnboardingActions,
+  OnboardingStep,
+  OnboardingStepHeader,
+  SettingsNotice,
+  SettingsSectionDescription,
+  SettingsSectionHeading,
+  Text,
+} from "@myoxus/ui-facade";
 import { useCallback, useEffect, useState } from "react";
 
 import { useAdminUpdateConfig } from "../../../hooks/use-admin-update-config";
-import {
-  ConfigWizardActions,
-  ConfigWizardInlineCode,
-  ConfigWizardStep,
-  ConfigWizardStepHeader,
-} from "../primitives";
 
 interface ExternalUrlStepProps {
   onNext: () => void;
@@ -86,11 +92,15 @@ export function ExternalUrlStep({
   }, [externalUrl, updateConfig, onNext, i18n, validateUrl, isLoading]);
 
   return (
-    <ConfigWizardStep>
-      <ConfigWizardStepHeader
-        title={i18n.t("admin.configWizard.externalUrl.title")}
-        description={i18n.t("admin.configWizard.externalUrl.description")}
-      />
+    <OnboardingStep compact>
+      <OnboardingStepHeader>
+        <SettingsSectionHeading level={2}>
+          {i18n.t("admin.configWizard.externalUrl.title")}
+        </SettingsSectionHeading>
+        <SettingsSectionDescription>
+          {i18n.t("admin.configWizard.externalUrl.description")}
+        </SettingsSectionDescription>
+      </OnboardingStepHeader>
 
       <Input
         label={i18n.t("admin.configWizard.externalUrl.label")}
@@ -107,7 +117,7 @@ export function ExternalUrlStep({
         <Group>
           <Text>
             {i18n.t("admin.configWizard.externalUrl.current")}:{" "}
-            <ConfigWizardInlineCode>{suggestedUrl}</ConfigWizardInlineCode>
+            <MonoText>{suggestedUrl}</MonoText>
           </Text>
           <Button
             type="button"
@@ -120,7 +130,7 @@ export function ExternalUrlStep({
         </Group>
       </SettingsNotice>
 
-      <ConfigWizardActions centered={false}>
+      <OnboardingActions fullWidth justify="flex-end">
         <Button
           variant="primary"
           onClick={handleSave}
@@ -128,7 +138,7 @@ export function ExternalUrlStep({
         >
           {isLoading ? i18n.t("common.saving") : i18n.t("common.continue")}
         </Button>
-      </ConfigWizardActions>
-    </ConfigWizardStep>
+      </OnboardingActions>
+    </OnboardingStep>
   );
 }

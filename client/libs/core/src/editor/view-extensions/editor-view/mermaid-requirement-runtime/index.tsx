@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { MermaidRuntimePortal } from "../mermaid-runtime-portal";
 import { useI18n } from "@myoxus/i18n";
 import {
   MoreHorizontalIcon,
@@ -993,12 +993,10 @@ function RequirementEditor({ props }: { props: RequirementReactHostProps }) {
       <>
         {controls}
         {confirmation}
-        {markers && typeof document !== "undefined"
-          ? createPortal(markers, document.body)
-          : null}
-        {typeof document !== "undefined"
-          ? createPortal(referenceMarkers, document.body)
-          : null}
+        {markers ? (
+          <MermaidRuntimePortal>{markers}</MermaidRuntimePortal>
+        ) : null}
+        <MermaidRuntimePortal>{referenceMarkers}</MermaidRuntimePortal>
       </>
     );
   return (

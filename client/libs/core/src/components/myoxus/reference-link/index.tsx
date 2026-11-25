@@ -20,10 +20,14 @@ import {
 } from "@myoxus/infra";
 import { track } from "@myoxus/track";
 import {
+  Group,
+  HoverCard,
   InlineDocumentReferenceContent,
   InlineDocumentReferenceIcon,
   InlineDocumentReferenceLink,
   InlineDocumentReferenceTitle,
+  MyoxusText,
+  Stack,
 } from "@myoxus/ui-facade";
 import type { DocMode } from "@virgultum/editor/model";
 import type { Store, Workspace } from "@virgultum/editor/store";
@@ -374,7 +378,7 @@ function LocalPageReference({
     return "?" + str;
   }, [params, refreshKey]);
 
-  return (
+  const referenceLink = (
     <InlineDocumentReferenceLink
       ref={ref}
       component={WorkbenchLink}
@@ -398,6 +402,41 @@ function LocalPageReference({
         state={state}
       />
     </InlineDocumentReferenceLink>
+  );
+
+  return (
+    <HoverCard
+      width={280}
+      shadow="md"
+      openDelay={350}
+      closeDelay={150}
+      withArrow
+      withinPortal
+    >
+      <HoverCard.Target>{referenceLink}</HoverCard.Target>
+      <HoverCard.Dropdown data-testid="reference-link-hover-card">
+        <Stack gap="xs">
+          <Group gap="xs" wrap="nowrap">
+            <MyoxusPageReferenceInner
+              pageId={pageId}
+              params={params}
+              title={title}
+              Icon={Icon}
+              state={state}
+            />
+          </Group>
+          {state === "unavailable" ? (
+            <MyoxusText tone="secondary">
+              {t["com.myoxus.reference.target-unavailable"]()}
+            </MyoxusText>
+          ) : params?.has("blockIds") ? (
+            <MyoxusText tone="secondary">
+              {t["com.myoxus.editor.toolbar.open-in-peek"]()}
+            </MyoxusText>
+          ) : null}
+        </Stack>
+      </HoverCard.Dropdown>
+    </HoverCard>
   );
 }
 

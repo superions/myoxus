@@ -13,7 +13,7 @@ import {
   resolveEditorMessage,
   type EditorI18nMessage,
 } from "@virgultum/core/services";
-import { requestConnectedFrame, stopPropagation } from "@virgultum/core/utils";
+import { stopPropagation } from "@virgultum/core/utils";
 import {
   type BlockComponent,
   NativeViewElement,
@@ -31,23 +31,13 @@ import type { Template } from "./template-type.js";
 import { cloneDeep } from "./utils.js";
 
 const templatePanelStyles = `
-  /* Floating anchoring and SVG/image fitting retain renderer ownership. */
-  edgeless-templates-panel {
-    position: absolute;
-    z-index: 1;
-  }
+  /* SVG/image preview fitting retains renderer ownership; Mantine Popover owns anchoring and arrow. */
   edgeless-templates-panel .canvas-template-preview svg,
   edgeless-templates-panel .canvas-template-preview img {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: contain;
-  }
-  edgeless-templates-panel .arrow {
-    bottom: 0;
-    position: absolute;
-    transform: translateY(20px);
-    color: var(--myoxus-background-overlay-panel-color);
   }
 `;
 
@@ -275,10 +265,6 @@ export class EdgelessTemplatePanel extends NativeViewElement {
     style.textContent = templatePanelStyles;
     const wrapper = this.ownerDocument.createElement("div");
     wrapper.style.transition = "opacity 0.2s";
-    const arrow = this.ownerDocument.createElement("div");
-    arrow.className = "arrow";
-    arrow.innerHTML = `<svg width="24" height="18" viewBox="0 0 24 18" aria-hidden="true"><path d="M0 0H24L12 18Z" fill="currentColor" /></svg>`;
-    wrapper.append(arrow);
     this.append(style, wrapper);
     this._wrapperEl = wrapper;
   }
@@ -295,7 +281,15 @@ export class EdgelessTemplatePanel extends NativeViewElement {
       controller.hostConnected?.();
     }
 
-    this._disposables.addFromEvent(this, "keydown", stopPropagation, false);
+    this._disposables.addFromEvent(this, "keydown", (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        this._closePanel();
+        return;
+      }
+      event.stopPropagation();
+    });
     this._disposables.addFromEvent(this, "click", stopPropagation);
     this._disposables.addFromEvent(this, "wheel", stopPropagation);
     this._disposables.add(() => {
@@ -305,16 +299,6 @@ export class EdgelessTemplatePanel extends NativeViewElement {
           .setStorage("templateCache", this._currentCategory);
       }
     });
-
-    requestConnectedFrame(() => {
-      this._disposables.addFromEvent(document, "click", (evt) => {
-        if (this.contains(evt.target as HTMLElement)) {
-          return;
-        }
-
-        this._closePanel();
-      });
-    }, this);
 
     this._initCategory().catch((e) =>
       console.warn("[template-panel] init failed", e),

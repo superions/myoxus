@@ -11197,5 +11197,16 @@
   "com.myoxus.editor.mermaid.owner-missing": "La projection du diagramme Mermaid est indisponible.",
   "com.myoxus.editor.mermaid.page-selection-count": "{{count}} sélectionnés",
   "com.myoxus.editor.mermaid.quadrant-height": "Hauteur",
-  "com.myoxus.editor.mermaid.quadrant-width": "Largeur"
+  "com.myoxus.editor.mermaid.quadrant-width": "Largeur",
+  "com.myoxus.desktop.window-controls.minimize": "Réduire la fenêtre",
+  "com.myoxus.desktop.window-controls.maximize": "Agrandir la fenêtre",
+  "com.myoxus.desktop.window-controls.restore": "Restaurer la fenêtre",
+  "com.myoxus.desktop.window-controls.close": "Fermer la fenêtre",
+  "com.myoxus.editor.presentation.no-frame": "Aucun cadre",
+  "com.myoxus.editor.presentation.no-frame-toast": "La présentation nécessite au moins 1 cadre. Créez d’abord un cadre.",
+  "com.myoxus.editor.drag-preview.shape": "Forme Edgeless",
+  "com.myoxus.editor.drag-preview.image": "Bloc image",
+  "com.myoxus.editor.drag-preview.note": "Bloc note",
+  "com.myoxus.editor.drag-preview.frame": "Bloc cadre",
+  "com.myoxus.editor.drag-preview.embed": "Bloc intégré"
 }

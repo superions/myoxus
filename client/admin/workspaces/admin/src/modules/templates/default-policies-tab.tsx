@@ -16,17 +16,27 @@ import {
   Button,
   Drawer,
   Group,
+  MetricStack,
   MonoText,
   notify,
   RadioGroup,
   ResponsiveGrid,
+  SettingsDefinitionItem,
+  SettingsDefinitionList,
+  SettingsDetailHeader,
   SettingsEmptyState,
+  SettingsListItemMeta,
+  SettingsListItemTitle,
   SettingsNotice,
   SettingsSection,
   SettingsSectionHeading,
   SettingsSkeleton,
+  SettingsStatusText,
   SettingsSwitchRow,
   Stack,
+  SurfaceList,
+  SurfaceListItem,
+  SurfaceListItemMain,
 } from "@myoxus/ui-facade";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -53,15 +63,6 @@ import {
   type DefaultPolicyViewModel,
 } from "./format-adapters";
 import { templateDisplayTitle } from "./localized-builtins";
-import {
-  MetaField,
-  MetaGrid,
-  SoftList,
-  SoftListItem,
-  TemplateCardTitle,
-  TemplateShoulder,
-  TemplateTabFrame,
-} from "./template-role-primitives";
 
 // ---------------------------------------------------------------------------
 // Edit Drawer
@@ -359,31 +360,30 @@ function DefaultPoliciesContent() {
         }}
       />
 
-      <TemplateTabFrame
-        title={i18n.t("admin.templates.default-policies.title")}
-        description={i18n.t("admin.templates.default-policies.description")}
-        shoulder={
-          <TemplateShoulder
-            rows={[
-              {
-                label: i18n.t("admin.templates.default-policies.metric.total"),
-                value: policies.length,
-                tone: policies.length > 0 ? "success" : "neutral",
-              },
-              {
-                label: i18n.t(
-                  "admin.templates.default-policies.metric.applied",
-                ),
-                value: curatedPolicies.length + lockedPolicies.length,
-                tone:
-                  curatedPolicies.length + lockedPolicies.length > 0
-                    ? "info"
-                    : "neutral",
-              },
-            ]}
-          />
-        }
-      >
+      <Stack component="section">
+        <SettingsDetailHeader
+          title={i18n.t("admin.templates.default-policies.title")}
+          description={i18n.t("admin.templates.default-policies.description")}
+          actions={
+            <MetricStack
+              rows={[
+                {
+                  label: i18n.t(
+                    "admin.templates.default-policies.metric.total",
+                  ),
+                  value: policies.length,
+                },
+                {
+                  label: i18n.t(
+                    "admin.templates.default-policies.metric.applied",
+                  ),
+                  value: curatedPolicies.length + lockedPolicies.length,
+                },
+              ]}
+            />
+          }
+          headingLevel={2}
+        />
         <Stack>
           {policies.length === 0 ? (
             <SettingsEmptyState
@@ -422,32 +422,38 @@ function DefaultPoliciesContent() {
                   >
                     <div data-testid={`default-policy-group-${group.key}`}>
                       <Stack>
-                        <SoftList>
+                        <SurfaceList>
                           {group.items.map((policy) => (
-                            <SoftListItem key={policy.templateId}>
+                            <SurfaceListItem key={policy.templateId}>
                               <Stack>
                                 <Group
                                   align="flex-start"
                                   justify="space-between"
                                   wrap="wrap"
                                 >
-                                  <TemplateCardTitle
-                                    title={
-                                      templateById.has(policy.templateId)
+                                  <SurfaceListItemMain grow>
+                                    <SettingsListItemTitle truncate>
+                                      {templateById.has(policy.templateId)
                                         ? templateDisplayTitle(
                                             i18n,
                                             templateById.get(policy.templateId),
                                           )
-                                        : policy.templateId
-                                    }
-                                    subtitle={i18n.t(
-                                      "admin.templates.default-policies.card.subtitle",
-                                    )}
-                                    mono={formatAdminDateTime(
-                                      i18n.language,
-                                      policy.updatedAt,
-                                    )}
-                                  />
+                                        : policy.templateId}
+                                    </SettingsListItemTitle>
+                                    <SettingsListItemMeta lineClamp={2}>
+                                      {i18n.t(
+                                        "admin.templates.default-policies.card.subtitle",
+                                      )}
+                                    </SettingsListItemMeta>
+                                    <SettingsStatusText mono truncate>
+                                      <MonoText>
+                                        {formatAdminDateTime(
+                                          i18n.language,
+                                          policy.updatedAt,
+                                        )}
+                                      </MonoText>
+                                    </SettingsStatusText>
+                                  </SurfaceListItemMain>
                                   <Button
                                     type="button"
                                     variant="plain"
@@ -478,30 +484,32 @@ function DefaultPoliciesContent() {
                                     mode={policy.provisioningMode}
                                   />
                                 </Group>
-                                <MetaGrid>
-                                  <MetaField
+                                <SettingsDefinitionList>
+                                  <SettingsDefinitionItem
                                     label={i18n.t(
                                       "admin.templates.default-policies.col.selection",
                                     )}
-                                    value={templateSelectionModeLabel(
+                                  >
+                                    {templateSelectionModeLabel(
                                       i18n,
                                       policy.selectionMode,
                                     )}
-                                  />
-                                  <MetaField
+                                  </SettingsDefinitionItem>
+                                  <SettingsDefinitionItem
                                     label={i18n.t(
                                       "admin.templates.default-policies.col.provisioning",
                                     )}
-                                    value={templateProvisioningModeLabel(
+                                  >
+                                    {templateProvisioningModeLabel(
                                       i18n,
                                       policy.provisioningMode,
                                     )}
-                                  />
-                                </MetaGrid>
+                                  </SettingsDefinitionItem>
+                                </SettingsDefinitionList>
                               </Stack>
-                            </SoftListItem>
+                            </SurfaceListItem>
                           ))}
-                        </SoftList>
+                        </SurfaceList>
                       </Stack>
                     </div>
                   </SettingsSection>
@@ -510,7 +518,7 @@ function DefaultPoliciesContent() {
             </Stack>
           )}
         </Stack>
-      </TemplateTabFrame>
+      </Stack>
     </>
   );
 }

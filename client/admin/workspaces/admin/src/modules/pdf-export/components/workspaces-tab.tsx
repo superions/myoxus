@@ -42,7 +42,7 @@ import {
   TableRow,
   TableCell,
   SettingsStatusText,
-  Skeleton,
+  SettingsSkeleton,
   Stack,
   Switch,
 } from "@myoxus/ui-facade";
@@ -474,7 +474,7 @@ function WorkspacesTabContent() {
         />
 
         {workspaceId ? (
-          <Suspense fallback={<Skeleton h={128} />}>
+          <Suspense fallback={<SettingsSkeleton />}>
             <AssignmentMatrix key={workspaceId} workspaceId={workspaceId} />
           </Suspense>
         ) : (
@@ -489,7 +489,7 @@ function WorkspacesTabContent() {
 
 export function WorkspacesTab() {
   return (
-    <Suspense fallback={<Skeleton h={256} />}>
+    <Suspense fallback={<SettingsSkeleton />}>
       <WorkspacesTabContent />
     </Suspense>
   );

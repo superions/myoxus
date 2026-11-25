@@ -9,34 +9,15 @@ import {
   DocModeProvider,
   EditPropsStore,
   type EditorCanvasMenuControls,
+  type EditorCanvasPopoverControls,
   type EditorChromeHost,
   EditorChromeHostIdentifier,
 } from "@virgultum/core/services";
-import { createButtonPopper } from "@virgultum/core/utils";
 
 import {
   defaultFramePanelLabels,
   type FramePanelLabels,
 } from "../frame-panel.js";
-import type { FramesSettingMenu } from "./frames-setting-menu.js";
-
-const STYLE_ID = "myoxus-frame-panel-header-styles";
-const STYLES = `
-  myoxus-frame-panel-header .frames-setting-container {
-    display: none;
-  }
-  myoxus-frame-panel-header .frames-setting-container[data-show] {
-    display: block;
-  }
-`;
-
-function ensureStyles(doc: Document) {
-  if (!doc.head || doc.getElementById(STYLE_ID)) return;
-  const style = doc.createElement("style");
-  style.id = STYLE_ID;
-  style.textContent = STYLES;
-  doc.head.append(style);
-}
 
 export const MYOXUS_FRAME_PANEL_HEADER = "myoxus-frame-panel-header";
 
@@ -45,13 +26,16 @@ export class FramePanelHeader extends NativeViewElement {
 
   private readonly _revision$ = signal(0);
   private readonly _settingPopperShow$ = signal(false);
+  private readonly _blackBackground$ = signal(true);
+  private readonly _fillScreen$ = signal(false);
+  private readonly _hideToolbar$ = signal(false);
 
   private _editorHost!: EditorHost;
   private _labels: FramePanelLabels = defaultFramePanelLabels;
   private _menuHost: HTMLDivElement | null = null;
-  private _frameSettingMenu: HTMLDivElement | null = null;
-  private _settingMenuEl: FramesSettingMenu | null = null;
+  private _popoverHost: HTMLDivElement | null = null;
   private _chromeUnmount: (() => void) | null = null;
+  private _popoverUnmount: (() => void) | null = null;
   private _mountedChrome: EditorChromeHost | null = null;
 
   private readonly _clearEdgelessDisposables = () => {
@@ -63,6 +47,10 @@ export class FramePanelHeader extends NativeViewElement {
 
   private get _gfx() {
     return this.editorHost.std.get(GfxControllerIdentifier);
+  }
+
+  private get _editPropsStore() {
+    return this.editorHost.std.get(EditPropsStore);
   }
 
   private readonly _enterPresentationMode = () => {
@@ -78,11 +66,32 @@ export class FramePanelHeader extends NativeViewElement {
     }, 100);
   };
 
-  private _framesSettingMenuPopper: ReturnType<
-    typeof createButtonPopper
-  > | null = null;
-
   private _navigatorMode: NavigatorMode = "fit";
+
+  private readonly _onBlackBackgroundChange = (checked: boolean) => {
+    this._blackBackground$.value = checked;
+    this.editorHost.std
+      .get(EdgelessLegacySlotIdentifier)
+      .navigatorSettingUpdated.next({ blackBackground: checked });
+    this._editPropsStore.setStorage("presentBlackBackground", checked);
+  };
+
+  private readonly _onFillScreenChange = (checked: boolean) => {
+    this._fillScreen$.value = checked;
+    this._navigatorMode = checked ? "fill" : "fit";
+    this.editorHost.std
+      .get(EdgelessLegacySlotIdentifier)
+      .navigatorSettingUpdated.next({ fillScreen: checked });
+    this._editPropsStore.setStorage("presentFillScreen", checked);
+  };
+
+  private readonly _onHideToolbarChange = (checked: boolean) => {
+    this._hideToolbar$.value = checked;
+    this.editorHost.std
+      .get(EdgelessLegacySlotIdentifier)
+      .navigatorSettingUpdated.next({ hideToolbar: checked });
+    this._editPropsStore.setStorage("presentHideToolbar", checked);
+  };
 
   private readonly _controls$ = computed<EditorCanvasMenuControls | null>(
     () => {
@@ -102,7 +111,9 @@ export class FramePanelHeader extends NativeViewElement {
             icon: "SettingsIcon",
             active: show,
             disabled: false,
-            run: (anchor) => this._toggleSettings(anchor),
+            run: () => {
+              this._settingPopperShow$.value = !this._settingPopperShow$.peek();
+            },
           },
           {
             id: "frame-panel-presentation",
@@ -117,6 +128,69 @@ export class FramePanelHeader extends NativeViewElement {
     },
   );
 
+  private readonly _popoverControls$ =
+    computed<EditorCanvasPopoverControls | null>(() => {
+      void this._revision$.value;
+      if (!this._editorHost) return null;
+      const opened = this._settingPopperShow$.value;
+      return {
+        opened,
+        onClose: () => {
+          this._settingPopperShow$.value = false;
+        },
+        position: "bottom-end",
+        offset: 8,
+        label: this._labels.allFramesSettings,
+        content: {
+          kind: "menu",
+          controls: {
+            actions: [
+              {
+                id: "presentation-preview-label",
+                label: this._labels.previewSettings,
+                disabled: false,
+              },
+              {
+                id: "presentation-fill-screen",
+                label: this._labels.fillScreen,
+                disabled: false,
+                control: {
+                  type: "toggle",
+                  checked: this._fillScreen$.value,
+                  change: this._onFillScreenChange,
+                },
+              },
+              {
+                id: "presentation-settings-label",
+                label: this._labels.playbackSettings,
+                disabled: false,
+              },
+              {
+                id: "presentation-dark-background",
+                label: this._labels.darkBackground,
+                disabled: false,
+                control: {
+                  type: "toggle",
+                  checked: this._blackBackground$.value,
+                  change: this._onBlackBackgroundChange,
+                },
+              },
+              {
+                id: "presentation-hide-toolbar",
+                label: this._labels.hideToolbar,
+                disabled: false,
+                control: {
+                  type: "toggle",
+                  checked: this._hideToolbar$.value,
+                  change: this._onHideToolbarChange,
+                },
+              },
+            ],
+          },
+        },
+      };
+    });
+
   get editorHost(): EditorHost {
     return this._editorHost;
   }
@@ -124,9 +198,6 @@ export class FramePanelHeader extends NativeViewElement {
   set editorHost(value: EditorHost) {
     const changed = this._editorHost !== value;
     this._editorHost = value;
-    if (this._settingMenuEl) {
-      this._settingMenuEl.editorHost = value;
-    }
     if (changed && this.isConnected) {
       this._bindHost();
     }
@@ -139,9 +210,6 @@ export class FramePanelHeader extends NativeViewElement {
 
   set labels(value: FramePanelLabels) {
     this._labels = value;
-    if (this._settingMenuEl) {
-      this._settingMenuEl.labels = value;
-    }
     this._bump();
   }
 
@@ -155,45 +223,55 @@ export class FramePanelHeader extends NativeViewElement {
     this._clearEdgelessDisposables();
     this._edgelessDisposables = new DisposableGroup();
     this._edgelessDisposables.add(
-      slots.navigatorSettingUpdated.subscribe(({ fillScreen }) => {
-        this._navigatorMode = fillScreen ? "fill" : "fit";
-      }),
+      slots.navigatorSettingUpdated.subscribe(
+        ({ fillScreen, blackBackground, hideToolbar }) => {
+          if (fillScreen !== undefined) {
+            this._navigatorMode = fillScreen ? "fill" : "fit";
+            this._fillScreen$.value = fillScreen;
+          }
+          if (blackBackground !== undefined) {
+            this._blackBackground$.value = blackBackground;
+          }
+          if (hideToolbar !== undefined) {
+            this._hideToolbar$.value = hideToolbar;
+          }
+        },
+      ),
     );
   };
 
   private _tryLoadNavigatorStateLocalRecord() {
     if (!this._editorHost) return;
-    this._navigatorMode = this._editorHost.std
-      .get(EditPropsStore)
-      .getStorage("presentFillScreen")
-      ? "fill"
-      : "fit";
+    const fillScreen =
+      this._editPropsStore.getStorage("presentFillScreen") ?? false;
+    this._fillScreen$.value = fillScreen;
+    this._navigatorMode = fillScreen ? "fill" : "fit";
+    this._blackBackground$.value =
+      this._editPropsStore.getStorage("presentBlackBackground") ?? true;
+    this._hideToolbar$.value =
+      this._editPropsStore.getStorage("presentHideToolbar") ?? false;
   }
 
   private _ensureDom() {
+    this.style.position = "relative";
+    this.style.display = "block";
     if (!this._menuHost) {
       this._menuHost = this.ownerDocument.createElement("div");
       this._menuHost.style.display = "contents";
     }
-    if (!this._frameSettingMenu) {
-      this._frameSettingMenu = this.ownerDocument.createElement("div");
-      this._frameSettingMenu.className = "frames-setting-container";
-      this._settingMenuEl = this.ownerDocument.createElement(
-        "myoxus-frames-setting-menu",
-      ) as FramesSettingMenu;
-      this._frameSettingMenu.append(this._settingMenuEl);
+    if (!this._popoverHost) {
+      this._popoverHost = this.ownerDocument.createElement("div");
+      this._popoverHost.style.position = "absolute";
+      this._popoverHost.style.inset = "0";
+      this._popoverHost.style.pointerEvents = "none";
     }
     if (this._menuHost.parentElement !== this) {
-      this.replaceChildren(this._menuHost, this._frameSettingMenu);
-    }
-    if (this._settingMenuEl) {
-      this._settingMenuEl.editorHost = this._editorHost;
-      this._settingMenuEl.labels = this._labels;
+      this.replaceChildren(this._menuHost, this._popoverHost);
     }
   }
 
   private _bindHost() {
-    if (!this._editorHost || !this._menuHost) return;
+    if (!this._editorHost || !this._menuHost || !this._popoverHost) return;
     this._tryLoadNavigatorStateLocalRecord();
 
     const docModeProvider = this._editorHost.std.get(DocModeProvider);
@@ -208,12 +286,19 @@ export class FramePanelHeader extends NativeViewElement {
     if (this._mountedChrome !== chrome) {
       this._chromeUnmount?.();
       this._chromeUnmount = null;
+      this._popoverUnmount?.();
+      this._popoverUnmount = null;
       this._mountedChrome = chrome;
       if (chrome) {
         this._chromeUnmount = chrome.mountCanvasMenu(
           this._menuHost,
           this._controls$,
         );
+        this._popoverUnmount =
+          chrome.mountCanvasPopover?.(
+            this._popoverHost,
+            this._popoverControls$,
+          ) ?? null;
       }
     }
   }
@@ -222,7 +307,6 @@ export class FramePanelHeader extends NativeViewElement {
     if (this.disposables.disposed) {
       this.disposables = new DisposableGroup();
     }
-    ensureStyles(this.ownerDocument);
     this._ensureDom();
     this._bindHost();
     this._bump();
@@ -231,28 +315,12 @@ export class FramePanelHeader extends NativeViewElement {
   disconnectedCallback() {
     this._chromeUnmount?.();
     this._chromeUnmount = null;
+    this._popoverUnmount?.();
+    this._popoverUnmount = null;
     this._mountedChrome = null;
-    this._framesSettingMenuPopper = null;
+    this._settingPopperShow$.value = false;
     this._clearEdgelessDisposables();
     this.disposables.dispose();
-  }
-
-  private _toggleSettings(anchor: HTMLElement) {
-    if (!this._frameSettingMenu) return;
-    if (!this._framesSettingMenuPopper) {
-      this._framesSettingMenuPopper = createButtonPopper({
-        // React supplies the mounted native button; the frame popper keeps its existing geometry.
-        reference: anchor,
-        popperElement: this._frameSettingMenu,
-        stateUpdated: ({ display }) => {
-          this._settingPopperShow$.value = display === "show";
-        },
-        mainAxis: 14,
-        crossAxis: -100,
-      });
-      this.disposables.add(this._framesSettingMenuPopper);
-    }
-    this._framesSettingMenuPopper.toggle();
   }
 }
 

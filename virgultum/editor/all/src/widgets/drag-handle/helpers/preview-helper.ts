@@ -3,6 +3,7 @@ import { ViewExtensionManagerIdentifier } from "@virgultum/core/extensions";
 import {
   DocModeExtension,
   DocModeProvider,
+  EditorI18nProvider,
   EditorSettingExtension,
   EditorSettingProvider,
   GeneralSettingSchema,
@@ -173,6 +174,8 @@ export class PreviewHelper {
       const blockTypes = this._extractBlockTypes(snapshot);
 
       const edgelessPreview = new EdgelessDndPreviewElement();
+      edgelessPreview.i18n =
+        this.widget.std.getOptional(EditorI18nProvider) ?? undefined;
       edgelessPreview.elementTypes = blockTypes;
 
       return {

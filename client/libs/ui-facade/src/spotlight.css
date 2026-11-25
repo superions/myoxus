@@ -1,0 +1,15 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Upstream @mantine/spotlight@9.7.5 declares sideEffects: false, so Rspack
+   drops bare JS imports of @mantine/spotlight/styles.css. Importing it through
+   this side-effectful Facade stylesheet preserves Spotlight styles across all
+   bundlers. */
+@import "@mantine/spotlight/styles.css";
+
+/* ScrollArea wraps children in `display: table` by default, which expands
+   long single-line action descriptions past the Spotlight width instead of
+   truncating them cleanly with an ellipsis. */
+.mantine-Spotlight-actionsList .mantine-ScrollArea-content {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}

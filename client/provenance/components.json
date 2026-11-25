@@ -40,8 +40,8 @@
         "client/apps/electron",
         "client/apps/electron-renderer"
       ],
-      "pathCount": 5505,
-      "pathSha256": "96490cf2e9c5af4831d8ae29a9379e5438d2b5d7bb3515881b60a17bdef4c5c7"
+      "pathCount": 5511,
+      "pathSha256": "fc0c4cb432b58947536ee31fea5eb6aa53deb35cc9c4da14f4c90b9bfe251ac9"
     },
     "bundledAssets": {
       "extensions": [

@@ -14,10 +14,12 @@ import {
   ErrorMessage,
   Group,
   Input,
+  LocalizedDateInput,
   notify,
   FormSelect,
   SettingsDefinitionItem,
   SettingsDefinitionList,
+  SettingsDetailHeader,
   SettingsFilterActions,
   SimpleGrid,
   SettingsFilterField,
@@ -48,7 +50,6 @@ import {
   useCancelPdfExportJobMutation,
 } from "../api";
 import { logPdfExportUiEvent } from "../logging";
-import { PdfPanelHeader } from "../pdf-role-primitives";
 
 const ALL_STATUSES = "__all__";
 const JOBS_EVENT_SOURCE_URL = "/api/admin/pdf-export/jobs/events";
@@ -135,7 +136,11 @@ function JobDetailSheet({
             />
           </SettingsDefinitionList>
           <Stack component="section">
-            <PdfPanelHeader title={i18n.t("admin.pdf-jobs.detail.audit")} />
+            <SettingsDetailHeader
+              title={i18n.t("admin.pdf-jobs.detail.audit")}
+              headingLevel={2}
+              divider={false}
+            />
             <Stack>
               {job.audit ? (
                 <>
@@ -353,24 +358,26 @@ export function JobsTab() {
             htmlFor="pdf-jobs-created-after"
             label={i18n.t("admin.pdf-jobs.filter.created-after")}
           >
-            <Input
+            <LocalizedDateInput
               id="pdf-jobs-created-after"
-              type="date"
               lang={i18n.language}
-              value={createdAfter}
-              onChange={setCreatedAfter}
+              locale={i18n.language}
+              value={createdAfter || null}
+              onChange={(next) => setCreatedAfter(next ?? "")}
+              clearable
             />
           </SettingsFilterField>
           <SettingsFilterField
             htmlFor="pdf-jobs-created-before"
             label={i18n.t("admin.pdf-jobs.filter.created-before")}
           >
-            <Input
+            <LocalizedDateInput
               id="pdf-jobs-created-before"
-              type="date"
               lang={i18n.language}
-              value={createdBefore}
-              onChange={setCreatedBefore}
+              locale={i18n.language}
+              value={createdBefore || null}
+              onChange={(next) => setCreatedBefore(next ?? "")}
+              clearable
             />
           </SettingsFilterField>
           <SettingsFilterActions>

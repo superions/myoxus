@@ -1,14 +1,21 @@
 import type { AdminDocumentVersionPolicyFieldsFragment } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
 import {
+  Button,
   Checkbox,
+  Input,
   Loading,
   MonoText,
   NavigationLink,
   NumberInput,
+  Select,
   SettingsDetailHeader,
+  SettingsEmptyState,
   SettingsMasterDetailLayout,
   SettingsNotice,
+  SettingsStatusText,
+  SettingsSwitchRow,
+  SettingsToolbar,
   SimpleGrid,
   Stack,
   SurfaceList,
@@ -21,14 +28,6 @@ import {
   useDocumentVersionPoliciesQuery,
   useUpsertDocumentVersionPolicyMutation,
 } from "../api";
-import {
-  BooleanField,
-  EmptyState,
-  ErrorText,
-  FormActions,
-  SelectField,
-  TextField,
-} from "./shared";
 
 const SCHEME_PRESETS = [
   "simple_counter",
@@ -156,11 +155,17 @@ export function VersioningTab() {
     }
   }
 
-  if (query.error) return <ErrorText>{query.error.message}</ErrorText>;
+  if (query.error) {
+    return (
+      <SettingsStatusText role="alert" tone="error">
+        {query.error.message}
+      </SettingsStatusText>
+    );
+  }
   if (query.isLoading) return <Loading />;
   if (query.policies.length === 0 || !draft || !clean) {
     return (
-      <EmptyState>{i18n.t("admin.documents.versioning.empty")}</EmptyState>
+      <SettingsEmptyState title={i18n.t("admin.documents.versioning.empty")} />
     );
   }
 
@@ -202,7 +207,7 @@ export function VersioningTab() {
             />
             <Stack component="form" onSubmit={save}>
               <SimpleGrid cols={{ base: 1, sm: 2 }}>
-                <TextField
+                <Input
                   id="policy-name"
                   label={i18n.t("admin.common.name")}
                   value={draft.name}
@@ -211,30 +216,35 @@ export function VersioningTab() {
                     setDraft((old) => old && { ...old, name })
                   }
                 />
-                <SelectField
+                <Select
                   id="policy-scope"
                   label={i18n.t("admin.documents.field.scope")}
                   value={draft.scope}
                   disabled={saving}
-                  values={POLICY_SCOPES}
-                  optionLabels={policyScopeLabels}
+                  block
+                  data={POLICY_SCOPES.map((item) => ({
+                    value: item,
+                    label: policyScopeLabels[item] ?? item,
+                  }))}
                   onChange={(scope) =>
                     setDraft((old) => old && { ...old, scope })
                   }
                 />
-                <BooleanField
+                <SettingsSwitchRow
                   label={i18n.t("admin.documents.field.default-policy")}
                   checked={draft.isDefault}
                   disabled={saving}
-                  onCheckedChange={(isDefault) =>
+                  separated
+                  onChange={(isDefault) =>
                     setDraft((old) => old && { ...old, isDefault })
                   }
                 />
-                <BooleanField
+                <SettingsSwitchRow
                   label={i18n.t("admin.documents.field.enabled-by-default")}
                   checked={draft.enabledByDefault}
                   disabled={saving}
-                  onCheckedChange={(enabledByDefault) =>
+                  separated
+                  onChange={(enabledByDefault) =>
                     setDraft((old) => old && { ...old, enabledByDefault })
                   }
                 />
@@ -244,29 +254,35 @@ export function VersioningTab() {
                 title={i18n.t("admin.documents.field.label-scheme")}
               />
               <SimpleGrid cols={{ base: 1, sm: 2 }}>
-                <SelectField
+                <Select
                   id="policy-scheme"
                   label={i18n.t("admin.documents.field.label-scheme")}
                   value={draft.schemePreset}
                   disabled={saving}
-                  values={SCHEME_PRESETS}
-                  optionLabels={schemePresetLabels}
+                  block
+                  data={SCHEME_PRESETS.map((item) => ({
+                    value: item,
+                    label: schemePresetLabels[item] ?? item,
+                  }))}
                   onChange={(schemePreset) =>
                     setDraft((old) => old && { ...old, schemePreset })
                   }
                 />
-                <SelectField
+                <Select
                   id="policy-timezone"
                   label={i18n.t("admin.documents.field.timezone-mode")}
                   value={draft.timezoneMode}
                   disabled={saving}
-                  values={TIMEZONE_MODES}
-                  optionLabels={timezoneModeLabels}
+                  block
+                  data={TIMEZONE_MODES.map((item) => ({
+                    value: item,
+                    label: timezoneModeLabels[item] ?? item,
+                  }))}
                   onChange={(timezoneMode) =>
                     setDraft((old) => old && { ...old, timezoneMode })
                   }
                 />
-                <TextField
+                <Input
                   id="policy-custom-pattern"
                   label={i18n.t("admin.documents.field.custom-pattern")}
                   value={draft.customPattern}
@@ -337,37 +353,41 @@ export function VersioningTab() {
               />
 
               <SimpleGrid cols={{ base: 1, sm: 2 }}>
-                <BooleanField
+                <SettingsSwitchRow
                   label={i18n.t("admin.documents.field.pin-manual")}
                   checked={draft.pinManualVersions}
                   disabled={saving}
-                  onCheckedChange={(pinManualVersions) =>
+                  separated
+                  onChange={(pinManualVersions) =>
                     setDraft((old) => old && { ...old, pinManualVersions })
                   }
                 />
-                <BooleanField
+                <SettingsSwitchRow
                   label={i18n.t("admin.documents.field.pin-publish")}
                   checked={draft.pinPublishVersions}
                   disabled={saving}
-                  onCheckedChange={(pinPublishVersions) =>
+                  separated
+                  onChange={(pinPublishVersions) =>
                     setDraft((old) => old && { ...old, pinPublishVersions })
                   }
                 />
-                <BooleanField
+                <SettingsSwitchRow
                   label={i18n.t("admin.documents.field.protect-published")}
                   checked={draft.publishedVersionsProtected}
                   disabled={saving}
-                  onCheckedChange={(publishedVersionsProtected) =>
+                  separated
+                  onChange={(publishedVersionsProtected) =>
                     setDraft(
                       (old) => old && { ...old, publishedVersionsProtected },
                     )
                   }
                 />
-                <BooleanField
+                <SettingsSwitchRow
                   label={i18n.t("admin.documents.field.protect-export")}
                   checked={draft.exportVersionsProtected}
                   disabled={saving}
-                  onCheckedChange={(exportVersionsProtected) =>
+                  separated
+                  onChange={(exportVersionsProtected) =>
                     setDraft(
                       (old) => old && { ...old, exportVersionsProtected },
                     )
@@ -375,17 +395,34 @@ export function VersioningTab() {
                 />
               </SimpleGrid>
 
-              {saveError ? <ErrorText>{saveError}</ErrorText> : null}
-              <FormActions
-                dirty={dirty}
-                saving={saving || mutation.isMutating}
-                canSave={valid}
-                onReset={() => {
-                  setDraft(clean);
-                  setBaseline(clean);
-                  setSaveError(null);
-                }}
-              />
+              {saveError ? (
+                <SettingsStatusText role="alert" tone="error">
+                  {saveError}
+                </SettingsStatusText>
+              ) : null}
+              <SettingsToolbar>
+                <Button
+                  type="button"
+                  variant="plain"
+                  disabled={!dirty || saving || mutation.isMutating}
+                  onClick={() => {
+                    setDraft(clean);
+                    setBaseline(clean);
+                    setSaveError(null);
+                  }}
+                >
+                  {i18n.t("admin.actions.reset")}
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={!dirty || saving || mutation.isMutating || !valid}
+                >
+                  {saving || mutation.isMutating
+                    ? i18n.t("admin.common.saving")
+                    : i18n.t("admin.common.save")}
+                </Button>
+              </SettingsToolbar>
             </Stack>
           </Stack>
         }

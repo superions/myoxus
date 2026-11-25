@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useLayoutEffect, useState, useRef } from "react";
-import { useService } from "@myoxus/infra";
+import { useFramework, useService } from "@myoxus/infra";
 import { useI18n } from "@myoxus/i18n";
 import type { ImageBlockModel } from "@virgultum/core/models";
 import { formatSize } from "@virgultum/core/utils";
 import { PeekViewService } from "../../../modules/peek-view";
+import { ViewService } from "../../../modules/workbench";
 import { EditorImageFallback } from "../../view-extensions/editor-view/editor-chrome/image-fallback";
 import { EditorAttachmentCard } from "../../view-extensions/editor-view/editor-chrome/attachment-card";
 import { usePageResource } from "./page-attachment";
@@ -13,42 +14,35 @@ import type {
   EditorSelectionState,
   SelectionAction,
 } from "@virgultum/core/services";
-import { autoUpdate } from "@floating-ui/dom";
 import { usePageCaption } from "./page-caption";
-import type { PageIntent } from "./plain-page-input";
+import {
+  copyOrCutPageBlock,
+  deletePageBlock,
+  downloadBlobUrl,
+  duplicatePageBlock,
+  leaveAtomicPageBlock,
+  notifyCopied,
+  pasteAfterPageBlock,
+} from "./page-block-actions";
+import { usePageFloatingAnchor } from "./page-floating-anchor";
 
 export default function PageImage({
   model,
   readonly,
-  handoff,
 }: {
   model: ImageBlockModel;
   readonly: boolean;
-  handoff: (i: PageIntent) => void;
 }) {
   const { resource, state } = usePageResource(model),
     t = useI18n(),
+    framework = useFramework(),
     peek = useService(PeekViewService).peekView;
   const captionEditor = usePageCaption(model, readonly);
   const { width, height, caption, sourceId, textAlign, size } = model.props;
   const root = useRef<HTMLDivElement>(null),
     img = useRef<HTMLImageElement>(null);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  useLayoutEffect(() => {
-    const el = img.current ?? root.current;
-    if (!el || !anchor) return;
-    return autoUpdate(el, anchor, () => {
-      const r = el.getBoundingClientRect();
-      Object.assign(anchor.style, {
-        position: "fixed",
-        pointerEvents: "none",
-        top: `${r.top}px`,
-        left: `${r.left}px`,
-        width: `${r.width}px`,
-        height: `${r.height}px`,
-      });
-    });
-  }, [anchor, state.url]);
+  const [floating, setFloating] = useState<HTMLElement | null>(null);
   const [selected, select] = useState(false),
     [natural, setNatural] = useState(0),
     [draft, setDraft] = useState<number>();
@@ -69,46 +63,64 @@ export default function PageImage({
     setDraft(undefined);
     setNatural(0);
   }, [sourceId]);
-  useLayoutEffect(() => {
-    if (!selected) return;
-    const leave = (e: PointerEvent) => {
-      if (
-        !root.current?.contains(e.target as Node) &&
-        !(
-          e.target instanceof Element &&
-          e.target.closest('[data-testid="selection-toolbar"]')
-        )
-      )
-        select(false);
-    };
-    document.addEventListener("pointerdown", leave, true);
-    return () => document.removeEventListener("pointerdown", leave, true);
-  }, [selected]);
-  const command = (control: string) => {
-    if (writable())
-      handoff({
-        kind: "block-command",
-        flavour: model.flavour,
-        id: model.id,
-        control,
-      });
-  };
+  usePageFloatingAnchor({
+    active: selected,
+    reference: img.current ?? root.current,
+    anchor,
+    floating,
+    onDismiss: () => select(false),
+    deps: [state.url],
+  });
   const action = (
     id: string,
     label: string,
     icon: SelectionAction["icon"],
-    run = () => command(id),
-  ): SelectionAction => ({ id, label, icon, disabled: false, run });
+    run: () => void,
+    extra?: Partial<SelectionAction>,
+  ): SelectionAction => ({ id, label, icon, disabled: false, run, ...extra });
   const stateBar: EditorSelectionState = {
     key: model.id,
     open: selected && !readonly,
     placement: "top",
-    more: [],
+    more: [
+      action("copy", t["Copy"](), "CopyIcon", () => {
+        const abort = new AbortController();
+        void copyOrCutPageBlock(model, "copy", framework, abort.signal)
+          .then(() => notifyCopied(t["Copied to clipboard"]()))
+          .catch(console.error);
+        select(false);
+      }),
+      action(
+        "duplicate",
+        t["com.myoxus.editor.keyboard.duplicate"](),
+        "DuplicateIcon",
+        () => {
+          duplicatePageBlock(model);
+          select(false);
+        },
+      ),
+      action(
+        "delete",
+        t["Delete"](),
+        "DeleteIcon",
+        () => {
+          deletePageBlock(model);
+          select(false);
+        },
+        { variant: "destructive" },
+      ),
+    ],
     primary: [
       action(
         "a.download",
         t["com.myoxus.attachment.download"](),
         "DownloadIcon",
+        () => {
+          const url = resource.blobUrl$.peek();
+          if (!url || model.props.sourceId !== sourceId) return;
+          downloadBlobUrl(url, caption || `image-${model.id}.png`);
+        },
+        { disabled: !state.url },
       ),
       action(
         "b.caption",
@@ -140,6 +152,10 @@ export default function PageImage({
         "d.comment",
         t["com.myoxus.editor.toolbar.comment"](),
         "CommentIcon",
+        () => {
+          framework.getOptional(ViewService)?.view.showTool("comment");
+          select(false);
+        },
       ),
     ],
   };
@@ -195,14 +211,37 @@ export default function PageImage({
             )
           ) {
             e.preventDefault();
-            handoff({
-              kind: "block-command",
-              flavour: model.flavour,
-              id: model.id,
-              control: `image-key:${e.key}`,
-            });
+            leaveAtomicPageBlock(
+              root.current?.closest<HTMLElement>("[data-page-renderer]") ??
+                null,
+              model,
+              e.key === "ArrowUp" || e.key === "Backspace" ? -1 : 1,
+              e.key === "Delete" || e.key === "Backspace",
+              e.key === "Enter",
+            );
           }
         }
+      }}
+      onCopy={(e) => {
+        if (document.activeElement !== root.current) return;
+        e.preventDefault();
+        const abort = new AbortController();
+        void copyOrCutPageBlock(model, "copy", framework, abort.signal).catch(
+          console.error,
+        );
+      }}
+      onCut={(e) => {
+        if (document.activeElement !== root.current || !writable()) return;
+        e.preventDefault();
+        const abort = new AbortController();
+        void copyOrCutPageBlock(model, "cut", framework, abort.signal).catch(
+          console.error,
+        );
+      }}
+      onPaste={(e) => {
+        if (document.activeElement !== root.current || !writable()) return;
+        e.preventDefault();
+        void pasteAfterPageBlock(model, e.clipboardData).catch(console.error);
       }}
     >
       {state.url ? (
@@ -341,11 +380,10 @@ export default function PageImage({
             getSnapshot: () => stateBar,
             subscribe: () => () => {},
             setAnchor,
-            setFloating: () => {},
+            setFloating,
             dismiss: () => select(false),
             activate: () => root.current?.focus({ preventScroll: true }),
           }}
-          openMore={() => command("selection-more")}
         />
       )}
     </div>

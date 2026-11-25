@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useI18n } from "@myoxus/i18n";
 import { useState, useRef } from "react";
-import { createPortal } from "react-dom";
+import { MermaidRuntimePortal } from "../mermaid-runtime-portal";
 import { EditIcon, DeleteIcon, EllipsisIcon } from "@myoxus/icons";
 import {
   Box,
@@ -662,9 +662,9 @@ export function MermaidGitGraphRuntimeEditor({
         onClick={(e) => e.stopPropagation()}
       >
         {actions}
-        {selectedControls
-          ? createPortal(selectedControls, document.body)
-          : null}
+        {selectedControls ? (
+          <MermaidRuntimePortal>{selectedControls}</MermaidRuntimePortal>
+        ) : null}
         {confirmation}
       </Group>
     );

@@ -11,7 +11,7 @@ import {
   SettingsSection,
   ThemeIcon,
 } from "../../primitives";
-import { SubPageProvider, useSubPageIsland } from "../../sub-page";
+import { SubPageProvider } from "../../sub-page";
 import { getAllowedIntegrationList, type IntegrationItem } from "./constants";
 
 export const IntegrationSetting = () => {
@@ -108,16 +108,10 @@ const IntegrationSettingPage = ({
   onClose: () => void;
 }) => {
   const t = useI18n();
-  const island = useSubPageIsland();
-
-  if (!island) {
-    return null;
-  }
 
   return (
     <SubPageProvider
       backText={t["com.myoxus.integration.integrations"]()}
-      island={island}
       open={open}
       onClose={onClose}
     >

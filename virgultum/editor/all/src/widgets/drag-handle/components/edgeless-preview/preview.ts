@@ -6,34 +6,43 @@ import {
   ShapeIcon,
 } from "@myoxus/icons/native";
 import { NativeViewElement } from "@virgultum/core/primitives/env";
+import {
+  editorMessage,
+  resolveEditorMessage,
+  type EditorI18nMessage,
+  type EditorI18nService,
+} from "@virgultum/core/services";
 import { unsafeCSSVar } from "@virgultum/core/theme";
 
 const BLOCK_PREVIEW_ICON_MAP: Record<
   string,
   {
     icon: string;
-    name: string;
+    name: EditorI18nMessage;
   }
 > = {
   shape: {
     icon: ShapeIcon,
-    name: "Edgeless shape",
+    name: editorMessage(
+      "com.myoxus.editor.drag-preview.shape",
+      "Edgeless shape",
+    ),
   },
   "myoxus:image": {
     icon: ImageIcon,
-    name: "Image block",
+    name: editorMessage("com.myoxus.editor.drag-preview.image", "Image block"),
   },
   "myoxus:note": {
     icon: PageIcon,
-    name: "Note block",
+    name: editorMessage("com.myoxus.editor.drag-preview.note", "Note block"),
   },
   "myoxus:frame": {
     icon: FrameIcon,
-    name: "Frame block",
+    name: editorMessage("com.myoxus.editor.drag-preview.frame", "Frame block"),
   },
   "myoxus:embed-": {
     icon: EmbedIcon,
-    name: "Embed block",
+    name: editorMessage("com.myoxus.editor.drag-preview.embed", "Embed block"),
   },
 };
 
@@ -63,7 +72,7 @@ const STYLES = `
     transform-origin: center;
 
     font-family: var(--myoxus-font-family);
-    box-shadow: 0px 0px 0px 0.5px #e3e3e4 inset;
+    box-shadow: 0px 0px 0px 0.5px ${unsafeCSSVar("borderColor")} inset;
   }
 
   .edgeless-dnd-preview-block > svg {
@@ -90,6 +99,7 @@ export const EDGELESS_DND_PREVIEW_ELEMENT = "edgeless-dnd-preview-element";
 
 export class EdgelessDndPreviewElement extends NativeViewElement {
   private _elementTypes: { type: string }[] = [];
+  private _i18n: EditorI18nService | undefined;
   private readonly _shadow: ShadowRoot;
   private readonly _container: HTMLDivElement;
 
@@ -112,6 +122,15 @@ export class EdgelessDndPreviewElement extends NativeViewElement {
     this._render();
   }
 
+  get i18n(): EditorI18nService | undefined {
+    return this._i18n;
+  }
+
+  set i18n(value: EditorI18nService | undefined) {
+    this._i18n = value;
+    this._render();
+  }
+
   connectedCallback() {
     this._render();
   }
@@ -127,7 +146,10 @@ export class EdgelessDndPreviewElement extends NativeViewElement {
 
     return {
       icon: ShapeIcon,
-      name: "Edgeless content",
+      name: editorMessage(
+        "com.myoxus.editor.surface-ref.content",
+        "Edgeless content",
+      ),
     };
   }
 
@@ -151,7 +173,7 @@ export class EdgelessDndPreviewElement extends NativeViewElement {
 
       const text = document.createElement("span");
       text.className = "text";
-      text.textContent = name;
+      text.textContent = resolveEditorMessage(name, this._i18n);
       block.append(text);
 
       this._container.append(block);

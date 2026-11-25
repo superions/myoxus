@@ -27,8 +27,8 @@ export const embedIframeBlockStyles = `
     left: 8px;
     bottom: 8px;
     padding: 2px 6px;
-    background: rgba(0, 0, 0, 0.7);
-    color: #fff;
+    background: var(--myoxus-tooltip);
+    color: var(--myoxus-white);
     border-radius: 4px;
     font-size: 12px;
     line-height: 16px;

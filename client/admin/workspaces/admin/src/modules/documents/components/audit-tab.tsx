@@ -4,6 +4,9 @@
 import { AdminDocumentAuditGroupType } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
 import {
+  Badge,
+  Input,
+  Select,
   SettingsSection,
   SettingsStatusText,
   SimpleGrid,
@@ -20,7 +23,6 @@ import {
 } from "../../audit-log/audit-labels";
 import { AuditPaginatedTable } from "../../audit-log/components/audit-table-section";
 import { useDocumentAuditLogQuery } from "../api";
-import { KeyBadge, SelectField, TextField } from "./shared";
 
 const GROUPS = [
   "",
@@ -77,18 +79,21 @@ export function AuditTab() {
         description={i18n.t("admin.documents.audit.filter.description")}
       >
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
-          <SelectField
+          <Select
             id="audit-group"
             label={i18n.t("admin.documents.audit.group.label")}
             value={group}
-            values={[...GROUPS]}
-            optionLabels={groupLabels}
+            data={GROUPS.map((item) => ({
+              value: item,
+              label: groupLabels[item] ?? item,
+            }))}
+            block
             onChange={(value) => {
               setGroup(value as GroupFilter);
               setOffset(0);
             }}
           />
-          <TextField
+          <Input
             id="audit-event-prefix"
             label={i18n.t("admin.documents.field.event-prefix")}
             value={eventKeyPrefix}
@@ -130,7 +135,7 @@ export function AuditTab() {
                 </SettingsStatusText>
               </TableCell>
               <TableCell>
-                <KeyBadge value={groupLabels[entry.group] ?? entry.group} />
+                <Badge>{groupLabels[entry.group] ?? entry.group}</Badge>
               </TableCell>
               <TableCell>
                 {auditTargetLabel(

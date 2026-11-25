@@ -29,7 +29,7 @@ import {
 } from "react";
 
 import { type RoleBoxProps } from "../helpers/ui-role";
-import { useResponsiveLgQuery, useResponsiveSmQuery } from "../responsive";
+import { useResponsiveLgQuery } from "../responsive";
 import { Scrollable } from "../scrollable";
 import { MyoxusTitle } from "../typography";
 import type { SettingsHeadingLevel } from "../typography";
@@ -355,14 +355,13 @@ export function SettingsDialogShell({
 }: PropsWithChildren<
   HTMLAttributes<HTMLDivElement> & { "data-myoxus-ui-role"?: string }
 >) {
-  const isNarrow = useResponsiveSmQuery();
   return (
     <Box
       {...props}
       data-myoxus-ui-role={uiRole}
       style={{
         display: "flex",
-        flexDirection: isNarrow ? "column" : "row",
+        flexDirection: "row",
         height: "100%",
         minHeight: 0,
         overflow: "hidden",
@@ -413,7 +412,6 @@ export function SettingsSidebarRoot({
     "data-myoxus-ui-role"?: string;
   }
 >) {
-  const isNarrow = useResponsiveSmQuery();
   return (
     <Stack
       {...props}
@@ -423,17 +421,13 @@ export function SettingsSidebarRoot({
       data-myoxus-ui-role={uiRole}
       style={{
         background: cssVar("backgroundSecondaryColor"),
-        borderBottom: isNarrow
-          ? `calc(var(--mantine-scale) * 1px) solid ${cssVar("borderColor")}`
-          : undefined,
         flex: "0 0 auto",
-        height: isNarrow ? "auto" : "100%",
-        maxHeight: isNarrow ? "242px" : undefined,
-        maxWidth: isNarrow ? "100%" : "242px",
+        height: "100%",
+        maxWidth: "242px",
         minHeight: 0,
         overflow: "hidden",
-        padding: "var(--mantine-spacing-lg)\n    var(--mantine-spacing-md)",
-        width: isNarrow ? "100%" : "242px",
+        padding: "var(--mantine-spacing-lg) var(--mantine-spacing-md)",
+        width: "242px",
         ...style,
       }}
     >
@@ -525,11 +519,9 @@ export const SettingsDialogContentViewport = forwardRef<
   },
   ref,
 ) {
-  const isNarrow = useResponsiveSmQuery();
-  const resolvedPadding = isNarrow
-    ? "var(--mantine-spacing-md)"
-    : (padding ??
-      "var(--mantine-spacing-xl)\n    calc(var(--mantine-spacing-md) + var(--mantine-spacing-2xs)) calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))\n    calc(var(--mantine-spacing-md) + var(--mantine-spacing-2xs))");
+  const resolvedPadding =
+    padding ??
+    "var(--mantine-spacing-xl) calc(var(--mantine-spacing-md) + var(--mantine-spacing-2xs)) calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs)) calc(var(--mantine-spacing-md) + var(--mantine-spacing-2xs))";
   return (
     <Scrollable.Viewport
       {...props}
@@ -600,168 +592,3 @@ export function SettingsDialogLoadingCenter({
     </Center>
   );
 }
-
-export const SettingsSubPageTargetRoot = forwardRef<
-  HTMLDivElement,
-  PropsWithChildren<
-    HTMLAttributes<HTMLDivElement> & { "data-myoxus-ui-role"?: string }
-  >
->(function SettingsSubPageTargetRoot(
-  {
-    children,
-    style,
-    "data-myoxus-ui-role": uiRole = "settings-subpage-target",
-    ...props
-  },
-  ref,
-) {
-  return (
-    <Box
-      {...props}
-      ref={ref}
-      data-myoxus-ui-role={uiRole}
-      style={{
-        height: "100%",
-        inset: 0,
-        pointerEvents: "none",
-        position: "absolute",
-        width: "100%",
-        ...style,
-      }}
-    >
-      {children}
-    </Box>
-  );
-});
-
-export const SettingsSubPageMask = forwardRef<
-  HTMLDivElement,
-  HTMLAttributes<HTMLDivElement> & { "data-myoxus-ui-role"?: string }
->(function SettingsSubPageMask(
-  { style, "data-myoxus-ui-role": uiRole = "settings-subpage-mask", ...props },
-  ref,
-) {
-  return (
-    <Box
-      {...props}
-      ref={ref}
-      data-myoxus-ui-role={uiRole}
-      style={{
-        backgroundColor: cssVar("backgroundModalColor"),
-        height: "100%",
-        inset: 0,
-        opacity: 0,
-        pointerEvents: "none",
-        position: "absolute",
-        width: "100%",
-        zIndex: 1,
-        ...style,
-      }}
-    />
-  );
-});
-
-export const SettingsSubPagePanel = forwardRef<
-  HTMLDivElement,
-  PropsWithChildren<
-    HTMLAttributes<HTMLDivElement> & { "data-myoxus-ui-role"?: string }
-  >
->(function SettingsSubPagePanel(
-  {
-    children,
-    style,
-    "data-myoxus-ui-role": uiRole = "settings-subpage-panel",
-    ...props
-  },
-  ref,
-) {
-  return (
-    <Box
-      {...props}
-      ref={ref}
-      data-myoxus-ui-role={uiRole}
-      style={{
-        backgroundColor: cssVar("backgroundPrimaryColor"),
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        inset: 0,
-        pointerEvents: "auto",
-        position: "absolute",
-        transform: "translateX(100%)",
-        width: "100%",
-        zIndex: 1,
-        ...style,
-      }}
-    >
-      {children}
-    </Box>
-  );
-});
-
-export function SettingsSubPageHeader({
-  children,
-  style,
-  "data-myoxus-ui-role": uiRole = "settings-subpage-header",
-  ...props
-}: PropsWithChildren<
-  HTMLAttributes<HTMLElement> & { "data-myoxus-ui-role"?: string }
->) {
-  return (
-    <Box
-      {...props}
-      component="header"
-      data-myoxus-ui-role={uiRole}
-      style={{
-        flexShrink: 0,
-        padding: `var(--mantine-spacing-md) 0 var(--mantine-spacing-sm) var(--mantine-spacing-lg)`,
-        ...style,
-      }}
-    >
-      {children}
-    </Box>
-  );
-}
-
-export function SettingsSubPageScrollRoot({
-  children,
-  style,
-  "data-myoxus-ui-role": uiRole = "settings-subpage-scroll-root",
-  ...props
-}: PropsWithChildren<
-  HTMLAttributes<HTMLDivElement> & { "data-myoxus-ui-role"?: string }
->) {
-  return (
-    <Scrollable.Root
-      {...props}
-      data-myoxus-ui-role={uiRole}
-      style={{
-        flex: "1 1 auto",
-        minHeight: 0,
-        overflow: "hidden",
-        ...style,
-      }}
-    >
-      {children}
-    </Scrollable.Root>
-  );
-}
-
-export const SettingsSubPageContentViewport = forwardRef<
-  HTMLDivElement,
-  Omit<ComponentProps<typeof SettingsDialogContentViewport>, "ref">
->(function SettingsSubPageContentViewport(
-  {
-    "data-myoxus-ui-role": uiRole = "settings-subpage-scroll-viewport",
-    ...props
-  },
-  ref,
-) {
-  return (
-    <SettingsDialogContentViewport
-      {...props}
-      ref={ref}
-      data-myoxus-ui-role={uiRole}
-    />
-  );
-});

@@ -270,7 +270,8 @@ function BuildingBlockPicker({
       }}
       onExitTransitionEnd={() => {
         try {
-          if (committed.current) target.std.host.focus({ preventScroll: true });
+          if (committed.current)
+            target.std?.host.focus({ preventScroll: true });
           else restoreBuildingBlockTarget(target);
         } catch {
           /* A closed editor cannot receive focus. */
@@ -409,9 +410,13 @@ export function useBuildingBlockPicker() {
     [t],
   );
   const openBuildingBlockPicker = useCallback(
-    (std: BlockStdScope) => {
+    (stdOrTarget: BlockStdScope | BuildingBlockTarget) => {
       try {
-        setTarget(captureBuildingBlockTarget(std));
+        setTarget(
+          "noteId" in stdOrTarget
+            ? stdOrTarget
+            : captureBuildingBlockTarget(stdOrTarget),
+        );
       } catch (cause) {
         notify.error({
           title: t["com.myoxus.templates.blocks.insert"](),
@@ -425,11 +430,14 @@ export function useBuildingBlockPicker() {
     [t],
   );
   const insertNamedBuildingBlock = useCallback(
-    (std: BlockStdScope, slug: string) => {
+    (stdOrTarget: BlockStdScope | BuildingBlockTarget, slug: string) => {
       if (preparing.current) return;
       let target: BuildingBlockTarget;
       try {
-        target = captureBuildingBlockTarget(std);
+        target =
+          "noteId" in stdOrTarget
+            ? stdOrTarget
+            : captureBuildingBlockTarget(stdOrTarget);
       } catch (cause) {
         notify.error({
           title: t["com.myoxus.templates.blocks.insert"](),

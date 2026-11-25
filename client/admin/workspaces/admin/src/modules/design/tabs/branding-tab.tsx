@@ -19,7 +19,6 @@
  * Each preview scopes both the Myoxus theme and Mantine color scheme so Facade
  * roles remain readable without changing the operator's global theme.
  */
-import { adminToast as toast } from "@myoxus/admin/notifications";
 import { adminAppServerBrandingQuery } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
 import {
@@ -178,14 +177,14 @@ function OrganizationIdentitySection({
       setSaved(accepted);
       setDraft(accepted);
       notifyBrandIdentityUpdated();
-      toast.success(i18n.t("admin.state.saved"));
+      notify.success({ title: i18n.t("admin.state.saved") });
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
           : i18n.t("admin.design.branding.organization.save-failed");
       setSaveError(message);
-      toast.error(message);
+      notify.error({ title: message });
     } finally {
       saveLock.current = false;
       setSaving(false);

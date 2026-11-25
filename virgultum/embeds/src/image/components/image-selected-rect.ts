@@ -23,7 +23,7 @@ export const imageSelectedRectStyles = `
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: white;
+    background: var(--myoxus-background-primary-color);
     border: 2px solid var(--myoxus-primary-color);
     pointer-events: none;
   }

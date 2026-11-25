@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { usePageCaption } from "./page-caption";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useService } from "@myoxus/infra";
+import { useFramework, useService } from "@myoxus/infra";
 import { useI18n } from "@myoxus/i18n";
 import { ReferenceCard, IconButton, Box } from "@myoxus/ui-facade";
 import { FileIconHtmlIcon, ExpandIcon } from "@myoxus/icons/react";
@@ -16,12 +16,18 @@ import {
   type EmbedYoutubeBlockUrlData,
 } from "@virgultum/core/models";
 import { EMBED_CARD_HEIGHT } from "@virgultum/core/consts";
-import { LinkPreviewCache } from "@virgultum/core/services";
+import { copyTextToClipboard } from "@virgultum/core/primitives/utils";
+import {
+  LinkPreviewCache,
+  type EditorSelectionState,
+  type SelectionAction,
+} from "@virgultum/core/services";
 import { EmbedIframeService } from "@virgultum/core/services/data";
 import {
   iframeSandbox,
   safeGetIframeSrc,
 } from "@virgultum/embeds/provider-data";
+import { EditorIframeLinkEditor } from "../../view-extensions/editor-view/editor-chrome/iframe-link-editor";
 import { EditorIframeStatusCard } from "../../view-extensions/editor-view/editor-chrome/iframe-status-card";
 import { normalizeUrl, isValidUrl } from "@virgultum/core/utils";
 import { buildImageProxyURL } from "@virgultum/core/adapters";
@@ -40,24 +46,50 @@ import {
 } from "@virgultum/embeds/provider-data";
 import { ServerService } from "../../../modules/server";
 import { workspaceLinkPreview } from "../../view-extensions/link-preview-service/link-preview-service";
+import { EditorEmbedCardEdit } from "../../view-extensions/editor-view/editor-chrome/embed-card-edit";
 import { EditorFigmaCard } from "../../view-extensions/editor-view/editor-chrome/figma-card";
 import { EditorGithubCard } from "../../view-extensions/editor-view/editor-chrome/github-card";
 import { EditorLoomCard } from "../../view-extensions/editor-view/editor-chrome/loom-card";
+import { EditorSelectionToolbar } from "../../view-extensions/editor-view/editor-chrome/selection-toolbar";
 import { EditorYoutubeCard } from "../../view-extensions/editor-view/editor-chrome/youtube-card";
-import type { PageIntent } from "./plain-page-input";
+import {
+  convertCardBlockToInlineLink,
+  copyOrCutPageBlock,
+  deletePageBlock,
+  duplicatePageBlock,
+  leaveAtomicPageBlock,
+  notifyCopied,
+  pasteAfterPageBlock,
+} from "./page-block-actions";
+import { usePageFloatingAnchor } from "./page-floating-anchor";
 
 type Model = EmbedLoomModel | EmbedYoutubeModel | EmbedFigmaModel;
 type Props<T> = {
   model: T;
   readonly: boolean;
-  handoff: (i: PageIntent) => void;
 };
-export function HtmlCard({ model, readonly, handoff }: Props<EmbedHtmlModel>) {
+export function HtmlCard({ model, readonly }: Props<EmbedHtmlModel>) {
   const caption = usePageCaption(model, readonly);
   const t = useI18n(),
+    framework = useFramework(),
+    blockRef = useRef<HTMLDivElement>(null),
     wrap = useRef<HTMLDivElement>(null),
+    [selected, setSelected] = useState(false),
+    [anchor, setAnchor] = useState<HTMLElement | null>(null),
+    [floating, setFloating] = useState<HTMLElement | null>(null),
     [active, setActive] = useState(false),
     [full, setFull] = useState(false);
+  const writable = () =>
+    !readonly &&
+    !model.store.readonly &&
+    model.store.getModelById(model.id) === model;
+  usePageFloatingAnchor({
+    active: selected,
+    reference: blockRef.current,
+    anchor,
+    floating,
+    onDismiss: () => setSelected(false),
+  });
   useEffect(() => {
     const update = () => setFull(document.fullscreenElement === wrap.current);
     document.addEventListener("fullscreenchange", update);
@@ -72,15 +104,100 @@ export function HtmlCard({ model, readonly, handoff }: Props<EmbedHtmlModel>) {
   };
   const select = () => {
     if (readonly || model.store.readonly) setActive(true);
-    else
-      handoff({ kind: "block-command", id: model.id, flavour: model.flavour });
+    else {
+      setSelected(true);
+      blockRef.current?.focus({ preventScroll: true });
+    }
+  };
+  const toolbarState: EditorSelectionState = {
+    open: selected && !readonly,
+    key: model.id,
+    placement: "top",
+    primary: [
+      {
+        id: "interact",
+        label: t["com.myoxus.editor.toolbar.preview"](),
+        icon: "PresentationIcon",
+        disabled: false,
+        active,
+        run: () => {
+          setActive((prev) => !prev);
+          setSelected(false);
+        },
+      },
+      {
+        id: "caption",
+        label: t["com.myoxus.editor.toolbar.caption"](),
+        icon: "CaptionIcon",
+        disabled: false,
+        run: caption.show,
+      },
+    ],
+    more: [
+      {
+        id: "copy",
+        label: t["Copy"](),
+        icon: "CopyIcon",
+        disabled: false,
+        run: () => {
+          const abort = new AbortController();
+          void copyOrCutPageBlock(model, "copy", framework, abort.signal)
+            .then(() => notifyCopied(t["Copied to clipboard"]()))
+            .catch(console.error);
+          setSelected(false);
+        },
+      },
+      {
+        id: "duplicate",
+        label: t["com.myoxus.editor.keyboard.duplicate"](),
+        icon: "DuplicateIcon",
+        disabled: false,
+        run: () => {
+          duplicatePageBlock(model);
+          setSelected(false);
+        },
+      },
+      {
+        id: "delete",
+        label: t["Delete"](),
+        icon: "DeleteIcon",
+        variant: "destructive",
+        disabled: false,
+        run: () => {
+          deletePageBlock(model);
+          setSelected(false);
+        },
+      },
+    ],
   };
   return (
     <div
+      ref={blockRef}
       data-page-html=""
       data-block-id={model.id}
       contentEditable={false}
       tabIndex={-1}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          setSelected(false);
+          return;
+        }
+        if (e.target !== blockRef.current || !writable()) return;
+        if (
+          ["Delete", "Backspace", "Enter", "ArrowDown", "ArrowUp"].includes(
+            e.key,
+          )
+        ) {
+          e.preventDefault();
+          leaveAtomicPageBlock(
+            blockRef.current.closest<HTMLElement>("[data-page-renderer]"),
+            model,
+            e.key === "ArrowUp" || e.key === "Backspace" ? -1 : 1,
+            e.key === "Delete" || e.key === "Backspace",
+            e.key === "Enter",
+          );
+        }
+      }}
     >
       <div style={{ height: EMBED_CARD_HEIGHT.html }}>
         <ReferenceCard
@@ -123,17 +240,45 @@ export function HtmlCard({ model, readonly, handoff }: Props<EmbedHtmlModel>) {
         />
       </div>
       {caption.field}
+      {selected && !readonly ? (
+        <EditorSelectionToolbar
+          controls={{
+            getSnapshot: () => toolbarState,
+            subscribe: () => () => {},
+            setAnchor,
+            setFloating,
+            activate: () => blockRef.current?.focus({ preventScroll: true }),
+            dismiss: () => setSelected(false),
+          }}
+        />
+      ) : null}
     </div>
   );
 }
-export function ForgeCard({
-  model,
-  readonly,
-  handoff,
-}: Props<EmbedGithubModel>) {
+export function ForgeCard({ model, readonly }: Props<EmbedGithubModel>) {
   const caption = usePageCaption(model, readonly);
   const t = useI18n(),
+    framework = useFramework(),
+    blockRef = useRef<HTMLDivElement>(null),
+    [selected, setSelected] = useState(false),
+    [editing, setEditing] = useState(false),
+    [anchor, setAnchor] = useState<HTMLElement | null>(null),
+    [floating, setFloating] = useState<HTMLElement | null>(null),
     base = useService(ServerService).server.baseUrl;
+  const writable = () =>
+    !readonly &&
+    !model.store.readonly &&
+    model.store.getModelById(model.id) === model;
+  usePageFloatingAnchor({
+    active: selected || editing,
+    reference: blockRef.current,
+    anchor,
+    floating,
+    onDismiss: () => {
+      setSelected(false);
+      setEditing(false);
+    },
+  });
   const preview = useMemo(
     () => workspaceLinkPreview(base, LinkPreviewCache.getInstance()),
     [base],
@@ -230,15 +375,59 @@ export function ForgeCard({
   };
   return (
     <div
+      ref={blockRef}
       data-page-forge=""
       data-block-id={model.id}
       tabIndex={-1}
       contentEditable={false}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          setSelected(false);
+          setEditing(false);
+          return;
+        }
+        if (e.target !== blockRef.current || !writable()) return;
+        if (
+          ["Delete", "Backspace", "Enter", "ArrowDown", "ArrowUp"].includes(
+            e.key,
+          )
+        ) {
+          e.preventDefault();
+          leaveAtomicPageBlock(
+            blockRef.current.closest<HTMLElement>("[data-page-renderer]"),
+            model,
+            e.key === "ArrowUp" || e.key === "Backspace" ? -1 : 1,
+            e.key === "Delete" || e.key === "Backspace",
+            e.key === "Enter",
+          );
+        }
+      }}
+      onCopy={(e) => {
+        if (document.activeElement !== blockRef.current) return;
+        e.preventDefault();
+        const abort = new AbortController();
+        void copyOrCutPageBlock(model, "copy", framework, abort.signal).catch(
+          console.error,
+        );
+      }}
+      onCut={(e) => {
+        if (document.activeElement !== blockRef.current || !writable()) return;
+        e.preventDefault();
+        const abort = new AbortController();
+        void copyOrCutPageBlock(model, "cut", framework, abort.signal).catch(
+          console.error,
+        );
+      }}
+      onPaste={(e) => {
+        if (document.activeElement !== blockRef.current || !writable()) return;
+        e.preventDefault();
+        void pasteAfterPageBlock(model, e.clipboardData).catch(console.error);
+      }}
     >
       <EditorGithubCard
         controls={{
           inSurface: false,
-          selected: false,
+          selected,
           style,
           family: resolveGitForgeFamily(url),
           host: target?.host ?? parseCardUrl(url)?.host ?? "",
@@ -263,31 +452,157 @@ export function ForgeCard({
               opened(`${target.profileOrigin}/${encodeURIComponent(who)}`);
           },
           select: () => {
-            if (!readonly && !model.store.readonly)
-              handoff({
-                kind: "block-command",
-                id: model.id,
-                flavour: model.flavour,
-              });
+            if (!readonly && !model.store.readonly) {
+              setSelected(true);
+              blockRef.current?.focus({ preventScroll: true });
+            }
           },
         }}
       />
       {caption.field}
+      {selected && !editing && !readonly ? (
+        <EditorSelectionToolbar
+          controls={{
+            getSnapshot: (): EditorSelectionState => ({
+              open: true,
+              key: model.id,
+              placement: "top",
+              primary: [
+                {
+                  id: "open-url",
+                  label: url,
+                  icon: "LinkIcon",
+                  showLabel: true,
+                  disabled: false,
+                  run: () => opened(url),
+                },
+                {
+                  id: "copy-link",
+                  label: t["com.myoxus.editor.toolbar.copy-link"](),
+                  icon: "CopyIcon",
+                  disabled: false,
+                  run: () => {
+                    void copyTextToClipboard(url);
+                    notifyCopied(t["Copied to clipboard"]());
+                    setSelected(false);
+                  },
+                },
+                {
+                  id: "edit",
+                  label: t["com.myoxus.editor.toolbar.edit-description"](),
+                  icon: "EditIcon",
+                  disabled: false,
+                  run: () => setEditing(true),
+                },
+                {
+                  id: "caption",
+                  label: t["com.myoxus.editor.toolbar.caption"](),
+                  icon: "CaptionIcon",
+                  disabled: false,
+                  run: caption.show,
+                },
+              ],
+              more: [
+                {
+                  id: "inline",
+                  label: t["com.myoxus.editor.toolbar.inline-view"](),
+                  icon: "LinkIcon",
+                  disabled: false,
+                  run: () => {
+                    convertCardBlockToInlineLink(model, url, content.title);
+                    setSelected(false);
+                  },
+                },
+                {
+                  id: "duplicate",
+                  label: t["com.myoxus.editor.keyboard.duplicate"](),
+                  icon: "DuplicateIcon",
+                  disabled: false,
+                  run: () => {
+                    duplicatePageBlock(model);
+                    setSelected(false);
+                  },
+                },
+                {
+                  id: "delete",
+                  label: t["Delete"](),
+                  icon: "DeleteIcon",
+                  variant: "destructive",
+                  disabled: false,
+                  run: () => {
+                    deletePageBlock(model);
+                    setSelected(false);
+                  },
+                },
+              ] satisfies SelectionAction[],
+            }),
+            subscribe: () => () => {},
+            setAnchor,
+            setFloating,
+            activate: () => blockRef.current?.focus({ preventScroll: true }),
+            dismiss: () => setSelected(false),
+          }}
+        />
+      ) : null}
+      {editing && !readonly ? (
+        <EditorEmbedCardEdit
+          controls={{
+            mode: "external",
+            internal: false,
+            title: model.props.title ?? "",
+            description: model.props.description ?? "",
+            canReset: false,
+            reset: () => {},
+            setAnchor,
+            confirm: (nextTitle, nextDescription) => {
+              if (writable()) {
+                model.store.captureSync();
+                model.store.updateBlock(model, {
+                  title: nextTitle.trim() || null,
+                  description: nextDescription.trim() || null,
+                });
+                model.store.captureSync();
+              }
+              setEditing(false);
+            },
+            close: () => setEditing(false),
+          }}
+        />
+      ) : null}
     </div>
   );
 }
 export function PageIframe({
   model,
   readonly,
-  handoff,
 }: {
   model: EmbedIframeBlockModel;
   readonly: boolean;
-  handoff: (i: PageIntent) => void;
 }) {
+  const t = useI18n();
+  const framework = useFramework();
   const caption = usePageCaption(model, readonly);
   const service = model.store.get(EmbedIframeService);
   const base = useService(ServerService).server.baseUrl;
+  const blockRef = useRef<HTMLDivElement>(null);
+  const [selected, setSelected] = useState(false);
+  const [editingUrl, setEditingUrl] = useState(false);
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const [floating, setFloating] = useState<HTMLElement | null>(null);
+  const writable = () =>
+    !readonly &&
+    !model.store.readonly &&
+    model.store.getModelById(model.id) === model;
+  usePageFloatingAnchor({
+    active: selected || editingUrl,
+    reference: blockRef.current,
+    anchor,
+    floating,
+    onDismiss: () => {
+      setSelected(false);
+      setEditingUrl(false);
+    },
+  });
   const preview = useMemo(
     () => workspaceLinkPreview(base, LinkPreviewCache.getInstance()),
     [base],
@@ -353,15 +668,43 @@ export function PageIframe({
       setInteractive(true);
       return;
     }
-    handoff({
-      kind: "block-command",
-      id: model.id,
-      flavour: model.flavour,
-      control,
-    });
+    blockRef.current?.focus({ preventScroll: true });
+    if (control === "iframe-input") {
+      setEditingUrl(true);
+      setSelected(false);
+    } else {
+      setSelected(true);
+    }
   };
   return (
-    <div data-block-id={model.id} contentEditable={false} tabIndex={-1}>
+    <div
+      ref={blockRef}
+      data-block-id={model.id}
+      contentEditable={false}
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          setSelected(false);
+          setEditingUrl(false);
+          return;
+        }
+        if (e.target !== blockRef.current || !writable()) return;
+        if (
+          ["Delete", "Backspace", "Enter", "ArrowDown", "ArrowUp"].includes(
+            e.key,
+          )
+        ) {
+          e.preventDefault();
+          leaveAtomicPageBlock(
+            blockRef.current.closest<HTMLElement>("[data-page-renderer]"),
+            model,
+            e.key === "ArrowUp" || e.key === "Backspace" ? -1 : 1,
+            e.key === "Delete" || e.key === "Backspace",
+            e.key === "Enter",
+          );
+        }
+      }}
+    >
       <div
         data-page-iframe=""
         onClick={() => select(!url ? "iframe-input" : undefined)}
@@ -423,20 +766,155 @@ export function PageIframe({
         )}
       </div>
       {caption.field}
+      {selected && !editingUrl && !readonly ? (
+        <EditorSelectionToolbar
+          controls={{
+            getSnapshot: (): EditorSelectionState => ({
+              open: true,
+              key: model.id,
+              placement: "top",
+              primary: [
+                ...(url
+                  ? [
+                      {
+                        id: "open-url",
+                        label: url,
+                        icon: "LinkIcon" as const,
+                        showLabel: true,
+                        disabled: false,
+                        run: () => {
+                          const link = normalizeUrl(url);
+                          if (isValidUrl(link))
+                            window.open(link, "_blank", "noopener,noreferrer");
+                        },
+                      },
+                    ]
+                  : []),
+                {
+                  id: "edit-url",
+                  label: t["com.myoxus.editor.toolbar.edit-description"](),
+                  icon: "EditIcon",
+                  disabled: false,
+                  run: () => setEditingUrl(true),
+                },
+                {
+                  id: "interact",
+                  label: t["com.myoxus.editor.toolbar.preview"](),
+                  icon: "PresentationIcon",
+                  disabled: !usable,
+                  active: interactive,
+                  run: () => {
+                    setInteractive((prev) => !prev);
+                    setSelected(false);
+                  },
+                },
+                {
+                  id: "caption",
+                  label: t["com.myoxus.editor.toolbar.caption"](),
+                  icon: "CaptionIcon",
+                  disabled: false,
+                  run: caption.show,
+                },
+              ],
+              more: [
+                {
+                  id: "reload",
+                  label: t["com.myoxus.editor.toolbar.reload"](),
+                  icon: "ResetIcon",
+                  disabled: !url,
+                  run: () => setRetry((n) => n + 1),
+                },
+                {
+                  id: "copy",
+                  label: t["Copy"](),
+                  icon: "CopyIcon",
+                  disabled: false,
+                  run: () => {
+                    const abort = new AbortController();
+                    void copyOrCutPageBlock(
+                      model,
+                      "copy",
+                      framework,
+                      abort.signal,
+                    )
+                      .then(() => notifyCopied(t["Copied to clipboard"]()))
+                      .catch(console.error);
+                    setSelected(false);
+                  },
+                },
+                {
+                  id: "duplicate",
+                  label: t["com.myoxus.editor.keyboard.duplicate"](),
+                  icon: "DuplicateIcon",
+                  disabled: false,
+                  run: () => {
+                    duplicatePageBlock(model);
+                    setSelected(false);
+                  },
+                },
+                {
+                  id: "delete",
+                  label: t["Delete"](),
+                  icon: "DeleteIcon",
+                  variant: "destructive",
+                  disabled: false,
+                  run: () => {
+                    deletePageBlock(model);
+                    setSelected(false);
+                  },
+                },
+              ],
+            }),
+            subscribe: () => () => {},
+            setAnchor,
+            setFloating,
+            activate: () => blockRef.current?.focus({ preventScroll: true }),
+            dismiss: () => setSelected(false),
+          }}
+        />
+      ) : null}
+      {editingUrl && !readonly ? (
+        <EditorIframeLinkEditor
+          controls={{
+            editing: Boolean(url),
+            showCloseButton: true,
+            setAnchor,
+            confirm: async (raw) => {
+              const nextUrl = normalizeUrl(raw.trim());
+              if (writable() && isValidUrl(nextUrl)) {
+                model.store.captureSync();
+                model.store.updateBlock(model, { url: nextUrl, iframeUrl: "" });
+                model.store.captureSync();
+              }
+              setEditingUrl(false);
+            },
+            close: () => setEditingUrl(false),
+          }}
+        />
+      ) : null}
     </div>
   );
 }
 export default function PageProviderPlayer({
   model,
   readonly,
-  handoff,
 }: {
   model: Model;
   readonly: boolean;
-  handoff: (i: PageIntent) => void;
 }) {
+  const t = useI18n();
+  const framework = useFramework();
   const caption = usePageCaption(model, readonly);
+  const blockRef = useRef<HTMLDivElement>(null);
+  const [selected, setSelected] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const [floating, setFloating] = useState<HTMLElement | null>(null);
   const base = useService(ServerService).server.baseUrl;
+  const writable = () =>
+    !readonly &&
+    !model.store.readonly &&
+    model.store.getModelById(model.id) === model;
   const preview = useMemo(
     () => workspaceLinkPreview(base, LinkPreviewCache.getInstance()),
     [base],
@@ -535,7 +1013,7 @@ export default function PageProviderPlayer({
     url,
     description:
       current?.data?.description ?? (stored ? description : null) ?? null,
-    selected: reading,
+    selected: reading || selected,
     showOverlay: !reading,
     open: () => {
       const link = normalizeUrl(model.props.url);
@@ -544,14 +1022,22 @@ export default function PageProviderPlayer({
     select: (event: MouseEvent) => {
       event.stopPropagation();
       if (readonly || model.store.readonly) setReading(true);
-      else
-        handoff({
-          kind: "block-command",
-          id: model.id,
-          flavour: model.flavour,
-        });
+      else {
+        setSelected(true);
+        blockRef.current?.focus({ preventScroll: true });
+      }
     },
   };
+  usePageFloatingAnchor({
+    active: selected || editing,
+    reference: blockRef.current,
+    anchor,
+    floating,
+    onDismiss: () => {
+      setSelected(false);
+      setEditing(false);
+    },
+  });
   const data = {
     ...common,
     title: current?.data?.title ?? (stored ? title : null),
@@ -563,10 +1049,54 @@ export default function PageProviderPlayer({
   };
   return (
     <div
+      ref={blockRef}
       data-block-id={model.id}
       data-page-provider={model.flavour}
       tabIndex={-1}
       contentEditable={false}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          setSelected(false);
+          setEditing(false);
+          return;
+        }
+        if (e.target !== blockRef.current || !writable()) return;
+        if (
+          ["Delete", "Backspace", "Enter", "ArrowDown", "ArrowUp"].includes(
+            e.key,
+          )
+        ) {
+          e.preventDefault();
+          leaveAtomicPageBlock(
+            blockRef.current.closest<HTMLElement>("[data-page-renderer]"),
+            model,
+            e.key === "ArrowUp" || e.key === "Backspace" ? -1 : 1,
+            e.key === "Delete" || e.key === "Backspace",
+            e.key === "Enter",
+          );
+        }
+      }}
+      onCopy={(e) => {
+        if (document.activeElement !== blockRef.current) return;
+        e.preventDefault();
+        const abort = new AbortController();
+        void copyOrCutPageBlock(model, "copy", framework, abort.signal).catch(
+          console.error,
+        );
+      }}
+      onCut={(e) => {
+        if (document.activeElement !== blockRef.current || !writable()) return;
+        e.preventDefault();
+        const abort = new AbortController();
+        void copyOrCutPageBlock(model, "cut", framework, abort.signal).catch(
+          console.error,
+        );
+      }}
+      onPaste={(e) => {
+        if (document.activeElement !== blockRef.current || !writable()) return;
+        e.preventDefault();
+        void pasteAfterPageBlock(model, e.clipboardData).catch(console.error);
+      }}
     >
       <div style={{ height: EMBED_CARD_HEIGHT[style] }}>
         {model instanceof EmbedLoomModel ? (
@@ -596,6 +1126,126 @@ export default function PageProviderPlayer({
         )}
       </div>
       {caption.field}
+      {selected && !editing && !readonly ? (
+        <EditorSelectionToolbar
+          controls={{
+            getSnapshot: (): EditorSelectionState => ({
+              open: true,
+              key: model.id,
+              placement: "top",
+              primary: [
+                {
+                  id: "open-url",
+                  label: url,
+                  icon: "LinkIcon",
+                  showLabel: true,
+                  disabled: false,
+                  run: common.open,
+                },
+                {
+                  id: "copy-link",
+                  label: t["com.myoxus.editor.toolbar.copy-link"](),
+                  icon: "CopyIcon",
+                  disabled: false,
+                  run: () => {
+                    void copyTextToClipboard(normalizeUrl(url));
+                    notifyCopied(t["Copied to clipboard"]());
+                    setSelected(false);
+                  },
+                },
+                {
+                  id: "edit",
+                  label: t["com.myoxus.editor.toolbar.edit-description"](),
+                  icon: "EditIcon",
+                  disabled: false,
+                  run: () => setEditing(true),
+                },
+                {
+                  id: "interact",
+                  label: t["com.myoxus.editor.toolbar.preview"](),
+                  icon: "PresentationIcon",
+                  disabled: false,
+                  active: reading,
+                  run: () => {
+                    setReading((prev) => !prev);
+                    setSelected(false);
+                  },
+                },
+                {
+                  id: "caption",
+                  label: t["com.myoxus.editor.toolbar.caption"](),
+                  icon: "CaptionIcon",
+                  disabled: false,
+                  run: caption.show,
+                },
+              ],
+              more: [
+                {
+                  id: "inline",
+                  label: t["com.myoxus.editor.toolbar.inline-view"](),
+                  icon: "LinkIcon",
+                  disabled: false,
+                  run: () => {
+                    convertCardBlockToInlineLink(model, url, title);
+                    setSelected(false);
+                  },
+                },
+                {
+                  id: "duplicate",
+                  label: t["com.myoxus.editor.keyboard.duplicate"](),
+                  icon: "DuplicateIcon",
+                  disabled: false,
+                  run: () => {
+                    duplicatePageBlock(model);
+                    setSelected(false);
+                  },
+                },
+                {
+                  id: "delete",
+                  label: t["Delete"](),
+                  icon: "DeleteIcon",
+                  variant: "destructive",
+                  disabled: false,
+                  run: () => {
+                    deletePageBlock(model);
+                    setSelected(false);
+                  },
+                },
+              ],
+            }),
+            subscribe: () => () => {},
+            setAnchor,
+            setFloating,
+            activate: () => blockRef.current?.focus({ preventScroll: true }),
+            dismiss: () => setSelected(false),
+          }}
+        />
+      ) : null}
+      {editing && !readonly ? (
+        <EditorEmbedCardEdit
+          controls={{
+            mode: "external",
+            internal: false,
+            title: title ?? "",
+            description: description ?? "",
+            canReset: false,
+            reset: () => {},
+            setAnchor,
+            confirm: (nextTitle, nextDescription) => {
+              if (writable()) {
+                model.store.captureSync();
+                model.store.updateBlock(model, {
+                  title: nextTitle.trim() || null,
+                  description: nextDescription.trim() || null,
+                });
+                model.store.captureSync();
+              }
+              setEditing(false);
+            },
+            close: () => setEditing(false),
+          }}
+        />
+      ) : null}
     </div>
   );
 }

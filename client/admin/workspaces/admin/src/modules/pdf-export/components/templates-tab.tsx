@@ -28,6 +28,7 @@ import {
 } from "@myoxus/icons/react";
 import {
   Button,
+  EmptyState,
   IconButton,
   InlineActionButton,
   Input,
@@ -68,7 +69,6 @@ import {
   type PdfTemplateViewModel,
 } from "../format-adapters";
 import { logPdfExportUiEvent } from "../logging";
-import { EmptyState as RoleEmptyState } from "../pdf-role-primitives";
 import {
   pdfTemplateDisplayName,
   pdfTemplateSearchText,
@@ -91,7 +91,7 @@ function TemplatesTabSkeleton() {
 function TemplateEmptyState({ filtered }: { filtered: boolean }) {
   const i18n = useI18n();
   return (
-    <RoleEmptyState
+    <EmptyState
       title={
         filtered
           ? i18n.t("admin.pdf-export.list.empty-filtered")

@@ -1,8 +1,15 @@
-import { CommandPaletteModal } from "@myoxus/ui-facade";
-import type { PropsWithChildren } from "react";
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
-// a QuickSearch modal that can be used to display a QuickSearch command
-// it has a smooth animation and can be closed by clicking outside of the modal
+import { createSpotlight, SpotlightRoot } from "@myoxus/ui-facade";
+import {
+  createContext,
+  type PropsWithChildren,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+export const QuickSearchSpotlightContext = createContext(false);
 
 export interface QuickSearchModalProps {
   open: boolean;
@@ -14,13 +21,52 @@ export const QuickSearchModal = ({
   open,
   children,
 }: PropsWithChildren<QuickSearchModalProps>) => {
+  const openRef = useRef(open);
+  openRef.current = open;
+
+  const [spotlightInstance] = useState(() => {
+    const instance = createSpotlight();
+    if (open) {
+      instance[1].open();
+    }
+    return instance;
+  });
+  const [store, actions] = spotlightInstance;
+
+  useEffect(() => {
+    if (open) {
+      actions.open();
+    } else {
+      actions.close();
+    }
+  }, [actions, open]);
+
   return (
-    <CommandPaletteModal
-      ariaLabel="Quick search"
-      open={open}
-      onOpenChange={onOpenChange}
+    <SpotlightRoot
+      store={store}
+      shortcut={null}
+      clearQueryOnClose={false}
+      closeOnActionTrigger={false}
+      scrollable
+      maxHeight={520}
+      aria-label="Quick search"
+      trapFocus
+      returnFocus
+      keepMounted={false}
+      overlayProps={
+        {
+          "data-myoxus-ui-role": "command-palette-overlay",
+        } as Record<string, unknown>
+      }
+      onSpotlightClose={() => {
+        if (openRef.current) {
+          onOpenChange?.(false);
+        }
+      }}
     >
-      {children}
-    </CommandPaletteModal>
+      <QuickSearchSpotlightContext.Provider value={true}>
+        {children}
+      </QuickSearchSpotlightContext.Provider>
+    </SpotlightRoot>
   );
 };

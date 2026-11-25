@@ -169,14 +169,19 @@ function setupMocks(
     }),
   }));
 
-  vi.doMock("@myoxus/admin/notifications", () => ({
-    adminToast: {
-      error: vi.fn(),
-      success: vi.fn(),
-      warning: vi.fn(),
-      dismiss: vi.fn(),
-    },
-  }));
+  vi.doMock("@myoxus/ui-facade", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("@myoxus/ui-facade")>();
+    return {
+      ...actual,
+      notify: {
+        ...actual.notify,
+        error: vi.fn(),
+        success: vi.fn(),
+        warning: vi.fn(),
+        dismiss: vi.fn(),
+      },
+    };
+  });
 
   // Stub out sub-components that are not under test
   vi.doMock("./workspace-panel-members", () => ({

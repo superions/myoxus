@@ -30,19 +30,22 @@ import {
   ColorInput,
   ColorSwatch,
   ErrorMessage,
+  FieldLabel,
   Group,
   Input,
   notify,
   ResponsiveGrid,
   FormSelect,
   SelectableCardRow,
+  SettingsDetailHeader,
   SettingsListItemMeta,
   SettingsPanelDescription,
+  SettingsSkeleton,
   SettingsStatusText,
   SettingsToolbar,
-  Skeleton,
   Stack,
   SurfaceListItem,
+  ThemedImg,
   UploadTarget,
 } from "@myoxus/ui-facade";
 import {
@@ -72,7 +75,6 @@ import {
   useUpdateDocumentBrandingTextMutation,
   useUploadDocumentBrandLogoMutation,
 } from "../api";
-import { PdfPanelHeader, FieldLabel } from "../pdf-role-primitives";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -182,7 +184,7 @@ function LogoSlot({
 
   return (
     <Stack component="section">
-      <PdfPanelHeader
+      <SettingsDetailHeader
         title={
           kind === BrandLogoKind.Large
             ? i18n.t("admin.pdf-brand.logo.large")
@@ -193,6 +195,8 @@ function LogoSlot({
             ? i18n.t("admin.pdf-brand.logo.large-hint")
             : i18n.t("admin.pdf-brand.logo.small-hint")
         }
+        headingLevel={2}
+        divider={false}
       />
       <SettingsPanelDescription>
         {i18n
@@ -208,9 +212,10 @@ function LogoSlot({
         >
           <Group align="center" wrap="wrap">
             {previewUrl ? (
-              <img
+              <ThemedImg
                 alt={i18n.t("admin.pdf-brand.logo.preview-alt")}
-                src={previewUrl}
+                lightSrc={previewUrl}
+                darkSrc={previewUrl}
               />
             ) : (
               <SettingsStatusText>
@@ -329,7 +334,11 @@ function TextSection({
 
   return (
     <Stack component="section">
-      <PdfPanelHeader title={i18n.t("admin.pdf-brand.text.title")} />
+      <SettingsDetailHeader
+        title={i18n.t("admin.pdf-brand.text.title")}
+        headingLevel={2}
+        divider={false}
+      />
       <Stack>
         <Stack>
           <FieldLabel htmlFor={footerId}>
@@ -482,16 +491,20 @@ function ColorsSection({
 
   return (
     <Stack component="section">
-      <PdfPanelHeader
+      <SettingsDetailHeader
         title={i18n.t("admin.pdf-brand.colors.title")}
         description={i18n.t("admin.pdf-brand.colors.description")}
+        headingLevel={2}
+        divider={false}
       />
       <Stack>
         {palettes.length > 0 ? (
           <Stack component="section">
-            <PdfPanelHeader
+            <SettingsDetailHeader
               title={i18n.t("admin.pdf-brand.colors.palette-title")}
               description={i18n.t("admin.pdf-brand.colors.palette-description")}
+              headingLevel={2}
+              divider={false}
             />
             <Stack>
               <ResponsiveGrid cols={{ base: 1, md: 2, lg: 4 }}>
@@ -546,9 +559,11 @@ function ColorsSection({
           </Stack>
         ) : null}
         <Stack component="section">
-          <PdfPanelHeader
+          <SettingsDetailHeader
             title={i18n.t("admin.pdf-brand.colors.custom-title")}
             description={i18n.t("admin.pdf-brand.colors.custom-description")}
+            headingLevel={2}
+            divider={false}
           />
           <Stack>
             <ResponsiveGrid cols={{ base: 1, md: 2 }}>
@@ -563,7 +578,7 @@ function ColorsSection({
                     setColors((current) => ({ ...current, primary: value }))
                   }
                   disabled={busy || policyBusyKey !== null}
-                  placeholder="#1e96eb"
+                  placeholder="#RRGGBB"
                   maxLength={7}
                   mono
                   fixOnBlur={false}
@@ -581,7 +596,7 @@ function ColorsSection({
                     setColors((current) => ({ ...current, accent: value }))
                   }
                   disabled={busy || policyBusyKey !== null}
-                  placeholder="#0a6dca"
+                  placeholder="#RRGGBB"
                   maxLength={7}
                   mono
                   fixOnBlur={false}
@@ -666,15 +681,15 @@ function BrandPanel({ workspaceId }: { workspaceId: string }) {
   }, [handleRefresh, i18n, reset, workspaceId]);
 
   if (!asset) {
-    return <Skeleton h={128} />;
+    return <SettingsSkeleton />;
   }
 
   return (
     <Stack>
-      <PdfPanelHeader
+      <SettingsDetailHeader
         title={i18n.t("admin.pdf-brand.reset.title")}
         description={i18n.t("admin.pdf-brand.reset.description")}
-        action={
+        actions={
           <Button
             variant="outline"
             onClick={() => setResetRequested(true)}
@@ -684,6 +699,8 @@ function BrandPanel({ workspaceId }: { workspaceId: string }) {
             {i18n.t("admin.pdf-brand.reset.action")}
           </Button>
         }
+        headingLevel={2}
+        divider={false}
       />
       <ResponsiveGrid cols={{ base: 1, md: 2 }}>
         <LogoSlot
@@ -773,7 +790,7 @@ function BrandAssetsTabContent() {
             adding DOM or a parallel visual layout to native Facade controls. */}
         {visitedWorkspaces.map((id) => (
           <Activity key={id} mode={id === workspaceId ? "visible" : "hidden"}>
-            <Suspense fallback={<Skeleton h={256} />}>
+            <Suspense fallback={<SettingsSkeleton />}>
               <BrandPanel workspaceId={id} />
             </Suspense>
           </Activity>
@@ -790,7 +807,7 @@ function BrandAssetsTabContent() {
 
 export function BrandAssetsTab() {
   return (
-    <Suspense fallback={<Skeleton h={256} />}>
+    <Suspense fallback={<SettingsSkeleton />}>
       <BrandAssetsTabContent />
     </Suspense>
   );

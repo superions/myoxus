@@ -2,7 +2,6 @@ export {
   type DenseMenuBuilder,
   getRootBlock,
   type MenuPopper,
-  createPopper,
   EdgelessDraggableElementController,
   EDGELESS_TOOLBAR_WIDGET,
   EdgelessToolbarWidget,

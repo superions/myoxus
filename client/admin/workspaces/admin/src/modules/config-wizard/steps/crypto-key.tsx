@@ -7,13 +7,15 @@
  * browser must never generate, read, or persist this server secret.
  */
 import { useI18n } from "@myoxus/i18n";
-import { Button, SettingsNotice } from "@myoxus/ui-facade";
-
 import {
-  ConfigWizardActions,
-  ConfigWizardStep,
-  ConfigWizardStepHeader,
-} from "../primitives";
+  Button,
+  OnboardingActions,
+  OnboardingStep,
+  OnboardingStepHeader,
+  SettingsNotice,
+  SettingsSectionDescription,
+  SettingsSectionHeading,
+} from "@myoxus/ui-facade";
 
 interface CryptoKeyStepProps {
   onNext: () => void;
@@ -23,11 +25,15 @@ export function CryptoKeyStep({ onNext }: CryptoKeyStepProps) {
   const i18n = useI18n();
 
   return (
-    <ConfigWizardStep>
-      <ConfigWizardStepHeader
-        title={i18n.t("admin.configWizard.cryptoKey.title")}
-        description={i18n.t("admin.configWizard.cryptoKey.runtimeDescription")}
-      />
+    <OnboardingStep compact>
+      <OnboardingStepHeader>
+        <SettingsSectionHeading level={2}>
+          {i18n.t("admin.configWizard.cryptoKey.title")}
+        </SettingsSectionHeading>
+        <SettingsSectionDescription>
+          {i18n.t("admin.configWizard.cryptoKey.runtimeDescription")}
+        </SettingsSectionDescription>
+      </OnboardingStepHeader>
 
       <SettingsNotice
         tone="info"
@@ -43,11 +49,11 @@ export function CryptoKeyStep({ onNext }: CryptoKeyStepProps) {
         {i18n.t("admin.configWizard.cryptoKey.restartText")}
       </SettingsNotice>
 
-      <ConfigWizardActions centered={false}>
+      <OnboardingActions fullWidth justify="flex-end">
         <Button variant="primary" onClick={onNext}>
           {i18n.t("common.continue")}
         </Button>
-      </ConfigWizardActions>
-    </ConfigWizardStep>
+      </OnboardingActions>
+    </OnboardingStep>
   );
 }

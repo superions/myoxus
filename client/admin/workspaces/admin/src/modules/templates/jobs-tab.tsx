@@ -9,9 +9,20 @@ import { RefreshCwIcon } from "@myoxus/icons/react";
 import {
   Button,
   Group,
+  MetricStack,
+  MonoText,
+  SettingsDefinitionItem,
+  SettingsDefinitionList,
+  SettingsDetailHeader,
   SettingsEmptyState,
+  SettingsListItemMeta,
+  SettingsListItemTitle,
   SettingsSkeleton,
+  SettingsStatusText,
   Stack,
+  SurfaceList,
+  SurfaceListItem,
+  SurfaceListItemMain,
 } from "@myoxus/ui-facade";
 import { Suspense, useCallback } from "react";
 
@@ -23,15 +34,6 @@ import {
   type TemplateJobState,
   TemplateJobStateBadge,
 } from "./badges";
-import {
-  MetaField,
-  MetaGrid,
-  SoftList,
-  SoftListItem,
-  TemplateCardTitle,
-  TemplateShoulder,
-  TemplateTabFrame,
-} from "./template-role-primitives";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -78,43 +80,55 @@ function JobsContent() {
           {i18n.t("admin.templates.jobs.refresh")}
         </Button>
       </Group>
-      <SoftList data-testid="templates-jobs-soft-list">
+      <SurfaceList data-testid="templates-jobs-soft-list">
         {jobs.map((job: any) => (
-          <SoftListItem key={job.id}>
+          <SurfaceListItem key={job.id}>
             <Group align="flex-start" justify="space-between" wrap="wrap">
-              <TemplateCardTitle
-                title={job.jobType}
-                subtitle={i18n.t("admin.templates.jobs.card.subtitle")}
-                mono={job.id}
-              />
+              <SurfaceListItemMain grow>
+                <SettingsListItemTitle truncate>
+                  {job.jobType}
+                </SettingsListItemTitle>
+                <SettingsListItemMeta lineClamp={2}>
+                  {i18n.t("admin.templates.jobs.card.subtitle")}
+                </SettingsListItemMeta>
+                {job.id ? (
+                  <SettingsStatusText mono truncate>
+                    <MonoText>{job.id}</MonoText>
+                  </SettingsStatusText>
+                ) : null}
+              </SurfaceListItemMain>
               <Group align="center" wrap="wrap">
                 <TemplateJobKindBadge kind={job.jobType as TemplateJobKind} />
                 <TemplateJobStateBadge state={job.state as TemplateJobState} />
               </Group>
             </Group>
-            <MetaGrid>
-              <MetaField
+            <SettingsDefinitionList>
+              <SettingsDefinitionItem
                 label={i18n.t("admin.templates.jobs.col.template")}
-                value={job.templateId ? job.templateId : "\u2014"}
                 mono
-              />
-              <MetaField
+              >
+                {job.templateId ? job.templateId : "\u2014"}
+              </SettingsDefinitionItem>
+              <SettingsDefinitionItem
                 label={i18n.t("admin.templates.jobs.col.workspace")}
-                value={job.workspaceId ? job.workspaceId : "\u2014"}
                 mono
-              />
-              <MetaField
+              >
+                {job.workspaceId ? job.workspaceId : "\u2014"}
+              </SettingsDefinitionItem>
+              <SettingsDefinitionItem
                 label={i18n.t("admin.templates.jobs.col.started")}
-                value={formatDate(i18n.language, job.startedAt)}
-              />
-              <MetaField
+              >
+                {formatDate(i18n.language, job.startedAt)}
+              </SettingsDefinitionItem>
+              <SettingsDefinitionItem
                 label={i18n.t("admin.templates.jobs.col.finished")}
-                value={formatDate(i18n.language, job.finishedAt)}
-              />
-            </MetaGrid>
-          </SoftListItem>
+              >
+                {formatDate(i18n.language, job.finishedAt)}
+              </SettingsDefinitionItem>
+            </SettingsDefinitionList>
+          </SurfaceListItem>
         ))}
-      </SoftList>
+      </SurfaceList>
     </Stack>
   );
 }
@@ -126,29 +140,29 @@ function JobsContent() {
 export function JobsTab() {
   const i18n = useI18n();
   return (
-    <TemplateTabFrame
-      title={i18n.t("admin.templates.jobs.title")}
-      description={i18n.t("admin.templates.jobs.description")}
-      shoulder={
-        <TemplateShoulder
-          rows={[
-            {
-              label: i18n.t("admin.templates.jobs.metric.window"),
-              value: "50",
-              tone: "info",
-            },
-            {
-              label: i18n.t("admin.templates.jobs.metric.action-label"),
-              value: i18n.t("admin.templates.jobs.metric.manual"),
-              tone: "neutral",
-            },
-          ]}
-        />
-      }
-    >
+    <Stack component="section">
+      <SettingsDetailHeader
+        title={i18n.t("admin.templates.jobs.title")}
+        description={i18n.t("admin.templates.jobs.description")}
+        actions={
+          <MetricStack
+            rows={[
+              {
+                label: i18n.t("admin.templates.jobs.metric.window"),
+                value: "50",
+              },
+              {
+                label: i18n.t("admin.templates.jobs.metric.action-label"),
+                value: i18n.t("admin.templates.jobs.metric.manual"),
+              },
+            ]}
+          />
+        }
+        headingLevel={2}
+      />
       <Suspense fallback={<SettingsSkeleton />}>
         <JobsContent />
       </Suspense>
-    </TemplateTabFrame>
+    </Stack>
   );
 }

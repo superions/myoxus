@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useService } from "@myoxus/infra";
 import { computed, signal } from "@preact/signals-core";
-import { autoUpdate } from "@floating-ui/dom";
 import type {
   EditorDocumentPickerControls,
   EditorDocumentPickerState,
@@ -10,6 +9,7 @@ import type { LinkedMenuGroup } from "@virgultum/editor/widgets/linked-doc";
 import { useLayoutEffect, useState } from "react";
 import { AtMenuConfigService } from "../../../modules/at-menu-config/services";
 import { EditorDocumentPicker } from "../../view-extensions/editor-view/editor-chrome/document-picker";
+import { bindFloatingAnchor } from "./page-floating-anchor";
 import type { PageInteraction, PickerStart } from "./page-interaction";
 
 export default function PagePicker({
@@ -198,20 +198,10 @@ export default function PagePicker({
       setAnchor(el) {
         releaseAnchor?.();
         if (!el || stop.signal.aborted) return;
-        releaseAnchor = autoUpdate(
+        releaseAnchor = bindFloatingAnchor(
           { contextElement: input, getBoundingClientRect: rect },
           el,
-          () => {
-            const r = rect();
-            Object.assign(el.style, {
-              position: "fixed",
-              left: `${r.left}px`,
-              top: `${r.top}px`,
-              width: "1px",
-              height: `${r.height}px`,
-              pointerEvents: "none",
-            });
-          },
+          { minWidth: 1 },
         );
       },
     };

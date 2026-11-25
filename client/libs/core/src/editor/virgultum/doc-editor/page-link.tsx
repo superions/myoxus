@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useI18n } from "@myoxus/i18n";
-import { autoUpdate } from "@floating-ui/dom";
-import { useLayoutEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { copyTextToClipboard } from "@virgultum/core/primitives/utils";
 import { normalizeUrl, isValidUrl } from "@virgultum/core/utils/url";
 import type {
@@ -13,10 +12,11 @@ import {
   resolveBookmark,
   restorePageRange,
   type PageBookmark,
-  type PageIntent,
 } from "./plain-page-input";
 import { EditorSelectionToolbar } from "../../view-extensions/editor-view/editor-chrome/selection-toolbar";
 import { EditorLinkEditor } from "../../view-extensions/editor-view/editor-chrome/link-editor";
+import { convertLinkToEmbedCard } from "./page-block-actions";
+import { usePageFloatingAnchor } from "./page-floating-anchor";
 
 export type LinkAnchor = {
   el: HTMLAnchorElement;
@@ -29,12 +29,10 @@ export default function LinkMenu({
   anchor: a,
   readonly,
   dismiss,
-  handoff,
 }: {
   anchor: LinkAnchor;
   readonly: boolean;
   dismiss: () => void;
-  handoff: (r: PageBookmark, i: PageIntent) => void;
 }) {
   const t = useI18n(),
     [editing, setEditing] = useState(false),
@@ -63,47 +61,16 @@ export default function LinkMenu({
       attributes: visible[0].attributes,
     };
   };
-  useLayoutEffect(() => {
-    if (!a.el.isConnected || !current()) {
-      dismiss();
-      return;
-    }
-    if (!position) return;
-    const abort = new AbortController(),
-      opts = { signal: abort.signal };
-    const cancel = (e: Event) => {
-      if (
-        e.target instanceof Node &&
-        !a.el.contains(e.target) &&
-        !floating?.contains(e.target) &&
-        !(
-          e.target instanceof Element &&
-          e.target.closest("[data-range-sync-exclude],[role=menu]")
-        )
-      )
-        dismiss();
-    };
-    document.addEventListener("pointerdown", cancel, opts);
-    const positioner = autoUpdate(a.el, position, () => {
-      if (!a.el.isConnected) {
-        dismiss();
-        return;
-      }
-      const r = a.el.getBoundingClientRect();
-      Object.assign(position.style, {
-        position: "fixed",
-        pointerEvents: "none",
-        left: `${r.left}px`,
-        top: `${r.top}px`,
-        width: `${r.width}px`,
-        height: `${r.height}px`,
-      });
-    });
-    return () => {
-      abort.abort();
-      positioner();
-    };
-  }, [a, position, floating, dismiss]);
+  useEffect(() => {
+    if (!a.el.isConnected || !current()) dismiss();
+  });
+  usePageFloatingAnchor({
+    active: true,
+    reference: a.el,
+    anchor: position,
+    floating,
+    onDismiss: dismiss,
+  });
   const apply = (
     op: "replace" | "unlink" | "delete",
     value?: string,
@@ -213,11 +180,16 @@ export default function LinkMenu({
             t["com.myoxus.editor.toolbar.inline-view"](),
             "LinkIcon",
             () => {
-              if (current())
-                handoff(a.range, {
-                  kind: "convert-link",
-                  url: a.url,
-                });
+              const at = current();
+              if (!at) return;
+              convertLinkToEmbedCard(
+                store,
+                a.line.model,
+                at.start,
+                at.end,
+                a.url,
+              );
+              dismiss();
             },
           ),
         );

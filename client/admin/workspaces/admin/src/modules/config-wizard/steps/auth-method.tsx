@@ -13,6 +13,10 @@ import {
   Checkbox,
   Input,
   MyoxusSegmentedControl,
+  OnboardingActions,
+  OnboardingInlineControls,
+  OnboardingStep,
+  OnboardingStepHeader,
   RadioCardGroup,
   RadioCard,
   RadioCardIndicator,
@@ -23,6 +27,8 @@ import {
   SettingsListItemMeta,
   SettingsListItemTitle,
   SettingsNotice,
+  SettingsSectionDescription,
+  SettingsSectionHeading,
   Stack,
   Table,
   TableScrollContainer,
@@ -56,13 +62,6 @@ import {
   ROLE_OPTIONS,
   serializeOidcProviderConfig,
 } from "../../security/oidc-config";
-import {
-  ConfigWizardActions,
-  ConfigWizardHelpText,
-  ConfigWizardInlineControls,
-  ConfigWizardStep,
-  ConfigWizardStepHeader,
-} from "../primitives";
 
 interface AuthMethodStepProps {
   onNext: () => void;
@@ -367,11 +366,15 @@ export function AuthMethodStep({ onNext, onBusyChange }: AuthMethodStepProps) {
     visible ? i18n.t("common.hide") : i18n.t("common.show");
 
   return (
-    <ConfigWizardStep>
-      <ConfigWizardStepHeader
-        title={i18n.t("admin.configWizard.authMethod.title")}
-        description={i18n.t("admin.configWizard.authMethod.description")}
-      />
+    <OnboardingStep compact>
+      <OnboardingStepHeader>
+        <SettingsSectionHeading level={2}>
+          {i18n.t("admin.configWizard.authMethod.title")}
+        </SettingsSectionHeading>
+        <SettingsSectionDescription>
+          {i18n.t("admin.configWizard.authMethod.description")}
+        </SettingsSectionDescription>
+      </OnboardingStepHeader>
 
       {error && <SettingsNotice tone="error">{error}</SettingsNotice>}
 
@@ -438,9 +441,9 @@ export function AuthMethodStep({ onNext, onBusyChange }: AuthMethodStepProps) {
 
       {selectedMethod === "oidc" && (
         <Stack gap="sm">
-          <ConfigWizardHelpText>
+          <SettingsListItemMeta>
             {i18n.t("admin.configWizard.authMethod.oidcHint")}
-          </ConfigWizardHelpText>
+          </SettingsListItemMeta>
           <SettingsField label={i18n.t("admin.security.oauth.preset")}>
             <Stack gap="xs">
               <MyoxusSegmentedControl
@@ -736,7 +739,7 @@ export function AuthMethodStep({ onNext, onBusyChange }: AuthMethodStepProps) {
         </Stack>
       )}
 
-      <ConfigWizardActions centered={false}>
+      <OnboardingActions fullWidth justify="flex-end">
         <Button
           variant="primary"
           onClick={handleSave}
@@ -746,8 +749,8 @@ export function AuthMethodStep({ onNext, onBusyChange }: AuthMethodStepProps) {
             ? i18n.t("common.saving")
             : i18n.t("common.continue")}
         </Button>
-      </ConfigWizardActions>
-    </ConfigWizardStep>
+      </OnboardingActions>
+    </OnboardingStep>
   );
 }
 
@@ -781,7 +784,7 @@ function ProviderCredentials({
 
   return (
     <Stack gap="sm">
-      {hint ? <ConfigWizardHelpText>{hint}</ConfigWizardHelpText> : null}
+      {hint ? <SettingsListItemMeta>{hint}</SettingsListItemMeta> : null}
       <SettingsField label={clientIdLabel} labelFor={clientIdInputId}>
         <Input
           id={clientIdInputId}
@@ -794,7 +797,7 @@ function ProviderCredentials({
         />
       </SettingsField>
       <SettingsField label={clientSecretLabel} labelFor={clientSecretInputId}>
-        <ConfigWizardInlineControls>
+        <OnboardingInlineControls>
           <Input
             id={clientSecretInputId}
             type={showSecret ? "text" : "password"}
@@ -811,7 +814,7 @@ function ProviderCredentials({
           >
             {secretToggleLabel(showSecret)}
           </Button>
-        </ConfigWizardInlineControls>
+        </OnboardingInlineControls>
       </SettingsField>
     </Stack>
   );

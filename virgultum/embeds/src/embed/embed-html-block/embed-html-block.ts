@@ -1,8 +1,10 @@
 import { effect, signal, untracked } from "@preact/signals-core";
 import {
+  EditorChromeHostIdentifier,
   editorMessage,
   EditorI18nProvider,
   resolveEditorMessage,
+  type EditorHtmlEmbedControls,
   type EditorI18nMessage,
 } from "@virgultum/core/services";
 import type { BlockStyleMap } from "@virgultum/content/caption";
@@ -142,8 +144,25 @@ export class EmbedHtmlBlockComponent extends EmbedBlockComponent<EmbedHtmlModel>
     titleEl.append(iconEl, titleTextEl);
     blockEl.append(htmlWrap, titleEl);
 
+    const chrome = this.std.getOptional(EditorChromeHostIdentifier);
+    const chromeState$ = signal<EditorHtmlEmbedControls | null>(null);
+    let chromeUnmount: (() => void) | undefined;
+    let chromeMounted = false;
+    const mountFrame = (host: HTMLElement) => {
+      host.replaceChildren(iframeWrapper, overlay);
+      return () => {
+        iframeWrapper.remove();
+        overlay.remove();
+      };
+    };
+
     let lastHtmlSrc: string | null = null;
     let appliedKeys: string[] = [];
+
+    this.disposables.add(() => {
+      chromeUnmount?.();
+      chromeUnmount = undefined;
+    });
 
     this.disposables.add(
       effect(() => {
@@ -163,6 +182,44 @@ export class EmbedHtmlBlockComponent extends EmbedBlockComponent<EmbedHtmlModel>
         );
 
         untracked(() => {
+          if (htmlContent) {
+            const htmlSrc = `
+      <style>
+        body {
+          margin: 0;
+        }
+      </style>
+      ${htmlContent}
+    `;
+            if (lastHtmlSrc !== htmlSrc) {
+              lastHtmlSrc = htmlSrc;
+              iframe.srcdoc = htmlSrc;
+            }
+          }
+
+          overlay.classList.toggle("hide", !showOverlay);
+
+          if (chrome?.mountHtmlEmbed) {
+            chromeState$.value = {
+              empty: !htmlContent,
+              emptyLabel,
+              title: titleLabel,
+              selected,
+              select: (event: MouseEvent) => this._handleClick(event),
+              open: this._handleDoubleClick,
+              mountFrame,
+            };
+            if (!chromeMounted) {
+              chromeMounted = true;
+              const host = doc.createElement("div");
+              host.style.width = "100%";
+              host.style.height = "100%";
+              container.replaceChildren(host);
+              chromeUnmount = chrome.mountHtmlEmbed(host, chromeState$);
+            }
+            return;
+          }
+
           if (!htmlContent) {
             emptyEl.textContent = emptyLabel;
             if (emptyEl.parentNode !== container) {
@@ -176,7 +233,6 @@ export class EmbedHtmlBlockComponent extends EmbedBlockComponent<EmbedHtmlModel>
           }
 
           blockEl.classList.toggle("selected", selected);
-          overlay.classList.toggle("hide", !showOverlay);
           titleTextEl.textContent = titleLabel;
 
           for (const key of appliedKeys) {
@@ -193,19 +249,6 @@ export class EmbedHtmlBlockComponent extends EmbedBlockComponent<EmbedHtmlModel>
               (blockEl.style as unknown as Record<string, string>)[key] = value;
               appliedKeys.push(key);
             }
-          }
-
-          const htmlSrc = `
-      <style>
-        body {
-          margin: 0;
-        }
-      </style>
-      ${htmlContent}
-    `;
-          if (lastHtmlSrc !== htmlSrc) {
-            lastHtmlSrc = htmlSrc;
-            iframe.srcdoc = htmlSrc;
           }
         });
       }),

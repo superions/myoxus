@@ -24,7 +24,7 @@ export const MYOXUS_FRAME_TITLE_EDITOR = "myoxus-frame-card-title-editor";
 export class FrameCardTitleEditor extends NativeViewElement {
   disposables = new DisposableGroup();
 
-  private readonly _isComposing = false;
+  private _isComposing = false;
 
   frameModel!: FrameBlockModel;
   left!: number;
@@ -73,7 +73,8 @@ export class FrameCardTitleEditor extends NativeViewElement {
       background: "var(--myoxus-background-primary-color)",
       border: "1px solid var(--myoxus-primary-color)",
       color: "var(--myoxus-text-primary-color)",
-      boxShadow: "0px 0px 0px 2px rgba(30, 150, 235, 0.30)",
+      boxShadow:
+        "0px 0px 0px 2px color-mix(in srgb, var(--myoxus-primary-color) 30%, transparent)",
       zIndex: "1",
       display: "block",
     });
@@ -109,9 +110,23 @@ export class FrameCardTitleEditor extends NativeViewElement {
           },
         );
 
+        this.disposables.addFromEvent(
+          inlineEditorContainer,
+          "compositionstart",
+          () => {
+            this._isComposing = true;
+          },
+        );
+        this.disposables.addFromEvent(
+          inlineEditorContainer,
+          "compositionend",
+          () => {
+            this._isComposing = false;
+          },
+        );
         this.disposables.addFromEvent(inlineEditorContainer, "keydown", (e) => {
           e.stopPropagation();
-          if (e.key === "Enter" && !this._isComposing) {
+          if (e.key === "Enter" && !e.isComposing && !this._isComposing) {
             this._unmount();
           }
         });
