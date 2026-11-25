@@ -1569,37 +1569,39 @@ function DashboardOverview({
                     {cluster.description}
                   </SettingsSectionDescription>
                 </SettingsHeadingGroup>
-                <Table>
-                  <TableBody>
-                    {cluster.items.map((item) => (
-                      <TableRow key={item.label}>
-                        <TableCell>
-                          <Stack>
-                            <Text>{item.label}</Text>
-                            {item.hint ? (
-                              <SettingsStatusText>
-                                {item.hint}
-                              </SettingsStatusText>
-                            ) : null}
-                          </Stack>
-                        </TableCell>
-                        <TableCell ta="right">
-                          <Group justify="flex-end">
-                            <MetricValue>{item.value}</MetricValue>
-                            {item.tone ? (
-                              <DashboardStatusDot
-                                tone={item.tone}
-                                label={i18n.t(
-                                  DASHBOARD_STATUS_LABEL_KEYS[item.tone],
-                                )}
-                              />
-                            ) : null}
-                          </Group>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <TableScrollContainer>
+                  <Table>
+                    <TableBody>
+                      {cluster.items.map((item) => (
+                        <TableRow key={item.label}>
+                          <TableCell>
+                            <Stack>
+                              <Text>{item.label}</Text>
+                              {item.hint ? (
+                                <SettingsStatusText>
+                                  {item.hint}
+                                </SettingsStatusText>
+                              ) : null}
+                            </Stack>
+                          </TableCell>
+                          <TableCell ta="right">
+                            <Group justify="flex-end">
+                              <MetricValue>{item.value}</MetricValue>
+                              {item.tone ? (
+                                <DashboardStatusDot
+                                  tone={item.tone}
+                                  label={i18n.t(
+                                    DASHBOARD_STATUS_LABEL_KEYS[item.tone],
+                                  )}
+                                />
+                              ) : null}
+                            </Group>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableScrollContainer>
                 <NavigationLink
                   component={Link}
                   to={cluster.to}

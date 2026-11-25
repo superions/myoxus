@@ -1,5 +1,4 @@
 import { css } from "@virgultum/core/styles";
-import { cssVar } from "@virgultum/core/theme";
 
 // Full table-edge hit areas support drag-to-grow/shrink and virtual count previews.
 // Their coordinates remain with the table; native controls own visible chrome.
@@ -37,14 +36,4 @@ export const addRowColumnButtonStyle = css({
   height: "16px",
   top: "calc(100% + 2px)",
   left: "calc(100% + 2px)",
-});
-
-export const cellCountTipsStyle = css({
-  position: "absolute",
-  backgroundColor: cssVar("tooltip"),
-  borderRadius: "4px",
-  padding: "4px",
-  boxShadow: cssVar("buttonShadow"),
-  color: cssVar("backgroundPrimaryColor"),
-  whiteSpace: "nowrap",
 });

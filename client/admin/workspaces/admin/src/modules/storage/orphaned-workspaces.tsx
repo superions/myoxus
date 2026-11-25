@@ -35,6 +35,7 @@ import {
   SettingsSectionDescription,
   Stack,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -182,113 +183,115 @@ export function OrphanedWorkspacesContent() {
           title={i18n.t("admin.workspaces.orphaned-page.none")}
         />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>
-                {i18n.t("admin.workspaces.orphaned-page.col-id")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.workspaces.orphaned-page.col-name")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.workspaces.orphaned-page.col-members")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.workspaces.orphaned-page.col-created")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.workspaces.orphaned-page.col-assign")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.workspaces.orphaned-page.col-delete")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {workspaces.map((ws) => (
-              <TableRow key={ws.id}>
-                <TableCell>
-                  <SettingsListItemMeta breakAnywhere>
-                    {ws.id}
-                  </SettingsListItemMeta>
-                </TableCell>
-                <TableCell>{ws.name ?? "—"}</TableCell>
-                <TableCell>{ws.memberCount}</TableCell>
-                <TableCell>
-                  {formatAdminDate(i18n.language, ws.createdAt)}
-                </TableCell>
-                <TableCell>
-                  {reassigning === ws.id ? (
-                    <Group wrap="wrap">
-                      <Select
-                        disabled={reassignPending || deleting}
-                        aria-label={i18n.t(
-                          "admin.workspaces.orphaned-page.select-user",
-                        )}
-                        data={users.map(
-                          (u: {
-                            id: string;
-                            email: string;
-                            name: string | null;
-                          }) => ({
-                            value: u.id,
-                            label: `${u.name ?? u.email} (${u.email})`,
-                          }),
-                        )}
-                        placeholder={i18n.t(
-                          "admin.workspaces.orphaned-page.select-user",
-                        )}
-                        value={selectedUser[ws.id] || null}
-                        onChange={(value) =>
-                          setSelectedUser((prev) => ({
-                            ...prev,
-                            [ws.id]: value,
-                          }))
-                        }
-                      />
-                      <Button
-                        disabled={
-                          !selectedUser[ws.id] || reassignPending || deleting
-                        }
-                        loading={reassignPending}
-                        onClick={() => handleReassign(ws.id)}
-                      >
-                        {i18n.t("admin.common.save")}
-                      </Button>
-                      <Button
-                        variant="plain"
-                        disabled={reassignPending || deleting}
-                        onClick={() => setReassigning(null)}
-                      >
-                        {i18n.t("admin.common.cancel")}
-                      </Button>
-                    </Group>
-                  ) : (
-                    <Button
-                      variant="secondary"
-                      disabled={reassignPending || deleting}
-                      onClick={() => setReassigning(ws.id)}
-                    >
-                      {i18n.t("admin.workspaces.orphaned-page.assign")}
-                    </Button>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="error"
-                    disabled={reassignPending || deleting}
-                    onClick={() =>
-                      setDeleteTarget({ id: ws.id, name: ws.name ?? null })
-                    }
-                  >
-                    {i18n.t("admin.workspaces.orphaned-page.delete")}
-                  </Button>
-                </TableCell>
+        <TableScrollContainer>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  {i18n.t("admin.workspaces.orphaned-page.col-id")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.workspaces.orphaned-page.col-name")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.workspaces.orphaned-page.col-members")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.workspaces.orphaned-page.col-created")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.workspaces.orphaned-page.col-assign")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.workspaces.orphaned-page.col-delete")}
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {workspaces.map((ws) => (
+                <TableRow key={ws.id}>
+                  <TableCell>
+                    <SettingsListItemMeta breakAnywhere>
+                      {ws.id}
+                    </SettingsListItemMeta>
+                  </TableCell>
+                  <TableCell>{ws.name ?? "—"}</TableCell>
+                  <TableCell>{ws.memberCount}</TableCell>
+                  <TableCell>
+                    {formatAdminDate(i18n.language, ws.createdAt)}
+                  </TableCell>
+                  <TableCell>
+                    {reassigning === ws.id ? (
+                      <Group wrap="wrap">
+                        <Select
+                          disabled={reassignPending || deleting}
+                          aria-label={i18n.t(
+                            "admin.workspaces.orphaned-page.select-user",
+                          )}
+                          data={users.map(
+                            (u: {
+                              id: string;
+                              email: string;
+                              name: string | null;
+                            }) => ({
+                              value: u.id,
+                              label: `${u.name ?? u.email} (${u.email})`,
+                            }),
+                          )}
+                          placeholder={i18n.t(
+                            "admin.workspaces.orphaned-page.select-user",
+                          )}
+                          value={selectedUser[ws.id] || null}
+                          onChange={(value) =>
+                            setSelectedUser((prev) => ({
+                              ...prev,
+                              [ws.id]: value,
+                            }))
+                          }
+                        />
+                        <Button
+                          disabled={
+                            !selectedUser[ws.id] || reassignPending || deleting
+                          }
+                          loading={reassignPending}
+                          onClick={() => handleReassign(ws.id)}
+                        >
+                          {i18n.t("admin.common.save")}
+                        </Button>
+                        <Button
+                          variant="plain"
+                          disabled={reassignPending || deleting}
+                          onClick={() => setReassigning(null)}
+                        >
+                          {i18n.t("admin.common.cancel")}
+                        </Button>
+                      </Group>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        disabled={reassignPending || deleting}
+                        onClick={() => setReassigning(ws.id)}
+                      >
+                        {i18n.t("admin.workspaces.orphaned-page.assign")}
+                      </Button>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="error"
+                      disabled={reassignPending || deleting}
+                      onClick={() =>
+                        setDeleteTarget({ id: ws.id, name: ws.name ?? null })
+                      }
+                    >
+                      {i18n.t("admin.workspaces.orphaned-page.delete")}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableScrollContainer>
       )}
 
       {!error && !isLoading && total !== undefined && total > PAGE_SIZE && (

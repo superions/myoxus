@@ -9,11 +9,10 @@ import type {
 } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
 import { NewPageIcon as NativeNewPageIcon } from "@myoxus/icons/react";
-import { IconButton } from "@myoxus/ui-facade";
+import { IconButton, useThrottledCallback } from "@myoxus/ui-facade";
 import type { NotificationService } from "@virgultum/editor/shared/services";
 import type { EditorHost } from "@virgultum/editor/std";
 import type { Store } from "@virgultum/editor/store";
-import { throttle } from "lodash-es";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AIProvider } from "../../provider";
@@ -100,14 +99,7 @@ export function PlaygroundChat({
     chatMessagesRef.current?.scrollToEnd();
   }, []);
 
-  const throttledScrollToEnd = useMemo(
-    () => throttle(scrollToEnd, 600),
-    [scrollToEnd],
-  );
-
-  useEffect(() => {
-    return () => throttledScrollToEnd.cancel();
-  }, [throttledScrollToEnd]);
+  const throttledScrollToEnd = useThrottledCallback(scrollToEnd, 600);
 
   useEffect(() => {
     let active = true;
@@ -135,25 +127,27 @@ export function PlaygroundChat({
     };
   }, [doc, scrollToEnd, session?.sessionId]);
 
-  const updateContext = useCallback(
-    (context: Partial<ChatContextValue>) => {
-      setChatContextValue((prev) => {
-        const next = { ...prev, ...context };
-        if (
-          next.status === "loading" ||
-          next.status === "error" ||
-          next.status === "success"
-        ) {
-          setTimeout(scrollToEnd, 500);
-        }
-        if (next.status === "transmitting") {
-          throttledScrollToEnd();
-        }
-        return next;
-      });
-    },
-    [scrollToEnd, throttledScrollToEnd],
-  );
+  const updateContext = useCallback((context: Partial<ChatContextValue>) => {
+    setChatContextValue((prev) => ({ ...prev, ...context }));
+  }, []);
+
+  useEffect(() => {
+    const { status } = chatContextValue;
+    if (status === "transmitting") {
+      throttledScrollToEnd();
+      return;
+    }
+    if (status === "loading" || status === "error" || status === "success") {
+      const timer = setTimeout(scrollToEnd, 500);
+      return () => clearTimeout(timer);
+    }
+    return;
+  }, [
+    chatContextValue.messages,
+    chatContextValue.status,
+    scrollToEnd,
+    throttledScrollToEnd,
+  ]);
 
   const createSession = useCallback(async () => session, [session]);
 

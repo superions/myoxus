@@ -8,17 +8,9 @@ import type { AIModelService } from "@myoxus/core/modules/ai-button/services/mod
 import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
 import type { CopilotChatHistoryFragment } from "@myoxus/graphql";
 import { Box } from "@myoxus/ui-facade";
-import { signal } from "@preact/signals-core";
 import type { EditorHost } from "@virgultum/editor/std";
 import { nanoid } from "nanoid";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { type AIError, AIProvider, type AISendParams } from "../../provider";
 import { readBlobAsURL } from "../../utils/image";
@@ -100,7 +92,12 @@ export function AIChatInput({
   onRegisterSend,
   onBroadcastSend,
 }: AIChatInputProps) {
-  const draft = useMemo(() => signal(""), []);
+  const [draftValue, setDraftValue] = useState(syncedDraft ?? "");
+  const draftRef = useRef(draftValue);
+  const setDraft = useCallback((next: string) => {
+    draftRef.current = next;
+    setDraftValue(next);
+  }, []);
   const imagePreviewUrls = useMemo(() => new ImagePreviewUrls(), []);
   const [activeRequest, setActiveRequest] = useState<AbortController | null>(
     null,
@@ -161,17 +158,13 @@ export function AIChatInput({
   const isReasoningActive = !!(
     useSignalValue(reasoningConfig.enabled) ?? false
   );
-  const draftValue = useSyncExternalStore(
-    useCallback((notify) => draft.subscribe(notify), [draft]),
-    () => draft.value,
-  );
 
   useEffect(() => {
-    if (syncedDraft !== undefined && syncedDraft !== draft.peek()) {
+    if (syncedDraft !== undefined && syncedDraft !== draftRef.current) {
       draftRevisionRef.current++;
-      draft.value = syncedDraft;
+      setDraft(syncedDraft);
     }
-  }, [draft, syncedDraft]);
+  }, [setDraft, syncedDraft]);
 
   const stopRequest = useCallback((controller: AbortController) => {
     const ownsRequest = activeRequestRef.current === controller;
@@ -207,7 +200,7 @@ export function AIChatInput({
       ?.getDraft()
       .then((restored) => {
         if (mountedRef.current && revision === draftRevisionRef.current) {
-          draft.value = restored.input;
+          setDraft(restored.input);
         }
       })
       .catch(console.error);
@@ -220,7 +213,7 @@ export function AIChatInput({
       activeRequestRef.current = null;
       isActiveRequestCurrentRef.current = undefined;
     };
-  }, [aiDraftService, draft, imagePreviewUrls]);
+  }, [aiDraftService, imagePreviewUrls, setDraft]);
 
   const supportsVision = aiModelService.supportsVision;
   const imageInputUnsupported = useMemo(() => {
@@ -416,7 +409,7 @@ export function AIChatInput({
       }
 
       const before = cur.chatContextValue;
-      const originalDraft = draft.peek();
+      const originalDraft = draftRef.current;
       const submittedDraftRevision = draftRevisionRef.current;
       const originalSessionId = cur.session?.sessionId;
       let ownedSessionId = originalSessionId;
@@ -516,7 +509,7 @@ export function AIChatInput({
               draftRevisionRef.current === submittedDraftRevision
             ) {
               clearedRevision = ++draftRevisionRef.current;
-              draft.value = "";
+              setDraft("");
               await latestRef.current.aiDraftService?.setDraft({ input: "" });
             }
           },
@@ -576,7 +569,7 @@ export function AIChatInput({
           clearedRevision === draftRevisionRef.current
         ) {
           draftRevisionRef.current++;
-          draft.value = originalDraft;
+          setDraft(originalDraft);
           void latestRef.current.aiDraftService
             ?.setDraft({ input: originalDraft })
             .catch(console.error);
@@ -606,7 +599,7 @@ export function AIChatInput({
         }
       }
     },
-    [draft, getMatchedContexts, postUpdateMessages, preUpdateMessages],
+    [getMatchedContexts, postUpdateMessages, preUpdateMessages, setDraft],
   );
 
   useEffect(() => {
@@ -644,20 +637,20 @@ export function AIChatInput({
       if (!params || latestRef.current.host !== params.host) return;
       if (params.input) {
         draftRevisionRef.current++;
-        draft.value = params.input;
+        setDraft(params.input);
       }
     });
     return () => {
       sendSub.unsubscribe();
       openSub.unsubscribe();
     };
-  }, [draft, send]);
+  }, [send, setDraft]);
 
   const sendCurrentDraft = useCallback(() => {
-    const value = draft.peek().trim();
+    const value = draftRef.current.trim();
     if (!value) return;
     void send(value, true).catch(console.error);
-  }, [draft, send]);
+  }, [send]);
 
   useEffect(() => {
     if (!onRegisterSend) return;
@@ -666,13 +659,13 @@ export function AIChatInput({
 
   const handleInput = useCallback(
     (value: string) => {
-      if (value === draft.peek()) return;
+      if (value === draftRef.current) return;
       draftRevisionRef.current++;
-      draft.value = value;
+      setDraft(value);
       onSyncedDraftChange?.(value);
       void aiDraftService?.setDraft({ input: value }).catch(console.error);
     },
-    [aiDraftService, draft, onSyncedDraftChange],
+    [aiDraftService, onSyncedDraftChange, setDraft],
   );
 
   const handleAbort = useCallback(() => {
@@ -716,7 +709,7 @@ export function AIChatInput({
   return (
     <Box data-testid={testId}>
       <ChatInputView
-        draft={draft}
+        value={draftValue}
         quote={chatContextValue.quote}
         images={
           previews.length ? (
@@ -770,7 +763,7 @@ export function AIChatInput({
           event.preventDefault();
           event.stopPropagation();
           if (isSendDisabled) return;
-          const value = draft.peek().trim();
+          const value = draftRef.current.trim();
           if (!value) return;
           void send(value, true).catch(console.error);
           onBroadcastSend?.();

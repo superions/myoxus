@@ -558,7 +558,6 @@ path = [
   "libs/core/src/editor/ai/utils/get-edgeless-copilot-widget.ts",
   "libs/core/src/editor/ai/utils/image.ts",
   "libs/core/src/editor/ai/utils/selection-utils.ts",
-  "libs/core/src/editor/uni-react-root.tsx",
   "libs/core/src/editor/ai/utils/stream-objects.ts",
   "libs/core/src/editor/ai/widgets/ai-panel/ai-panel.ts",
   "libs/core/src/editor/ai/widgets/ai-panel/type.ts",
@@ -619,7 +618,6 @@ path = [
   "libs/core/src/editor/view-extensions/editor-view/side-bar-service.ts",
   "libs/core/src/editor/view-extensions/electron/electron-clipboard.ts",
   "libs/core/src/editor/view-extensions/electron/index.ts",
-  "libs/core/src/editor/view-extensions/icon-picker/index.ts",
   "libs/core/src/editor/view-extensions/link-preview-service/index.ts",
   "libs/core/src/editor/view-extensions/link-preview-service/link-preview-service.ts",
   "libs/core/src/editor/view-extensions/mobile/index.ts",
@@ -966,8 +964,6 @@ path = [
   "libs/core/src/modules/i18n/entities/i18n.ts",
   "libs/core/src/modules/i18n/index.ts",
   "libs/core/src/modules/i18n/services/i18n.ts",
-  "libs/core/src/modules/icon-picker/index.ts",
-  "libs/core/src/modules/icon-picker/services/icon-picker.ts",
   "libs/core/src/modules/import-template/entities/downloader.ts",
   "libs/core/src/modules/import-template/index.ts",
   "libs/core/src/modules/import-template/services/downloader.ts",
@@ -1951,13 +1947,11 @@ path = [
   "admin/workspaces/admin/src/modules/common.ts",
   "admin/workspaces/admin/src/modules/dashboard/index.spec.tsx",
   "admin/workspaces/admin/src/modules/dashboard/index.tsx",
-  "admin/workspaces/admin/src/modules/header.tsx",
   "admin/workspaces/admin/src/modules/layout.tsx",
   "admin/workspaces/admin/src/modules/nav/nav-item.tsx",
   "admin/workspaces/admin/src/modules/nav/nav.tsx",
   "admin/workspaces/admin/src/modules/nav/server-version.tsx",
   "admin/workspaces/admin/src/modules/nav/user-dropdown.tsx",
-  "admin/workspaces/admin/src/modules/panel/context.ts",
   "admin/workspaces/admin/src/modules/queue/index.tsx",
   "admin/workspaces/admin/src/modules/settings/config.ts",
   "admin/workspaces/admin/src/modules/settings/operations/send-test-email.tsx",
@@ -2619,7 +2613,6 @@ path = [
   "libs/core/src/editor/view-extensions/editor-config/linked.ts",
   "libs/core/src/editor/view-extensions/editor-view/audio/audio-view.tsx",
   "libs/core/src/editor/view-extensions/editor-view/notification-service-facade-contract.spec.ts",
-  "libs/core/src/editor/view-extensions/icon-picker/icon-picker-service.ts",
   "libs/core/src/editor/view-extensions/mobile/mobile-feature-flag-control.ts",
   "libs/core/src/editor/view-extensions/turbo-renderer/turbo-painter.worker.ts",
   "libs/core/src/editor/view-extensions/turbo-renderer/turbo-renderer.ts",
@@ -5992,3 +5985,22 @@ SPDX-FileCopyrightText  = "2026-present Daniel Scharf and Myoxus contributors"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin         = "M0"
 path                    = ["libs/core/src/editor/virgultum/doc-editor/page-remote-presence.tsx"]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "admin/workspaces/admin/src/modules/audit-log/components/audit-table-section.tsx",
+  "libs/ui-facade/src/helpers/modal-context.ts",
+  "libs/ui-facade/src/hooks.ts",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/disclosure-toggle.tsx",
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/icon-picker-popup.tsx",
+]

@@ -25,6 +25,7 @@ import {
   Modal,
   notify,
   Table,
+  TableScrollContainer,
   TableHeader,
   TableHead,
   TableBody,
@@ -290,59 +291,63 @@ function IccProfilesTabContent() {
         {profiles.length === 0 ? (
           <RoleEmptyState title={i18n.t("admin.pdf-icc.list.empty")} />
         ) : (
-          <Table aria-label={i18n.t("admin.pdf-icc.list.aria-label")}>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{i18n.t("admin.pdf-icc.column.name")}</TableHead>
-                <TableHead>{i18n.t("admin.pdf-icc.column.type")}</TableHead>
-                <TableHead>{i18n.t("admin.pdf-icc.column.sha256")}</TableHead>
-                <TableHead>
-                  {i18n.t("admin.pdf-icc.column.uploaded-by")}
-                </TableHead>
-                <TableHead>
-                  {i18n.t("admin.pdf-icc.column.uploaded-at")}
-                </TableHead>
-                <TableHead>{i18n.t("admin.pdf-jobs.column.actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {profiles.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>
-                    <Stack>
-                      <MyoxusText>{p.name}</MyoxusText>
-                      {p.isSystem ? (
-                        <Badge tone="neutral">
-                          {i18n.t("admin.pdf-icc.system-seeded")}
-                        </Badge>
-                      ) : null}
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    <PdfIccProfileTypeBadge kind={p.profileType} />
-                  </TableCell>
-                  <TableCell>
-                    <MonoText>{p.sha256.slice(0, 16)}...</MonoText>
-                  </TableCell>
-                  <TableCell>{p.uploadedBy ?? "-"}</TableCell>
-                  <TableCell>
-                    {formatDate(p.uploadedAt, i18n.language)}
-                  </TableCell>
-                  <TableCell>
-                    {p.isSystem ? null : (
-                      <IconButton
-                        variant="destructive"
-                        tooltip={i18n.t("admin.pdf-icc.action.delete")}
-                        onClick={() => setDeleteTarget(p)}
-                      >
-                        <TrashIcon aria-hidden />
-                      </IconButton>
-                    )}
-                  </TableCell>
+          <TableScrollContainer>
+            <Table aria-label={i18n.t("admin.pdf-icc.list.aria-label")}>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{i18n.t("admin.pdf-icc.column.name")}</TableHead>
+                  <TableHead>{i18n.t("admin.pdf-icc.column.type")}</TableHead>
+                  <TableHead>{i18n.t("admin.pdf-icc.column.sha256")}</TableHead>
+                  <TableHead>
+                    {i18n.t("admin.pdf-icc.column.uploaded-by")}
+                  </TableHead>
+                  <TableHead>
+                    {i18n.t("admin.pdf-icc.column.uploaded-at")}
+                  </TableHead>
+                  <TableHead>
+                    {i18n.t("admin.pdf-jobs.column.actions")}
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {profiles.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell>
+                      <Stack>
+                        <MyoxusText>{p.name}</MyoxusText>
+                        {p.isSystem ? (
+                          <Badge tone="neutral">
+                            {i18n.t("admin.pdf-icc.system-seeded")}
+                          </Badge>
+                        ) : null}
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <PdfIccProfileTypeBadge kind={p.profileType} />
+                    </TableCell>
+                    <TableCell>
+                      <MonoText>{p.sha256.slice(0, 16)}...</MonoText>
+                    </TableCell>
+                    <TableCell>{p.uploadedBy ?? "-"}</TableCell>
+                    <TableCell>
+                      {formatDate(p.uploadedAt, i18n.language)}
+                    </TableCell>
+                    <TableCell>
+                      {p.isSystem ? null : (
+                        <IconButton
+                          variant="destructive"
+                          tooltip={i18n.t("admin.pdf-icc.action.delete")}
+                          onClick={() => setDeleteTarget(p)}
+                        >
+                          <TrashIcon aria-hidden />
+                        </IconButton>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableScrollContainer>
         )}
       </Stack>
 

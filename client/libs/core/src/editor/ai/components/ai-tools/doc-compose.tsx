@@ -2,6 +2,7 @@
 
 import { getStoreManager } from "@myoxus/core/editor/manager/store";
 import { getMyoxusWorkspaceSchema } from "@myoxus/core/modules/workspace";
+import { useI18n } from "@myoxus/i18n";
 import { PageIcon, ToolIcon as NativeToolIcon } from "@myoxus/icons/react";
 import {
   DocEmbedProvider,
@@ -52,6 +53,7 @@ export function DocComposeTool({
   readOnly?: boolean;
   notificationService?: NotificationService;
 }) {
+  const t = useI18n();
   const ownerId = useId();
   const preview = useChatPreview();
   const initialPreviewPendingRef = useRef(true);
@@ -85,7 +87,7 @@ export function DocComposeTool({
 
     const errorView = isError
       ? toolFailedCard({
-          name: "Doc compose failed",
+          name: t["com.myoxus.ai.chat-panel.doc-compose-failed"](),
           icon: <NativeToolIcon />,
         })
       : null;
@@ -101,13 +103,9 @@ export function DocComposeTool({
     const controls =
       successResult && std ? (
         <DocComposeControls
-          copy={() => {
-            void navigator.clipboard
-              .writeText(successResult.markdown)
-              .then(() => {
-                notificationService?.toast("Copied markdown to clipboard");
-              })
-              .catch(console.error);
+          copyText={successResult.markdown}
+          onCopied={() => {
+            notificationService?.toast(t["Copied to clipboard"]());
           }}
           save={
             readOnly
@@ -134,11 +132,17 @@ export function DocComposeTool({
                       if (!mountedRef.current) return;
                       if (docId) {
                         const open = await notificationService?.confirm({
-                          title: "Open the doc you just created",
+                          title:
+                            t[
+                              "com.myoxus.ai.chat-panel.open-created-doc-title"
+                            ](),
                           message:
-                            "Doc saved successfully! Would you like to open it now?",
-                          cancelText: "Cancel",
-                          confirmText: "Open",
+                            t[
+                              "com.myoxus.ai.chat-panel.open-created-doc-message"
+                            ](),
+                          cancelText: t["Cancel"](),
+                          confirmText:
+                            t["com.myoxus.ai.chat-panel.open-action"](),
                         });
                         if (open && mountedRef.current) {
                           refNodeSlots?.docLinkClicked.next({
@@ -148,11 +152,15 @@ export function DocComposeTool({
                           });
                         }
                       } else {
-                        notificationService?.toast("Failed to create document");
+                        notificationService?.toast(
+                          t["com.myoxus.ai.chat-panel.doc-create-failed"](),
+                        );
                       }
                     } catch (e) {
                       console.error(e);
-                      notificationService?.toast("Failed to create document");
+                      notificationService?.toast(
+                        t["com.myoxus.ai.chat-panel.doc-create-failed"](),
+                      );
                     }
                   })();
                 }
@@ -176,6 +184,7 @@ export function DocComposeTool({
     readOnly,
     std,
     successResult,
+    t,
   ]);
 
   useEffect(() => {
@@ -193,7 +202,7 @@ export function DocComposeTool({
 
   if (isError) {
     return toolFailedCard({
-      name: "Doc compose failed",
+      name: t["com.myoxus.ai.chat-panel.doc-compose-failed"](),
       icon: <NativeToolIcon />,
     });
   }

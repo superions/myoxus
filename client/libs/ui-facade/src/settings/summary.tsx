@@ -4,14 +4,7 @@
 /**
  * Compact settings summaries and semantic fact displays.
  */
-import {
-  Box,
-  Card as MantineCard,
-  Group,
-  Stack,
-  Table as MantineTable,
-  Text,
-} from "@mantine/core";
+import { Box, Card as MantineCard, Group, Stack, Text } from "@mantine/core";
 import { cssTypographyVar, cssVar } from "@myoxus/theme";
 import { type PropsWithChildren, type ReactNode } from "react";
 
@@ -125,21 +118,5 @@ export function SettingsDefinitionItem({
         {children}
       </Group>
     </>
-  );
-}
-
-export function SettingsDataTable({
-  children,
-  "aria-label": ariaLabel,
-}: PropsWithChildren<{ "aria-label"?: string }>) {
-  // Legacy settings surfaces still need semantic table markup, but table chrome
-  // must not come from Admin-global `admin-ui-table-*` classes.
-  return (
-    <MantineTable
-      aria-label={ariaLabel}
-      data-myoxus-ui-role="settings-data-table"
-    >
-      {children}
-    </MantineTable>
   );
 }

@@ -48,6 +48,11 @@ import { MyoxusButton, type MyoxusButtonProps } from "./button";
 import { CARD_PADDING_BY_SIZE, type CardPadding } from "./card-padding";
 import { Divider } from "./divider";
 import { reactNodeText } from "./helpers/accessibility";
+import {
+  InsideModalContext,
+  useIsInsideModal,
+  useModalPortalTarget,
+} from "./helpers/modal-context";
 import type { RoleBoxProps } from "./helpers/ui-role";
 import { Input, type MyoxusInputProps } from "./input";
 import { MyoxusText } from "./typography";
@@ -122,17 +127,8 @@ export interface ModalConfig {
 }
 
 export const ModalConfigContext = createContext<ModalConfig>({});
-export const InsideModalContext = createContext<string | undefined>(undefined);
+export { InsideModalContext, useIsInsideModal, useModalPortalTarget };
 export const ModalStack = MantineModal.Stack;
-
-export function useIsInsideModal() {
-  return useModalPortalTarget() !== undefined;
-}
-
-/** The native modal root keeps select portals outside its clipping scroll area. */
-export function useModalPortalTarget() {
-  return useContext(InsideModalContext);
-}
 
 const ModalScrollArea = forwardRef<HTMLDivElement, ScrollAreaAutosizeProps>(
   function ModalScrollArea(props, ref) {

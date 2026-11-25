@@ -96,29 +96,6 @@ vi.mock("../../use-mutation", () => ({
   useMutateQueryResource: () => vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("../panel/context", () => ({
-  usePanelContext: () => ({
-    setPanelContent: vi.fn(),
-    openPanel: vi.fn(),
-    closePanel: vi.fn(),
-    isOpen: false,
-    hasDirtyChanges: false,
-    setHasDirtyChanges: vi.fn(),
-  }),
-  useRightPanel: () => ({
-    setPanelContent: vi.fn(),
-    openPanel: vi.fn(),
-    closePanel: vi.fn(),
-    isOpen: false,
-    hasDirtyChanges: false,
-    setHasDirtyChanges: vi.fn(),
-  }),
-  useLeftPanel: () => ({
-    togglePanel: vi.fn(),
-    isOpen: true,
-  }),
-}));
-
 import { LoggingContent } from "./index";
 
 function renderWithFacade(ui: ReactElement) {

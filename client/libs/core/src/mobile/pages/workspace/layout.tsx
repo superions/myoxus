@@ -20,7 +20,6 @@ import {
   useLiveData,
   useServices,
 } from "@myoxus/infra";
-import { uniReactRoot } from "@myoxus/core/editor/uni-react-root";
 import {
   type PropsWithChildren,
   useEffect,
@@ -142,7 +141,6 @@ export const WorkspaceLayout = ({
             {/* ---- some side-effect components ---- */}
             <PeekViewManagerModal />
             <AiLoginRequiredModal />
-            <uniReactRoot.Root />
             <WorkspaceRuntime />
             {children}
           </SWRConfigProvider>

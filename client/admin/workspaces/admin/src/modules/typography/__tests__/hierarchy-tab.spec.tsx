@@ -26,15 +26,6 @@ vi.mock("@myoxus/i18n", () => ({
   }),
 }));
 
-vi.mock("../../header", () => ({
-  Header: ({ title, endFix }: { title: string; endFix?: React.ReactNode }) => (
-    <div data-testid="header">
-      <span data-testid="header-title">{title}</span>
-      {endFix ? <div data-testid="header-endfix">{endFix}</div> : null}
-    </div>
-  ),
-}));
-
 const useThemeCatalogQueryMock = vi.fn();
 const useEffectiveThemeProfileQueryMock = vi.fn();
 const setTypographyStylesMock = vi.fn();

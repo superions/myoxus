@@ -70,6 +70,7 @@ export function DatabaseGalleryView({
         <Card
           key={row.row.id}
           padding="none"
+          withBorder={false}
           fullHeight
           interactive={Boolean(rowDetail)}
           role={rowDetail ? "button" : undefined}

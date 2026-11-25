@@ -14,8 +14,9 @@ import {
   Scrollable,
   Splitter,
   ThemeIcon,
+  useLocalStorage,
 } from "@myoxus/ui-facade";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { ChatContentImages } from "./ai-message-content/images";
 
 export function ChatAssistantIdentity({
@@ -216,15 +217,21 @@ export function ChatConversationLayout({
   open: boolean;
   independent: boolean;
 }) {
-  const storageKey = "chat-panel-split-view-size";
-  const [ratio, setRatio] = useState(() => {
-    try {
-      const saved = Number(localStorage.getItem(storageKey));
-      return Number.isFinite(saved) && saved >= 20 && saved <= 80 ? saved : 50;
-    } catch {
-      return 50;
-    }
+  const [savedRatio, setSavedRatio] = useLocalStorage<number>({
+    key: "chat-panel-split-view-size",
+    defaultValue: 50,
+    deserialize: (value) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed >= 20 && parsed <= 80
+        ? parsed
+        : 50;
+    },
+    serialize: (value) => String(value),
   });
+  const ratio =
+    Number.isFinite(savedRatio) && savedRatio >= 20 && savedRatio <= 80
+      ? savedRatio
+      : 50;
   const main = (
     // Messages and composer own their spacing; the frame only distributes the viewport.
     <Stack
@@ -256,13 +263,16 @@ export function ChatConversationLayout({
     <Splitter
       sizes={open ? [ratio, 100 - ratio] : [100]}
       onSizeChange={(sizes) => {
-        if (open) setRatio(Number(sizes[0]));
+        if (!open) return;
+        const next = Number(sizes[0]);
+        if (Number.isFinite(next) && next >= 20 && next <= 80) {
+          setSavedRatio(next);
+        }
       }}
       onResizeEnd={(_, sizes) => {
-        try {
-          localStorage.setItem(storageKey, String(sizes[0]));
-        } catch {
-          console.error("Failed to save chat preview size");
+        const next = Number(sizes[0]);
+        if (Number.isFinite(next) && next >= 20 && next <= 80) {
+          setSavedRatio(next);
         }
       }}
     >

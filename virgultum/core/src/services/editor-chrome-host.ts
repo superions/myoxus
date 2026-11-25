@@ -425,14 +425,32 @@ export type EditorAutoConnectNavigatorControls = {
 export type EditorTableControl = {
   action: SelectionAction;
   menu?: boolean;
+  dragBadge?: string;
   setElement?: (element: HTMLButtonElement | null) => void;
   mouseDown?: (element: HTMLButtonElement, event: MouseEvent) => void;
+};
+
+export type EditorDisclosureControl = Readonly<{
+  collapsed: boolean;
+  toggle: () => void;
+}>;
+
+export type EditorIconPickerControls = EditorInlinePopupControls & {
+  onSelect: (icon?: import("./icon-picker-service/index.js").IconData) => void;
 };
 
 export type EditorChromeHost = {
   mountTableControl: (
     anchor: HTMLElement,
     state: ReadonlySignal<EditorTableControl | null>,
+  ) => () => void;
+  mountDisclosureControl?: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorDisclosureControl | null>,
+  ) => () => void;
+  mountIconPicker?: (
+    anchor: HTMLElement,
+    controls: EditorIconPickerControls,
   ) => () => void;
   mountAutoCompleteTrigger: (
     anchor: HTMLElement,

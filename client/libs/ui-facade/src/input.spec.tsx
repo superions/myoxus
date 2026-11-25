@@ -10,6 +10,7 @@ import {
   ColorInput,
   FormSelect,
   Input,
+  Modal,
   MultiSelect,
   MyoxusSelect,
   PasswordInput,
@@ -185,6 +186,77 @@ describe("Facade Input", () => {
 
     expect(screen.getByLabelText("Password").getAttribute("type")).toBe("text");
     expect(screen.getByRole("button", { name: "Hide" })).not.toBeNull();
+  });
+
+  test("routes ColorInput through MantineColorInput unconditionally without native type=color fallback", () => {
+    const onChange = vi.fn();
+    render(
+      <MyoxusUIProvider>
+        <ColorInput label="Accent color" value="#1e96eb" onChange={onChange} />
+      </MyoxusUIProvider>,
+    );
+
+    const input = screen.getByLabelText("Accent color") as HTMLInputElement;
+    expect(input.getAttribute("type")).not.toBe("color");
+    expect(input.value).toBe("#1e96eb");
+    fireEvent.change(input, { target: { value: "#334455" } });
+    expect(onChange).toHaveBeenCalledWith("#334455");
+  });
+
+  test("portals ColorInput popover into the owning Modal layer when rendered inside a modal", () => {
+    render(
+      <MyoxusUIProvider>
+        <Modal open title="Tag settings" onOpenChange={() => {}}>
+          <ColorInput
+            label="Tag color"
+            value="#6366f1"
+            onChange={() => {}}
+            popoverProps={{
+              hideDetached: false,
+              transitionProps: { duration: 0 },
+            }}
+          />
+        </Modal>
+      </MyoxusUIProvider>,
+    );
+
+    const input = screen.getByLabelText("Tag color");
+    fireEvent.focus(input);
+
+    const modalPortal = document.querySelector("[data-myoxus-modal-portal]");
+    const dropdown = modalPortal?.querySelector(".mantine-ColorInput-dropdown");
+    expect(dropdown).not.toBeNull();
+    expect(dropdown?.getAttribute("style") ?? "").toContain(
+      "var(--mb-z-index)",
+    );
+  });
+
+  test("handles PasswordInput noBorder styling without DOM attribute leaks and preserves error text", () => {
+    render(
+      <MyoxusUIProvider>
+        <PasswordInput
+          label="API token"
+          noBorder
+          error="Token is required"
+          value=""
+          onChange={() => {}}
+        />
+      </MyoxusUIProvider>,
+    );
+
+    const input = screen.getByLabelText("API token");
+    const root = input.closest("[data-myoxus-ui-role='auth-password-input']");
+    const inputWrapper = input.closest(".mantine-PasswordInput-input");
+    expect(input.hasAttribute("noborder")).toBe(false);
+    expect(root?.hasAttribute("noborder")).toBe(false);
+    const style = inputWrapper?.getAttribute("style") ?? "";
+    expect(style).toContain("background: transparent");
+    expect(style).toContain("border-color: transparent");
+    expect(style).toContain("box-shadow: none");
+    expect(screen.getByText("Token is required").textContent).toBe(
+      "Token is required",
+    );
+    expect(input.getAttribute("aria-invalid")).toBe("true");
   });
 
   test("exposes full-width select layout as a facade option", () => {

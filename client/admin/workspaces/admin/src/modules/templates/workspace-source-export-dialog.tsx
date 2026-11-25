@@ -15,6 +15,7 @@ import {
   Input,
   InlineActionButton,
   Modal,
+  Pagination,
   SelectionIndicator,
   SettingsEmptyState,
   SettingsListItemMeta,
@@ -29,6 +30,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableScrollContainer,
   TagsInput,
   Textarea,
 } from "@myoxus/ui-facade";
@@ -161,93 +163,100 @@ function WorkspaceSources({
           description={i18n.t("admin.templates.export.sources-empty-hint")}
         />
       ) : (
-        <Table aria-label={i18n.t("admin.templates.export.sources")}>
-          <TableHeader>
-            <TableRow>
-              <TableHead>
-                <Group justify="space-between">
-                  {i18n.t("admin.templates.catalog.col.title")}
-                  {collapsed ? (
-                    <Button
-                      disabled={disabled}
-                      onClick={() => setChanging(true)}
-                    >
-                      {i18n.t("admin.templates.export.change-source")}
-                    </Button>
-                  ) : null}
-                </Group>
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.templates.export.source-type")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.templates.export.source-revision")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visibleSources.map((source) => {
-              const active = sameSource(source, selected);
-              return (
-                <TableRow key={source.docId}>
-                  <TableCell selected={active}>
-                    <Group>
-                      <SelectionIndicator selected={active} />
-                      <InlineActionButton
-                        aria-pressed={active}
-                        disabled={disabled || isValidating}
-                        onClick={() => {
-                          onSelect(source);
-                          setChanging(false);
-                        }}
+        <TableScrollContainer>
+          <Table aria-label={i18n.t("admin.templates.export.sources")}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  <Group justify="space-between">
+                    {i18n.t("admin.templates.catalog.col.title")}
+                    {collapsed ? (
+                      <Button
+                        disabled={disabled}
+                        onClick={() => setChanging(true)}
                       >
-                        <SettingsListItemTitle>
-                          {source.title}
-                        </SettingsListItemTitle>
-                      </InlineActionButton>
-                    </Group>
-                    <SettingsListItemMeta breakAnywhere>
-                      {source.docId}
-                    </SettingsListItemMeta>
-                  </TableCell>
-                  <TableCell selected={active}>
-                    {source.category === "building-blocks"
-                      ? i18n.t("admin.templates.type.building-block")
-                      : i18n.t("admin.documents.versioning.scope.doc_template")}
-                  </TableCell>
-                  <TableCell selected={active}>
-                    {i18n.t("admin.templates.export.source-head", {
-                      document: numbers.format(source.documentRevision),
-                      metadata: numbers.format(source.metadataRevision),
-                    })}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                        {i18n.t("admin.templates.export.change-source")}
+                      </Button>
+                    ) : null}
+                  </Group>
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.templates.export.source-type")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.templates.export.source-revision")}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visibleSources.map((source) => {
+                const active = sameSource(source, selected);
+                return (
+                  <TableRow key={source.docId}>
+                    <TableCell selected={active}>
+                      <Group>
+                        <SelectionIndicator selected={active} />
+                        <InlineActionButton
+                          aria-pressed={active}
+                          disabled={disabled || isValidating}
+                          onClick={() => {
+                            onSelect(source);
+                            setChanging(false);
+                          }}
+                        >
+                          <SettingsListItemTitle>
+                            {source.title}
+                          </SettingsListItemTitle>
+                        </InlineActionButton>
+                      </Group>
+                      <SettingsListItemMeta breakAnywhere>
+                        {source.docId}
+                      </SettingsListItemMeta>
+                    </TableCell>
+                    <TableCell selected={active}>
+                      {source.category === "building-blocks"
+                        ? i18n.t("admin.templates.type.building-block")
+                        : i18n.t(
+                            "admin.documents.versioning.scope.doc_template",
+                          )}
+                    </TableCell>
+                    <TableCell selected={active}>
+                      {i18n.t("admin.templates.export.source-head", {
+                        document: numbers.format(source.documentRevision),
+                        metadata: numbers.format(source.metadataRevision),
+                      })}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableScrollContainer>
       )}
       {!collapsed && (offsets.length > 1 || nextOffset !== null) ? (
-        <Group justify="space-between">
-          <Button
-            disabled={disabled || offsets.length === 1 || isValidating}
-            onClick={() => {
-              onSelect(null);
-              setOffsets((previous) => previous.slice(0, -1));
+        <Group justify="flex-end">
+          <Pagination
+            totalCount={
+              (nextOffset !== null ? offsets.length + 1 : offsets.length) * 10
+            }
+            pageNum={offsets.length - 1}
+            countPerPage={10}
+            disabled={disabled || isValidating}
+            previousLabel={i18n.t("admin.common.previous")}
+            nextLabel={i18n.t("admin.common.next")}
+            onPageChange={(_, nextPageNum) => {
+              if (nextPageNum < offsets.length - 1) {
+                onSelect(null);
+                setOffsets((previous) => previous.slice(0, nextPageNum + 1));
+              } else if (
+                nextPageNum === offsets.length &&
+                nextOffset !== null
+              ) {
+                onSelect(null);
+                setOffsets((previous) => [...previous, nextOffset]);
+              }
             }}
-          >
-            {i18n.t("admin.common.previous")}
-          </Button>
-          <Button
-            disabled={disabled || nextOffset === null || isValidating}
-            onClick={() => {
-              if (nextOffset === null) return;
-              onSelect(null);
-              setOffsets((previous) => [...previous, nextOffset]);
-            }}
-          >
-            {i18n.t("admin.common.next")}
-          </Button>
+          />
         </Group>
       ) : null}
     </Stack>

@@ -13,7 +13,7 @@ function stopTableKey(event: KeyboardEvent) {
 }
 
 export function EditorTableControl({ controls }: { controls: Controls }) {
-  const { action, menu, setElement } = controls;
+  const { action, dragBadge, menu, setElement } = controls;
   return (
     <IconButton
       ref={setElement}
@@ -21,7 +21,8 @@ export function EditorTableControl({ controls }: { controls: Controls }) {
       data-range-sync-exclude="true"
       aria-label={action.label}
       aria-haspopup={menu ? "menu" : undefined}
-      tooltip={action.label}
+      tooltip={dragBadge || action.label}
+      tooltipOptions={dragBadge ? { opened: true } : undefined}
       disabled={action.disabled}
       // Native activation and Tab stay local; editor command shortcuts still bubble.
       onKeyDown={stopTableKey}

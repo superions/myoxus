@@ -41,12 +41,6 @@ vi.mock("@myoxus/i18n", () => ({
   }),
 }));
 
-vi.mock("../header", () => ({
-  Header: ({ title }: { title: string }) => (
-    <div data-testid="header">{title}</div>
-  ),
-}));
-
 vi.mock("@myoxus/admin/use-query", () => ({
   gqlFetcher: vi.fn().mockResolvedValue(undefined),
   useQuery: () => ({

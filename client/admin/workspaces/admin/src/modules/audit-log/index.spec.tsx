@@ -123,15 +123,6 @@ vi.mock("../../components/domain-pickers", () => ({
   },
 }));
 
-vi.mock("../header", () => ({
-  Header: ({ title, endFix }: { title: string; endFix?: React.ReactNode }) => (
-    <div>
-      <h1 data-testid="page-title">{title}</h1>
-      <div data-testid="header-endfix">{endFix}</div>
-    </div>
-  ),
-}));
-
 // Shim for AuditDetailDrawer — avoids portal issues in happy-dom
 vi.mock("./components/audit-detail-drawer", () => ({
   AuditDetailDrawer: ({

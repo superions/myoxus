@@ -1,4 +1,4 @@
-export const sharedEffectElementTags = ["ai-slides-renderer"] as const;
+export const sharedEffectElementTags = [] as const;
 
 export type SharedEffectElementTag = (typeof sharedEffectElementTags)[number];
 

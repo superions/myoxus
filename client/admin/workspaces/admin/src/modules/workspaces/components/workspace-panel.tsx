@@ -52,6 +52,7 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  TableScrollContainer,
 } from "@myoxus/ui-facade";
 import {
   Component,
@@ -76,7 +77,6 @@ import {
 } from "../../../utils/locale-format";
 import { eventLabel } from "../../audit-log/audit-labels";
 import { useServerConfig } from "../../common";
-import { RightPanelHeader } from "../../header";
 import {
   useTemplateCatalogQuery,
   useWorkspaceTemplateInstancesQuery,
@@ -141,12 +141,24 @@ export function WorkspacePanel({
   });
   const workspace = data?.admin.adminWorkspace;
 
+  const closeAction = (
+    <Button
+      type="button"
+      aria-label={i18n.t("admin.common.close")}
+      variant="secondary"
+      onClick={onClose}
+      prefix={<CloseIcon aria-hidden />}
+    >
+      {i18n.t("admin.common.close")}
+    </Button>
+  );
+
   if (!data) {
     return (
       <Stack component="section">
-        <RightPanelHeader
+        <SettingsDetailHeader
           title={i18n.t("admin.workspaces.panel.title")}
-          handleClose={onClose}
+          actions={closeAction}
         />
         <SettingsEmptyState title={i18n.t("admin.common.loading")} />
       </Stack>
@@ -156,9 +168,9 @@ export function WorkspacePanel({
   if (!workspace) {
     return (
       <Stack component="section">
-        <RightPanelHeader
+        <SettingsDetailHeader
           title={i18n.t("admin.workspaces.panel.title")}
-          handleClose={onClose}
+          actions={closeAction}
         />
         <SettingsEmptyState
           title={i18n.t("admin.workspaces.panel.not-found")}
@@ -758,71 +770,73 @@ function WorkspaceOuLinkSection({
           title={i18n.t("admin.workspaces.drawer.ou-link.none")}
         />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>
-                {i18n.t("admin.workspaces.drawer.ou-link.unit-label")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.workspaces.drawer.ou-link.relationship-label")}
-              </TableHead>
-              <TableHead>{i18n.t("admin.common.actions")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {links.map((link) => (
-              <TableRow key={`${link.unitId}-${link.relationship}`}>
-                <TableCell>
-                  <SettingsListItemTitle truncate>
-                    {link.unitName ?? link.unitId}
-                  </SettingsListItemTitle>
-                  <SettingsListItemMeta truncate>
-                    {link.unitSlug ?? link.unitId}
-                  </SettingsListItemMeta>
-                </TableCell>
-                <TableCell>
-                  <FormSelect
-                    value={link.relationship}
-                    onChange={(value) =>
-                      handleRelationshipChange(
-                        link.unitId,
-                        value as OrganizationUnitWorkspaceRelationshipEnum,
-                      )
-                    }
-                    aria-label={i18n.t(
-                      "admin.workspaces.drawer.ou-link.relationship-label",
-                    )}
-                    data={Object.values(
-                      OrganizationUnitWorkspaceRelationshipEnum,
-                    ).map((value) => ({
-                      value,
-                      label: relationshipLabel(value),
-                    }))}
-                    disabled={isAssigning}
-                    data-testid={`workspace-ou-link-relationship-${link.unitId}`}
-                  />
-                </TableCell>
-                <TableCell>
-                  <IconButton
-                    icon={<UnlinkIcon aria-hidden />}
-                    aria-label={i18n.t(
-                      "admin.workspaces.drawer.ou-link.remove",
-                    )}
-                    tooltip={i18n.t("admin.workspaces.drawer.ou-link.remove")}
-                    type="button"
-                    variant="plain"
-                    disabled={isUnassigning}
-                    onClick={() =>
-                      handleUnassign(link.unitId, link.relationship)
-                    }
-                    data-testid={`workspace-ou-unassign-${link.unitId}`}
-                  />
-                </TableCell>
+        <TableScrollContainer>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  {i18n.t("admin.workspaces.drawer.ou-link.unit-label")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.workspaces.drawer.ou-link.relationship-label")}
+                </TableHead>
+                <TableHead>{i18n.t("admin.common.actions")}</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {links.map((link) => (
+                <TableRow key={`${link.unitId}-${link.relationship}`}>
+                  <TableCell>
+                    <SettingsListItemTitle truncate>
+                      {link.unitName ?? link.unitId}
+                    </SettingsListItemTitle>
+                    <SettingsListItemMeta truncate>
+                      {link.unitSlug ?? link.unitId}
+                    </SettingsListItemMeta>
+                  </TableCell>
+                  <TableCell>
+                    <FormSelect
+                      value={link.relationship}
+                      onChange={(value) =>
+                        handleRelationshipChange(
+                          link.unitId,
+                          value as OrganizationUnitWorkspaceRelationshipEnum,
+                        )
+                      }
+                      aria-label={i18n.t(
+                        "admin.workspaces.drawer.ou-link.relationship-label",
+                      )}
+                      data={Object.values(
+                        OrganizationUnitWorkspaceRelationshipEnum,
+                      ).map((value) => ({
+                        value,
+                        label: relationshipLabel(value),
+                      }))}
+                      disabled={isAssigning}
+                      data-testid={`workspace-ou-link-relationship-${link.unitId}`}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <IconButton
+                      icon={<UnlinkIcon aria-hidden />}
+                      aria-label={i18n.t(
+                        "admin.workspaces.drawer.ou-link.remove",
+                      )}
+                      tooltip={i18n.t("admin.workspaces.drawer.ou-link.remove")}
+                      type="button"
+                      variant="plain"
+                      disabled={isUnassigning}
+                      onClick={() =>
+                        handleUnassign(link.unitId, link.relationship)
+                      }
+                      data-testid={`workspace-ou-unassign-${link.unitId}`}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableScrollContainer>
       )}
     </Stack>
   );
@@ -860,29 +874,31 @@ function WorkspaceAuditSection({ workspaceId }: { workspaceId: string }) {
           title={i18n.t("admin.workspaces.drawer.audit.none")}
         />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{i18n.t("admin.audit-log.col.eventKey")}</TableHead>
-              <TableHead>{i18n.t("admin.audit-log.col.actor")}</TableHead>
-              <TableHead>{i18n.t("admin.audit-log.col.time")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entries.map((entry) => (
-              <TableRow key={entry.id}>
-                <TableCell>{eventLabel(entry.eventKey, i18n.t)}</TableCell>
-                <TableCell>
-                  {entry.actor?.label ??
-                    i18n.t("admin.workspaces.drawer.audit.system-actor")}
-                </TableCell>
-                <TableCell>
-                  {formatAdminDateTime(i18n.language, entry.createdAt)}
-                </TableCell>
+        <TableScrollContainer>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{i18n.t("admin.audit-log.col.eventKey")}</TableHead>
+                <TableHead>{i18n.t("admin.audit-log.col.actor")}</TableHead>
+                <TableHead>{i18n.t("admin.audit-log.col.time")}</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {entries.map((entry) => (
+                <TableRow key={entry.id}>
+                  <TableCell>{eventLabel(entry.eventKey, i18n.t)}</TableCell>
+                  <TableCell>
+                    {entry.actor?.label ??
+                      i18n.t("admin.workspaces.drawer.audit.system-actor")}
+                  </TableCell>
+                  <TableCell>
+                    {formatAdminDateTime(i18n.language, entry.createdAt)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableScrollContainer>
       )}
     </Stack>
   );

@@ -15,6 +15,7 @@ import {
   StatCell,
   StatGrid,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -71,41 +72,45 @@ export function PresetsTab({
         <SettingsSectionHeading level={headingLevel}>
           {i18n.t("admin.typography.catalog.styles")}
         </SettingsSectionHeading>
-        <Table aria-label={i18n.t("admin.typography.catalog.styles")}>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{i18n.t("admin.typography.catalog.styles")}</TableHead>
-              <TableHead>{i18n.t("admin.typography.field.family")}</TableHead>
-              <TableHead>{i18n.t("admin.typography.field.weight")}</TableHead>
-              <TableHead>{i18n.t("admin.typography.field.size")}</TableHead>
-              <TableHead>
-                {i18n.t("admin.typography.styles.pdf-role")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {styles.map((style) => (
-              <TableRow
-                key={style.styleKey}
-                data-testid={`typography-style-${style.styleKey}`}
-              >
-                <TableCell>{style.styleKey}</TableCell>
-                <TableCell>
-                  <AuthoringTypographyText
-                    component="span"
-                    data-admin-visual-role="authoring-preview"
-                    style={typographyCatalogStylePreviewStyle(style)}
-                  >
-                    {style.fontFamily}
-                  </AuthoringTypographyText>
-                </TableCell>
-                <TableCell>{style.fontWeight}</TableCell>
-                <TableCell>{style.sizePx ?? "-"}</TableCell>
-                <TableCell>{style.pdfRole ?? "-"}</TableCell>
+        <TableScrollContainer>
+          <Table aria-label={i18n.t("admin.typography.catalog.styles")}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  {i18n.t("admin.typography.catalog.styles")}
+                </TableHead>
+                <TableHead>{i18n.t("admin.typography.field.family")}</TableHead>
+                <TableHead>{i18n.t("admin.typography.field.weight")}</TableHead>
+                <TableHead>{i18n.t("admin.typography.field.size")}</TableHead>
+                <TableHead>
+                  {i18n.t("admin.typography.styles.pdf-role")}
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {styles.map((style) => (
+                <TableRow
+                  key={style.styleKey}
+                  data-testid={`typography-style-${style.styleKey}`}
+                >
+                  <TableCell>{style.styleKey}</TableCell>
+                  <TableCell>
+                    <AuthoringTypographyText
+                      component="span"
+                      data-admin-visual-role="authoring-preview"
+                      style={typographyCatalogStylePreviewStyle(style)}
+                    >
+                      {style.fontFamily}
+                    </AuthoringTypographyText>
+                  </TableCell>
+                  <TableCell>{style.fontWeight}</TableCell>
+                  <TableCell>{style.sizePx ?? "-"}</TableCell>
+                  <TableCell>{style.pdfRole ?? "-"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableScrollContainer>
       </Stack>
     </Stack>
   );

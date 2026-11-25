@@ -19,6 +19,7 @@ import {
   SettingsStatusText,
   Stack,
   Table,
+  TableScrollContainer,
   TableHeader,
   TableBody,
   TableRow,
@@ -253,36 +254,38 @@ export function ImportTab() {
             <Stack>
               <SettingsStatusText>{importError.message}</SettingsStatusText>
               {importError.details.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>
-                        {i18n.t("admin.templates.detail.field.description")}
-                      </TableHead>
-                      <TableHead>
-                        {i18n.t("admin.templates.import.field.code")}
-                      </TableHead>
-                      <TableHead>
-                        {i18n.t("admin.templates.import.field.path")}
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {importError.details.map((detail, index) => (
-                      <TableRow
-                        key={`${detail.errorCode ?? "detail"}-${detail.path ?? "root"}-${index}`}
-                      >
-                        <TableCell>{detail.message}</TableCell>
-                        <TableCell>
-                          <MonoText>{detail.errorCode ?? "—"}</MonoText>
-                        </TableCell>
-                        <TableCell>
-                          <MonoText>{detail.path ?? "—"}</MonoText>
-                        </TableCell>
+                <TableScrollContainer>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>
+                          {i18n.t("admin.templates.detail.field.description")}
+                        </TableHead>
+                        <TableHead>
+                          {i18n.t("admin.templates.import.field.code")}
+                        </TableHead>
+                        <TableHead>
+                          {i18n.t("admin.templates.import.field.path")}
+                        </TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {importError.details.map((detail, index) => (
+                        <TableRow
+                          key={`${detail.errorCode ?? "detail"}-${detail.path ?? "root"}-${index}`}
+                        >
+                          <TableCell>{detail.message}</TableCell>
+                          <TableCell>
+                            <MonoText>{detail.errorCode ?? "—"}</MonoText>
+                          </TableCell>
+                          <TableCell>
+                            <MonoText>{detail.path ?? "—"}</MonoText>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableScrollContainer>
               ) : null}
             </Stack>
           </SettingsNotice>
@@ -369,32 +372,34 @@ export function ImportTab() {
                 )}
               </SimpleGrid>
               {importResult.package && (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>
-                        {i18n.t("admin.templates.import.field.template")}
-                      </TableHead>
-                      <TableHead>
-                        {i18n.t("admin.templates.import.field.version")}
-                      </TableHead>
-                      <TableHead>
-                        {i18n.t("admin.templates.import.field.state")}
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {importResult.documents?.map((child) => (
-                      <TableRow key={child.revision.id}>
-                        <TableCell>{child.entry.title}</TableCell>
-                        <TableCell>{child.revision.version}</TableCell>
-                        <TableCell>
-                          <Badge tone="info">{child.revision.state}</Badge>
-                        </TableCell>
+                <TableScrollContainer>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>
+                          {i18n.t("admin.templates.import.field.template")}
+                        </TableHead>
+                        <TableHead>
+                          {i18n.t("admin.templates.import.field.version")}
+                        </TableHead>
+                        <TableHead>
+                          {i18n.t("admin.templates.import.field.state")}
+                        </TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {importResult.documents?.map((child) => (
+                        <TableRow key={child.revision.id}>
+                          <TableCell>{child.entry.title}</TableCell>
+                          <TableCell>{child.revision.version}</TableCell>
+                          <TableCell>
+                            <Badge tone="info">{child.revision.state}</Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableScrollContainer>
               )}
 
               {importStatus?.normalizationWarnings.length ? (

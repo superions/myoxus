@@ -28,7 +28,6 @@ import {
   MyoxusTextInput,
   RadioGroup,
   SettingsDangerZone,
-  SettingsDataTable,
   SettingsEmptyState,
   SettingsNotice,
   SettingsPage,
@@ -38,6 +37,11 @@ import {
   Slider,
   SplitPane,
   StatusDot,
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+  TableScrollContainer,
   Tabs,
   TabsContent,
   TabsList,
@@ -94,13 +98,15 @@ describe("Mantine-backed settings primitives", () => {
             </SettingsToolbar>
             <MyoxusTextInput aria-label="Setting name" value="Default" />
             <Checkbox checked={true} label="Enabled" />
-            <SettingsDataTable aria-label="Settings table">
-              <tbody>
-                <tr>
-                  <td>Table row</td>
-                </tr>
-              </tbody>
-            </SettingsDataTable>
+            <TableScrollContainer>
+              <Table aria-label="Settings table">
+                <TableBody>
+                  <TableRow>
+                    <TableCell>Table row</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableScrollContainer>
             <SettingsNotice title="Server governance">
               Changes stay server-authoritative.
             </SettingsNotice>

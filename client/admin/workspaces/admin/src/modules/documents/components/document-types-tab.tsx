@@ -10,6 +10,7 @@ import {
   Stack,
   Switch,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -119,47 +120,53 @@ export function DocumentTypesTab() {
       {typesQuery.isLoading ? (
         <Loading />
       ) : typesQuery.types.length ? (
-        <Table
-          aria-label={i18n.t("admin.documents.types.list.title")}
-          data-testid="documents-types-soft-list"
-        >
-          <TableHeader>
-            <TableRow>
-              <TableHead>{i18n.t("admin.documents.field.label")}</TableHead>
-              <TableHead>{i18n.t("admin.documents.field.key")}</TableHead>
-              <TableHead>{i18n.t("admin.documents.field.suggested")}</TableHead>
-              <TableHead>{i18n.t("admin.documents.field.active")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {typesQuery.types.map((type) => (
-              <TableRow key={type.id}>
-                <TableCell>
-                  {type.label}
-                  {type.description ? (
-                    <SettingsStatusText>{type.description}</SettingsStatusText>
-                  ) : null}
-                </TableCell>
-                <TableCell>{type.key}</TableCell>
-                <TableCell>
-                  <BooleanStatus value={type.isSuggested} />
-                </TableCell>
-                <TableCell>
-                  <Switch
-                    checked={type.isActive}
-                    disabled={busy}
-                    aria-label={
-                      type.label +
-                      " · " +
-                      i18n.t("admin.documents.deactivate-not-delete")
-                    }
-                    onChange={(active) => void toggleType(type, active)}
-                  />
-                </TableCell>
+        <TableScrollContainer>
+          <Table
+            aria-label={i18n.t("admin.documents.types.list.title")}
+            data-testid="documents-types-soft-list"
+          >
+            <TableHeader>
+              <TableRow>
+                <TableHead>{i18n.t("admin.documents.field.label")}</TableHead>
+                <TableHead>{i18n.t("admin.documents.field.key")}</TableHead>
+                <TableHead>
+                  {i18n.t("admin.documents.field.suggested")}
+                </TableHead>
+                <TableHead>{i18n.t("admin.documents.field.active")}</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {typesQuery.types.map((type) => (
+                <TableRow key={type.id}>
+                  <TableCell>
+                    {type.label}
+                    {type.description ? (
+                      <SettingsStatusText>
+                        {type.description}
+                      </SettingsStatusText>
+                    ) : null}
+                  </TableCell>
+                  <TableCell>{type.key}</TableCell>
+                  <TableCell>
+                    <BooleanStatus value={type.isSuggested} />
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={type.isActive}
+                      disabled={busy}
+                      aria-label={
+                        type.label +
+                        " · " +
+                        i18n.t("admin.documents.deactivate-not-delete")
+                      }
+                      onChange={(active) => void toggleType(type, active)}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableScrollContainer>
       ) : !typesQuery.error ? (
         <EmptyState>{i18n.t("admin.documents.types.empty")}</EmptyState>
       ) : null}

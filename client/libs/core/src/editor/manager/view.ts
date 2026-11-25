@@ -15,7 +15,6 @@ import {
   MyoxusEditorViewExtension,
 } from "@myoxus/core/editor/view-extensions/editor-view/editor-view";
 import { ElectronViewExtension } from "@myoxus/core/editor/view-extensions/electron";
-import { MyoxusIconPickerExtension } from "@myoxus/core/editor/view-extensions/icon-picker";
 import { MyoxusLinkPreviewExtension } from "@myoxus/core/editor/view-extensions/link-preview-service";
 import { MobileViewExtension } from "@myoxus/core/editor/view-extensions/mobile";
 import { PdfViewExtension } from "@myoxus/core/editor/view-extensions/pdf";
@@ -68,7 +67,6 @@ type Configure = {
   electron: (framework?: FrameworkProvider) => Configure;
   linkPreview: (framework?: FrameworkProvider) => Configure;
   codeBlockPreview: (framework?: FrameworkProvider) => Configure;
-  iconPicker: (framework?: FrameworkProvider) => Configure;
   comment: (
     enableComment?: boolean,
     framework?: FrameworkProvider,
@@ -100,7 +98,6 @@ class ViewProvider {
       MyoxusThemeViewExtension,
       MyoxusEditorViewExtension,
       MyoxusEditorConfigViewExtension,
-      MyoxusIconPickerExtension,
       CodeBlockPreviewViewExtension,
       EdgelessBlockHeaderConfigViewExtension,
       TurboRendererViewExtension,
@@ -179,7 +176,6 @@ class ViewProvider {
       electron: this._configureElectron,
       linkPreview: this._configureLinkPreview,
       codeBlockPreview: this._configureCodeBlockHtmlPreview,
-      iconPicker: this._configureIconPicker,
       comment: this._configureComment,
       value: this._manager,
     };
@@ -203,7 +199,6 @@ class ViewProvider {
       .electron()
       .linkPreview()
       .codeBlockPreview()
-      .iconPicker()
       .comment();
 
     return this.config;
@@ -376,11 +371,6 @@ class ViewProvider {
     framework?: FrameworkProvider,
   ) => {
     this._manager.configure(CodeBlockPreviewViewExtension, { framework });
-    return this.config;
-  };
-
-  private readonly _configureIconPicker = (framework?: FrameworkProvider) => {
-    this._manager.configure(MyoxusIconPickerExtension, { framework });
     return this.config;
   };
 

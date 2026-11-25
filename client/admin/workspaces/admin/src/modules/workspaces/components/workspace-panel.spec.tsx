@@ -129,19 +129,6 @@ function setupMocks(
     useMutateQueryResource: () => revalidateFn,
   }));
 
-  vi.doMock("../../panel/context", () => ({
-    useRightPanel: () => ({
-      setHasDirtyChanges: vi.fn(),
-      hasDirtyChanges: false,
-    }),
-  }));
-
-  vi.doMock("../../header", () => ({
-    RightPanelHeader: ({ title }: { title: string }) => (
-      <div data-testid="panel-header">{title}</div>
-    ),
-  }));
-
   vi.doMock("../../common", () => ({
     useServerConfig: () => serverConfig,
   }));

@@ -7,6 +7,7 @@ import {
   NumberInput,
   Switch,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -193,49 +194,51 @@ export function ValueListsTab() {
       ) : null}
       {actionError && !editorOpen ? <ErrorText>{actionError}</ErrorText> : null}
       {valuesQuery.values.length ? (
-        <Table
-          aria-label={selectedDefinition?.label}
-          data-testid="documents-value-lists-soft-list"
-        >
-          <TableHeader>
-            <TableRow>
-              <TableHead>{i18n.t("admin.documents.field.label")}</TableHead>
-              <TableHead>{i18n.t("admin.documents.field.key")}</TableHead>
-              <TableHead>
-                {i18n.t("admin.documents.field.sort-order")}
-              </TableHead>
-              <TableHead>{i18n.t("admin.common.active")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {[...valuesQuery.values]
-              .sort((a, b) => a.sortOrder - b.sortOrder)
-              .map((value) => (
-                <TableRow key={value.id}>
-                  <TableCell>
-                    {value.label}
-                    {value.description ? (
-                      <SettingsStatusText>
-                        {value.description}
-                      </SettingsStatusText>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>{value.key}</TableCell>
-                  <TableCell>{value.sortOrder}</TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={value.isActive}
-                      aria-label={
-                        value.label + " · " + i18n.t("admin.common.active")
-                      }
-                      disabled={saving}
-                      onChange={(active) => void toggleValue(value, active)}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-          </TableBody>
-        </Table>
+        <TableScrollContainer>
+          <Table
+            aria-label={selectedDefinition?.label}
+            data-testid="documents-value-lists-soft-list"
+          >
+            <TableHeader>
+              <TableRow>
+                <TableHead>{i18n.t("admin.documents.field.label")}</TableHead>
+                <TableHead>{i18n.t("admin.documents.field.key")}</TableHead>
+                <TableHead>
+                  {i18n.t("admin.documents.field.sort-order")}
+                </TableHead>
+                <TableHead>{i18n.t("admin.common.active")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...valuesQuery.values]
+                .sort((a, b) => a.sortOrder - b.sortOrder)
+                .map((value) => (
+                  <TableRow key={value.id}>
+                    <TableCell>
+                      {value.label}
+                      {value.description ? (
+                        <SettingsStatusText>
+                          {value.description}
+                        </SettingsStatusText>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>{value.key}</TableCell>
+                    <TableCell>{value.sortOrder}</TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={value.isActive}
+                        aria-label={
+                          value.label + " · " + i18n.t("admin.common.active")
+                        }
+                        disabled={saving}
+                        onChange={(active) => void toggleValue(value, active)}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </TableScrollContainer>
       ) : selectedKey ? (
         <EmptyState>
           {i18n.t("admin.documents.value-lists.values-empty")}

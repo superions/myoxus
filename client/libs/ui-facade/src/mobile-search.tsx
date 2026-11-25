@@ -26,6 +26,7 @@ export type MobileSearchInputProps = Omit<
   MyoxusInputProps,
   "endFix" | "onChange" | "onInput" | "preFix"
 > & {
+  debounce?: number;
   onInput?: (value: string) => void;
 };
 

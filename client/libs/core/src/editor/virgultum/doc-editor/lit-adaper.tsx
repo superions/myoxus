@@ -222,7 +222,6 @@ const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
       .electron(framework)
       .linkPreview(framework)
       .codeBlockPreview(framework)
-      .iconPicker(framework)
       .comment(enableComment, framework).value;
 
     if (BUILD_CONFIG.isMobileEdition) {

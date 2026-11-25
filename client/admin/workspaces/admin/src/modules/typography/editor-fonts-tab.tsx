@@ -24,6 +24,7 @@ import {
   SettingsSection,
   Stack,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -107,64 +108,68 @@ export function EditorFontsTab({ theme, fontFamilies }: EditorFontsTabProps) {
             {i18n.t("admin.typography.editor-fonts.description")}
           </SettingsSectionDescription>
         </SettingsHeadingGroup>
-        <Table aria-label={i18n.t("admin.typography.editor-fonts.title")}>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{i18n.t("admin.typography.catalog.styles")}</TableHead>
-              <TableHead>{i18n.t("admin.typography.field.family")}</TableHead>
-              <TableHead>{i18n.t("admin.typography.field.weight")}</TableHead>
-              <TableHead>{i18n.t("admin.typography.field.size")}</TableHead>
-              <TableHead>
-                {i18n.t("admin.typography.field.line-height")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.typography.font-library.label.assets")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {roles.map(({ id, icon: Icon, style }) => {
-              const family = fontFamilies.find(
-                (candidate) =>
-                  candidate.slug === style?.fontFamilySlug ||
-                  candidate.displayName === style?.fontFamily,
-              );
-              const status = assetStatus(family);
-              return (
-                <TableRow key={id} data-testid={`editor-fonts-role-${id}`}>
-                  <TableCell>
-                    <Group>
-                      <Icon aria-hidden="true" />
-                      <Stack gap="var(--mantine-spacing-2xs)">
+        <TableScrollContainer>
+          <Table aria-label={i18n.t("admin.typography.editor-fonts.title")}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  {i18n.t("admin.typography.catalog.styles")}
+                </TableHead>
+                <TableHead>{i18n.t("admin.typography.field.family")}</TableHead>
+                <TableHead>{i18n.t("admin.typography.field.weight")}</TableHead>
+                <TableHead>{i18n.t("admin.typography.field.size")}</TableHead>
+                <TableHead>
+                  {i18n.t("admin.typography.field.line-height")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.typography.font-library.label.assets")}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {roles.map(({ id, icon: Icon, style }) => {
+                const family = fontFamilies.find(
+                  (candidate) =>
+                    candidate.slug === style?.fontFamilySlug ||
+                    candidate.displayName === style?.fontFamily,
+                );
+                const status = assetStatus(family);
+                return (
+                  <TableRow key={id} data-testid={`editor-fonts-role-${id}`}>
+                    <TableCell>
+                      <Group>
+                        <Icon aria-hidden="true" />
+                        <Stack gap="var(--mantine-spacing-2xs)">
+                          {i18n.t(
+                            `admin.typography.editor-fonts.role.${id}` as never,
+                          )}
+                          <SettingsListItemMeta>
+                            {style?.styleKey ?? "-"}
+                          </SettingsListItemMeta>
+                        </Stack>
+                      </Group>
+                    </TableCell>
+                    <TableCell>{style?.fontFamily ?? "-"}</TableCell>
+                    <TableCell>{String(style?.fontWeight ?? "-")}</TableCell>
+                    <TableCell>
+                      {formatOptionalNumber(style?.sizePx, "px")}
+                    </TableCell>
+                    <TableCell>
+                      {formatOptionalNumber(style?.lineHeight)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge tone={statusTone(status)}>
                         {i18n.t(
-                          `admin.typography.editor-fonts.role.${id}` as never,
+                          `admin.typography.editor-fonts.asset.${status}` as never,
                         )}
-                        <SettingsListItemMeta>
-                          {style?.styleKey ?? "-"}
-                        </SettingsListItemMeta>
-                      </Stack>
-                    </Group>
-                  </TableCell>
-                  <TableCell>{style?.fontFamily ?? "-"}</TableCell>
-                  <TableCell>{String(style?.fontWeight ?? "-")}</TableCell>
-                  <TableCell>
-                    {formatOptionalNumber(style?.sizePx, "px")}
-                  </TableCell>
-                  <TableCell>
-                    {formatOptionalNumber(style?.lineHeight)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge tone={statusTone(status)}>
-                      {i18n.t(
-                        `admin.typography.editor-fonts.asset.${status}` as never,
-                      )}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableScrollContainer>
       </Stack>
 
       <ResponsiveGrid cols={{ base: 1, lg: 2 }}>

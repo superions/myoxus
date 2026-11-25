@@ -55,6 +55,7 @@ import {
   SettingsToolbar,
   Stack,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -306,107 +307,113 @@ function ThemeCatalogSection({
       ) : filteredFamilies.length === 0 ? (
         <SettingsEmptyState title={i18n.t("admin.common.no-results-found")} />
       ) : (
-        <Table aria-label={i18n.t("admin.typography.font-library.title")}>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{i18n.t("admin.typography.field.family")}</TableHead>
-              <TableHead>
-                {i18n.t("admin.typography.font-library.label.source")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.typography.font-library.label.license")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.typography.font-library.label.assets")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.typography.font-library.label.weights")}
-              </TableHead>
-              <TableHead>{i18n.t("admin.common.status")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredFamilies.map((family) => {
-              const status = libraryStatus(family);
-              const webAsset = hasAsset(family, "web");
-              const pdfAsset = hasAsset(family, "pdf");
-              const weights = uniqueWeights(family);
-              return (
-                <TableRow
-                  key={family.slug}
-                  data-testid={`font-library-family-${family.slug}`}
-                >
-                  <TableCell>
-                    <SettingsListItemTitle
-                      data-admin-visual-role="authoring-preview"
-                      previewFontFamily={`${JSON.stringify(family.cssFamily)}, ${family.genericClass}`}
-                    >
-                      {family.displayName}
-                    </SettingsListItemTitle>
-                    <SettingsListItemMeta>{family.slug}</SettingsListItemMeta>
-                  </TableCell>
-                  <TableCell>
-                    {family.source === "bundled"
-                      ? i18n.t("admin.typography.font-library.summary.bundled")
-                      : family.source === "uploaded"
+        <TableScrollContainer>
+          <Table aria-label={i18n.t("admin.typography.font-library.title")}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{i18n.t("admin.typography.field.family")}</TableHead>
+                <TableHead>
+                  {i18n.t("admin.typography.font-library.label.source")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.typography.font-library.label.license")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.typography.font-library.label.assets")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.typography.font-library.label.weights")}
+                </TableHead>
+                <TableHead>{i18n.t("admin.common.status")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredFamilies.map((family) => {
+                const status = libraryStatus(family);
+                const webAsset = hasAsset(family, "web");
+                const pdfAsset = hasAsset(family, "pdf");
+                const weights = uniqueWeights(family);
+                return (
+                  <TableRow
+                    key={family.slug}
+                    data-testid={`font-library-family-${family.slug}`}
+                  >
+                    <TableCell>
+                      <SettingsListItemTitle
+                        data-admin-visual-role="authoring-preview"
+                        previewFontFamily={`${JSON.stringify(family.cssFamily)}, ${family.genericClass}`}
+                      >
+                        {family.displayName}
+                      </SettingsListItemTitle>
+                      <SettingsListItemMeta>{family.slug}</SettingsListItemMeta>
+                    </TableCell>
+                    <TableCell>
+                      {family.source === "bundled"
                         ? i18n.t(
-                            "admin.typography.font-library.summary.uploaded",
+                            "admin.typography.font-library.summary.bundled",
                           )
-                        : family.source}
-                  </TableCell>
-                  <TableCell>
-                    {family.licenseSpdx}
-                    <SettingsListItemMeta>
-                      {family.licenseStatus === "approved"
-                        ? i18n.t("admin.typography.font-addons.status.approved")
-                        : family.licenseStatus === "rejected"
+                        : family.source === "uploaded"
                           ? i18n.t(
-                              "admin.typography.font-addons.status.rejected",
+                              "admin.typography.font-library.summary.uploaded",
                             )
-                          : family.licenseStatus === "pending"
-                            ? i18n.t(
-                                "admin.typography.font-addons.status.pending",
-                              )
-                            : family.licenseStatus}
-                    </SettingsListItemMeta>
-                  </TableCell>
-                  <TableCell>
-                    <Group>
+                          : family.source}
+                    </TableCell>
+                    <TableCell>
+                      {family.licenseSpdx}
                       <SettingsListItemMeta>
-                        {family.assets.length}
+                        {family.licenseStatus === "approved"
+                          ? i18n.t(
+                              "admin.typography.font-addons.status.approved",
+                            )
+                          : family.licenseStatus === "rejected"
+                            ? i18n.t(
+                                "admin.typography.font-addons.status.rejected",
+                              )
+                            : family.licenseStatus === "pending"
+                              ? i18n.t(
+                                  "admin.typography.font-addons.status.pending",
+                                )
+                              : family.licenseStatus}
                       </SettingsListItemMeta>
-                      <Badge tone={webAsset ? "success" : "error"}>
-                        {webAsset ? "✓ " : "× "}
-                        {i18n.t("admin.typography.font-library.asset.web")}
-                      </Badge>
-                      <Badge tone={pdfAsset ? "success" : "error"}>
-                        {pdfAsset ? "✓ " : "× "}
-                        {i18n.t("admin.typography.font-library.asset.pdf")}
-                      </Badge>
-                      {!family.isSelectable ? (
-                        <Badge tone="error">
-                          {i18n.t(
-                            "admin.typography.font-library.asset.not-selectable",
-                          )}
+                    </TableCell>
+                    <TableCell>
+                      <Group>
+                        <SettingsListItemMeta>
+                          {family.assets.length}
+                        </SettingsListItemMeta>
+                        <Badge tone={webAsset ? "success" : "error"}>
+                          {webAsset ? "✓ " : "× "}
+                          {i18n.t("admin.typography.font-library.asset.web")}
                         </Badge>
-                      ) : null}
-                    </Group>
-                  </TableCell>
-                  <TableCell>
-                    <MonoText>
-                      {weights.length ? weights.join(", ") : "-"}
-                    </MonoText>
-                  </TableCell>
-                  <TableCell>
-                    <Badge tone={statusTone(status)}>
-                      {i18n.t(LIBRARY_STATUS_LABEL[status])}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                        <Badge tone={pdfAsset ? "success" : "error"}>
+                          {pdfAsset ? "✓ " : "× "}
+                          {i18n.t("admin.typography.font-library.asset.pdf")}
+                        </Badge>
+                        {!family.isSelectable ? (
+                          <Badge tone="error">
+                            {i18n.t(
+                              "admin.typography.font-library.asset.not-selectable",
+                            )}
+                          </Badge>
+                        ) : null}
+                      </Group>
+                    </TableCell>
+                    <TableCell>
+                      <MonoText>
+                        {weights.length ? weights.join(", ") : "-"}
+                      </MonoText>
+                    </TableCell>
+                    <TableCell>
+                      <Badge tone={statusTone(status)}>
+                        {i18n.t(LIBRARY_STATUS_LABEL[status])}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableScrollContainer>
       )}
     </Stack>
   );
@@ -971,38 +978,42 @@ function FontAddonsSection({
             title={i18n.t("admin.typography.font-addons.list.no-matches")}
           />
         ) : (
-          <Table aria-label={i18n.t("admin.typography.font-addons.title")}>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{i18n.t("admin.typography.field.family")}</TableHead>
-                <TableHead>
-                  {i18n.t("admin.typography.field.font-style")} /{" "}
-                  {i18n.t("admin.typography.field.weight")}
-                </TableHead>
-                <TableHead>
-                  {i18n.t("admin.typography.font-addons.field.license")}
-                </TableHead>
-                <TableHead>
-                  {i18n.t("admin.typography.font-addons.field.uploaded-at")}
-                </TableHead>
-                <TableHead>{i18n.t("admin.common.status")}</TableHead>
-                <TableHead>{i18n.t("admin.common.actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredAddons.map((addon) => (
-                <FontAddonRow
-                  key={addon.id}
-                  addon={addon}
-                  busy={busy}
-                  onApprove={handleApprove}
-                  onReject={setRejectTarget}
-                  onDelete={setDeleteTarget}
-                  onInspect={(nextAddon) => setInspectId(nextAddon.id)}
-                />
-              ))}
-            </TableBody>
-          </Table>
+          <TableScrollContainer>
+            <Table aria-label={i18n.t("admin.typography.font-addons.title")}>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    {i18n.t("admin.typography.field.family")}
+                  </TableHead>
+                  <TableHead>
+                    {i18n.t("admin.typography.field.font-style")} /{" "}
+                    {i18n.t("admin.typography.field.weight")}
+                  </TableHead>
+                  <TableHead>
+                    {i18n.t("admin.typography.font-addons.field.license")}
+                  </TableHead>
+                  <TableHead>
+                    {i18n.t("admin.typography.font-addons.field.uploaded-at")}
+                  </TableHead>
+                  <TableHead>{i18n.t("admin.common.status")}</TableHead>
+                  <TableHead>{i18n.t("admin.common.actions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAddons.map((addon) => (
+                  <FontAddonRow
+                    key={addon.id}
+                    addon={addon}
+                    busy={busy}
+                    onApprove={handleApprove}
+                    onReject={setRejectTarget}
+                    onDelete={setDeleteTarget}
+                    onInspect={(nextAddon) => setInspectId(nextAddon.id)}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          </TableScrollContainer>
         )}
       </Stack>
       {rejectTarget ? (
@@ -1048,15 +1059,13 @@ export function FontLibraryTab({ fontFamilies }: FontLibraryTabProps) {
       <ThemeCatalogSection
         fontFamilies={fontFamilies}
         actions={
-          <>
-            <Button
-              prefix={<UploadIcon aria-hidden />}
-              onClick={() => setUploadOpen(true)}
-              data-testid="font-addons-upload-open"
-            >
-              {i18n.t("admin.typography.font-addons.upload.button")}
-            </Button>
-          </>
+          <Button
+            prefix={<UploadIcon aria-hidden />}
+            onClick={() => setUploadOpen(true)}
+            data-testid="font-addons-upload-open"
+          >
+            {i18n.t("admin.typography.font-addons.upload.button")}
+          </Button>
         }
       />
       <FontAddonsSection query={query} onRefresh={handleRefresh} />

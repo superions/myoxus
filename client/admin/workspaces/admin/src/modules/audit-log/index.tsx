@@ -13,28 +13,21 @@ import {
   type AuditLogFilterInput,
 } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
-import { ChevronLeft, ChevronRight, RotateCcw } from "@myoxus/icons/react";
+import { RotateCcw } from "@myoxus/icons/react";
 import {
   Badge,
   Button,
   FormSelect,
-  Group,
   IconButton,
   Input,
-  SettingsEmptyState,
   SettingsListItemMeta,
   SettingsSectionHeading,
   SettingsStatusText,
   SettingsToolbar,
   SimpleGrid,
   Stack,
-  Table,
-  TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
-  TableScrollContainer,
 } from "@myoxus/ui-facade";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
@@ -43,9 +36,10 @@ import { UserPicker } from "../../components/domain-pickers";
 import { useQuery } from "../../use-query";
 import { formatAdminDateTime } from "../../utils/locale-format";
 import { AdminPageFrame, AdminPageScroll } from "../admin-shell";
-import { auditActorLabel, eventLabel, humanizeEventKey } from "./audit-labels";
+import { auditActorLabel, auditTargetLabel, eventLabel } from "./audit-labels";
 import { AuditDetailDrawer } from "./components/audit-detail-drawer";
 import { AuditRowDiffCell } from "./components/audit-row";
+import { AuditPaginatedTable } from "./components/audit-table-section";
 
 const PAGE_SIZE = 50;
 
@@ -132,28 +126,6 @@ function categoryLabel(category: string, t: (key: string) => string) {
   const key = `admin.audit-log.category.${category}`;
   const label = t(key);
   return label === key ? category : label;
-}
-
-const UUID_LIKE_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function shortAuditId(value: string) {
-  return value.length > 18 ? `${value.slice(0, 8)}…${value.slice(-6)}` : value;
-}
-
-function targetLabel(
-  target: AdminAuditLogEntryType["target"],
-  t: (key: string) => string,
-) {
-  if (!target) return "-";
-  const explicitLabel = target.label?.trim();
-  if (explicitLabel && !UUID_LIKE_RE.test(explicitLabel)) return explicitLabel;
-
-  const typeKey = `admin.audit-log.filter.targetType.${target.type}`;
-  const typeLabel = t(typeKey);
-  const readableType =
-    typeLabel === typeKey ? humanizeEventKey(target.type) : typeLabel;
-  return `${readableType} · ${shortAuditId(target.id)}`;
 }
 
 function filterValue(value: string) {
@@ -454,104 +426,66 @@ export function AuditLogPage() {
             </SettingsToolbar>
           </Stack>
 
-          <Stack>
-            <SettingsToolbar justify="space-between">
-              <SettingsListItemMeta>
-                {totalCount === 0 ? 0 : offset + 1}-
-                {Math.min(offset + entries.length, totalCount)} / {totalCount}
-              </SettingsListItemMeta>
-              <Group>
-                <IconButton
-                  tooltip={i18n.t("admin.audit-log.previous")}
-                  disabled={offset === 0}
-                  onClick={() => setOffset((o) => Math.max(0, o - PAGE_SIZE))}
-                >
-                  <ChevronLeft aria-hidden="true" />
-                </IconButton>
-                <IconButton
-                  tooltip={i18n.t("admin.audit-log.next")}
-                  disabled={entries.length < PAGE_SIZE}
-                  onClick={() => setOffset((o) => o + PAGE_SIZE)}
-                >
-                  <ChevronRight aria-hidden="true" />
-                </IconButton>
-              </Group>
-            </SettingsToolbar>
-            {entries.length === 0 ? (
-              <SettingsEmptyState title={i18n.t("admin.audit-log.empty")} />
-            ) : (
-              <TableScrollContainer>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>
-                        {i18n.t("admin.audit-log.col.time")}
-                      </TableHead>
-                      <TableHead>
-                        {i18n.t("admin.audit-log.col.category")}
-                      </TableHead>
-                      <TableHead>
-                        {i18n.t("admin.audit-log.col.actor")}
-                      </TableHead>
-                      <TableHead>
-                        {i18n.t("admin.audit-log.col.eventKey")}
-                      </TableHead>
-                      <TableHead>
-                        {i18n.t("admin.audit-log.col.target")}
-                      </TableHead>
-                      <TableHead>
-                        {i18n.t("admin.audit-log.col.diff")}
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {entries.map((entry) => (
-                      <TableRow
-                        key={entry.id}
-                        onClick={() => setSelectedEntry(entry)}
-                      >
-                        <TableCell mono>
-                          {formatAdminDateTime(i18n.language, entry.createdAt)}
-                        </TableCell>
-                        <TableCell>
-                          <CategoryBadge
-                            category={entry.category}
-                            label={categoryLabel(entry.category, i18n.t)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {entry.actor ? (
-                            auditActorLabel(entry.actor, i18n.t)
-                          ) : (
-                            <SettingsStatusText>
-                              {i18n.t("admin.audit-log.systemChange")}
-                            </SettingsStatusText>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="link"
-                            onClick={() => setSelectedEntry(entry)}
-                            title={entry.eventKey}
-                            data-testid="audit-event-label"
-                            data-event-key={entry.eventKey}
-                          >
-                            {eventLabel(entry.eventKey, i18n.t)}
-                          </Button>
-                        </TableCell>
-                        <TableCell>
-                          {targetLabel(entry.target, i18n.t)}
-                        </TableCell>
-                        <TableCell>
-                          <AuditRowDiffCell entry={entry} />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableScrollContainer>
-            )}
-          </Stack>
+          <AuditPaginatedTable
+            columns={[
+              { key: "time", label: i18n.t("admin.audit-log.col.time") },
+              {
+                key: "category",
+                label: i18n.t("admin.audit-log.col.category"),
+              },
+              { key: "actor", label: i18n.t("admin.audit-log.col.actor") },
+              {
+                key: "eventKey",
+                label: i18n.t("admin.audit-log.col.eventKey"),
+              },
+              { key: "target", label: i18n.t("admin.audit-log.col.target") },
+              { key: "diff", label: i18n.t("admin.audit-log.col.diff") },
+            ]}
+            entryCount={entries.length}
+            totalCount={totalCount}
+            offset={offset}
+            pageSize={PAGE_SIZE}
+            onOffsetChange={setOffset}
+            emptyTitle={i18n.t("admin.audit-log.empty")}
+          >
+            {entries.map((entry) => (
+              <TableRow key={entry.id} onClick={() => setSelectedEntry(entry)}>
+                <TableCell mono>
+                  {formatAdminDateTime(i18n.language, entry.createdAt)}
+                </TableCell>
+                <TableCell>
+                  <CategoryBadge
+                    category={entry.category}
+                    label={categoryLabel(entry.category, i18n.t)}
+                  />
+                </TableCell>
+                <TableCell>
+                  {entry.actor ? (
+                    auditActorLabel(entry.actor, i18n.t)
+                  ) : (
+                    <SettingsStatusText>
+                      {i18n.t("admin.audit-log.systemChange")}
+                    </SettingsStatusText>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="link"
+                    onClick={() => setSelectedEntry(entry)}
+                    title={entry.eventKey}
+                    data-testid="audit-event-label"
+                    data-event-key={entry.eventKey}
+                  >
+                    {eventLabel(entry.eventKey, i18n.t)}
+                  </Button>
+                </TableCell>
+                <TableCell>{auditTargetLabel(entry.target, i18n.t)}</TableCell>
+                <TableCell>
+                  <AuditRowDiffCell entry={entry} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </AuditPaginatedTable>
         </Stack>
       </AdminPageScroll>
 

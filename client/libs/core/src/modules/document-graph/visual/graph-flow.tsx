@@ -109,6 +109,7 @@ function DocumentGraphFlowInner({
       fullHeight
       overflow="hidden"
       padding="md"
+      withBorder={false}
       data-myoxus-ui-role="document-graph-visual"
     >
       <Box

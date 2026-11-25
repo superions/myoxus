@@ -35,6 +35,7 @@ import {
   FormSelect,
   SettingsCollectionToolbar,
   Table,
+  TableScrollContainer,
   TableHeader,
   TableHead,
   TableBody,
@@ -382,69 +383,75 @@ function TemplatesTabContent() {
         {filteredTemplates.length === 0 ? (
           <TemplateEmptyState filtered={hasActiveFilters} />
         ) : (
-          <Table aria-label={i18n.t("admin.pdf-export.list.aria-label")}>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{i18n.t("admin.pdf-export.column.name")}</TableHead>
-                <TableHead>
-                  {i18n.t("admin.pdf-export.column.source")}
-                </TableHead>
-                <TableHead>
-                  {i18n.t("admin.pdf-export.column.version")}
-                </TableHead>
-                <TableHead>
-                  {i18n.t("admin.pdf-export.column.status")}
-                </TableHead>
-                <TableHead>
-                  {i18n.t("admin.pdf-export.column.created-at")}
-                </TableHead>
-                <TableHead>{i18n.t("admin.pdf-jobs.column.actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTemplates.map((tpl) => (
-                <TableRow key={tpl.id}>
-                  <TableCell>
-                    <InlineActionButton onClick={() => setSelectedId(tpl.id)}>
-                      <SettingsListItemTitle>
-                        {pdfTemplateDisplayName(tpl, i18n.t)}
-                      </SettingsListItemTitle>
-                    </InlineActionButton>
-                    <SettingsListItemMeta>
-                      <MonoText>{tpl.slug}</MonoText>
-                    </SettingsListItemMeta>
-                  </TableCell>
-                  <TableCell>
-                    <PdfTemplateSourceBadge source={tpl.source} />
-                  </TableCell>
-                  <TableCell>
-                    {tpl.version}
-                    <SettingsListItemMeta>
-                      {i18n.t("admin.pdf-export.column.schema-version")}:{" "}
-                      {tpl.schemaVersion}
-                    </SettingsListItemMeta>
-                  </TableCell>
-                  <TableCell>
-                    <PdfTemplateStatusBadge deleted={tpl.isDeleted} />
-                  </TableCell>
-                  <TableCell>
-                    {formatAdminDateTime(i18n.language, tpl.createdAt)}
-                    <SettingsListItemMeta>
-                      {tpl.createdBy ??
-                        i18n.t("admin.pdf-export.source.system")}
-                    </SettingsListItemMeta>
-                  </TableCell>
-                  <TableCell>
-                    <RowActions
-                      template={tpl}
-                      onInspect={() => setSelectedId(tpl.id)}
-                      onRequestDelete={() => setDeleteTarget(tpl)}
-                    />
-                  </TableCell>
+          <TableScrollContainer>
+            <Table aria-label={i18n.t("admin.pdf-export.list.aria-label")}>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    {i18n.t("admin.pdf-export.column.name")}
+                  </TableHead>
+                  <TableHead>
+                    {i18n.t("admin.pdf-export.column.source")}
+                  </TableHead>
+                  <TableHead>
+                    {i18n.t("admin.pdf-export.column.version")}
+                  </TableHead>
+                  <TableHead>
+                    {i18n.t("admin.pdf-export.column.status")}
+                  </TableHead>
+                  <TableHead>
+                    {i18n.t("admin.pdf-export.column.created-at")}
+                  </TableHead>
+                  <TableHead>
+                    {i18n.t("admin.pdf-jobs.column.actions")}
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredTemplates.map((tpl) => (
+                  <TableRow key={tpl.id}>
+                    <TableCell>
+                      <InlineActionButton onClick={() => setSelectedId(tpl.id)}>
+                        <SettingsListItemTitle>
+                          {pdfTemplateDisplayName(tpl, i18n.t)}
+                        </SettingsListItemTitle>
+                      </InlineActionButton>
+                      <SettingsListItemMeta>
+                        <MonoText>{tpl.slug}</MonoText>
+                      </SettingsListItemMeta>
+                    </TableCell>
+                    <TableCell>
+                      <PdfTemplateSourceBadge source={tpl.source} />
+                    </TableCell>
+                    <TableCell>
+                      {tpl.version}
+                      <SettingsListItemMeta>
+                        {i18n.t("admin.pdf-export.column.schema-version")}:{" "}
+                        {tpl.schemaVersion}
+                      </SettingsListItemMeta>
+                    </TableCell>
+                    <TableCell>
+                      <PdfTemplateStatusBadge deleted={tpl.isDeleted} />
+                    </TableCell>
+                    <TableCell>
+                      {formatAdminDateTime(i18n.language, tpl.createdAt)}
+                      <SettingsListItemMeta>
+                        {tpl.createdBy ??
+                          i18n.t("admin.pdf-export.source.system")}
+                      </SettingsListItemMeta>
+                    </TableCell>
+                    <TableCell>
+                      <RowActions
+                        template={tpl}
+                        onInspect={() => setSelectedId(tpl.id)}
+                        onRequestDelete={() => setDeleteTarget(tpl)}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableScrollContainer>
         )}
       </Stack>
 

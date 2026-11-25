@@ -407,6 +407,7 @@ export function SidebarPromoCard({
       data-hidden={resolvedHidden ? "true" : "false"}
       data-myoxus-ui-role={uiRole}
       padding="md"
+      withBorder={false}
       style={{
         bottom: `clamp(var(--mantine-spacing-md), 3dvw, var(--mantine-spacing-lg))`,
         display: "flex",

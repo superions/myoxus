@@ -24,7 +24,6 @@ import {
   Badge,
   Button,
   ColorInput,
-  Input,
   MyoxusSegmentedControl,
   ResponsiveGrid,
   SettingsHeadingGroup,
@@ -154,10 +153,6 @@ function normalizeHex(value: string): string {
 
 function isValidHex(value: string): boolean {
   return HEX_COLOR_PATTERN.test(value.trim());
-}
-
-function previewColor(value: string | undefined, fallback: string): string {
-  return value && isValidHex(value) ? normalizeHex(value) : fallback;
 }
 
 function colorRevision(theme: ThemeDefinition | null | undefined): string {
@@ -488,27 +483,14 @@ export function ColorsTab({
                     label={i18n.t(TOKEN_LABEL_KEYS[token])}
                     data-testid={`colors-tab-row-${token}`}
                   >
-                    <Input
+                    <ColorInput
                       id={inputId}
                       value={value}
                       disabled={!canEdit || isMutating}
                       aria-invalid={Boolean(error)}
                       onChange={(nextValue) => updateToken(token, nextValue)}
                       mono
-                      preFix={
-                        <ColorInput
-                          aria-label={i18n.t(
-                            "admin.design.colors.field.picker",
-                            { token },
-                          )}
-                          value={previewColor(value, "#000000")}
-                          disabled={!canEdit || isMutating}
-                          onChange={(nextValue) =>
-                            updateToken(token, nextValue)
-                          }
-                          data-testid={`colors-tab-picker-${activeMode}-${token}`}
-                        />
-                      }
+                      fixOnBlur={false}
                       data-testid={`colors-tab-input-${activeMode}-${token}`}
                     />
                     {error ? (

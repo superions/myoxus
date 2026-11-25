@@ -1,77 +1,110 @@
+import { signal } from "@preact/signals-core";
 import {
   NativeViewElement,
   installEditorStyles,
 } from "@virgultum/core/runtime";
 import { TOGGLE_BUTTON_PARENT_CLASS } from "@virgultum/core/consts";
+import type {
+  EditorChromeHost,
+  EditorDisclosureControl,
+} from "@virgultum/core/services";
 export { TOGGLE_BUTTON_PARENT_CLASS } from "@virgultum/core/consts";
+
 const disclosureStyle = `
     .toggle-icon {
       display: flex;
-      align-items: start;
-      justify-content: start;
+      align-items: center;
+      justify-content: center;
       position: absolute;
-      width: 16px;
-      height: 16px;
-      top: calc((1em - 16px) / 2 + 5px);
+      top: calc((1em - 16px) / 2 + 2px);
       left: 0;
       transform: translateX(-100%);
-      border-radius: 4px;
-      cursor: pointer;
       opacity: 0;
       transition: opacity 0.2s ease-in-out;
     }
 
-    .toggle-icon:hover {
-      background: var(--myoxus-hover-color);
-    }
-
-    .toggle-icon[data-collapsed="true"] {
-      opacity: 1;
-    }
-
-    .${TOGGLE_BUTTON_PARENT_CLASS}:hover .toggle-icon {
-      opacity: 1;
-    }
-
+    .toggle-icon[data-collapsed="true"],
+    .toggle-icon:focus-within,
+    .${TOGGLE_BUTTON_PARENT_CLASS}:hover .toggle-icon,
     .with-drag-handle .toggle-icon {
       opacity: 1;
     }
-    .with-drag-handle .myoxus-block-children-container .toggle-icon {
+
+    .with-drag-handle .myoxus-block-children-container .toggle-icon:not([data-collapsed="true"]):not(:focus-within) {
       opacity: 0;
     }
-
-    .myoxus-disclosure-triangle {
-      width: var(--mantine-spacing-md);
-      height: var(--mantine-spacing-md);
-      color: var(--myoxus-icon-color);
-      transition: transform 0.2s ease-in-out;
-    }
-
-    .toggle-icon[data-collapsed="false"] .myoxus-disclosure-triangle {
-      transform: rotate(90deg);
-    }
   `;
+
 export class ToggleButton extends NativeViewElement {
   private folded = false;
+  private unmount?: () => void;
+  private container?: HTMLDivElement;
+  private fallbackButton?: HTMLButtonElement;
+  private readonly state$ = signal<EditorDisclosureControl | null>(null);
+
+  chromeHost?: EditorChromeHost | null;
+
   get collapsed() {
     return this.folded;
   }
   set collapsed(value: boolean) {
     this.folded = value;
-    this.firstElementChild?.setAttribute("data-collapsed", String(value));
+    if (this.container) {
+      this.container.dataset.collapsed = String(value);
+    }
+    if (this.fallbackButton) {
+      this.fallbackButton.setAttribute("aria-expanded", String(!value));
+      this.fallbackButton.dataset.collapsed = String(value);
+    }
+    this.syncState();
   }
+
   updateCollapsed!: (collapsed: boolean) => void;
+
+  private syncState() {
+    this.state$.value = {
+      collapsed: this.folded,
+      toggle: () => this.updateCollapsed?.(!this.folded),
+    };
+  }
+
   connectedCallback() {
     installEditorStyles(this, disclosureStyle);
-    if (this.firstChild) return;
-    const button = this.ownerDocument.createElement("div");
-    button.contentEditable = "false";
-    button.className = "toggle-icon";
-    button.dataset.collapsed = String(this.folded);
-    button.innerHTML =
-      '<svg class="myoxus-disclosure-triangle" aria-hidden="true" focusable="false" viewBox="0 0 16 16"><path d="M5.5 3.5L10.5 8L5.5 12.5Z" fill="currentColor"></path></svg>';
-    button.addEventListener("click", () => this.updateCollapsed(!this.folded));
-    this.append(button);
+    if (this.container) return;
+
+    const host = this.ownerDocument.createElement("div");
+    host.contentEditable = "false";
+    host.className = "toggle-icon";
+    host.dataset.collapsed = String(this.folded);
+    this.container = host;
+    this.append(host);
+    this.syncState();
+
+    if (this.chromeHost?.mountDisclosureControl) {
+      this.unmount = this.chromeHost.mountDisclosureControl(host, this.state$);
+      return;
+    }
+
+    const fallback = this.ownerDocument.createElement("button");
+    fallback.type = "button";
+    fallback.setAttribute("aria-expanded", String(!this.folded));
+    fallback.setAttribute("aria-label", this.folded ? "Expand" : "Collapse");
+    fallback.dataset.collapsed = String(this.folded);
+    fallback.textContent = this.folded ? "▸" : "▾";
+    fallback.addEventListener("click", (event) => {
+      event.stopPropagation();
+      this.updateCollapsed?.(!this.folded);
+    });
+    this.fallbackButton = fallback;
+    host.append(fallback);
+  }
+
+  disconnectedCallback() {
+    this.unmount?.();
+    this.unmount = undefined;
+    this.fallbackButton = undefined;
+    this.container?.remove();
+    this.container = undefined;
   }
 }
 

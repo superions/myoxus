@@ -23,12 +23,6 @@ vi.mock("../common", () => ({
   useRevalidateServerConfig: () => vi.fn(),
 }));
 
-vi.mock("../header", () => ({
-  Header: ({ title }: { title: string }) => (
-    <div data-testid="header">{title}</div>
-  ),
-}));
-
 import enJson from "../../../../../../libs/i18n/src/resources/en.json";
 const en: Record<string, string> = enJson;
 

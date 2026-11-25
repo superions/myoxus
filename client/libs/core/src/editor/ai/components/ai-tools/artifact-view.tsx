@@ -5,11 +5,13 @@ import { useI18n } from "@myoxus/i18n";
 import {
   CloseIcon,
   CopyIcon,
+  DoneIcon,
   DownloadIcon,
   PageIcon,
 } from "@myoxus/icons/react";
 import {
   Button,
+  CopyButton,
   Group,
   IconButton,
   MyoxusLoader,
@@ -17,7 +19,7 @@ import {
   ReferenceCard,
   Scrollable,
 } from "@myoxus/ui-facade";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 export function ArtifactCardView({
   title,
@@ -91,11 +93,53 @@ export function ArtifactPreviewView({
   );
 }
 
+function TimedCopyActionButton({
+  onCopy,
+}: {
+  onCopy: () => boolean | void | Promise<boolean | void>;
+}) {
+  const t = useI18n();
+  const [copied, setCopied] = useState(false);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    },
+    [],
+  );
+
+  const label = copied ? t["Copied to clipboard"]() : t["Copy"]();
+  return (
+    <IconButton
+      aria-label={label}
+      tooltip={label}
+      onClick={() => {
+        void Promise.resolve(onCopy()).then((result) => {
+          if (result === false) return;
+          if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+          setCopied(true);
+          resetTimerRef.current = setTimeout(() => {
+            setCopied(false);
+            resetTimerRef.current = null;
+          }, 2000);
+        });
+      }}
+    >
+      {copied ? <DoneIcon /> : <CopyIcon />}
+    </IconButton>
+  );
+}
+
 export function DocComposeControls({
   copy,
+  copyText,
+  onCopied,
   save,
 }: {
-  copy: () => void;
+  copy?: () => boolean | void | Promise<boolean | void>;
+  copyText?: string;
+  onCopied?: () => void;
   save?: () => void;
 }) {
   const t = useI18n();
@@ -106,9 +150,27 @@ export function DocComposeControls({
           {t["com.myoxus.ai.chat-panel.save-as-doc"]()}
         </Button>
       )}
-      <IconButton aria-label={t["Copy"]()} tooltip={t["Copy"]()} onClick={copy}>
-        <CopyIcon />
-      </IconButton>
+      {copyText !== undefined ? (
+        <CopyButton value={copyText} timeout={2000}>
+          {({ copied, copy: triggerCopy }) => {
+            const label = copied ? t["Copied to clipboard"]() : t["Copy"]();
+            return (
+              <IconButton
+                aria-label={label}
+                tooltip={label}
+                onClick={() => {
+                  triggerCopy();
+                  onCopied?.();
+                }}
+              >
+                {copied ? <DoneIcon /> : <CopyIcon />}
+              </IconButton>
+            );
+          }}
+        </CopyButton>
+      ) : copy ? (
+        <TimedCopyActionButton onCopy={copy} />
+      ) : null}
     </>
   );
 }
@@ -122,7 +184,7 @@ export function CodeArtifactControls({
 }: {
   mode: "code" | "preview";
   setMode: (mode: "code" | "preview") => void;
-  copy: () => void;
+  copy: () => boolean | void | Promise<boolean | void>;
   download: () => void;
   insert?: () => void;
 }) {
@@ -153,9 +215,7 @@ export function CodeArtifactControls({
       >
         <DownloadIcon />
       </IconButton>
-      <IconButton aria-label={t["Copy"]()} tooltip={t["Copy"]()} onClick={copy}>
-        <CopyIcon />
-      </IconButton>
+      <TimedCopyActionButton onCopy={copy} />
     </>
   );
 }

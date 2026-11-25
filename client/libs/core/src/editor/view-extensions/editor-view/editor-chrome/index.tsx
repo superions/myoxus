@@ -4,6 +4,8 @@
 import { EditorCodePreview } from "../../code-block-preview/preview";
 import { EditorEmbeddedUIRoot } from "../embedded-ui-root";
 import { RegisteredTableControl } from "./table-control";
+import { EditorDisclosureToggle } from "./disclosure-toggle";
+import { EditorIconPickerPopup } from "./icon-picker-popup";
 import { EditorDocumentCard } from "./document-card";
 import { RegisteredAttachmentCard } from "./attachment-card";
 import { RegisteredBookmarkCard } from "./bookmark-card";
@@ -120,6 +122,8 @@ export function patchEditorChromeHost(mountPortal: MountReactPortal) {
           <RegisteredTableControl state={state} />
         </EditorEmbeddedUIRoot>,
       ),
+    mountDisclosureControl: mountStateControl(EditorDisclosureToggle, true),
+    mountIconPicker: mountControl(EditorIconPickerPopup),
     mountAutoCompleteTrigger: mountStateControl(
       EditorAutoCompleteTrigger,
       true,

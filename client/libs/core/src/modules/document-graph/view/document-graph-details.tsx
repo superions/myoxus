@@ -45,7 +45,7 @@ export function DocumentGraphDetails({
   if (!details) return null;
 
   return (
-    <Card padding="md" fullHeight>
+    <Card padding="md" withBorder={false} fullHeight>
       <Stack gap="sm">
         <Stack gap={0}>
           <MyoxusTitle order={2} typographySlot="body">

@@ -1,47 +1,89 @@
-import { WidgetViewExtension } from "@virgultum/editor/std";
-import { createElement, type ReactNode } from "react";
+import { cssVar } from "@myoxus/theme";
 import track from "@myoxus/track";
+import { useHover } from "@myoxus/ui-facade";
+import { type EditorHost, WidgetViewExtension } from "@virgultum/editor/std";
+import { createElement, type ReactNode } from "react";
+
 import { StoredAnswerText } from "../../components/ai-message-content/stored-answer-text";
 import type { BlockDiffProvider } from "../../services/block-diff";
 import { DiffWidget } from "./diff-widget";
 import { DiffOptions } from "./view";
 
-const styles = `
-myoxus-block-diff-widget-for-block .ai-block-diff {
-  position: relative;
-  margin-top: var(--mantine-spacing-sm);
-  margin-bottom: var(--mantine-spacing-sm);
-  pointer-events: auto;
-  background-color: var(--myoxus-background-processing-color);
-  padding: var(--mantine-spacing-sm) 0;
-  border-radius: var(--mantine-radius-sm);
-}
-
-myoxus-block-diff-widget-for-block .ai-block-diff.delete {
-  position: absolute;
-  top: calc(var(--mantine-spacing-sm) * -1);
-  left: var(--mantine-spacing-xs);
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  background: transparent;
-}
-myoxus-block-diff-widget-for-block .diff-options {
-  position: absolute;
-  top: 0;
-  right: calc((var(--mantine-spacing-lg) + var(--mantine-spacing-xs)) * -1);
-  pointer-events: auto;
-  visibility: hidden;
-}
-
-myoxus-block-diff-widget-for-block .ai-block-diff:hover .diff-options {
-  visibility: visible;
-}
-`;
-
 export const MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK =
   "myoxus-block-diff-widget-for-block";
 type Change = Parameters<BlockDiffProvider["accept"]>[0];
+
+function BlockDiffRow({
+  diffId,
+  changeType,
+  content,
+  host,
+  onAccept,
+  onReject,
+}: {
+  diffId: string;
+  changeType: Change["type"];
+  content: string | null;
+  host: EditorHost;
+  onAccept: () => void;
+  onReject: () => void;
+}) {
+  const { hovered, ref } = useHover<HTMLDivElement>();
+  const isDelete = changeType === "delete";
+
+  return createElement(
+    "div",
+    {
+      ref,
+      className: `ai-block-diff ${changeType}`,
+      "data-diff-id": diffId,
+      "data-myoxus-ui-role": "ai-block-diff-row",
+      style: isDelete
+        ? {
+            position: "absolute",
+            top: "calc(var(--mantine-spacing-sm) * -1)",
+            left: "var(--mantine-spacing-xs)",
+            width: "100%",
+            height: "100%",
+            margin: 0,
+            pointerEvents: "auto",
+            borderRadius: "var(--mantine-radius-sm)",
+          }
+        : {
+            position: "relative",
+            marginTop: "var(--mantine-spacing-sm)",
+            marginBottom: "var(--mantine-spacing-sm)",
+            pointerEvents: "auto",
+            backgroundColor: cssVar("backgroundProcessingColor"),
+            paddingBlock: "var(--mantine-spacing-sm)",
+            borderRadius: "var(--mantine-radius-sm)",
+          },
+    },
+    content !== null &&
+      createElement(StoredAnswerText, {
+        host,
+        text: content,
+      }),
+    createElement(
+      "div",
+      {
+        className: "diff-options",
+        style: {
+          position: "absolute",
+          top: 0,
+          right:
+            "calc((var(--mantine-spacing-lg) + var(--mantine-spacing-xs)) * -1)",
+          pointerEvents: "auto",
+          visibility: hovered ? "visible" : "hidden",
+        },
+      },
+      createElement(DiffOptions, {
+        accept: onAccept,
+        reject: onReject,
+      }),
+    ),
+  );
+}
 
 export class MyoxusBlockDiffWidgetForBlock extends DiffWidget {
   private decorated?: HTMLElement;
@@ -63,33 +105,21 @@ export class MyoxusBlockDiffWidgetForBlock extends DiffWidget {
     const row = (key: string, change: Change) => {
       const content = change.type === "delete" ? null : change.payload.content;
       rows.push(
-        createElement(
-          "div",
-          {
-            key,
-            className: "ai-block-diff " + change.type,
-            "data-diff-id": key,
+        createElement(BlockDiffRow, {
+          key,
+          diffId: key,
+          changeType: change.type,
+          content,
+          host: this.host,
+          onAccept: () => {
+            track.applyModel.widget.block.accept();
+            void service.accept(change, this.store);
           },
-          content !== null &&
-            createElement(StoredAnswerText, {
-              host: this.host,
-              text: content,
-            }),
-          createElement(
-            "div",
-            { className: "diff-options" },
-            createElement(DiffOptions, {
-              accept: () => {
-                track.applyModel.widget.block.accept();
-                void service.accept(change, this.store);
-              },
-              reject: () => {
-                track.applyModel.widget.block.reject();
-                service.reject(change);
-              },
-            }),
-          ),
-        ),
+          onReject: () => {
+            track.applyModel.widget.block.reject();
+            service.reject(change);
+          },
+        }),
       );
     };
     if (deletes.includes(id) && !service.isRejected("delete", id)) {
@@ -110,9 +140,7 @@ export class MyoxusBlockDiffWidgetForBlock extends DiffWidget {
           payload: { from: id, offset, content: insert.content },
         });
     });
-    return rows.length
-      ? [createElement("style", { key: "styles" }, styles), ...rows]
-      : null;
+    return rows.length ? rows : null;
   }
 
   override disconnectedCallback() {

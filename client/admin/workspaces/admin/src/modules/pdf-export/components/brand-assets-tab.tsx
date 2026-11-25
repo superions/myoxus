@@ -556,57 +556,37 @@ function ColorsSection({
                 <FieldLabel htmlFor={primaryId}>
                   {i18n.t("admin.pdf-brand.colors.primary")}
                 </FieldLabel>
-                <Group align="center">
-                  <Input
-                    id={primaryId}
-                    type="text"
-                    value={primary}
-                    onChange={(value) =>
-                      setColors((current) => ({ ...current, primary: value }))
-                    }
-                    disabled={busy || policyBusyKey !== null}
-                    placeholder="#1e96eb"
-                    maxLength={7}
-                    status={isHex(primary) ? "default" : "error"}
-                  />
-                  <ColorInput
-                    value={
-                      isHex(primary) && primary !== "" ? primary : "#000000"
-                    }
-                    onChange={(value) =>
-                      setColors((current) => ({ ...current, primary: value }))
-                    }
-                    disabled={busy || policyBusyKey !== null}
-                    aria-label={i18n.t("admin.pdf-brand.colors.primary-picker")}
-                  />
-                </Group>
+                <ColorInput
+                  id={primaryId}
+                  value={primary}
+                  onChange={(value) =>
+                    setColors((current) => ({ ...current, primary: value }))
+                  }
+                  disabled={busy || policyBusyKey !== null}
+                  placeholder="#1e96eb"
+                  maxLength={7}
+                  mono
+                  fixOnBlur={false}
+                  status={isHex(primary) ? "default" : "error"}
+                />
               </Stack>
               <Stack>
                 <FieldLabel htmlFor={accentId}>
                   {i18n.t("admin.pdf-brand.colors.accent")}
                 </FieldLabel>
-                <Group align="center">
-                  <Input
-                    id={accentId}
-                    type="text"
-                    value={accent}
-                    onChange={(value) =>
-                      setColors((current) => ({ ...current, accent: value }))
-                    }
-                    disabled={busy || policyBusyKey !== null}
-                    placeholder="#0a6dca"
-                    maxLength={7}
-                    status={isHex(accent) ? "default" : "error"}
-                  />
-                  <ColorInput
-                    value={isHex(accent) && accent !== "" ? accent : "#000000"}
-                    onChange={(value) =>
-                      setColors((current) => ({ ...current, accent: value }))
-                    }
-                    disabled={busy || policyBusyKey !== null}
-                    aria-label={i18n.t("admin.pdf-brand.colors.accent-picker")}
-                  />
-                </Group>
+                <ColorInput
+                  id={accentId}
+                  value={accent}
+                  onChange={(value) =>
+                    setColors((current) => ({ ...current, accent: value }))
+                  }
+                  disabled={busy || policyBusyKey !== null}
+                  placeholder="#0a6dca"
+                  maxLength={7}
+                  mono
+                  fixOnBlur={false}
+                  status={isHex(accent) ? "default" : "error"}
+                />
               </Stack>
             </ResponsiveGrid>
             {!pairComplete ? (

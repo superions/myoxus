@@ -40,6 +40,7 @@ import {
   SettingsStatusText,
   SettingsToolbar,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -363,71 +364,73 @@ function SshHostKeysSection() {
           {i18n.t("admin.git-sync.ssh-host-keys.empty")}
         </SettingsNotice>
       ) : (
-        <Table aria-label={i18n.t("admin.git-sync.ssh-host-keys.table-aria")}>
-          <TableHeader>
-            <TableRow>
-              <TableHead>
-                {i18n.t("admin.git-sync.ssh-host-keys.host")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.git-sync.ssh-host-keys.fingerprint")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.git-sync.ssh-host-keys.last-seen")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.git-sync.ssh-host-keys.source")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.git-sync.ssh-host-keys.status")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.git-sync.ssh-host-keys.actions")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {keys.map((key) => (
-              <TableRow key={`${key.host}:${key.port}:${key.keyType}`}>
-                <TableCell mono>{`${key.host}:${key.port}`}</TableCell>
-                <TableCell mono truncate>
-                  {key.fingerprintSha256}
-                </TableCell>
-                <TableCell>
-                  {formatAdminDateTime(i18n.language, key.lastSeenAt)}
-                </TableCell>
-                <TableCell>{key.source}</TableCell>
-                <TableCell>
-                  <Badge tone={key.enabled ? "success" : "neutral"}>
-                    {key.enabled
-                      ? i18n.t("admin.git-sync.ssh-host-keys.enabled")
-                      : i18n.t("admin.git-sync.ssh-host-keys.disabled")}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <SettingsToolbar justify="flex-start">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={!key.enabled || disabling || deleting}
-                      onClick={() => mutateHostKey("disable", key)}
-                    >
-                      {i18n.t("admin.git-sync.ssh-host-keys.disable")}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={disabling || deleting}
-                      onClick={() => mutateHostKey("delete", key)}
-                    >
-                      {i18n.t("admin.git-sync.ssh-host-keys.delete")}
-                    </Button>
-                  </SettingsToolbar>
-                </TableCell>
+        <TableScrollContainer>
+          <Table aria-label={i18n.t("admin.git-sync.ssh-host-keys.table-aria")}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  {i18n.t("admin.git-sync.ssh-host-keys.host")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.git-sync.ssh-host-keys.fingerprint")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.git-sync.ssh-host-keys.last-seen")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.git-sync.ssh-host-keys.source")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.git-sync.ssh-host-keys.status")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.git-sync.ssh-host-keys.actions")}
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {keys.map((key) => (
+                <TableRow key={`${key.host}:${key.port}:${key.keyType}`}>
+                  <TableCell mono>{`${key.host}:${key.port}`}</TableCell>
+                  <TableCell mono truncate>
+                    {key.fingerprintSha256}
+                  </TableCell>
+                  <TableCell>
+                    {formatAdminDateTime(i18n.language, key.lastSeenAt)}
+                  </TableCell>
+                  <TableCell>{key.source}</TableCell>
+                  <TableCell>
+                    <Badge tone={key.enabled ? "success" : "neutral"}>
+                      {key.enabled
+                        ? i18n.t("admin.git-sync.ssh-host-keys.enabled")
+                        : i18n.t("admin.git-sync.ssh-host-keys.disabled")}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <SettingsToolbar justify="flex-start">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={!key.enabled || disabling || deleting}
+                        onClick={() => mutateHostKey("disable", key)}
+                      >
+                        {i18n.t("admin.git-sync.ssh-host-keys.disable")}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={disabling || deleting}
+                        onClick={() => mutateHostKey("delete", key)}
+                      >
+                        {i18n.t("admin.git-sync.ssh-host-keys.delete")}
+                      </Button>
+                    </SettingsToolbar>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableScrollContainer>
       )}
     </Stack>
   );

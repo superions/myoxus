@@ -56,7 +56,7 @@ export function ContextPicker({
   useEffect(() => {
     if (!open) return;
     const trigger = triggerRef.current;
-    const composer = trigger?.closest("ai-chat-composer");
+    const composer = trigger?.closest('[data-myoxus-ui-role="chat-composer"]');
     // Selecting the last overflow candidate removes its trigger. Native return
     // focus handles retained triggers; this fallback handles only that removal.
     return () =>

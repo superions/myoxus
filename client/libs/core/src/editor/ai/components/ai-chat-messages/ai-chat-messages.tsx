@@ -4,20 +4,18 @@ import type { AIToolsConfigService } from "@myoxus/core/modules/ai-button";
 import type { AIModelService } from "@myoxus/core/modules/ai-button/services/models";
 import type { PeekViewService } from "@myoxus/core/modules/peek-view";
 import type { CopilotChatHistoryFragment } from "@myoxus/graphql";
-import { Box } from "@myoxus/ui-facade";
+import { Scrollable, useDebouncedCallback } from "@myoxus/ui-facade";
 import {
   DocModeProvider,
   type NotificationService,
 } from "@virgultum/editor/shared/services";
 import type { EditorHost } from "@virgultum/editor/std";
-import { debounce } from "lodash-es";
 import { nanoid } from "nanoid";
 import {
   forwardRef,
   useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -166,14 +164,18 @@ export const AIChatMessages = forwardRef<
     }
   }, []);
 
-  const debouncedCheckScroll = useMemo(
-    () => debounce(checkScroll, 100),
-    [checkScroll],
-  );
+  const debouncedCheckScroll = useDebouncedCallback(checkScroll, 100);
+  const debouncedScrollEnd = useDebouncedCallback(() => {
+    const el = scrollerRef.current;
+    if (el) latestRef.current.onScrollEnd?.(el.scrollTop);
+  }, 150);
 
   useEffect(() => {
-    return () => debouncedCheckScroll.cancel();
-  }, [debouncedCheckScroll]);
+    return () => {
+      debouncedCheckScroll.cancel();
+      debouncedScrollEnd.cancel();
+    };
+  }, [debouncedCheckScroll, debouncedScrollEnd]);
 
   useEffect(() => {
     canScrollDownRef.current = false;
@@ -236,19 +238,10 @@ export const AIChatMessages = forwardRef<
     return () => unsubs.forEach((u) => u?.unsubscribe());
   }, [host, docId]);
 
-  useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const handleScrollEnd = () => {
-      latestRef.current.onScrollEnd?.(el.scrollTop);
-    };
-    el.addEventListener("scroll", debouncedCheckScroll);
-    el.addEventListener("scrollend", handleScrollEnd);
-    return () => {
-      el.removeEventListener("scroll", debouncedCheckScroll);
-      el.removeEventListener("scrollend", handleScrollEnd);
-    };
-  }, [debouncedCheckScroll]);
+  const handleScroll = useCallback(() => {
+    debouncedCheckScroll();
+    debouncedScrollEnd();
+  }, [debouncedCheckScroll, debouncedScrollEnd]);
 
   const retry = useCallback(async () => {
     const cur = latestRef.current;
@@ -451,30 +444,44 @@ export const AIChatMessages = forwardRef<
         contain: "size",
         flex: "1 1 auto",
         minHeight: "8lh",
-        overflowY: "auto",
         overscrollBehaviorY: "contain",
       }
     : independentMode
       ? empty
-        ? { flex: "0 0 auto", overflowY: "visible" }
-        : { flex: 1, minHeight: 0, overflowY: "auto" }
-      : { flex: 1, minHeight: 0, overflow: "auto" };
+        ? { flex: "0 0 auto" }
+        : { flex: 1, minHeight: 0 }
+      : { flex: 1, minHeight: 0 };
 
   return (
-    <Box
+    <Scrollable.Viewport
       ref={scrollerRef}
+      fill={!boundedMode && (!independentMode || !empty)}
+      autosize={Boolean(independentMode && empty)}
+      scrollbars="y"
       data-testid={testId}
       data-empty={empty ? "" : undefined}
       style={containerStyle}
+      onScroll={handleScroll}
     >
       <ChatConversation loading={isHistoryLoading} empty={empty}>
         {messages.map((item, index) => {
           const isLast = index === messages.length - 1;
           if (!isChatMessage(item)) return null;
+          const requestKey =
+            typeof item.params?.requestId === "string"
+              ? item.params.requestId
+              : typeof item.params?.inputRequestId === "string"
+                ? item.params.inputRequestId
+                : undefined;
+          const messageKey =
+            item.id ||
+            (requestKey
+              ? `${item.role}:${requestKey}`
+              : `${item.role}:${item.createdAt}:${index}`);
           if (item.role === "user") {
             return (
               <ChatUserMessage
-                key={index}
+                key={messageKey}
                 name={userName}
                 avatarUrl={avatarUrl}
                 text={item.content}
@@ -485,7 +492,7 @@ export const AIChatMessages = forwardRef<
           if (item.role !== "assistant") return null;
           return (
             <AssistantReply
-              key={index}
+              key={messageKey}
               item={item}
               status={isLast ? status : "idle"}
               error={isLast ? error : null}
@@ -501,6 +508,6 @@ export const AIChatMessages = forwardRef<
           );
         })}
       </ChatConversation>
-    </Box>
+    </Scrollable.Viewport>
   );
 });

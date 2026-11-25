@@ -1,5 +1,4 @@
 import type { ReactElement } from "react";
-import type { ReactNode } from "react";
 /** @vitest-environment happy-dom */
 import { MyoxusUIProvider } from "@myoxus/ui-facade/provider";
 import {
@@ -137,41 +136,6 @@ vi.mock("@myoxus/admin/use-mutation", () => ({
     isMutating: false,
   }),
   useMutateQueryResource: () => vi.fn(),
-}));
-
-vi.mock("../panel/context", () => ({
-  usePanelContext: () => ({
-    setPanelContent: vi.fn(),
-    openPanel: vi.fn(),
-    closePanel: vi.fn(),
-    isOpen: false,
-    hasDirtyChanges: false,
-    setHasDirtyChanges: vi.fn(),
-  }),
-  useRightPanel: () => ({
-    setPanelContent: vi.fn(),
-    openPanel: vi.fn(),
-    closePanel: vi.fn(),
-    isOpen: false,
-    hasDirtyChanges: false,
-    setHasDirtyChanges: vi.fn(),
-  }),
-  useLeftPanel: () => ({
-    togglePanel: vi.fn(),
-    isOpen: true,
-  }),
-}));
-
-vi.mock("../header", () => ({
-  Header: ({ title, endFix }: { title: string; endFix?: ReactNode }) => (
-    <div>
-      <h1>{title}</h1>
-      {endFix}
-    </div>
-  ),
-  RightPanelHeader: ({ title }: { title: string }) => (
-    <div data-testid="workspace-panel-header">{title}</div>
-  ),
 }));
 
 import { WorkspacePage } from "./index";

@@ -35,6 +35,41 @@ function shortCredentialId(value: string) {
     : value;
 }
 
+const UUID_LIKE_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function shortAuditId(value: string) {
+  return value.length > 18 ? `${value.slice(0, 8)}…${value.slice(-6)}` : value;
+}
+
+/**
+ * Resolve a readable target label for audit log tables.
+ * Falls back to a localized target type + shortened ID when the server omits
+ * a label or sends a raw UUID as the label.
+ */
+export function auditTargetLabel(
+  target:
+    | {
+        id: string;
+        type: string;
+        label?: string | null;
+      }
+    | null
+    | undefined,
+  t: (key: string) => string,
+  emptyLabel = "-",
+) {
+  if (!target) return emptyLabel;
+  const explicitLabel = target.label?.trim();
+  if (explicitLabel && !UUID_LIKE_RE.test(explicitLabel)) return explicitLabel;
+
+  const typeKey = `admin.audit-log.filter.targetType.${target.type}`;
+  const typeLabel = t(typeKey);
+  const readableType =
+    typeLabel === typeKey ? humanizeEventKey(target.type) : typeLabel;
+  return `${readableType} · ${shortAuditId(target.id)}`;
+}
+
 export function auditActorLabel(
   actor:
     | {

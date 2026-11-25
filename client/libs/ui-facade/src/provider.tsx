@@ -6,8 +6,11 @@ import "./date-picker";
 
 import "@mantine/core/styles.css";
 import "@mantine/charts/styles.css";
+import "@mantine/code-highlight/styles.css";
 import "@mantine/dates/styles.css";
+import "@mantine/dropzone/styles.css";
 import "@mantine/schedule/styles.css";
+import "@mantine/spotlight/styles.css";
 import "@mantine/tiptap/styles.css";
 // The `@mantine/notifications` stylesheet is imported at this single Facade
 // provider boundary on purpose. It owns the visual chrome for every transient
@@ -15,6 +18,7 @@ import "@mantine/tiptap/styles.css";
 // not pull it in themselves; doing so would silently leak the portal
 // stylesheet into product bundles and break the single-mount invariant.
 import "@mantine/notifications/styles.css";
+import { ModalsProvider } from "@mantine/modals";
 
 import {
   ActionIcon,
@@ -1433,7 +1437,11 @@ export function MyoxusUIProvider({
             }}
           />
         )}
-        {children}
+        {hasNotificationHost ? (
+          children
+        ) : (
+          <ModalsProvider>{children}</ModalsProvider>
+        )}
       </MyoxusMantineProvider>
     </NotificationHostContext.Provider>
   );

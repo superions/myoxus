@@ -99,6 +99,7 @@ export function DatabaseCalendarView({
   return (
     <Card
       padding="default"
+      withBorder={false}
       data-testid={dataTestId}
       data-myoxus-ui-role={uiRole}
     >

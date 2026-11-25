@@ -282,16 +282,6 @@ beforeEach(() => {
     useMutateQueryResource: () => vi.fn(),
   }));
 
-  vi.doMock("../../panel/context", () => ({
-    useRightPanel: () => ({ setHasDirtyChanges: vi.fn() }),
-  }));
-
-  vi.doMock("../../header", () => ({
-    RightPanelHeader: ({ title }: { title: string }) => (
-      <div data-testid="drawer-header">{title}</div>
-    ),
-  }));
-
   vi.doMock("../../common", () => ({
     useServerConfig: () => ({ availableWorkspaceFeatures: [] }),
   }));

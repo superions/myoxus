@@ -15,21 +15,6 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 const useAdminCapabilitiesMock = vi.fn();
 const useAppConfigMock = vi.fn();
 
-vi.mock("../header", () => ({
-  Header: ({ title }: { title: string }) => <div>{title}</div>,
-}));
-
-const mockSetPanelContent = vi.fn();
-const mockOpenPanel = vi.fn();
-vi.mock("../panel/context", () => ({
-  useRightPanel: () => ({
-    setPanelContent: mockSetPanelContent,
-    openPanel: mockOpenPanel,
-    closePanel: vi.fn(),
-    isOpen: false,
-  }),
-}));
-
 vi.mock("../settings/use-app-config", () => ({
   useAppConfig: () => useAppConfigMock(),
 }));
@@ -249,8 +234,6 @@ describe("QueuePage", () => {
     mockResumeAllQueues.mockClear();
     mockCleanQueue.mockClear();
     mockEmptyQueue.mockClear();
-    mockSetPanelContent.mockClear();
-    mockOpenPanel.mockClear();
     vi.restoreAllMocks();
   });
 
@@ -418,9 +401,9 @@ describe("QueuePage", () => {
     expect(queueRow?.tagName).toBe("TR");
     fireEvent.click(queueRow!);
 
-    expect(mockSetPanelContent).toHaveBeenCalled();
-    expect(mockOpenPanel).toHaveBeenCalled();
-    expect(mockSetPanelContent.mock.calls.at(-1)?.[0].key).toBe("notification");
+    expect((await screen.findByTestId("queue-detail-panel")).textContent).toBe(
+      "notification",
+    );
   });
 
   test("keyboard events on queue actions do not open the detail panel", async () => {
@@ -431,9 +414,11 @@ describe("QueuePage", () => {
     });
     fireEvent.keyDown(actions, { key: "Enter" });
     fireEvent.keyDown(actions, { key: " " });
-    expect(mockSetPanelContent).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("queue-detail-panel")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "notification" }));
-    expect(mockSetPanelContent).toHaveBeenCalledOnce();
+    expect((await screen.findByTestId("queue-detail-panel")).textContent).toBe(
+      "notification",
+    );
   });
 
   // --- JobSettingsTab structured field tests ---

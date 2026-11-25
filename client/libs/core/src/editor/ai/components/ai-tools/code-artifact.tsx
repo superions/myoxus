@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 
+import { useI18n } from "@myoxus/i18n";
 import { CodeBlockIcon, ToolIcon as NativeToolIcon } from "@myoxus/icons/react";
 import { Box } from "@myoxus/ui-facade";
 import type { NotificationService } from "@virgultum/core/services";
@@ -47,6 +48,7 @@ export function CodeArtifactTool({
   independentMode?: boolean;
   notificationService?: NotificationService;
 }) {
+  const t = useI18n();
   const ownerId = useId();
   const preview = useChatPreview();
   const [mode, setMode] = useState<"preview" | "code">("preview");
@@ -74,7 +76,7 @@ export function CodeArtifactTool({
 
     const errorView = isError
       ? toolFailedCard({
-          name: "Code artifact failed",
+          name: t["com.myoxus.ai.chat-panel.code-artifact-failed"](),
           icon: <NativeToolIcon />,
         })
       : null;
@@ -125,7 +127,7 @@ export function CodeArtifactTool({
               workspaceId: "fake-workspace-id",
               pageId: "fake-page-id",
             };
-            void std.clipboard
+            return std.clipboard
               .writeToClipboard((items) => ({
                 ...items,
                 "text/plain": htmlResult.html,
@@ -136,9 +138,13 @@ export function CodeArtifactTool({
                 }),
               }))
               .then(() => {
-                notificationService?.toast("Copied HTML to clipboard");
+                notificationService?.toast(t["Copied to clipboard"]());
+                return true;
               })
-              .catch(console.error);
+              .catch((error) => {
+                console.error(error);
+                return false;
+              });
           }}
           download={() => {
             try {
@@ -175,7 +181,9 @@ export function CodeArtifactTool({
                       },
                       parentId,
                     );
-                    notificationService?.toast("Inserted to current doc");
+                    notificationService?.toast(
+                      t["com.myoxus.ai.chat-panel.inserted"](),
+                    );
                   } catch (e) {
                     console.error(e);
                   }
@@ -202,6 +210,7 @@ export function CodeArtifactTool({
     preview,
     std,
     storeReadonly,
+    t,
   ]);
 
   useEffect(() => {
@@ -219,7 +228,7 @@ export function CodeArtifactTool({
 
   if (isError) {
     return toolFailedCard({
-      name: "Code artifact failed",
+      name: t["com.myoxus.ai.chat-panel.code-artifact-failed"](),
       icon: <NativeToolIcon />,
     });
   }

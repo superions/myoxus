@@ -35,6 +35,7 @@ import {
   SettingsEmptyState,
   SettingsCollectionToolbar,
   Table,
+  TableScrollContainer,
   TableHeader,
   TableHead,
   TableBody,
@@ -334,74 +335,80 @@ function AssignmentMatrix({ workspaceId }: { workspaceId: string }) {
         }
       />
 
-      <Table aria-label={i18n.t("admin.pdf-export.assignment.matrix-aria")}>
-        <TableHeader>
-          <TableRow>
-            <TableHead>
-              {i18n.t("admin.pdf-export.assignment.column.select")}
-            </TableHead>
-            <TableHead>{i18n.t("admin.pdf-export.column.name")}</TableHead>
-            <TableHead>
-              {i18n.t("admin.pdf-export.assignment.column.enabled")}
-            </TableHead>
-            <TableHead>
-              {i18n.t("admin.pdf-export.assignment.column.default")}
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredTemplates.map((tpl) => {
-            const assigned = effectiveAssignmentMap.has(tpl.id);
-            const isDefault =
-              effectiveAssignmentMap.get(tpl.id)?.isDefault ?? false;
-            return (
-              <TableRow key={tpl.id}>
-                <TableCell>
-                  <Checkbox
-                    checked={selectedTemplateIds.has(tpl.id)}
-                    onChange={(_, checked) => toggleSelected(tpl.id, checked)}
-                    aria-label={i18n.t(
-                      "admin.pdf-export.assignment.select-aria",
-                    )}
-                  />
-                </TableCell>
-                <TableCell>
-                  <MyoxusText>{pdfTemplateDisplayName(tpl, i18n.t)}</MyoxusText>
-                  <MonoText>{tpl.slug}</MonoText>
-                </TableCell>
-                <TableCell>
-                  <Switch
-                    checked={assigned}
-                    onCheckedChange={(checked) => handleToggle(tpl.id, checked)}
-                    aria-label={i18n.t(
-                      "admin.pdf-export.assignment.toggle-aria",
-                    )}
-                    disabled={isDefault && assigned}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Radio
-                    name={`pdf-default-${workspaceId}`}
-                    checked={defaultId === tpl.id}
-                    disabled={!assigned}
-                    aria-label={i18n.t(
-                      "admin.pdf-export.assignment.default-aria",
-                    )}
-                    onChange={(_, checked) => {
-                      if (checked) {
-                        const template = templates.find(
-                          (candidate) => candidate.id === tpl.id,
-                        );
-                        if (template) setPendingDefault(template);
+      <TableScrollContainer>
+        <Table aria-label={i18n.t("admin.pdf-export.assignment.matrix-aria")}>
+          <TableHeader>
+            <TableRow>
+              <TableHead>
+                {i18n.t("admin.pdf-export.assignment.column.select")}
+              </TableHead>
+              <TableHead>{i18n.t("admin.pdf-export.column.name")}</TableHead>
+              <TableHead>
+                {i18n.t("admin.pdf-export.assignment.column.enabled")}
+              </TableHead>
+              <TableHead>
+                {i18n.t("admin.pdf-export.assignment.column.default")}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredTemplates.map((tpl) => {
+              const assigned = effectiveAssignmentMap.has(tpl.id);
+              const isDefault =
+                effectiveAssignmentMap.get(tpl.id)?.isDefault ?? false;
+              return (
+                <TableRow key={tpl.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedTemplateIds.has(tpl.id)}
+                      onChange={(_, checked) => toggleSelected(tpl.id, checked)}
+                      aria-label={i18n.t(
+                        "admin.pdf-export.assignment.select-aria",
+                      )}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <MyoxusText>
+                      {pdfTemplateDisplayName(tpl, i18n.t)}
+                    </MyoxusText>
+                    <MonoText>{tpl.slug}</MonoText>
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={assigned}
+                      onCheckedChange={(checked) =>
+                        handleToggle(tpl.id, checked)
                       }
-                    }}
-                  />
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                      aria-label={i18n.t(
+                        "admin.pdf-export.assignment.toggle-aria",
+                      )}
+                      disabled={isDefault && assigned}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Radio
+                      name={`pdf-default-${workspaceId}`}
+                      checked={defaultId === tpl.id}
+                      disabled={!assigned}
+                      aria-label={i18n.t(
+                        "admin.pdf-export.assignment.default-aria",
+                      )}
+                      onChange={(_, checked) => {
+                        if (checked) {
+                          const template = templates.find(
+                            (candidate) => candidate.id === tpl.id,
+                          );
+                          if (template) setPendingDefault(template);
+                        }
+                      }}
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableScrollContainer>
 
       {pendingDefault ? (
         <AdminConfirmModal

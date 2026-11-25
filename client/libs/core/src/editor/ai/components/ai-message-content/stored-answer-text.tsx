@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import { useI18n } from "@myoxus/i18n";
 import {
   Alert,
-  Box,
+  Badge,
+  CodeHighlight,
+  CodeHighlightAdapterProvider,
+  createShikiAdapter,
   Group,
   MediaPreviewImage,
   MyoxusText,
   MyoxusTitle,
-  Scrollable,
+  Stack,
   Typography,
 } from "@myoxus/ui-facade";
 import {
@@ -21,16 +25,50 @@ import { useMyoxusTheme } from "@myoxus/ui-facade/provider";
 import { buildImageProxyURL, MarkdownAdapter } from "@virgultum/core/adapters";
 import { calloutPresentation } from "@virgultum/core/models";
 import { myoxusTextStyles } from "@virgultum/core/styles/text";
-import type { ThemedToken } from "@virgultum/content/syntax-highlighter";
+import type { BundledLanguageInfo } from "@virgultum/content/syntax-highlighter";
 import { AnnotationReactHostIdentifier } from "@virgultum/editor/blocks/annotation";
 import { AnnotationInline } from "../../../view-extensions/editor-view/annotation";
 import { CalloutTitle } from "../../../view-extensions/editor-view/callout";
 import { CitationMarker } from "../../../virgultum/doc-editor/page-citation";
-import { Fragment, useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   MarkdownPreview,
   type MarkdownPreviewPresentation,
 } from "../../../attachment-viewer/text/markdown-preview";
+
+let cachedBundledLanguages: BundledLanguageInfo[] = [];
+
+function resolveBundledLanguage(
+  language?: string | null,
+): BundledLanguageInfo | undefined {
+  const normalized = language?.trim().toLowerCase();
+  if (!normalized) return undefined;
+  return cachedBundledLanguages.find(
+    (entry) =>
+      entry.id === normalized ||
+      entry.name.toLowerCase() === normalized ||
+      entry.aliases?.includes(normalized),
+  );
+}
+
+const aiShikiAdapter = createShikiAdapter(
+  async () => {
+    const {
+      bundledLanguagesInfo,
+      CODE_BLOCK_DEFAULT_DARK_THEME,
+      CODE_BLOCK_DEFAULT_LIGHT_THEME,
+      createEditorHighlighterCore,
+    } = await import("@virgultum/content/syntax-highlighter");
+    cachedBundledLanguages = bundledLanguagesInfo;
+    return createEditorHighlighterCore({
+      themes: [CODE_BLOCK_DEFAULT_DARK_THEME, CODE_BLOCK_DEFAULT_LIGHT_THEME],
+      langs: [],
+    });
+  },
+  {
+    resolveLanguage: (language) => resolveBundledLanguage(language)?.import,
+  },
+);
 
 function Equation({ source, display }: { source: string; display: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -65,100 +103,37 @@ export function HighlightedCode({
   language?: string | null;
   showLineNumbers?: boolean;
 }) {
+  const t = useI18n();
   const { resolvedTheme } = useMyoxusTheme();
-  const [result, setResult] = useState<{
-    source: string;
-    language: string;
-    theme: string;
-    tokens: ThemedToken[][];
-  }>();
-  useEffect(() => {
-    if (!language) return;
-    let live = true;
-    void import("@virgultum/content/syntax-highlighter")
-      .then(async ({ bundledLanguagesInfo, codeToTokensBase }) => {
-        const lang = bundledLanguagesInfo.find(
-          (l) =>
-            l.id === language ||
-            l.name === language ||
-            l.aliases?.includes(language),
-        );
-        if (!lang) return;
-        const tokens = await codeToTokensBase(source, {
-          lang: lang.id,
-          theme: resolvedTheme === "dark" ? "dark-plus" : "light-plus",
-        });
-        if (live) setResult({ source, language, theme: resolvedTheme, tokens });
-      })
-      .catch(console.error);
-    return () => {
-      live = false;
-    };
-  }, [source, language, resolvedTheme]);
-  const tokens =
-    result?.source === source &&
-    result.language === language &&
-    result.theme === resolvedTheme
-      ? result.tokens
-      : undefined;
+  const displayLanguage = language?.trim() || undefined;
+  const resolvedLanguage =
+    resolveBundledLanguage(displayLanguage)?.id ??
+    displayLanguage?.toLowerCase() ??
+    "plaintext";
 
-  const codeContent = (
-    <code>
-      {tokens
-        ? tokens.map((row, i) => (
-            <Fragment key={i}>
-              {i > 0 && "\n"}
-              {row.map((t, j) => (
-                // Shiki returns per-token color data. This inline style is renderer
-                // content, not product chrome, and cannot be represented as static theme CSS.
-                <span key={j} style={{ color: t.color }}>
-                  {t.content}
-                </span>
-              ))}
-            </Fragment>
-          ))
-        : source}
-    </code>
-  );
-
-  if (!showLineNumbers) {
-    return <pre style={{ whiteSpace: "pre-wrap" }}>{codeContent}</pre>;
-  }
-
-  const lineCount = tokens ? tokens.length : source.split("\n").length;
   return (
-    <Scrollable.Root
-      display="flex"
-      flexDirection="column"
-      flex={1}
-      minHeight={0}
-    >
-      <Scrollable.Viewport fill>
-        <Group align="flex-start" wrap="nowrap" gap="md" p="md">
-          <Box
-            aria-hidden="true"
-            style={{ userSelect: "none", textAlign: "right", flexShrink: 0 }}
-          >
-            <MyoxusText
-              component="div"
-              tone="secondary"
-              typographySlot="code"
-              preserveWhitespace
-            >
-              {Array.from({ length: lineCount }, (_, i) => i + 1).join("\n")}
-            </MyoxusText>
-          </Box>
-          <MyoxusText
-            component="div"
-            typographySlot="code"
-            preserveWhitespace
-            flex={1}
-          >
-            {codeContent}
-          </MyoxusText>
-        </Group>
-      </Scrollable.Viewport>
-    </Scrollable.Root>
+    <CodeHighlightAdapterProvider adapter={aiShikiAdapter}>
+      <Stack gap="2xs" my="xs" data-myoxus-ui-role="ai-code-block">
+        {displayLanguage ? (
+          <Group justify="space-between" wrap="nowrap">
+            <Badge>{displayLanguage}</Badge>
+          </Group>
+        ) : null}
+        <CodeHighlight
+          code={source}
+          language={resolvedLanguage}
+          codeColorScheme={
+            resolvedTheme === "dark" ? "dark-plus" : "light-plus"
+          }
+          withBorder
+          radius="md"
+          withCopyButton
+          copyLabel={t["Copy"]()}
+          copiedLabel={t["Copied to clipboard"]()}
+          withLineNumbers={showLineNumbers}
+        />
+      </Stack>
+    </CodeHighlightAdapterProvider>
   );
 }
 

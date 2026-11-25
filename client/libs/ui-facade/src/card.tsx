@@ -67,7 +67,7 @@ export const Card = forwardRef<HTMLElement, CardProps>(function Card(
     style,
     target,
     type,
-    withBorder = false,
+    withBorder,
     "data-myoxus-ui-role": uiRole = "card",
     ...props
   },
@@ -185,6 +185,7 @@ export function DisclosureCard({
       data-expanded={expanded === undefined ? undefined : String(expanded)}
       data-myoxus-ui-role={uiRole}
       padding={props.padding ?? "sm"}
+      withBorder={props.withBorder ?? false}
     >
       {children}
     </Card>

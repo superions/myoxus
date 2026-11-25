@@ -25,6 +25,7 @@ import {
   SettingsNotice,
   Stack,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -602,107 +603,112 @@ export function AuthMethodStep({ onNext, onBusyChange }: AuthMethodStepProps) {
                   />
                 </SettingsField>
                 {oidcMappingRules.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>
-                          {i18n.t("admin.security.oauth.provider-group")}
-                        </TableHead>
-                        <TableHead>
-                          {i18n.t("admin.security.oauth.target-ou")}
-                        </TableHead>
-                        <TableHead>
-                          {i18n.t("admin.security.oauth.role")}
-                        </TableHead>
-                        <TableHead>{i18n.t("admin.common.actions")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {oidcMappingRules.map((mapping, index) => (
-                        <TableRow key={index}>
-                          <TableCell>
-                            <Input
-                              value={mapping.providerGroup}
-                              onChange={(value) =>
-                                editMappingRules((rules) =>
-                                  rules.map((rule, currentIndex) =>
-                                    currentIndex === index
-                                      ? { ...rule, providerGroup: value }
-                                      : rule,
-                                  ),
-                                )
-                              }
-                              placeholder="finance/managers"
-                              error={
-                                showMappingErrors &&
-                                oidcMappingRuleError(mapping) ===
-                                  "admin.security.oauth.mapping-group-required"
-                              }
-                            />
-                            {showMappingErrors &&
-                            oidcMappingRuleError(mapping) ? (
-                              <ErrorMessage role="alert">
-                                {i18n.t(oidcMappingRuleError(mapping)!, {
-                                  row: index + 1,
-                                })}
-                              </ErrorMessage>
-                            ) : null}
-                          </TableCell>
-                          <TableCell>
-                            <OuPicker
-                              value={mapping.targetUnitId || null}
-                              displayValue={mapping.targetUnitId || null}
-                              onChange={(value) =>
-                                editMappingRules((rules) =>
-                                  rules.map((rule, currentIndex) =>
-                                    currentIndex === index
-                                      ? { ...rule, targetUnitId: value ?? "" }
-                                      : rule,
-                                  ),
-                                )
-                              }
-                              placeholder={i18n.t(
-                                "admin.security.oauth.target-ou-placeholder",
-                              )}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Select
-                              value={mapping.role ?? oidcDefaultRole}
-                              onChange={(value) =>
-                                editMappingRules((rules) =>
-                                  rules.map((rule, currentIndex) =>
-                                    currentIndex === index
-                                      ? { ...rule, role: value as OidcRole }
-                                      : rule,
-                                  ),
-                                )
-                              }
-                              data={ROLE_OPTIONS.map((option) => ({
-                                value: option.value,
-                                label: i18n.t(option.labelKey),
-                              }))}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() =>
-                                editMappingRules((rules) =>
-                                  rules.filter(
-                                    (_, currentIndex) => currentIndex !== index,
-                                  ),
-                                )
-                              }
-                            >
-                              {i18n.t("admin.security.oauth.remove-mapping")}
-                            </Button>
-                          </TableCell>
+                  <TableScrollContainer>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>
+                            {i18n.t("admin.security.oauth.provider-group")}
+                          </TableHead>
+                          <TableHead>
+                            {i18n.t("admin.security.oauth.target-ou")}
+                          </TableHead>
+                          <TableHead>
+                            {i18n.t("admin.security.oauth.role")}
+                          </TableHead>
+                          <TableHead>
+                            {i18n.t("admin.common.actions")}
+                          </TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {oidcMappingRules.map((mapping, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              <Input
+                                value={mapping.providerGroup}
+                                onChange={(value) =>
+                                  editMappingRules((rules) =>
+                                    rules.map((rule, currentIndex) =>
+                                      currentIndex === index
+                                        ? { ...rule, providerGroup: value }
+                                        : rule,
+                                    ),
+                                  )
+                                }
+                                placeholder="finance/managers"
+                                error={
+                                  showMappingErrors &&
+                                  oidcMappingRuleError(mapping) ===
+                                    "admin.security.oauth.mapping-group-required"
+                                }
+                              />
+                              {showMappingErrors &&
+                              oidcMappingRuleError(mapping) ? (
+                                <ErrorMessage role="alert">
+                                  {i18n.t(oidcMappingRuleError(mapping)!, {
+                                    row: index + 1,
+                                  })}
+                                </ErrorMessage>
+                              ) : null}
+                            </TableCell>
+                            <TableCell>
+                              <OuPicker
+                                value={mapping.targetUnitId || null}
+                                displayValue={mapping.targetUnitId || null}
+                                onChange={(value) =>
+                                  editMappingRules((rules) =>
+                                    rules.map((rule, currentIndex) =>
+                                      currentIndex === index
+                                        ? { ...rule, targetUnitId: value ?? "" }
+                                        : rule,
+                                    ),
+                                  )
+                                }
+                                placeholder={i18n.t(
+                                  "admin.security.oauth.target-ou-placeholder",
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={mapping.role ?? oidcDefaultRole}
+                                onChange={(value) =>
+                                  editMappingRules((rules) =>
+                                    rules.map((rule, currentIndex) =>
+                                      currentIndex === index
+                                        ? { ...rule, role: value as OidcRole }
+                                        : rule,
+                                    ),
+                                  )
+                                }
+                                data={ROLE_OPTIONS.map((option) => ({
+                                  value: option.value,
+                                  label: i18n.t(option.labelKey),
+                                }))}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                  editMappingRules((rules) =>
+                                    rules.filter(
+                                      (_, currentIndex) =>
+                                        currentIndex !== index,
+                                    ),
+                                  )
+                                }
+                              >
+                                {i18n.t("admin.security.oauth.remove-mapping")}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableScrollContainer>
                 ) : (
                   <SettingsNotice tone="info">
                     {i18n.t("admin.configWizard.authMethod.groupMappingEmpty")}

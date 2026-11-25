@@ -13,7 +13,15 @@ import type {
   CopilotContextDoc,
   CopilotContextFile,
 } from "@myoxus/graphql";
-import { Card, Stack } from "@myoxus/ui-facade";
+import {
+  Card,
+  Dropzone,
+  type FileRejection,
+  IMAGE_MIME_TYPE,
+  notify,
+  PDF_MIME_TYPE,
+  Stack,
+} from "@myoxus/ui-facade";
 import type { NotificationService } from "@virgultum/core/services";
 import type { EditorHost } from "@virgultum/editor/std";
 import { uuidv4 } from "@virgultum/editor/store";
@@ -54,6 +62,13 @@ import { chatI18n } from "../chat-i18n";
 import { ChatDisclaimer, ChatScrollToLatest } from "../message-chrome";
 
 export const EMBEDDING_STATUS_CHECK_INTERVAL = 10000;
+const MAX_CONTEXT_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+const COMPOSER_DROPZONE_ACCEPT = [
+  ...IMAGE_MIME_TYPE,
+  ...PDF_MIME_TYPE,
+  "text/plain",
+  "text/csv",
+];
 
 export interface AIChatComposerProps {
   onScrollToLatest?: () => void;
@@ -880,6 +895,43 @@ export function AIChatComposer({
   }, []);
 
   const isContextProcessing = chips.some((chip) => chip.state === "processing");
+  const isDropDisabled =
+    chatContextValue.status === "loading" ||
+    chatContextValue.status === "transmitting";
+
+  const handleDropFiles = useCallback(
+    (files: File[]) => {
+      const images = files.filter((file) => file.type.startsWith("image/"));
+      if (images.length) addImages(images);
+      const docs = files.filter((file) => !file.type.startsWith("image/"));
+      void Promise.all(
+        docs.map(async (file) => {
+          if (file.size > MAX_CONTEXT_FILE_SIZE_BYTES) {
+            notify({
+              title: chatI18n()["com.myoxus.ai.chat-panel.file-too-large"]({
+                name: file.name,
+              }),
+            });
+            return;
+          }
+          await addChip({ file, state: "processing" });
+        }),
+      );
+    },
+    [addChip, addImages],
+  );
+
+  const handleRejectFiles = useCallback((rejections: FileRejection[]) => {
+    for (const rejection of rejections) {
+      if (rejection.file.size > MAX_CONTEXT_FILE_SIZE_BYTES) {
+        notify({
+          title: chatI18n()["com.myoxus.ai.chat-panel.file-too-large"]({
+            name: rejection.file.name,
+          }),
+        });
+      }
+    }
+  }, []);
 
   return (
     <Stack gap="xs" style={{ flexShrink: 0 }}>
@@ -887,46 +939,64 @@ export function AIChatComposer({
         <ChatScrollToLatest onClick={onScrollToLatest} />
       ) : null}
       <Card withBorder padding="sm" data-myoxus-ui-role="chat-composer">
-        <Stack gap="xs">
-          <ChatPanelChips
-            chips={chips}
-            isCollapsed={isChipsCollapsed}
-            independentMode={independentMode}
-            addChip={addChip}
-            updateChip={updateChip}
-            removeChip={removeChip}
-            retryFileChip={retryFileChip}
-            retryAttachmentChip={retryAttachmentChip}
-            toggleCollapse={() => setIsChipsCollapsed((prev) => !prev)}
-            docDisplayConfig={docDisplayConfig}
-          />
-          <AIChatInput
-            independentMode={independentMode}
-            host={host}
-            workspaceId={workspaceId}
-            docId={docId}
-            session={session}
-            chips={chips}
-            addChip={addChip}
-            addImages={addImages}
-            createSession={createSession}
-            chatContextValue={chatContextValue}
-            updateContext={updateContext}
-            reasoningConfig={reasoningConfig}
-            docDisplayConfig={docDisplayConfig}
-            searchMenuConfig={searchMenuConfig}
-            aiDraftService={aiDraftService}
-            aiToolsConfigService={aiToolsConfigService}
-            aiModelService={aiModelService}
-            onChatSuccess={onChatSuccess}
-            trackOptions={trackOptions}
-            isContextProcessing={isContextProcessing}
-            syncedDraft={syncedDraft}
-            onSyncedDraftChange={onSyncedDraftChange}
-            onRegisterSend={onRegisterSend}
-            onBroadcastSend={onBroadcastSend}
-          />
-        </Stack>
+        <Dropzone
+          activateOnClick={false}
+          activateOnKeyboard={false}
+          enablePointerEvents
+          disabled={isDropDisabled}
+          accept={COMPOSER_DROPZONE_ACCEPT}
+          maxSize={MAX_CONTEXT_FILE_SIZE_BYTES}
+          onDrop={handleDropFiles}
+          onReject={handleRejectFiles}
+          p={0}
+          styles={{
+            root: {
+              border: "none",
+              background: "none",
+            },
+          }}
+        >
+          <Stack gap="xs">
+            <ChatPanelChips
+              chips={chips}
+              isCollapsed={isChipsCollapsed}
+              independentMode={independentMode}
+              addChip={addChip}
+              updateChip={updateChip}
+              removeChip={removeChip}
+              retryFileChip={retryFileChip}
+              retryAttachmentChip={retryAttachmentChip}
+              toggleCollapse={() => setIsChipsCollapsed((prev) => !prev)}
+              docDisplayConfig={docDisplayConfig}
+            />
+            <AIChatInput
+              independentMode={independentMode}
+              host={host}
+              workspaceId={workspaceId}
+              docId={docId}
+              session={session}
+              chips={chips}
+              addChip={addChip}
+              addImages={addImages}
+              createSession={createSession}
+              chatContextValue={chatContextValue}
+              updateContext={updateContext}
+              reasoningConfig={reasoningConfig}
+              docDisplayConfig={docDisplayConfig}
+              searchMenuConfig={searchMenuConfig}
+              aiDraftService={aiDraftService}
+              aiToolsConfigService={aiToolsConfigService}
+              aiModelService={aiModelService}
+              onChatSuccess={onChatSuccess}
+              trackOptions={trackOptions}
+              isContextProcessing={isContextProcessing}
+              syncedDraft={syncedDraft}
+              onSyncedDraftChange={onSyncedDraftChange}
+              onRegisterSend={onRegisterSend}
+              onBroadcastSend={onBroadcastSend}
+            />
+          </Stack>
+        </Dropzone>
       </Card>
       <ChatDisclaimer>
         {chatI18n()["com.myoxus.ai.chat-panel.disclaimer"]()}

@@ -34,6 +34,7 @@ import {
 } from "@virgultum/editor/widgets/viewport-overlay";
 
 import { mantineLengthPx } from "../../_common/mantine-length";
+import { chatI18n } from "../../components/chat-i18n";
 import { type AIError } from "../../provider";
 import type {
   MyoxusAIPanelState,
@@ -284,12 +285,13 @@ export class MyoxusAIPanelWidget extends NativeEditorWidget {
     this._clearDiscardModal();
     const controller = new AbortController();
     this._discardModalAbort = controller;
+    const t = chatI18n();
     return notification
       .confirm({
-        title: "Stop generating",
-        message: "AI is generating content. Do you want to stop generating?",
-        cancelText: "Cancel",
-        confirmText: "Stop",
+        title: t["com.myoxus.ai.chat-panel.stop"](),
+        message: t["com.myoxus.ai.chat-panel.stop-confirm-message"](),
+        cancelText: t["Cancel"](),
+        confirmText: t["com.myoxus.ai.chat-panel.stop-confirm-action"](),
         abort: controller.signal,
       })
       .finally(() => {
@@ -306,12 +308,13 @@ export class MyoxusAIPanelWidget extends NativeEditorWidget {
     this._clearDiscardModal();
     const controller = new AbortController();
     this._discardModalAbort = controller;
+    const t = chatI18n();
     return notification
       .confirm({
-        title: "Discard the AI result",
-        message: "Do you want to discard the results the AI just generated?",
-        cancelText: "Cancel",
-        confirmText: "Discard",
+        title: t["com.myoxus.ai.chat-panel.discard-result-title"](),
+        message: t["com.myoxus.ai.chat-panel.discard-result-message"](),
+        cancelText: t["Cancel"](),
+        confirmText: t["com.myoxus.ai.chat-panel.discard-result-action"](),
         abort: controller.signal,
       })
       .finally(() => {

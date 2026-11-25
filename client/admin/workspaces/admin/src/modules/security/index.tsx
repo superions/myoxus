@@ -53,6 +53,7 @@ import {
   SettingsSectionDescription,
   Stack,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -1248,125 +1249,129 @@ function OidcProviderSection({
                       ) : null}
                     </>
                   ) : null}
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>
-                          {i18n.t("admin.security.oauth.provider-group")}
-                        </TableHead>
-                        <TableHead>
-                          {i18n.t("admin.security.oauth.target-ou")}
-                        </TableHead>
-                        <TableHead>
-                          {i18n.t("admin.security.oauth.role")}
-                        </TableHead>
-                        <TableHead>{i18n.t("admin.common.actions")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {form.groupMapping.mappings.map((mapping, index) => (
-                        <TableRow key={index}>
-                          <TableCell>
-                            {provider === "oidc" ? (
-                              <OidcGroupPicker
-                                value={mapping.providerGroup}
-                                onChange={(value) =>
-                                  updateMappingRule(index, {
-                                    providerGroup: value,
-                                  })
-                                }
-                                directory={catalog.state}
-                                blockedMessage={catalogBlockedMessage}
-                              />
-                            ) : (
-                              <Input
-                                value={mapping.providerGroup}
-                                onChange={(value) =>
-                                  updateMappingRule(index, {
-                                    providerGroup: value,
-                                  })
-                                }
-                                placeholder="finance/managers"
-                                error={
-                                  touched &&
-                                  mappingErrors[index] ===
-                                    "admin.security.oauth.mapping-group-required"
-                                }
-                              />
-                            )}
-                            {touched && mappingErrors[index] ? (
-                              <ErrorMessage role="alert">
-                                {i18n.t(mappingErrors[index], {
-                                  row: index + 1,
-                                })}
-                              </ErrorMessage>
-                            ) : null}
-                          </TableCell>
-                          <TableCell>
-                            <OuPicker
-                              value={mapping.targetUnitId || null}
-                              displayValue={
-                                mapping.targetUnitId
-                                  ? (unitLabels.get(mapping.targetUnitId) ??
-                                    `${i18n.t(
-                                      !unitsData && !unitsError
-                                        ? "admin.common.loading"
-                                        : "com.myoxus.reference.target-unavailable",
-                                    )} (${mapping.targetUnitId})`)
-                                  : null
-                              }
-                              onChange={(value) =>
-                                updateMappingRule(index, {
-                                  targetUnitId: value ?? "",
-                                })
-                              }
-                              placeholder={i18n.t(
-                                "admin.security.oauth.target-ou-placeholder",
-                              )}
-                              data-testid={`security-oauth-ou-${index}`}
-                            />
-                            {mapping.targetUnitId &&
-                            !unitLabels.has(mapping.targetUnitId) &&
-                            (unitsData || unitsError) ? (
-                              <ErrorMessage role="status">
-                                {unitsError
-                                  ? UserFriendlyError.fromAny(unitsError)
-                                      .message
-                                  : i18n.t(
-                                      "com.myoxus.reference.target-unavailable",
-                                    )}
-                              </ErrorMessage>
-                            ) : null}
-                          </TableCell>
-                          <TableCell>
-                            <Select
-                              value={
-                                mapping.role ?? form.groupMapping.defaultRole
-                              }
-                              onChange={(value) =>
-                                updateMappingRule(index, {
-                                  role: value as OidcRole,
-                                })
-                              }
-                              data={ROLE_OPTIONS.map((option) => ({
-                                value: option.value,
-                                label: i18n.t(option.labelKey),
-                              }))}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => removeMappingRule(index)}
-                            >
-                              {i18n.t("admin.security.oauth.remove-mapping")}
-                            </Button>
-                          </TableCell>
+                  <TableScrollContainer>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>
+                            {i18n.t("admin.security.oauth.provider-group")}
+                          </TableHead>
+                          <TableHead>
+                            {i18n.t("admin.security.oauth.target-ou")}
+                          </TableHead>
+                          <TableHead>
+                            {i18n.t("admin.security.oauth.role")}
+                          </TableHead>
+                          <TableHead>
+                            {i18n.t("admin.common.actions")}
+                          </TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {form.groupMapping.mappings.map((mapping, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              {provider === "oidc" ? (
+                                <OidcGroupPicker
+                                  value={mapping.providerGroup}
+                                  onChange={(value) =>
+                                    updateMappingRule(index, {
+                                      providerGroup: value,
+                                    })
+                                  }
+                                  directory={catalog.state}
+                                  blockedMessage={catalogBlockedMessage}
+                                />
+                              ) : (
+                                <Input
+                                  value={mapping.providerGroup}
+                                  onChange={(value) =>
+                                    updateMappingRule(index, {
+                                      providerGroup: value,
+                                    })
+                                  }
+                                  placeholder="finance/managers"
+                                  error={
+                                    touched &&
+                                    mappingErrors[index] ===
+                                      "admin.security.oauth.mapping-group-required"
+                                  }
+                                />
+                              )}
+                              {touched && mappingErrors[index] ? (
+                                <ErrorMessage role="alert">
+                                  {i18n.t(mappingErrors[index], {
+                                    row: index + 1,
+                                  })}
+                                </ErrorMessage>
+                              ) : null}
+                            </TableCell>
+                            <TableCell>
+                              <OuPicker
+                                value={mapping.targetUnitId || null}
+                                displayValue={
+                                  mapping.targetUnitId
+                                    ? (unitLabels.get(mapping.targetUnitId) ??
+                                      `${i18n.t(
+                                        !unitsData && !unitsError
+                                          ? "admin.common.loading"
+                                          : "com.myoxus.reference.target-unavailable",
+                                      )} (${mapping.targetUnitId})`)
+                                    : null
+                                }
+                                onChange={(value) =>
+                                  updateMappingRule(index, {
+                                    targetUnitId: value ?? "",
+                                  })
+                                }
+                                placeholder={i18n.t(
+                                  "admin.security.oauth.target-ou-placeholder",
+                                )}
+                                data-testid={`security-oauth-ou-${index}`}
+                              />
+                              {mapping.targetUnitId &&
+                              !unitLabels.has(mapping.targetUnitId) &&
+                              (unitsData || unitsError) ? (
+                                <ErrorMessage role="status">
+                                  {unitsError
+                                    ? UserFriendlyError.fromAny(unitsError)
+                                        .message
+                                    : i18n.t(
+                                        "com.myoxus.reference.target-unavailable",
+                                      )}
+                                </ErrorMessage>
+                              ) : null}
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={
+                                  mapping.role ?? form.groupMapping.defaultRole
+                                }
+                                onChange={(value) =>
+                                  updateMappingRule(index, {
+                                    role: value as OidcRole,
+                                  })
+                                }
+                                data={ROLE_OPTIONS.map((option) => ({
+                                  value: option.value,
+                                  label: i18n.t(option.labelKey),
+                                }))}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => removeMappingRule(index)}
+                              >
+                                {i18n.t("admin.security.oauth.remove-mapping")}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableScrollContainer>
                   <Button
                     type="button"
                     variant="outline"

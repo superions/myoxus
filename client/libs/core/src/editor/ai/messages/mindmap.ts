@@ -2,7 +2,7 @@ import { createElement } from "react";
 import type { MindmapDesign as MindmapStyle } from "@virgultum/block-mermaid";
 import type { EditorHost } from "@virgultum/editor/std";
 
-import { markdownToMindmap } from "../mini-mindmap";
+import { markdownToMindmap, MiniMindmapPreview } from "../mini-mindmap";
 import { getAIPanelWidget } from "../utils/ai-widgets";
 import type { AIContext } from "../utils/context";
 import type { MyoxusAIPanelWidgetConfig } from "../widgets/ai-panel/type";
@@ -25,7 +25,7 @@ export const createMindmapRenderer: (
       return null;
     }
 
-    return createElement("mini-mindmap-preview", {
+    return createElement(MiniMindmapPreview, {
       ctx,
       host,
       answer,

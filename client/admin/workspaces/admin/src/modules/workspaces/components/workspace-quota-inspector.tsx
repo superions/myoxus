@@ -19,6 +19,7 @@ import {
   SettingsListItemTitle,
   SettingsStatusText,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -121,45 +122,49 @@ export function WorkspaceQuotaInspector({
         {i18n.t("admin.workspaces.quota-inspector.title")}
       </SettingsListItemTitle>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>
-              {i18n.t("admin.workspaces.quota-inspector.col.level")}
-            </TableHead>
-            <TableHead>
-              {i18n.t("admin.workspaces.quota-inspector.col.value")}
-            </TableHead>
-            <TableHead>
-              {i18n.t("admin.workspaces.quota-inspector.col.active")}
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((row) => (
-            <TableRow key={row.key}>
-              <TableCell>
-                {i18n.t(
-                  `admin.workspaces.quota-inspector.level.${row.levelKey}`,
-                )}
-              </TableCell>
-              <TableCell>
-                {row.valueBytes != null
-                  ? (bytesOrNull(row.valueBytes) ??
-                    i18n.t("admin.workspaces.quota-inspector.unlimited"))
-                  : isUnlimited && row.levelKey === "config-default"
-                    ? i18n.t("admin.workspaces.quota-inspector.unlimited")
-                    : "—"}
-              </TableCell>
-              <TableCell>
-                {row.isActive ? (
-                  <Badge tone="success">{i18n.t("admin.common.active")}</Badge>
-                ) : null}
-              </TableCell>
+      <TableScrollContainer>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>
+                {i18n.t("admin.workspaces.quota-inspector.col.level")}
+              </TableHead>
+              <TableHead>
+                {i18n.t("admin.workspaces.quota-inspector.col.value")}
+              </TableHead>
+              <TableHead>
+                {i18n.t("admin.workspaces.quota-inspector.col.active")}
+              </TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.key}>
+                <TableCell>
+                  {i18n.t(
+                    `admin.workspaces.quota-inspector.level.${row.levelKey}`,
+                  )}
+                </TableCell>
+                <TableCell>
+                  {row.valueBytes != null
+                    ? (bytesOrNull(row.valueBytes) ??
+                      i18n.t("admin.workspaces.quota-inspector.unlimited"))
+                    : isUnlimited && row.levelKey === "config-default"
+                      ? i18n.t("admin.workspaces.quota-inspector.unlimited")
+                      : "—"}
+                </TableCell>
+                <TableCell>
+                  {row.isActive ? (
+                    <Badge tone="success">
+                      {i18n.t("admin.common.active")}
+                    </Badge>
+                  ) : null}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableScrollContainer>
 
       {/* Unlimited banner */}
       {isUnlimited && (

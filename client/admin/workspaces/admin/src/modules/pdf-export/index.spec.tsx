@@ -20,12 +20,6 @@ vi.mock("@myoxus/i18n", () => ({
   }),
 }));
 
-vi.mock("../header", () => ({
-  Header: ({ title }: { title: string }) => (
-    <div data-testid="header">{title}</div>
-  ),
-}));
-
 vi.mock("./components/templates-tab", () => ({
   TemplatesTab: () => <div data-testid="templates-tab">Templates</div>,
 }));

@@ -21,15 +21,6 @@ vi.mock("../../use-mutation", () => ({
     },
 }));
 
-vi.mock("../header", () => ({
-  Header: ({ title, endFix }: { title: string; endFix?: ReactNode }) => (
-    <div>
-      <h1>{title}</h1>
-      {endFix}
-    </div>
-  ),
-}));
-
 vi.mock("../operational-readiness-notice", () => ({
   OperationalReadinessNotice: () => null,
 }));

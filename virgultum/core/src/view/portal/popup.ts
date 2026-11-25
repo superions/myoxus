@@ -2,11 +2,8 @@ import { cssVar } from "@myoxus/theme";
 import {
   autoUpdate,
   computePosition,
-  shift,
   type AutoUpdateOptions,
   type ComputePositionConfig,
-  type Middleware,
-  type Placement,
   type ReferenceElement,
 } from "@floating-ui/dom";
 import { editorHostSelector } from "../../runtime/view/element/document-host.js";
@@ -19,20 +16,7 @@ export const getDefaultModalRoot = (ele: HTMLElement) => {
   }
   return document.body;
 };
-export const createModal = (container: HTMLElement = document.body) => {
-  const div = document.createElement("div");
-  div.setAttribute(RANGE_SYNC_EXCLUDE_ATTR, "true");
-  div.style.pointerEvents = "auto";
-  div.style.position = "absolute";
-  div.style.left = "0";
-  div.style.top = "0";
-  div.style.width = "100%";
-  div.style.height = "100%";
-  div.style.zIndex = "1001";
-  div.style.fontFamily = "var(--myoxus-font-family)";
-  container.append(div);
-  return div;
-};
+
 export type PopupTarget = {
   targetRect: ReferenceElement;
   root: HTMLElement;
@@ -69,62 +53,6 @@ export const popupTargetFromElement = (element: HTMLElement): PopupTarget => {
       };
     },
   };
-};
-export const createPopup = (
-  target: PopupTarget,
-  content: HTMLElement,
-  options?: {
-    onClose?: () => void;
-    middleware?: Array<Middleware | null | undefined | false>;
-    container?: HTMLElement;
-    placement?: Placement;
-  },
-) => {
-  const close = () => {
-    if (closed) return;
-    closed = true;
-    stopPositioning();
-    modal.remove();
-    options?.onClose?.();
-  };
-  const modal = createModal(target.root);
-  modal.append(content);
-  let closed = false;
-  const stopPositioning = autoUpdate(target.targetRect, content, () => {
-    computePosition(target.targetRect, content, {
-      placement: options?.placement,
-      middleware: options?.middleware ?? [shift({ crossAxis: true })],
-    })
-      .then(({ x, y }) => {
-        if (closed) return;
-        Object.assign(content.style, {
-          left: `${x}px`,
-          top: `${y}px`,
-        });
-      })
-      .catch(console.error);
-  });
-
-  modal.onpointerdown = (ev) => {
-    if (ev.target === modal) {
-      close();
-    }
-  };
-
-  modal.onmousedown = (ev) => {
-    if (ev.target === modal) {
-      close();
-    }
-  };
-
-  modal.oncontextmenu = (ev) => {
-    ev.preventDefault();
-    if (ev.target === modal) {
-      close();
-    }
-  };
-
-  return close;
 };
 
 /**

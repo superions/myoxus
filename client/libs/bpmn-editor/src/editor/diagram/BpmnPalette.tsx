@@ -497,7 +497,7 @@ export function BpmnPalette({ pulse: _pulse }: { pulse: boolean }) {
         aria-label={t["com.myoxus.actions"]()}
       >
         {/* Keep native focus outlines inside the scroll viewport's clip edge. */}
-        <Card>
+        <Card withBorder={false}>
           <Stack>
             <MyoxusTextInput
               label={t["com.myoxus.editor.bpmn.search-elements"]()}

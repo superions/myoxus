@@ -53,7 +53,6 @@ import {
 } from "@myoxus/core/modules/workspace";
 import { useI18n } from "@myoxus/i18n";
 import { FrameworkScope, useLiveData, useService } from "@myoxus/infra";
-import { uniReactRoot } from "@myoxus/core/editor/uni-react-root";
 import {
   PublicShareEditorViewport,
   PublicSharePageMain,
@@ -351,7 +350,6 @@ const SharePageInner = ({
             </PublicSharePageMain>
           </PublicSharePageRoot>
           <PeekViewManagerModal />
-          <uniReactRoot.Root />
         </FrameworkScope>
       </FrameworkScope>
     </FrameworkScope>

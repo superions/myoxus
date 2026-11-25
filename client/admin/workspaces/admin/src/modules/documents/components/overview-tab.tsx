@@ -9,6 +9,7 @@ import {
   SimpleGrid,
   Stack,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableRow,
@@ -114,16 +115,18 @@ export function OverviewTab() {
                     {i18n.t("admin.common.none")}
                   </SettingsStatusText>
                 ) : (
-                  <Table aria-label={title}>
-                    <TableBody>
-                      {buckets.map((bucket) => (
-                        <TableRow key={bucket.key ?? "__unset"}>
-                          <TableCell>{bucketLabel(i18n, bucket)}</TableCell>
-                          <TableCell>{bucket.count}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <TableScrollContainer>
+                    <Table aria-label={title}>
+                      <TableBody>
+                        {buckets.map((bucket) => (
+                          <TableRow key={bucket.key ?? "__unset"}>
+                            <TableCell>{bucketLabel(i18n, bucket)}</TableCell>
+                            <TableCell>{bucket.count}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableScrollContainer>
                 )}
               </Stack>
             );

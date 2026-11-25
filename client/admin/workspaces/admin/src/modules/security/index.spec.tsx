@@ -171,10 +171,6 @@ vi.mock("../common", () => ({
   useRevalidateServerConfig: () => vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("../header", () => ({
-  Header: ({ title }: { title: string }) => <h1>{title}</h1>,
-}));
-
 vi.mock("../operational-readiness-notice", () => ({
   OperationalReadinessNotice: () => null,
 }));

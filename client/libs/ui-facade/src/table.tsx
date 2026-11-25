@@ -148,6 +148,8 @@ export function Pagination({
   onPageChange,
   disabled = false,
   withEdges = false,
+  previousLabel,
+  nextLabel,
 }: {
   totalCount: number;
   pageNum?: number;
@@ -155,6 +157,8 @@ export function Pagination({
   onPageChange: (skip: number, pageNum: number) => void;
   disabled?: boolean;
   withEdges?: boolean;
+  previousLabel?: string;
+  nextLabel?: string;
 }) {
   const total = Math.max(1, Math.ceil(totalCount / countPerPage));
   return (
@@ -163,9 +167,18 @@ export function Pagination({
       value={pageNum + 1}
       disabled={disabled}
       withEdges={withEdges}
+      getControlProps={(control) => {
+        if (control === "previous" && previousLabel) {
+          return { "aria-label": previousLabel };
+        }
+        if (control === "next" && nextLabel) {
+          return { "aria-label": nextLabel };
+        }
+        return {};
+      }}
       onChange={(page) =>
         !disabled &&
-        onPageChange(((page - 1) * countPerPage) % totalCount, page - 1)
+        onPageChange(totalCount > 0 ? (page - 1) * countPerPage : 0, page - 1)
       }
       data-myoxus-ui-role="settings-pagination"
     />

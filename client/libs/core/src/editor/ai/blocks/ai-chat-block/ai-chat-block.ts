@@ -6,6 +6,7 @@ import { NativeBlockComponent } from "@virgultum/editor/blocks/surface";
 import { createElement, type ReactNode } from "react";
 
 import { ChatMessagesSchema } from "../../components/ai-chat-messages";
+import { chatI18n } from "../../components/chat-i18n";
 import { NativeAIWidgetUI } from "../../widgets/native-ui";
 import { StoredChatMessages } from "./components/stored-chat-messages";
 import type { AIChatBlockModel } from "./model";
@@ -61,7 +62,7 @@ export function mountStoredAIChat(
           createElement(
             MyoxusText,
             { typographySlot: "caption" },
-            "AI chat block",
+            chatI18n()["com.myoxus.ai.chat-panel.chat-block"](),
           ),
         ),
       ),

@@ -18,6 +18,7 @@ import {
 import { getInlineRangeProvider } from "@virgultum/core/runtime/inline";
 import {
   DocModeProvider,
+  EditorChromeHostIdentifier,
   EditorI18nProvider,
   textProtectionHint,
 } from "@virgultum/core/services";
@@ -122,6 +123,7 @@ export abstract class TextBlock<
       }),
     );
     const disclosure = doc.createElement("virgultum-toggle-button");
+    disclosure.chromeHost = this.std.getOptional(EditorChromeHostIdentifier);
     disclosure.updateCollapsed = (value) => this.setCollapsed(value);
     this.disposables.add(
       effect(() => {

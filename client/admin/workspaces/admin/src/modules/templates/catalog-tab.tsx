@@ -40,6 +40,7 @@ import {
   SettingsSkeleton,
   Stack,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -523,80 +524,82 @@ function CatalogContent() {
           title={i18n.t("admin.templates.catalog.filter.no-results")}
         />
       ) : (
-        <Table
-          aria-label={i18n.t("admin.templates.catalog.title")}
-          data-testid="templates-catalog-table"
-        >
-          <TableHeader>
-            <TableRow>
-              <TableHead>
-                {i18n.t("admin.templates.catalog.col.title")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.templates.catalog.col.category")}
-              </TableHead>
-              <TableHead>
-                {i18n.t("admin.templates.catalog.col.source")}
-              </TableHead>
-              <TableHead>{i18n.t("admin.common.status")}</TableHead>
-              <TableHead>{i18n.t("admin.common.actions")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((entry: CatalogEntryViewModel) => {
-              const displayTitle = templateDisplayTitle(i18n, entry);
-              const displayDescription = templateDisplayDescription(
-                i18n,
-                entry,
-              );
-              return (
-                <TableRow key={entry.id}>
-                  <TableCell>
-                    <InlineActionButton
-                      onClick={(event) =>
-                        openDetail(entry, event.currentTarget)
-                      }
-                    >
-                      <SettingsListItemTitle>
-                        {displayTitle}
-                      </SettingsListItemTitle>
-                    </InlineActionButton>
-                    {displayDescription ? (
-                      <SettingsListItemMeta lineClamp={2}>
-                        {displayDescription}
-                      </SettingsListItemMeta>
-                    ) : null}
-                    {templateCatalogCardCode(entry) ? (
-                      <SettingsListItemMeta>
-                        <MonoText>{templateCatalogCardCode(entry)}</MonoText>
-                      </SettingsListItemMeta>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>
-                    {translateTemplateCategory(i18n, entry.category)}
-                  </TableCell>
-                  <TableCell>
-                    <TemplateSourceBadge
-                      source={entry.source as TemplateSource}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <TemplateStatusBadge
-                      status={entry.status as TemplateStatus}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <CatalogRowActions
-                      entry={entry}
-                      onRefresh={handleRefresh}
-                      onDetails={(trigger) => openDetail(entry, trigger)}
-                    />
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+        <TableScrollContainer>
+          <Table
+            aria-label={i18n.t("admin.templates.catalog.title")}
+            data-testid="templates-catalog-table"
+          >
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  {i18n.t("admin.templates.catalog.col.title")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.templates.catalog.col.category")}
+                </TableHead>
+                <TableHead>
+                  {i18n.t("admin.templates.catalog.col.source")}
+                </TableHead>
+                <TableHead>{i18n.t("admin.common.status")}</TableHead>
+                <TableHead>{i18n.t("admin.common.actions")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((entry: CatalogEntryViewModel) => {
+                const displayTitle = templateDisplayTitle(i18n, entry);
+                const displayDescription = templateDisplayDescription(
+                  i18n,
+                  entry,
+                );
+                return (
+                  <TableRow key={entry.id}>
+                    <TableCell>
+                      <InlineActionButton
+                        onClick={(event) =>
+                          openDetail(entry, event.currentTarget)
+                        }
+                      >
+                        <SettingsListItemTitle>
+                          {displayTitle}
+                        </SettingsListItemTitle>
+                      </InlineActionButton>
+                      {displayDescription ? (
+                        <SettingsListItemMeta lineClamp={2}>
+                          {displayDescription}
+                        </SettingsListItemMeta>
+                      ) : null}
+                      {templateCatalogCardCode(entry) ? (
+                        <SettingsListItemMeta>
+                          <MonoText>{templateCatalogCardCode(entry)}</MonoText>
+                        </SettingsListItemMeta>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>
+                      {translateTemplateCategory(i18n, entry.category)}
+                    </TableCell>
+                    <TableCell>
+                      <TemplateSourceBadge
+                        source={entry.source as TemplateSource}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <TemplateStatusBadge
+                        status={entry.status as TemplateStatus}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <CatalogRowActions
+                        entry={entry}
+                        onRefresh={handleRefresh}
+                        onDetails={(trigger) => openDetail(entry, trigger)}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableScrollContainer>
       )}
 
       <TemplateDetailDrawer

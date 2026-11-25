@@ -8,8 +8,9 @@ import {
   MyoxusText,
   RowInput,
   Stack,
+  useDebouncedCallback,
 } from "@myoxus/ui-facade";
-import { type PropsWithChildren, type ReactNode, useCallback } from "react";
+import { type PropsWithChildren, type ReactNode } from "react";
 
 export interface SelectorContentProps extends PropsWithChildren {
   fitContent?: boolean;
@@ -47,12 +48,9 @@ export const SelectorLayout = ({
 }: SelectorContentProps) => {
   const t = useI18n();
 
-  const onSearchChange = useCallback(
-    (value: string) => {
-      onSearch?.(value);
-    },
-    [onSearch],
-  );
+  const onSearchChange = useDebouncedCallback((value: string) => {
+    onSearch?.(value);
+  }, 200);
 
   return (
     <Stack
@@ -68,7 +66,6 @@ export const SelectorLayout = ({
           block
           placeholder={searchPlaceholder}
           onChange={onSearchChange}
-          debounce={200}
         />
         {headerActions}
       </Group>

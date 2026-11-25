@@ -46,6 +46,7 @@ import {
   SurfaceList,
   SurfaceListItem,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -276,30 +277,32 @@ function FilesTab({ templateId }: { templateId: string }) {
   }
 
   return (
-    <Table aria-label={i18n.t("admin.pdf-export.detail.files-aria")}>
-      <TableHeader>
-        <TableRow>
-          <TableHead>{i18n.t("admin.pdf-export.detail.file-path")}</TableHead>
-          <TableHead>{i18n.t("admin.pdf-export.detail.blob-key")}</TableHead>
-          <TableHead>
-            {i18n.t("admin.pdf-export.detail.content-hash")}
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {files.map((f) => (
-          <TableRow key={f.filePath}>
-            <TableCell mono>{f.filePath}</TableCell>
-            <TableCell mono muted>
-              {f.blobKey}
-            </TableCell>
-            <TableCell mono muted>
-              {f.contentHash.slice(0, 16)}…
-            </TableCell>
+    <TableScrollContainer>
+      <Table aria-label={i18n.t("admin.pdf-export.detail.files-aria")}>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{i18n.t("admin.pdf-export.detail.file-path")}</TableHead>
+            <TableHead>{i18n.t("admin.pdf-export.detail.blob-key")}</TableHead>
+            <TableHead>
+              {i18n.t("admin.pdf-export.detail.content-hash")}
+            </TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {files.map((f) => (
+            <TableRow key={f.filePath}>
+              <TableCell mono>{f.filePath}</TableCell>
+              <TableCell mono muted>
+                {f.blobKey}
+              </TableCell>
+              <TableCell mono muted>
+                {f.contentHash.slice(0, 16)}…
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableScrollContainer>
   );
 }
 
@@ -318,32 +321,38 @@ function WorkspacesTab({ templateId }: { templateId: string }) {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>
-            {i18n.t("admin.pdf-export.detail.workspace-id")}
-          </TableHead>
-          <TableHead>{i18n.t("admin.pdf-export.detail.is-default")}</TableHead>
-          <TableHead>{i18n.t("admin.pdf-export.detail.assigned-at")}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {assignments.map((a) => (
-          <TableRow key={a.workspaceId}>
-            <TableCell mono>{a.workspaceId}</TableCell>
-            <TableCell>
-              {a.isDefault
-                ? i18n.t("admin.common.yes")
-                : i18n.t("admin.common.no")}
-            </TableCell>
-            <TableCell muted>
-              {formatAdminDateTime(i18n.language, a.assignedAt)}
-            </TableCell>
+    <TableScrollContainer>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>
+              {i18n.t("admin.pdf-export.detail.workspace-id")}
+            </TableHead>
+            <TableHead>
+              {i18n.t("admin.pdf-export.detail.is-default")}
+            </TableHead>
+            <TableHead>
+              {i18n.t("admin.pdf-export.detail.assigned-at")}
+            </TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {assignments.map((a) => (
+            <TableRow key={a.workspaceId}>
+              <TableCell mono>{a.workspaceId}</TableCell>
+              <TableCell>
+                {a.isDefault
+                  ? i18n.t("admin.common.yes")
+                  : i18n.t("admin.common.no")}
+              </TableCell>
+              <TableCell muted>
+                {formatAdminDateTime(i18n.language, a.assignedAt)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableScrollContainer>
   );
 }
 

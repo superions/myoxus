@@ -61,6 +61,7 @@ import {
   SurfaceList,
   SurfaceListItem,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -1025,90 +1026,92 @@ export function UnitDetail({
               )}
             />
           ) : (
-            <Table
-              aria-label={i18n.t(
-                "admin.organization.unit-detail.members.title",
-              )}
-              data-testid="unit-detail-members-list"
-            >
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{i18n.t("admin.common.name")}</TableHead>
-                  <TableHead>{i18n.t("admin.common.role")}</TableHead>
-                  <TableHead>
-                    {i18n.t("admin.organization.unit-detail.members.source")}
-                  </TableHead>
-                  <TableHead>{i18n.t("admin.common.actions")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {members.map((member) => {
-                  const displayName =
-                    member.userName || member.userEmail || member.userId;
-                  const email = member.userEmail || member.userId;
-                  return (
-                    <TableRow
-                      key={member.userId}
-                      data-testid={`unit-detail-member-row-${member.userId}`}
-                    >
-                      <TableCell>
-                        <Group>
-                          <Avatar
-                            name={displayName || email}
-                            url={member.userAvatarUrl}
-                            colorfulFallback
+            <TableScrollContainer>
+              <Table
+                aria-label={i18n.t(
+                  "admin.organization.unit-detail.members.title",
+                )}
+                data-testid="unit-detail-members-list"
+              >
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{i18n.t("admin.common.name")}</TableHead>
+                    <TableHead>{i18n.t("admin.common.role")}</TableHead>
+                    <TableHead>
+                      {i18n.t("admin.organization.unit-detail.members.source")}
+                    </TableHead>
+                    <TableHead>{i18n.t("admin.common.actions")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {members.map((member) => {
+                    const displayName =
+                      member.userName || member.userEmail || member.userId;
+                    const email = member.userEmail || member.userId;
+                    return (
+                      <TableRow
+                        key={member.userId}
+                        data-testid={`unit-detail-member-row-${member.userId}`}
+                      >
+                        <TableCell>
+                          <Group>
+                            <Avatar
+                              name={displayName || email}
+                              url={member.userAvatarUrl}
+                              colorfulFallback
+                            />
+                            <Stack>
+                              <SettingsListItemTitle truncate>
+                                {displayName}
+                              </SettingsListItemTitle>
+                              <SettingsListItemMeta truncate>
+                                {email}
+                              </SettingsListItemMeta>
+                            </Stack>
+                          </Group>
+                        </TableCell>
+                        <TableCell>
+                          <FormSelect
+                            allowDeselect={false}
+                            aria-label={i18n.t("admin.common.role")}
+                            value={member.role as OrganizationUnitRoleEnum}
+                            onChange={(next) =>
+                              saveMemberRole(
+                                member.userId,
+                                next as OrganizationUnitRoleEnum,
+                              )
+                            }
+                            data={memberRoleSelectOptions}
+                            data-testid={`unit-detail-member-role-${member.userId}`}
+                            disabled={assignMember.isMutating}
                           />
-                          <Stack>
-                            <SettingsListItemTitle truncate>
-                              {displayName}
-                            </SettingsListItemTitle>
-                            <SettingsListItemMeta truncate>
-                              {email}
-                            </SettingsListItemMeta>
-                          </Stack>
-                        </Group>
-                      </TableCell>
-                      <TableCell>
-                        <FormSelect
-                          allowDeselect={false}
-                          aria-label={i18n.t("admin.common.role")}
-                          value={member.role as OrganizationUnitRoleEnum}
-                          onChange={(next) =>
-                            saveMemberRole(
-                              member.userId,
-                              next as OrganizationUnitRoleEnum,
-                            )
-                          }
-                          data={memberRoleSelectOptions}
-                          data-testid={`unit-detail-member-role-${member.userId}`}
-                          disabled={assignMember.isMutating}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <SettingsListItemMeta>
-                          {String(member.source).toLowerCase()}
-                        </SettingsListItemMeta>
-                      </TableCell>
-                      <TableCell>
-                        <IconButton
-                          type="button"
-                          onClick={() => setRemoveMemberId(member.userId)}
-                          data-testid={`unit-detail-member-remove-${member.userId}`}
-                          icon={<UserMinus aria-hidden="true" />}
-                          tooltip={i18n.t(
-                            "admin.organization.unit-detail.members.remove",
-                          )}
-                          aria-label={i18n.t(
-                            "admin.organization.unit-detail.members.remove",
-                          )}
-                          disabled={unassignMember.isMutating}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                        <TableCell>
+                          <SettingsListItemMeta>
+                            {String(member.source).toLowerCase()}
+                          </SettingsListItemMeta>
+                        </TableCell>
+                        <TableCell>
+                          <IconButton
+                            type="button"
+                            onClick={() => setRemoveMemberId(member.userId)}
+                            data-testid={`unit-detail-member-remove-${member.userId}`}
+                            icon={<UserMinus aria-hidden="true" />}
+                            tooltip={i18n.t(
+                              "admin.organization.unit-detail.members.remove",
+                            )}
+                            aria-label={i18n.t(
+                              "admin.organization.unit-detail.members.remove",
+                            )}
+                            disabled={unassignMember.isMutating}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableScrollContainer>
           )}
           <AdminConfirmModal
             open={removeMemberId !== null}
@@ -1207,101 +1210,105 @@ export function UnitDetail({
               )}
             />
           ) : (
-            <Table
-              aria-label={i18n.t(
-                "admin.organization.unit-detail.workspaces.title",
-              )}
-              data-testid="unit-detail-workspaces-list"
-            >
-              <TableHeader>
-                <TableRow>
-                  <TableHead>
-                    {i18n.t("admin.organization.unit-detail.workspaces.title")}
-                  </TableHead>
-                  <TableHead>
-                    {i18n.t(
-                      "admin.organization.unit-detail.workspaces.relationship",
-                    )}
-                  </TableHead>
-                  <TableHead>
-                    {i18n.t(
-                      "admin.organization.unit-detail.workspaces.storage",
-                    )}
-                  </TableHead>
-                  <TableHead>{i18n.t("admin.common.actions")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {links.map((link) => (
-                  <TableRow
-                    key={`${link.workspaceId}:${link.relationship}`}
-                    data-testid={`unit-detail-workspace-row-${link.workspaceId}`}
-                  >
-                    <TableCell>
-                      <Stack>
-                        <SettingsListItemTitle truncate>
-                          {link.workspaceName ?? link.workspaceId}
-                        </SettingsListItemTitle>
-                        <SettingsListItemMeta truncate>
-                          {i18n.t(
-                            "admin.organization.unit-detail.workspaces.owner",
-                          )}
-                          : {link.ownerEmail ?? link.ownerUserId ?? "-"}
-                        </SettingsListItemMeta>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <FormSelect
-                        allowDeselect={false}
-                        value={link.relationship}
-                        onChange={(value) =>
-                          saveWorkspaceRelationship(
-                            link,
-                            value as OrganizationUnitWorkspaceRelationshipEnum,
-                          )
-                        }
-                        data={workspaceRelationshipSelectOptions}
-                        disabled={assignWorkspace.isMutating}
-                        aria-label={i18n.t(
-                          "admin.organization.unit-detail.workspaces.relationship",
-                        )}
-                        data-testid={`unit-detail-workspace-relationship-${link.workspaceId}`}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <SettingsListItemTitle>
-                        {formatBytes(
-                          link.storageUsedBytes,
-                          i18n.t("admin.state.unknown"),
-                          i18n.t(
-                            "admin.organization.unit-detail.workspaces.unlimited",
-                          ),
-                        )}{" "}
-                        /{" "}
-                        {formatBytes(
-                          link.effectiveQuotaBytes,
-                          i18n.t("admin.state.unknown"),
-                          i18n.t(
-                            "admin.organization.unit-detail.workspaces.unlimited",
-                          ),
-                        )}
-                      </SettingsListItemTitle>
-                    </TableCell>
-                    <TableCell>
-                      <IconButton
-                        type="button"
-                        onClick={() => setRemoveWorkspaceLink(link)}
-                        data-testid={`unit-detail-workspace-remove-${link.workspaceId}`}
-                        aria-label={i18n.t("admin.actions.delete-confirm")}
-                        tooltip={i18n.t("admin.actions.delete-confirm")}
-                        icon={<UserMinus aria-hidden="true" />}
-                        disabled={unassignWorkspace.isMutating}
-                      />
-                    </TableCell>
+            <TableScrollContainer>
+              <Table
+                aria-label={i18n.t(
+                  "admin.organization.unit-detail.workspaces.title",
+                )}
+                data-testid="unit-detail-workspaces-list"
+              >
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>
+                      {i18n.t(
+                        "admin.organization.unit-detail.workspaces.title",
+                      )}
+                    </TableHead>
+                    <TableHead>
+                      {i18n.t(
+                        "admin.organization.unit-detail.workspaces.relationship",
+                      )}
+                    </TableHead>
+                    <TableHead>
+                      {i18n.t(
+                        "admin.organization.unit-detail.workspaces.storage",
+                      )}
+                    </TableHead>
+                    <TableHead>{i18n.t("admin.common.actions")}</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {links.map((link) => (
+                    <TableRow
+                      key={`${link.workspaceId}:${link.relationship}`}
+                      data-testid={`unit-detail-workspace-row-${link.workspaceId}`}
+                    >
+                      <TableCell>
+                        <Stack>
+                          <SettingsListItemTitle truncate>
+                            {link.workspaceName ?? link.workspaceId}
+                          </SettingsListItemTitle>
+                          <SettingsListItemMeta truncate>
+                            {i18n.t(
+                              "admin.organization.unit-detail.workspaces.owner",
+                            )}
+                            : {link.ownerEmail ?? link.ownerUserId ?? "-"}
+                          </SettingsListItemMeta>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <FormSelect
+                          allowDeselect={false}
+                          value={link.relationship}
+                          onChange={(value) =>
+                            saveWorkspaceRelationship(
+                              link,
+                              value as OrganizationUnitWorkspaceRelationshipEnum,
+                            )
+                          }
+                          data={workspaceRelationshipSelectOptions}
+                          disabled={assignWorkspace.isMutating}
+                          aria-label={i18n.t(
+                            "admin.organization.unit-detail.workspaces.relationship",
+                          )}
+                          data-testid={`unit-detail-workspace-relationship-${link.workspaceId}`}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <SettingsListItemTitle>
+                          {formatBytes(
+                            link.storageUsedBytes,
+                            i18n.t("admin.state.unknown"),
+                            i18n.t(
+                              "admin.organization.unit-detail.workspaces.unlimited",
+                            ),
+                          )}{" "}
+                          /{" "}
+                          {formatBytes(
+                            link.effectiveQuotaBytes,
+                            i18n.t("admin.state.unknown"),
+                            i18n.t(
+                              "admin.organization.unit-detail.workspaces.unlimited",
+                            ),
+                          )}
+                        </SettingsListItemTitle>
+                      </TableCell>
+                      <TableCell>
+                        <IconButton
+                          type="button"
+                          onClick={() => setRemoveWorkspaceLink(link)}
+                          data-testid={`unit-detail-workspace-remove-${link.workspaceId}`}
+                          aria-label={i18n.t("admin.actions.delete-confirm")}
+                          tooltip={i18n.t("admin.actions.delete-confirm")}
+                          icon={<UserMinus aria-hidden="true" />}
+                          disabled={unassignWorkspace.isMutating}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableScrollContainer>
           )}
           <AdminConfirmModal
             open={removeWorkspaceLink !== null}

@@ -435,45 +435,56 @@ describe("callout presentation controls", () => {
     }
   });
 
-  test("the popup mounts its picker and releases it when closed, including reopen", async () => {
-    const { IconPickerWrapper } =
+  test("openCalloutIconPicker delegates to EditorChromeHost, updates icon, and releases cleanly on close/reopen", async () => {
+    const { openCalloutIconPicker } =
       await import("../../../../content/src/blocks/callout/icon-picker-wrapper");
-    const { PropertySymbol } = await import("happy-dom");
-    // The shared setup mocks the global registry; use this document's native one.
-    const registry = (document as unknown as Record<symbol, Window>)[
-      PropertySymbol.defaultView
-    ].customElements;
-    if (!registry.get("icon-picker-wrapper"))
-      registry.define("icon-picker-wrapper", IconPickerWrapper);
-    const popup = document.createElement("icon-picker-wrapper");
-    const select = vi.fn();
+    const { EditorChromeHostIdentifier } =
+      await import("@virgultum/core/services");
+    const workspace = new TestWorkspace();
+    workspace.storeExtensions = testStoreExtensions;
+    workspace.meta.initialize();
+    const doc = workspace.createDoc("callout-icon-picker");
+    doc.load();
+    const store = doc.getStore();
+    const root = store.addBlock("myoxus:page");
+    const note = store.addBlock("myoxus:note", {}, root);
+    const id = store.addBlock("myoxus:callout", {}, note);
+    const model = store.getBlock(id)?.model as CalloutBlockModel;
+    const hostEl = document.createElement("div");
+    const anchor = document.createElement("button");
+    hostEl.append(anchor);
+    document.body.append(hostEl);
     const unmount = vi.fn();
-    popup.props = { onSelect: select };
-    popup.iconPickerComponent = (element, props) => {
-      const button = document.createElement("button");
-      button.textContent = "🚀";
-      button.onclick = () => props.onSelect?.({ type: "emoji", unicode: "🚀" });
-      element.append(button);
-      return {
-        update: vi.fn(),
-        unmount: () => {
-          button.remove();
-          unmount();
-        },
-      };
-    };
+    let mountedControls:
+      { onSelect: (icon?: unknown) => void; close: () => void } | undefined;
+    const mountIconPicker = vi.fn((_root, controls) => {
+      mountedControls = controls;
+      return unmount;
+    });
+    const fakeStd = {
+      store,
+      host: hostEl,
+      getOptional: (id: unknown) =>
+        id === EditorChromeHostIdentifier ? { mountIconPicker } : undefined,
+    } as unknown as Parameters<typeof openCalloutIconPicker>[0];
+
     try {
-      document.body.append(popup);
-      popup.querySelector("button")!.click();
-      expect(select).toHaveBeenCalledWith({ type: "emoji", unicode: "🚀" });
-      popup.remove();
+      const onClose = vi.fn();
+      const close = openCalloutIconPicker(fakeStd, model, anchor, onClose);
+      expect(mountIconPicker).toHaveBeenCalledTimes(1);
+      mountedControls?.onSelect({ type: "emoji", unicode: "🚀" });
+      expect(model.props.icon).toEqual({ type: "emoji", unicode: "🚀" });
       expect(unmount).toHaveBeenCalledTimes(1);
-      document.body.append(popup);
-      expect(popup.querySelectorAll("button")).toHaveLength(1);
-      popup.remove();
+      expect(onClose).toHaveBeenCalledTimes(1);
+      close?.();
+
+      const close2 = openCalloutIconPicker(fakeStd, model, anchor);
+      expect(mountIconPicker).toHaveBeenCalledTimes(2);
+      close2?.();
       expect(unmount).toHaveBeenCalledTimes(2);
     } finally {
-      popup.remove();
+      hostEl.remove();
+      workspace.dispose();
     }
   });
 });

@@ -24,6 +24,7 @@ import {
   IconButton,
   MonoText,
   notify,
+  Pagination,
   SettingsListItemMeta,
   SettingsListItemTitle,
   SettingsNotice,
@@ -83,9 +84,12 @@ function formatTs(
 export function QueueDetailPanel({
   queueName,
   onClose,
+  embedded = false,
 }: {
   queueName: string;
   onClose: () => void;
+  /** True when hosted inside a Drawer that already renders title and close chrome. */
+  embedded?: boolean;
 }) {
   const i18n = useI18n();
   const [status, setStatus] = useState<Status>("waiting");
@@ -168,10 +172,44 @@ export function QueueDetailPanel({
 
   return (
     <Stack component="section">
-      <SettingsDetailHeader
-        title={i18n.t("admin.queue.detail.title", { queueName })}
-        actions={
-          <>
+      {!embedded ? (
+        <SettingsDetailHeader
+          title={i18n.t("admin.queue.detail.title", { queueName })}
+          actions={
+            <>
+              <IconButton
+                icon={<RefreshCw />}
+                tooltip={i18n.t("admin.actions.refresh")}
+                aria-label={i18n.t("admin.actions.refresh")}
+                onClick={load}
+                disabled={loading}
+              />
+              <IconButton
+                icon={<X />}
+                tooltip={i18n.t("admin.common.close")}
+                aria-label={i18n.t("admin.common.close")}
+                onClick={onClose}
+              />
+            </>
+          }
+        />
+      ) : null}
+      <Stack>
+        <Group align="flex-end" justify="space-between" wrap="nowrap">
+          <FormSelect
+            label={i18n.t("admin.common.status")}
+            aria-label={i18n.t("admin.common.status")}
+            value={status}
+            data={STATUSES.map((value) => ({
+              value,
+              label: i18n.t(STATUS_LABEL_KEYS[value]),
+            }))}
+            onChange={(value) => {
+              if (STATUSES.includes(value as Status))
+                handleStatusChange(value as Status);
+            }}
+          />
+          {embedded ? (
             <IconButton
               icon={<RefreshCw />}
               tooltip={i18n.t("admin.actions.refresh")}
@@ -179,29 +217,8 @@ export function QueueDetailPanel({
               onClick={load}
               disabled={loading}
             />
-            <IconButton
-              icon={<X />}
-              tooltip={i18n.t("admin.common.close")}
-              aria-label={i18n.t("admin.common.close")}
-              onClick={onClose}
-            />
-          </>
-        }
-      />
-      <Stack>
-        <FormSelect
-          label={i18n.t("admin.common.status")}
-          aria-label={i18n.t("admin.common.status")}
-          value={status}
-          data={STATUSES.map((value) => ({
-            value,
-            label: i18n.t(STATUS_LABEL_KEYS[value]),
-          }))}
-          onChange={(value) => {
-            if (STATUSES.includes(value as Status))
-              handleStatusChange(value as Status);
-          }}
-        />
+          ) : null}
+        </Group>
         {loading || data ? (
           <SettingsListItemMeta>
             {data
@@ -357,13 +374,6 @@ export function QueueDetailPanel({
             </SurfaceList>
 
             <SettingsToolbar justify="space-between">
-              <Button
-                variant="ghost"
-                disabled={cursor === 0}
-                onClick={() => setCursor((c) => Math.max(0, c - limit))}
-              >
-                {i18n.t("admin.common.previous")}
-              </Button>
               <SettingsListItemMeta>
                 {i18n.t("admin.queue.detail.range", {
                   start: cursor + 1,
@@ -371,15 +381,18 @@ export function QueueDetailPanel({
                   total: data.totalCount,
                 })}
               </SettingsListItemMeta>
-              <Button
-                variant="ghost"
-                disabled={data.nextCursor === null}
-                onClick={() =>
-                  data.nextCursor !== null && setCursor(data.nextCursor)
-                }
-              >
-                {i18n.t("admin.common.next")}
-              </Button>
+              <Pagination
+                totalCount={Math.max(
+                  data.totalCount,
+                  data.nextCursor !== null ? data.nextCursor + 1 : 0,
+                )}
+                pageNum={Math.floor(cursor / limit)}
+                countPerPage={limit}
+                disabled={loading}
+                previousLabel={i18n.t("admin.common.previous")}
+                nextLabel={i18n.t("admin.common.next")}
+                onPageChange={(skip) => setCursor(skip)}
+              />
             </SettingsToolbar>
           </>
         ) : data ? (

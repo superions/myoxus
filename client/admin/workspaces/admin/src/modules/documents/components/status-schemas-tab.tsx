@@ -15,6 +15,7 @@ import {
   Switch,
   SettingsStatusText,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -376,83 +377,85 @@ export function StatusSchemasTab() {
                 }
               />
               {sortedValues.length ? (
-                <Table
-                  aria-label={i18n.t("admin.documents.status.values.title")}
-                  data-testid="documents-status-values-soft-list"
-                >
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>
-                        {i18n.t("admin.documents.field.label")}
-                      </TableHead>
-                      <TableHead>
-                        {i18n.t("admin.documents.field.key")}
-                      </TableHead>
-                      <TableHead>
-                        {i18n.t("admin.documents.field.sort-order")}
-                      </TableHead>
-                      <TableHead>
-                        {i18n.t("admin.documents.field.terminal")}
-                      </TableHead>
-                      <TableHead>
-                        {i18n.t("admin.documents.status.okf-mapping")}
-                      </TableHead>
-                      <TableHead>{i18n.t("admin.common.active")}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sortedValues.map((value) => (
-                      <TableRow key={value.id}>
-                        <TableCell>
-                          {value.label}
-                          {value.description ? (
-                            <SettingsStatusText>
-                              {value.description}
-                            </SettingsStatusText>
-                          ) : null}
-                        </TableCell>
-                        <TableCell>{value.key}</TableCell>
-                        <TableCell>{value.sortOrder}</TableCell>
-                        <TableCell>
-                          <BooleanStatus value={value.terminal} />
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            aria-label={
-                              value.label +
-                              " · " +
-                              i18n.t("admin.documents.status.okf-mapping")
-                            }
-                            value={value.okfStatus}
-                            data={okfOptions}
-                            disabled={saving}
-                            onChange={(mapping) =>
-                              void toggleStatusValue(
-                                value,
-                                value.isActive,
-                                mapping,
-                              )
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Switch
-                            checked={value.isActive}
-                            aria-label={
-                              value.label +
-                              " · " +
-                              i18n.t("admin.common.active")
-                            }
-                            disabled={saving}
-                            onChange={(active) =>
-                              void toggleStatusValue(value, active)
-                            }
-                          />
-                        </TableCell>
+                <TableScrollContainer>
+                  <Table
+                    aria-label={i18n.t("admin.documents.status.values.title")}
+                    data-testid="documents-status-values-soft-list"
+                  >
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>
+                          {i18n.t("admin.documents.field.label")}
+                        </TableHead>
+                        <TableHead>
+                          {i18n.t("admin.documents.field.key")}
+                        </TableHead>
+                        <TableHead>
+                          {i18n.t("admin.documents.field.sort-order")}
+                        </TableHead>
+                        <TableHead>
+                          {i18n.t("admin.documents.field.terminal")}
+                        </TableHead>
+                        <TableHead>
+                          {i18n.t("admin.documents.status.okf-mapping")}
+                        </TableHead>
+                        <TableHead>{i18n.t("admin.common.active")}</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {sortedValues.map((value) => (
+                        <TableRow key={value.id}>
+                          <TableCell>
+                            {value.label}
+                            {value.description ? (
+                              <SettingsStatusText>
+                                {value.description}
+                              </SettingsStatusText>
+                            ) : null}
+                          </TableCell>
+                          <TableCell>{value.key}</TableCell>
+                          <TableCell>{value.sortOrder}</TableCell>
+                          <TableCell>
+                            <BooleanStatus value={value.terminal} />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              aria-label={
+                                value.label +
+                                " · " +
+                                i18n.t("admin.documents.status.okf-mapping")
+                              }
+                              value={value.okfStatus}
+                              data={okfOptions}
+                              disabled={saving}
+                              onChange={(mapping) =>
+                                void toggleStatusValue(
+                                  value,
+                                  value.isActive,
+                                  mapping,
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={value.isActive}
+                              aria-label={
+                                value.label +
+                                " · " +
+                                i18n.t("admin.common.active")
+                              }
+                              disabled={saving}
+                              onChange={(active) =>
+                                void toggleStatusValue(value, active)
+                              }
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableScrollContainer>
               ) : (
                 <SettingsEmptyState
                   title={i18n.t("admin.common.no-results-found")}

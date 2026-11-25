@@ -93,19 +93,6 @@ vi.mock("../../../use-mutation", () => ({
   useMutateQueryResource: () => vi.fn(),
 }));
 
-vi.mock("../../panel/context", () => ({
-  useRightPanel: () => ({
-    setHasDirtyChanges: vi.fn(),
-    hasDirtyChanges: false,
-  }),
-}));
-
-vi.mock("../../header", () => ({
-  RightPanelHeader: ({ title }: { title: string }) => (
-    <div data-testid="panel-header">{title}</div>
-  ),
-}));
-
 vi.mock("../../common", () => ({
   useServerConfig: () => ({
     availableWorkspaceFeatures: [],

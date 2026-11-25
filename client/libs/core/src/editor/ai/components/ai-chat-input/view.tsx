@@ -4,6 +4,7 @@ import { ArrowUpBigIcon, CloseIcon, StopIcon } from "@myoxus/icons/react";
 import {
   Alert,
   Blockquote,
+  getHotkeyHandler,
   Group,
   IconButton,
   MyoxusText,
@@ -11,17 +12,16 @@ import {
   Stack,
   Textarea,
 } from "@myoxus/ui-facade";
-import type { Signal } from "@preact/signals-core";
 import type {
   ClipboardEvent,
   KeyboardEvent,
   MouseEvent,
   ReactNode,
 } from "react";
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useEffect, useMemo } from "react";
 
 export interface ChatInputViewProps {
-  draft: Signal<string>;
+  value: string;
   quote?: string;
   images: ReactNode;
   context: ReactNode;
@@ -32,23 +32,32 @@ export interface ChatInputViewProps {
   sendDisabled: boolean;
   onInput: (value: string) => void;
   onSend: (
-    event: MouseEvent<HTMLButtonElement> | KeyboardEvent<HTMLTextAreaElement>,
+    event:
+      | MouseEvent<HTMLButtonElement>
+      | KeyboardEvent<HTMLTextAreaElement>
+      | globalThis.KeyboardEvent,
   ) => void;
   onStop: () => void;
   onPaste: (event: ClipboardEvent<HTMLTextAreaElement>) => void;
   onRemoveQuote: () => void;
 }
 
-/** The Lit input owns the draft signal; this view adds no draft/session store. */
+/** Pure controlled React composer view backed by `@myoxus/ui-facade`. */
 export function ChatInputView(props: ChatInputViewProps) {
   const t = useI18n();
-  const subscribe = useCallback(
-    (notify: () => void) => props.draft.subscribe(notify),
-    [props.draft],
+  const handleKeyDown = useMemo(
+    () =>
+      getHotkeyHandler([
+        [
+          "Enter",
+          (event) => {
+            if (event.isComposing || event.keyCode === 229) return;
+            props.onSend(event);
+          },
+        ],
+      ]),
+    [props.onSend],
   );
-  // Restoration can finish between portal render and subscription. Read the
-  // current snapshot at subscription too, rather than missing that draft update.
-  const value = useSyncExternalStore(subscribe, () => props.draft.value);
   const actionLabel = props.generating
     ? t["com.myoxus.ai.chat-panel.stop"]()
     : t["com.myoxus.ai.chat-panel.send"]();
@@ -98,21 +107,13 @@ export function ChatInputView(props: ChatInputViewProps) {
         autosize
         minRows={2}
         maxRows={8}
-        value={value}
+        value={props.value}
         placeholder={t["com.myoxus.ai.chat-panel.input-placeholder"]()}
         aria-label={t["com.myoxus.ai.chat-panel.input-placeholder"]()}
         data-testid="chat-panel-input"
         onChange={props.onInput}
         onInput={(event) => props.onInput(event.currentTarget.value)}
-        onKeyDown={(event) => {
-          if (
-            event.key === "Enter" &&
-            !event.shiftKey &&
-            !event.nativeEvent.isComposing &&
-            event.nativeEvent.keyCode !== 229
-          )
-            props.onSend(event);
-        }}
+        onKeyDown={handleKeyDown}
         onPaste={props.onPaste}
       />
       <Group justify="space-between" wrap="nowrap">

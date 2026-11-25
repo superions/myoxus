@@ -11,7 +11,6 @@ import { QuotaCheck, QuotaUploadWatcher } from "@myoxus/core/modules/quota";
 import { WorkbenchService } from "@myoxus/core/modules/workbench";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { LiveData, useLiveData, useService } from "@myoxus/infra";
-import { uniReactRoot } from "@myoxus/core/editor/uni-react-root";
 import type { PropsWithChildren } from "react";
 
 /**
@@ -45,7 +44,6 @@ export const WorkspaceLayout = function WorkspaceLayout({
 
       <WorkspaceLayoutInner>{children}</WorkspaceLayoutInner>
       <AIIsland />
-      <uniReactRoot.Root />
     </SWRConfigProvider>
   );
 };

@@ -29,7 +29,6 @@ import { configureEditorModule } from "./editor";
 import { configureEditorSettingModule } from "./editor-setting";
 import { configureExplorerIconModule } from "./explorer-icon";
 import { configureFavoriteModule } from "./favorite";
-import { configureIconPickerModule } from "./icon-picker";
 import { configureIntegrationModule } from "./integration";
 import { configureJournalModule } from "./journal";
 import { configureMediaModule } from "./media";
@@ -95,5 +94,4 @@ export function configureCommonWorkspaceFeatureModules(framework: Framework) {
   configureIndexerEmbeddingModule(framework);
   configureCommentModule(framework);
   configureDocSummaryModule(framework);
-  configureIconPickerModule(framework);
 }

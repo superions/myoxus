@@ -29,6 +29,7 @@ import {
 } from "react";
 import { cssVar } from "@myoxus/theme";
 import { joinClassName } from "./helpers/class-name";
+import { useModalPortalTarget } from "./helpers/modal-context";
 import { type RoleBoxProps } from "./helpers/ui-role";
 import { ErrorMessage } from "./feedback";
 import { useI18n } from "@myoxus/i18n";
@@ -47,11 +48,10 @@ export type MyoxusInputProps = Omit<
   inputClassName?: string;
   preFix?: ReactNode;
   endFix?: ReactNode;
-  status?: "error" | "success" | "warning" | "default";
+  status?: "error" | "default";
   size?: "default" | "large" | "extraLarge";
   noBorder?: boolean;
   autoSelect?: boolean;
-  debounce?: number;
   mono?: boolean;
   block?: boolean;
 };
@@ -82,7 +82,6 @@ export const Input = forwardRef(function Input(
     size = "default",
     noBorder = false,
     autoSelect,
-    debounce: _debounce,
     mono = false,
     block = false,
     error,
@@ -148,11 +147,10 @@ export type MyoxusPasswordInputProps = Omit<
   inputStyle?: CSSProperties;
   preFix?: ReactNode;
   endFix?: ReactNode;
-  status?: "error" | "success" | "warning" | "default";
+  status?: "error" | "default";
   size?: "default" | "large" | "extraLarge";
   noBorder?: boolean;
   autoSelect?: boolean;
-  debounce?: number;
 };
 
 export const PasswordInput = forwardRef(function PasswordInput(
@@ -165,8 +163,8 @@ export const PasswordInput = forwardRef(function PasswordInput(
     endFix,
     status = "default",
     size = "default",
+    noBorder = false,
     autoSelect,
-    debounce: _debounce,
     onFocus,
     type: _type,
     visible,
@@ -183,7 +181,7 @@ export const PasswordInput = forwardRef(function PasswordInput(
     Boolean(defaultVisible),
   );
   const passwordVisible = visible ?? internalVisible;
-  const resolvedError = error ?? status === "error";
+  const resolvedError = error ?? (status === "error" ? true : undefined);
   const handleKeyDown = createInputKeyDownHandler(onKeyDown, onEnter);
   const handleVisibilityChange = (next: boolean) => {
     if (visible === undefined) {
@@ -216,7 +214,16 @@ export const PasswordInput = forwardRef(function PasswordInput(
         onFocus?.(event);
       }}
       styles={{
-        input: inputStyle,
+        input: {
+          ...(noBorder
+            ? {
+                background: "transparent",
+                borderColor: "transparent",
+                boxShadow: "none",
+              }
+            : null),
+          ...inputStyle,
+        },
       }}
     />
   );
@@ -264,11 +271,10 @@ export type ColorInputProps = Omit<
 
 export const ColorInput = forwardRef(function ColorInput(
   {
-    allowEmpty = false,
+    allowEmpty: _allowEmpty = false,
     popoverProps,
     autoSelect,
     block = false,
-    debounce: _debounce,
     endFix,
     error,
     fixOnBlur,
@@ -292,6 +298,7 @@ export const ColorInput = forwardRef(function ColorInput(
   const resolvedSize =
     size === "extraLarge" ? "lg" : size === "large" ? "md" : "sm";
   const [pickerOpened, setPickerOpened] = useState(false);
+  const modalTarget = useModalPortalTarget();
   const rootStyle = {
     width: block ? "100%" : undefined,
     ...style,
@@ -312,81 +319,63 @@ export const ColorInput = forwardRef(function ColorInput(
     if (autoSelect) event.currentTarget.select();
     onFocus?.(event);
   };
-  if (allowEmpty) {
-    return (
-      <MantineColorInput
-        {...props}
-        fixOnBlur={fixOnBlur}
-        classNames={{ input: inputClassName }}
-        data-myoxus-ui-role="form-color-input"
-        error={error ?? (status === "error" ? true : undefined)}
-        leftSection={preFix}
-        onChange={onChange}
-        onFocus={(event) => {
-          setPickerOpened(!props.readOnly && !props.disabled);
-          handleFocus(event);
-        }}
-        onBlur={(event) => {
-          setPickerOpened(false);
-          props.onBlur?.(event);
-        }}
-        onClick={(event) => {
-          setPickerOpened(!props.readOnly && !props.disabled);
-          props.onClick?.(event);
-        }}
-        onKeyDown={(event) => {
-          // Mantine keeps focus in the input, outside its picker dropdown.
-          // Close that child first without dismissing an enclosing editor form.
-          if (event.key === "Escape" && pickerOpened) {
-            event.preventDefault();
-            event.stopPropagation();
-            setPickerOpened(false);
-          } else handleKeyDown(event);
-        }}
-        popoverProps={{
-          ...popoverProps,
-          opened: pickerOpened,
-          onChange: (open) => {
-            setPickerOpened(open);
-            popoverProps?.onChange?.(open);
+  const modalPopoverLayer =
+    modalTarget && popoverProps?.withinPortal !== false
+      ? {
+          portalProps: {
+            target: modalTarget,
+            ...popoverProps?.portalProps,
           },
-        }}
-        ref={ref}
-        rightSection={endFix}
-        size={resolvedSize}
-        style={rootStyle}
-        styles={{ input: sharedInputStyle }}
-      />
-    );
-  }
+          zIndex: popoverProps?.zIndex ?? "var(--mb-z-index)",
+        }
+      : undefined;
   return (
-    <TextInput
+    <MantineColorInput
       {...props}
+      fixOnBlur={fixOnBlur}
       classNames={{ input: inputClassName }}
+      data-mantine-stop-propagation={
+        (modalTarget !== undefined && pickerOpened) || undefined
+      }
       data-myoxus-ui-role="form-color-input"
       error={error ?? (status === "error" ? true : undefined)}
       leftSection={preFix}
-      onChange={(event) => onChange?.(event.currentTarget.value)}
-      onFocus={handleFocus}
-      onKeyDown={handleKeyDown}
+      onChange={onChange}
+      onFocus={(event) => {
+        setPickerOpened(!props.readOnly && !props.disabled);
+        handleFocus(event);
+      }}
+      onBlur={(event) => {
+        setPickerOpened(false);
+        props.onBlur?.(event);
+      }}
+      onClick={(event) => {
+        setPickerOpened(!props.readOnly && !props.disabled);
+        props.onClick?.(event);
+      }}
+      onKeyDown={(event) => {
+        // Mantine keeps focus in the input, outside its picker dropdown.
+        // Close that child first without dismissing an enclosing editor form.
+        if (event.key === "Escape" && pickerOpened) {
+          event.preventDefault();
+          event.stopPropagation();
+          setPickerOpened(false);
+        } else handleKeyDown(event);
+      }}
+      popoverProps={{
+        ...popoverProps,
+        ...modalPopoverLayer,
+        opened: pickerOpened,
+        onChange: (open) => {
+          setPickerOpened(open);
+          popoverProps?.onChange?.(open);
+        },
+      }}
       ref={ref}
       rightSection={endFix}
       size={resolvedSize}
       style={rootStyle}
-      styles={{
-        input: {
-          width: "var(--mantine-spacing-xl)",
-          height: "var(--mantine-spacing-xl)",
-          minHeight: "var(--mantine-spacing-xl)",
-          padding: 0,
-          border: 0,
-          borderRadius: "var(--mantine-radius-sm)",
-          background: "transparent",
-          cursor: "pointer",
-          ...sharedInputStyle,
-        },
-      }}
-      type="color"
+      styles={{ input: sharedInputStyle }}
     />
   );
 });

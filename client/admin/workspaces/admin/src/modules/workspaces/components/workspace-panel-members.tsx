@@ -46,6 +46,7 @@ import {
   Stack,
   SurfaceList,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -517,125 +518,134 @@ export function WorkspaceMembersSection({
       />
 
       {/* Rows */}
-      <Table highlightOnHover>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{i18n.t("admin.workspaces.members.col-name")}</TableHead>
-            <TableHead>
-              {i18n.t("admin.workspaces.members.col-email")}
-            </TableHead>
-            <TableHead>{i18n.t("admin.workspaces.members.col-role")}</TableHead>
-            <TableHead>
-              {i18n.t("admin.workspaces.members.col-status")}
-            </TableHead>
-            <TableHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {members.length === 0 ? (
+      <TableScrollContainer>
+        <Table highlightOnHover>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={5}>
-                <SettingsEmptyState
-                  title={
-                    debouncedSearch
-                      ? i18n.t("admin.workspaces.members.none-search")
-                      : i18n.t("admin.workspaces.members.none")
-                  }
-                />
-              </TableCell>
+              <TableHead>
+                {i18n.t("admin.workspaces.members.col-name")}
+              </TableHead>
+              <TableHead>
+                {i18n.t("admin.workspaces.members.col-email")}
+              </TableHead>
+              <TableHead>
+                {i18n.t("admin.workspaces.members.col-role")}
+              </TableHead>
+              <TableHead>
+                {i18n.t("admin.workspaces.members.col-status")}
+              </TableHead>
+              <TableHead />
             </TableRow>
-          ) : (
-            members.map((member) => {
-              const isOwner =
-                member.id === ownerId || member.role === Permission.Owner;
-              const currentRole = member.directRole ?? member.role;
-              const availableRoleOptions = roleOptions.includes(currentRole)
-                ? roleOptions
-                : [currentRole, ...roleOptions];
-              const displayName = member.name || member.email;
-              return (
-                <TableRow
-                  key={member.id}
-                  data-testid={`member-row-${member.id}`}
-                >
-                  <TableCell>
-                    <Group wrap="nowrap">
-                      <Avatar name={displayName} url={member.avatarUrl} />
-                      <SettingsListItemTitle truncate>
-                        {displayName}
-                      </SettingsListItemTitle>
-                    </Group>
-                  </TableCell>
-                  <TableCell>
-                    <SettingsListItemMeta truncate>
-                      {member.email}
-                    </SettingsListItemMeta>
-                  </TableCell>
-                  <TableCell>
-                    {(isOwner || !member.directRole || member.ouRole) && (
-                      <RoleBadge role={member.role} />
-                    )}
-                    {!isOwner && member.directRole && (
-                      <MyoxusSelect
-                        value={currentRole}
-                        disabled={roleUpdatingUserId === member.id}
-                        aria-label={i18n.t(
-                          "admin.workspaces.members.role-select-label",
-                          { name: displayName },
-                        )}
-                        data={availableRoleOptions.map((option) => ({
-                          value: option,
-                          label: roleLabel(i18n, option),
-                        }))}
-                        onChange={(value) =>
-                          handleRoleChange(member, value as Permission)
-                        }
-                        data-testid={`member-role-select-${member.id}`}
-                      />
-                    )}
-                    {member.directRole && (
-                      <SettingsListItemMeta>
-                        {i18n.t("com.myoxus.member.role.direct", {
-                          role: roleLabel(i18n, member.directRole),
-                        })}
+          </TableHeader>
+          <TableBody>
+            {members.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5}>
+                  <SettingsEmptyState
+                    title={
+                      debouncedSearch
+                        ? i18n.t("admin.workspaces.members.none-search")
+                        : i18n.t("admin.workspaces.members.none")
+                    }
+                  />
+                </TableCell>
+              </TableRow>
+            ) : (
+              members.map((member) => {
+                const isOwner =
+                  member.id === ownerId || member.role === Permission.Owner;
+                const currentRole = member.directRole ?? member.role;
+                const availableRoleOptions = roleOptions.includes(currentRole)
+                  ? roleOptions
+                  : [currentRole, ...roleOptions];
+                const displayName = member.name || member.email;
+                return (
+                  <TableRow
+                    key={member.id}
+                    data-testid={`member-row-${member.id}`}
+                  >
+                    <TableCell>
+                      <Group wrap="nowrap">
+                        <Avatar name={displayName} url={member.avatarUrl} />
+                        <SettingsListItemTitle truncate>
+                          {displayName}
+                        </SettingsListItemTitle>
+                      </Group>
+                    </TableCell>
+                    <TableCell>
+                      <SettingsListItemMeta truncate>
+                        {member.email}
                       </SettingsListItemMeta>
-                    )}
-                    {member.ouRole && (
-                      <SettingsListItemMeta>
-                        {i18n.t("com.myoxus.member.role.inherited", {
-                          role: roleLabel(i18n, member.ouRole),
-                          units: member.ouNames.join(", "),
-                        })}
-                      </SettingsListItemMeta>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge
-                      status={member.status as WorkspaceMemberStatus}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {!isOwner && member.directRole && (
-                      <IconButton
-                        icon={<UserMinusIcon aria-hidden />}
-                        aria-label={i18n.t("admin.workspaces.members.remove")}
-                        tooltip={i18n.t("admin.workspaces.members.remove")}
-                        type="button"
-                        variant="plain"
-                        onClick={() =>
-                          setRemoveTarget({ id: member.id, name: displayName })
-                        }
-                        disabled={isRevoking}
-                        data-testid={`remove-member-btn-${member.id}`}
+                    </TableCell>
+                    <TableCell>
+                      {(isOwner || !member.directRole || member.ouRole) && (
+                        <RoleBadge role={member.role} />
+                      )}
+                      {!isOwner && member.directRole && (
+                        <MyoxusSelect
+                          value={currentRole}
+                          disabled={roleUpdatingUserId === member.id}
+                          aria-label={i18n.t(
+                            "admin.workspaces.members.role-select-label",
+                            { name: displayName },
+                          )}
+                          data={availableRoleOptions.map((option) => ({
+                            value: option,
+                            label: roleLabel(i18n, option),
+                          }))}
+                          onChange={(value) =>
+                            handleRoleChange(member, value as Permission)
+                          }
+                          data-testid={`member-role-select-${member.id}`}
+                        />
+                      )}
+                      {member.directRole && (
+                        <SettingsListItemMeta>
+                          {i18n.t("com.myoxus.member.role.direct", {
+                            role: roleLabel(i18n, member.directRole),
+                          })}
+                        </SettingsListItemMeta>
+                      )}
+                      {member.ouRole && (
+                        <SettingsListItemMeta>
+                          {i18n.t("com.myoxus.member.role.inherited", {
+                            role: roleLabel(i18n, member.ouRole),
+                            units: member.ouNames.join(", "),
+                          })}
+                        </SettingsListItemMeta>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge
+                        status={member.status as WorkspaceMemberStatus}
                       />
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
+                    </TableCell>
+                    <TableCell>
+                      {!isOwner && member.directRole && (
+                        <IconButton
+                          icon={<UserMinusIcon aria-hidden />}
+                          aria-label={i18n.t("admin.workspaces.members.remove")}
+                          tooltip={i18n.t("admin.workspaces.members.remove")}
+                          type="button"
+                          variant="plain"
+                          onClick={() =>
+                            setRemoveTarget({
+                              id: member.id,
+                              name: displayName,
+                            })
+                          }
+                          disabled={isRevoking}
+                          data-testid={`remove-member-btn-${member.id}`}
+                        />
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </TableScrollContainer>
 
       {/* Pagination */}
       {totalPages > 1 && (

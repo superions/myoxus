@@ -260,7 +260,7 @@ function BpmnBlockPresentation(
     }
   };
   return (
-    <Card>
+    <Card withBorder={false}>
       <Stack
         onKeyDown={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}

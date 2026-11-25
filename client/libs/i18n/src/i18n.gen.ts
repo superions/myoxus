@@ -21471,6 +21471,30 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.ai.chat-panel.context-already-added"](): string;
   /** Go to the latest message */
   ["com.myoxus.ai.chat-panel.scroll-latest"](): string;
+  /** Code artifact failed */
+  ["com.myoxus.ai.chat-panel.code-artifact-failed"](): string;
+  /** Document composition failed */
+  ["com.myoxus.ai.chat-panel.doc-compose-failed"](): string;
+  /** Could not create the document. */
+  ["com.myoxus.ai.chat-panel.doc-create-failed"](): string;
+  /** Open the document you just created */
+  ["com.myoxus.ai.chat-panel.open-created-doc-title"](): string;
+  /** Document saved successfully. Would you like to open it now? */
+  ["com.myoxus.ai.chat-panel.open-created-doc-message"](): string;
+  /** Open */
+  ["com.myoxus.ai.chat-panel.open-action"](): string;
+  /** AI is generating content. Do you want to stop generating? */
+  ["com.myoxus.ai.chat-panel.stop-confirm-message"](): string;
+  /** Stop */
+  ["com.myoxus.ai.chat-panel.stop-confirm-action"](): string;
+  /** Discard the AI result */
+  ["com.myoxus.ai.chat-panel.discard-result-title"](): string;
+  /** Do you want to discard the results the AI just generated? */
+  ["com.myoxus.ai.chat-panel.discard-result-message"](): string;
+  /** Discard */
+  ["com.myoxus.ai.chat-panel.discard-result-action"](): string;
+  /** AI chat block */
+  ["com.myoxus.ai.chat-panel.chat-block"](): string;
   /** You */
   ["com.myoxus.common.you"](): string;
   /** Choose an element, then click the canvas to place it. You can also drag it from the palette. */

@@ -36,6 +36,7 @@ import type { EditorHost } from "@virgultum/editor/std";
 import {
   useState,
   useEffect,
+  useRef,
   Fragment,
   isValidElement,
   type ComponentProps,
@@ -215,10 +216,23 @@ export function AIPanelView({
   const t = useI18n();
   const [input, setValue] = useState("");
   const [copied, setCopied] = useState(false);
+  const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (state === "input") setValue("");
-    if (state === "generating") setCopied(false);
+    if (state === "generating") {
+      setCopied(false);
+      if (copyResetRef.current) {
+        clearTimeout(copyResetRef.current);
+        copyResetRef.current = null;
+      }
+    }
   }, [state]);
+  useEffect(
+    () => () => {
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+    },
+    [],
+  );
   const renderedAnswer =
     answer !== null ? config.answerRenderer(answer, state) : null;
   const send = () => {
@@ -356,12 +370,6 @@ export function AIPanelView({
                         </Button>
                       </Group>
                     ) : null}
-                    {config.errorStateConfig.error?.type ===
-                    AIErrorType.PaymentRequired ? (
-                      <Button onClick={config.errorStateConfig.cancel}>
-                        {t["Cancel"]()}
-                      </Button>
-                    ) : null}
                   </Stack>
                 ) : null}
               </Stack>
@@ -376,15 +384,26 @@ export function AIPanelView({
                     data-testid={
                       copied ? "answer-copied" : "answer-copy-button"
                     }
-                    aria-label={t["Copy"]()}
-                    tooltip={t["Copy"]()}
+                    aria-label={
+                      copied ? t["Copied to clipboard"]() : t["Copy"]()
+                    }
+                    tooltip={copied ? t["Copied to clipboard"]() : t["Copy"]()}
                     onClick={async () => {
                       const ok = !!(await config.copy?.onCopy());
+                      if (copyResetRef.current) {
+                        clearTimeout(copyResetRef.current);
+                        copyResetRef.current = null;
+                      }
                       setCopied(ok);
-                      if (ok)
+                      if (ok) {
+                        copyResetRef.current = setTimeout(() => {
+                          setCopied(false);
+                          copyResetRef.current = null;
+                        }, 2000);
                         host.std
                           .getOptional(NotificationProvider)
                           ?.toast(t["Copied to clipboard"]());
+                      }
                     }}
                   >
                     {copied ? <DoneIcon /> : <CopyIcon />}

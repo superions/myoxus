@@ -12,6 +12,7 @@ import {
   SettingsToolbar,
   Stack,
   Table,
+  TableScrollContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -205,47 +206,49 @@ export function ImportExportTab() {
         ) : exportQuery.isLoading ? (
           <SettingsSkeleton />
         ) : exportPayload?.files?.length ? (
-          <Table aria-label={i18n.t("admin.organization.export.title")}>
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  {i18n.t("admin.organization.export.col.file")}
-                </TableHead>
-                <TableHead>
-                  {i18n.t("admin.organization.export.col.size")}
-                </TableHead>
-                <TableHead>{i18n.t("admin.common.actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {exportPayload.files.map((file) => (
-                <TableRow key={file.name}>
-                  <TableCell>{file.name}</TableCell>
-                  <TableCell>
-                    {formatAdminInteger(
-                      i18n.language,
-                      new Blob([file.content]).size,
-                    )}{" "}
-                    {i18n.t("admin.common.bytes")}
-                  </TableCell>
-                  <TableCell>
-                    <IconButton
-                      disabled={!exportReady}
-                      icon={<Download aria-hidden />}
-                      aria-label={
-                        i18n.t("admin.organization.export.download") +
-                        " " +
-                        file.name
-                      }
-                      onClick={() =>
-                        download(file.name, file.content, "text/csv")
-                      }
-                    />
-                  </TableCell>
+          <TableScrollContainer>
+            <Table aria-label={i18n.t("admin.organization.export.title")}>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    {i18n.t("admin.organization.export.col.file")}
+                  </TableHead>
+                  <TableHead>
+                    {i18n.t("admin.organization.export.col.size")}
+                  </TableHead>
+                  <TableHead>{i18n.t("admin.common.actions")}</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {exportPayload.files.map((file) => (
+                  <TableRow key={file.name}>
+                    <TableCell>{file.name}</TableCell>
+                    <TableCell>
+                      {formatAdminInteger(
+                        i18n.language,
+                        new Blob([file.content]).size,
+                      )}{" "}
+                      {i18n.t("admin.common.bytes")}
+                    </TableCell>
+                    <TableCell>
+                      <IconButton
+                        disabled={!exportReady}
+                        icon={<Download aria-hidden />}
+                        aria-label={
+                          i18n.t("admin.organization.export.download") +
+                          " " +
+                          file.name
+                        }
+                        onClick={() =>
+                          download(file.name, file.content, "text/csv")
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableScrollContainer>
         ) : null}
       </Stack>
       <Stack component="section">
@@ -345,38 +348,40 @@ export function ImportExportTab() {
               }
             />
             {report.errors.length ? (
-              <Table aria-label={i18n.t("admin.organization.import.title")}>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      {i18n.t("admin.organization.import.col.source")}
-                    </TableHead>
-                    <TableHead>
-                      {i18n.t("admin.organization.import.col.row")}
-                    </TableHead>
-                    <TableHead>
-                      {i18n.t("admin.organization.import.col.field")}
-                    </TableHead>
-                    <TableHead>
-                      {i18n.t("admin.organization.import.col.message")}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {report.errors.map((error, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{error.source}</TableCell>
-                      <TableCell>
-                        {error.row == null
-                          ? null
-                          : formatAdminInteger(i18n.language, error.row)}
-                      </TableCell>
-                      <TableCell>{error.field}</TableCell>
-                      <TableCell>{error.message}</TableCell>
+              <TableScrollContainer>
+                <Table aria-label={i18n.t("admin.organization.import.title")}>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>
+                        {i18n.t("admin.organization.import.col.source")}
+                      </TableHead>
+                      <TableHead>
+                        {i18n.t("admin.organization.import.col.row")}
+                      </TableHead>
+                      <TableHead>
+                        {i18n.t("admin.organization.import.col.field")}
+                      </TableHead>
+                      <TableHead>
+                        {i18n.t("admin.organization.import.col.message")}
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {report.errors.map((error, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{error.source}</TableCell>
+                        <TableCell>
+                          {error.row == null
+                            ? null
+                            : formatAdminInteger(i18n.language, error.row)}
+                        </TableCell>
+                        <TableCell>{error.field}</TableCell>
+                        <TableCell>{error.message}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableScrollContainer>
             ) : null}
           </Stack>
         ) : null}

@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: MIT
 
-import { Scrollable } from "@myoxus/ui-facade";
+import { Scrollable, Stack, useThrottledCallback } from "@myoxus/ui-facade";
 import type { EditorHost } from "@virgultum/editor/std";
-import throttle from "lodash-es/throttle";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type {
   MyoxusAIPanelState,
   MyoxusAIPanelWidgetConfig,
 } from "../widgets/ai-panel/type";
 import { StoredAnswerText } from "./ai-message-content/stored-answer-text";
+import { ChatScrollToLatest } from "./message-chrome";
+
+const AUTO_SCROLL_PAUSE_THRESHOLD_PX = 32;
+const AUTO_SCROLL_RESUME_THRESHOLD_PX = 16;
 
 export interface ScrollableTextRendererOptions {
   host?: EditorHost | null;
@@ -30,48 +33,74 @@ export function AIScrollableTextRenderer({
 }) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const lastScrollHeightRef = useRef(0);
+  const [paused, setPaused] = useState(false);
 
-  const throttledScrollToEnd = useMemo(
-    () =>
-      throttle(() => {
-        requestAnimationFrame(() => {
-          const viewport = viewportRef.current;
-          if (!viewport) return;
-          const scrollHeight = viewport.scrollHeight || 0;
-          if (scrollHeight > lastScrollHeightRef.current) {
-            lastScrollHeightRef.current = scrollHeight;
-            viewport.scrollTo({ top: scrollHeight });
-          }
-        });
-      }, 300),
-    [],
-  );
+  const throttledScrollToEnd = useThrottledCallback(() => {
+    requestAnimationFrame(() => {
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+      const scrollHeight = viewport.scrollHeight || 0;
+      if (scrollHeight > lastScrollHeightRef.current) {
+        lastScrollHeightRef.current = scrollHeight;
+        viewport.scrollTo({ top: scrollHeight });
+      }
+    });
+  }, 300);
 
   useEffect(() => {
-    return () => throttledScrollToEnd.cancel();
-  }, [throttledScrollToEnd]);
+    if (state !== "generating") {
+      setPaused(false);
+    }
+  }, [state]);
 
   useEffect(() => {
-    if (autoScroll && (state === "generating" || state === "finished")) {
+    if (
+      autoScroll &&
+      !paused &&
+      (state === "generating" || state === "finished")
+    ) {
       throttledScrollToEnd();
     }
-  }, [answer, autoScroll, state, throttledScrollToEnd]);
+  }, [answer, autoScroll, paused, state, throttledScrollToEnd]);
+
+  const handleScroll = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || state !== "generating") return;
+    const distanceFromBottom =
+      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+    if (distanceFromBottom > AUTO_SCROLL_PAUSE_THRESHOLD_PX) {
+      setPaused(true);
+    } else if (distanceFromBottom <= AUTO_SCROLL_RESUME_THRESHOLD_PX) {
+      setPaused(false);
+    }
+  }, [state]);
+
+  const resumeAutoScroll = useCallback(() => {
+    setPaused(false);
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    lastScrollHeightRef.current = viewport.scrollHeight || 0;
+    viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
+  }, []);
 
   return (
-    <Scrollable.Viewport
-      autosize
-      scrollbars="y"
-      style={{ maxHeight }}
-      ref={viewportRef}
-      onWheel={(event) => {
-        event.stopPropagation();
-        if (state === "generating") {
-          event.preventDefault();
-        }
-      }}
-    >
-      <StoredAnswerText host={host} text={answer} />
-    </Scrollable.Viewport>
+    <Stack gap="xs">
+      <Scrollable.Viewport
+        autosize
+        scrollbars="y"
+        style={{ maxHeight }}
+        ref={viewportRef}
+        onScroll={handleScroll}
+        onWheel={(event) => {
+          event.stopPropagation();
+        }}
+      >
+        <StoredAnswerText host={host} text={answer} />
+      </Scrollable.Viewport>
+      {paused && state === "generating" ? (
+        <ChatScrollToLatest onClick={resumeAutoScroll} />
+      ) : null}
+    </Stack>
   );
 }
 

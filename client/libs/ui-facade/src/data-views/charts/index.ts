@@ -1,8 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 export * from "./charts";
-// Read-only inline histories use native Mantine, not the editable diagram runtime.
-export { Sparkline, type SparklineProps } from "@mantine/charts";
+// Read-only inline and standard Mantine charts stay at the Facade boundary.
+export {
+  AreaChart,
+  BarChart,
+  DonutChart,
+  LineChart,
+  Sparkline,
+  type AreaChartProps,
+  type BarChartProps,
+  type DonutChartProps,
+  type LineChartProps,
+  type SparklineProps,
+} from "@mantine/charts";
 export * from "./composite-chart";
 export * from "./data-tree";
 export {

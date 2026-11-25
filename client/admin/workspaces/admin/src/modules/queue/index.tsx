@@ -34,6 +34,7 @@ import {
   Text,
   Button,
   ConfirmModal,
+  Drawer,
   EmptyState,
   Group,
   IconButton,
@@ -55,6 +56,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableScrollContainer,
   Tabs,
   TabsContent,
 } from "@myoxus/ui-facade";
@@ -63,7 +65,6 @@ import { useCallback, useEffect, useState } from "react";
 import { AdminPageFrame, AdminPageScroll, AdminSubnav } from "../admin-shell";
 import { useUrlSyncedAdminTab } from "../admin-tabs";
 import { useAdminContext, useRevalidateServerConfig } from "../common";
-import { useRightPanel } from "../panel/context";
 import { ALL_CONFIG_DESCRIPTORS, type AppConfig } from "../settings/config";
 import {
   ConfigBooleanField,
@@ -495,7 +496,9 @@ export function QueuePage() {
   } = useAdminContext();
   const [health, setHealth] = useState<QueueHealth>({ state: "loading" });
   const [emptyTarget, setEmptyTarget] = useState<QueueWithCounts | null>(null);
-  const { setPanelContent, openPanel, isOpen, closePanel } = useRightPanel();
+  const [selectedQueueName, setSelectedQueueName] = useState<string | null>(
+    null,
+  );
 
   // Settings tab: useAppConfig for job config
   const {
@@ -546,19 +549,9 @@ export function QueuePage() {
     void loadQueues();
   }, [hasQueueDashboard, loadQueues]);
 
-  const handleQueueClick = useCallback(
-    (queue: QueueWithCounts) => {
-      setPanelContent(
-        <QueueDetailPanel
-          key={queue.name}
-          queueName={queue.name}
-          onClose={closePanel}
-        />,
-      );
-      if (!isOpen) openPanel();
-    },
-    [closePanel, isOpen, openPanel, setPanelContent],
-  );
+  const handleQueueClick = useCallback((queue: QueueWithCounts) => {
+    setSelectedQueueName(queue.name);
+  }, []);
 
   // --- Queue management actions ---
 
@@ -779,160 +772,172 @@ export function QueuePage() {
                   />
                 )}
                 {health.state === "ready" && (
-                  <Table
-                    highlightOnHover
-                    aria-label={i18n.t("admin.queue.list-aria")}
-                  >
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{i18n.t("admin.queue.title")}</TableHead>
-                        <TableHead>
-                          {i18n.t("admin.queue.summary.state")}
-                        </TableHead>
-                        <TableHead>
-                          {i18n.t("admin.queue.count.waiting")}
-                        </TableHead>
-                        <TableHead>
-                          {i18n.t("admin.queue.count.active")}
-                        </TableHead>
-                        <TableHead>
-                          {i18n.t("admin.queue.count.delayed")}
-                        </TableHead>
-                        <TableHead>
-                          {i18n.t("admin.queue.count.completed")}
-                        </TableHead>
-                        <TableHead>
-                          {i18n.t("admin.queue.count.failed")}
-                        </TableHead>
-                        <TableHead>
-                          {i18n.t("admin.queue.history.title")}
-                        </TableHead>
-                        <TableHead>{i18n.t("admin.common.actions")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {health.queues.map((q) => {
-                        const history = queueHistorySeries(q.history ?? []);
-                        const description = history
-                          ? i18n.t("admin.queue.history.summary", {
-                              queue: q.displayName,
-                              start: historyTime.format(history.start),
-                              end: historyTime.format(history.end),
-                              count: new Intl.NumberFormat(
-                                i18n.language,
-                              ).format(history.last),
-                            })
-                          : q.history === null
-                            ? i18n.t("admin.queue.history.unavailable")
-                            : i18n.t("admin.queue.history.insufficient");
-                        return (
-                          <TableRow
-                            key={q.name}
-                            onClick={() => handleQueueClick(q)}
-                            data-myoxus-ui-role="queue-row"
-                          >
-                            <TableCell>
-                              <InlineActionButton
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleQueueClick(q);
-                                }}
-                              >
-                                {q.displayName}
-                              </InlineActionButton>
-                            </TableCell>
-                            <TableCell>
-                              <Badge tone={q.paused ? "warning" : "success"}>
-                                {q.paused
-                                  ? i18n.t("admin.queue.paused")
-                                  : i18n.t("admin.queue.running")}
-                              </Badge>
-                            </TableCell>
-                            <TableCell tabular>{q.counts.waiting}</TableCell>
-                            <TableCell tabular>{q.counts.active}</TableCell>
-                            <TableCell tabular>{q.counts.delayed}</TableCell>
-                            <TableCell tabular>{q.counts.completed}</TableCell>
-                            <TableCell tabular>{q.counts.failed}</TableCell>
-                            <TableCell>
-                              <Tooltip
-                                content={description}
-                                events={{
-                                  hover: true,
-                                  focus: true,
-                                  touch: false,
-                                }}
-                              >
-                                {history ? (
-                                  <Sparkline
-                                    data={history.data}
-                                    role="img"
-                                    aria-label={description}
-                                    tabIndex={0}
-                                    data-myoxus-ui-role="queue-history"
-                                  />
-                                ) : (
-                                  <Text aria-label={description} tabIndex={0}>
-                                    —
-                                  </Text>
-                                )}
-                              </Tooltip>
-                            </TableCell>
-                            <TableCell>
-                              <Group
-                                onClick={(e) => e.stopPropagation()}
-                                data-myoxus-ui-role="queue-row-actions"
-                              >
-                                <Menu
-                                  contentOptions={{ align: "end" }}
-                                  items={
-                                    <>
-                                      <MenuItem
-                                        prefixIcon={
-                                          q.paused ? (
-                                            <Play aria-hidden />
-                                          ) : (
-                                            <Pause aria-hidden />
-                                          )
-                                        }
-                                        onSelect={() => handlePauseResume(q)}
-                                      >
-                                        {q.paused
-                                          ? i18n.t("admin.queue.resume-queue")
-                                          : i18n.t("admin.queue.pause-queue")}
-                                      </MenuItem>
-                                      <MenuSeparator />
-                                      <MenuItem
-                                        prefixIcon={<CheckCircle aria-hidden />}
-                                        onSelect={() => handleClean(q)}
-                                      >
-                                        {i18n.t("admin.queue.clean-completed")}
-                                      </MenuItem>
-                                      <MenuSeparator />
-                                      <MenuItem
-                                        type="danger"
-                                        prefixIcon={<Trash2 aria-hidden />}
-                                        onSelect={() => setEmptyTarget(q)}
-                                      >
-                                        {i18n.t("admin.queue.empty-queue")}
-                                      </MenuItem>
-                                    </>
-                                  }
+                  <TableScrollContainer>
+                    <Table
+                      highlightOnHover
+                      aria-label={i18n.t("admin.queue.list-aria")}
+                    >
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{i18n.t("admin.queue.title")}</TableHead>
+                          <TableHead>
+                            {i18n.t("admin.queue.summary.state")}
+                          </TableHead>
+                          <TableHead>
+                            {i18n.t("admin.queue.count.waiting")}
+                          </TableHead>
+                          <TableHead>
+                            {i18n.t("admin.queue.count.active")}
+                          </TableHead>
+                          <TableHead>
+                            {i18n.t("admin.queue.count.delayed")}
+                          </TableHead>
+                          <TableHead>
+                            {i18n.t("admin.queue.count.completed")}
+                          </TableHead>
+                          <TableHead>
+                            {i18n.t("admin.queue.count.failed")}
+                          </TableHead>
+                          <TableHead>
+                            {i18n.t("admin.queue.history.title")}
+                          </TableHead>
+                          <TableHead>
+                            {i18n.t("admin.common.actions")}
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {health.queues.map((q) => {
+                          const history = queueHistorySeries(q.history ?? []);
+                          const description = history
+                            ? i18n.t("admin.queue.history.summary", {
+                                queue: q.displayName,
+                                start: historyTime.format(history.start),
+                                end: historyTime.format(history.end),
+                                count: new Intl.NumberFormat(
+                                  i18n.language,
+                                ).format(history.last),
+                              })
+                            : q.history === null
+                              ? i18n.t("admin.queue.history.unavailable")
+                              : i18n.t("admin.queue.history.insufficient");
+                          return (
+                            <TableRow
+                              key={q.name}
+                              onClick={() => handleQueueClick(q)}
+                              data-myoxus-ui-role="queue-row"
+                            >
+                              <TableCell>
+                                <InlineActionButton
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleQueueClick(q);
+                                  }}
                                 >
-                                  <IconButton
-                                    icon={<MoreHorizontal aria-hidden />}
-                                    tooltip={i18n.t("admin.queue.actions-aria")}
-                                    aria-label={i18n.t(
-                                      "admin.queue.actions-aria",
-                                    )}
-                                  />
-                                </Menu>
-                              </Group>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                                  {q.displayName}
+                                </InlineActionButton>
+                              </TableCell>
+                              <TableCell>
+                                <Badge tone={q.paused ? "warning" : "success"}>
+                                  {q.paused
+                                    ? i18n.t("admin.queue.paused")
+                                    : i18n.t("admin.queue.running")}
+                                </Badge>
+                              </TableCell>
+                              <TableCell tabular>{q.counts.waiting}</TableCell>
+                              <TableCell tabular>{q.counts.active}</TableCell>
+                              <TableCell tabular>{q.counts.delayed}</TableCell>
+                              <TableCell tabular>
+                                {q.counts.completed}
+                              </TableCell>
+                              <TableCell tabular>{q.counts.failed}</TableCell>
+                              <TableCell>
+                                <Tooltip
+                                  content={description}
+                                  events={{
+                                    hover: true,
+                                    focus: true,
+                                    touch: false,
+                                  }}
+                                >
+                                  {history ? (
+                                    <Sparkline
+                                      data={history.data}
+                                      role="img"
+                                      aria-label={description}
+                                      tabIndex={0}
+                                      data-myoxus-ui-role="queue-history"
+                                    />
+                                  ) : (
+                                    <Text aria-label={description} tabIndex={0}>
+                                      —
+                                    </Text>
+                                  )}
+                                </Tooltip>
+                              </TableCell>
+                              <TableCell>
+                                <Group
+                                  onClick={(e) => e.stopPropagation()}
+                                  data-myoxus-ui-role="queue-row-actions"
+                                >
+                                  <Menu
+                                    contentOptions={{ align: "end" }}
+                                    items={
+                                      <>
+                                        <MenuItem
+                                          prefixIcon={
+                                            q.paused ? (
+                                              <Play aria-hidden />
+                                            ) : (
+                                              <Pause aria-hidden />
+                                            )
+                                          }
+                                          onSelect={() => handlePauseResume(q)}
+                                        >
+                                          {q.paused
+                                            ? i18n.t("admin.queue.resume-queue")
+                                            : i18n.t("admin.queue.pause-queue")}
+                                        </MenuItem>
+                                        <MenuSeparator />
+                                        <MenuItem
+                                          prefixIcon={
+                                            <CheckCircle aria-hidden />
+                                          }
+                                          onSelect={() => handleClean(q)}
+                                        >
+                                          {i18n.t(
+                                            "admin.queue.clean-completed",
+                                          )}
+                                        </MenuItem>
+                                        <MenuSeparator />
+                                        <MenuItem
+                                          type="danger"
+                                          prefixIcon={<Trash2 aria-hidden />}
+                                          onSelect={() => setEmptyTarget(q)}
+                                        >
+                                          {i18n.t("admin.queue.empty-queue")}
+                                        </MenuItem>
+                                      </>
+                                    }
+                                  >
+                                    <IconButton
+                                      icon={<MoreHorizontal aria-hidden />}
+                                      tooltip={i18n.t(
+                                        "admin.queue.actions-aria",
+                                      )}
+                                      aria-label={i18n.t(
+                                        "admin.queue.actions-aria",
+                                      )}
+                                    />
+                                  </Menu>
+                                </Group>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableScrollContainer>
                 )}
               </Stack>
             </TabsContent>
@@ -943,6 +948,32 @@ export function QueuePage() {
           </Stack>
         </AdminPageScroll>
       </Tabs>
+
+      {/* Queue job detail drawer */}
+      <Drawer
+        open={selectedQueueName !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedQueueName(null);
+        }}
+        title={
+          selectedQueueName
+            ? i18n.t("admin.queue.detail.title", {
+                queueName: selectedQueueName,
+              })
+            : ""
+        }
+        closeButtonLabel={i18n.t("admin.common.close")}
+        size="lg"
+      >
+        {selectedQueueName ? (
+          <QueueDetailPanel
+            key={selectedQueueName}
+            queueName={selectedQueueName}
+            onClose={() => setSelectedQueueName(null)}
+            embedded
+          />
+        ) : null}
+      </Drawer>
 
       {/* Confirm dialog for emptying a queue */}
       <ConfirmModal

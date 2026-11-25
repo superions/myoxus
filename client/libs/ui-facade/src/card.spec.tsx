@@ -114,6 +114,22 @@ describe("Card facade primitive", () => {
     const card = screen.getByTestId("card");
     expect(card.getAttribute("style")).not.toContain("padding: 0");
   });
+
+  test("inherits the Mantine theme border default unless explicitly disabled", () => {
+    render(
+      <MyoxusUIProvider>
+        <Card data-testid="default-card">Default</Card>
+        <Card data-testid="borderless-card" withBorder={false}>
+          Borderless
+        </Card>
+      </MyoxusUIProvider>,
+    );
+
+    expect(screen.getByTestId("default-card").dataset.withBorder).toBe("true");
+    expect(
+      screen.getByTestId("borderless-card").dataset.withBorder,
+    ).toBeUndefined();
+  });
 });
 
 describe("Reference card templates", () => {

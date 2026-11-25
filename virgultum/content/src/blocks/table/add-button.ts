@@ -1,11 +1,4 @@
 import {
-  autoPlacement,
-  autoUpdate,
-  computePosition,
-  offset,
-  shift,
-} from "@floating-ui/dom";
-import {
   EditorChromeHostIdentifier,
   EditorI18nProvider,
   type EditorTableControl,
@@ -20,7 +13,6 @@ import {
   addColumnButtonStyle,
   addRowButtonStyle,
   addRowColumnButtonStyle,
-  cellCountTipsStyle,
 } from "./add-button-css";
 import type { TableBlockComponent } from "./table-block";
 import { DefaultColumnWidth, DefaultRowHeight } from "./consts";
@@ -55,35 +47,6 @@ export class AddButton extends NativeViewElement {
   columnDragging$ = signal(false);
   rowDragging$ = signal(false);
   rowColumnDragging$ = signal(false);
-
-  popCellCountTips = (ele: Element) => {
-    const tip = document.createElement("div");
-    tip.classList.add(cellCountTipsStyle);
-    document.body.append(tip);
-    const dispose = autoUpdate(ele, tip, () => {
-      computePosition(ele, tip, {
-        middleware: [
-          autoPlacement({ allowedPlacements: ["bottom"] }),
-          offset(4),
-          shift(),
-        ],
-      })
-        .then(({ x, y }) => {
-          tip.style.left = `${x}px`;
-          tip.style.top = `${y}px`;
-        })
-        .catch((e) => {
-          console.error(e);
-        });
-    });
-    return {
-      tip,
-      dispose: () => {
-        dispose();
-        tip.remove();
-      },
-    };
-  };
 
   getEmptyRows() {
     const rows = this.rows$.value;
@@ -150,7 +113,6 @@ export class AddButton extends NativeViewElement {
     if (!realTarget) {
       return;
     }
-    const tipsHandler = this.popCellCountTips(realTarget);
     let emptyRows: number[] = [];
     let emptyColumns: number[] = [];
     if (isColumn) {
@@ -213,7 +175,6 @@ export class AddButton extends NativeViewElement {
           this.dataManager.virtualRowCount$.value = -count;
         }
       }
-      tipsHandler.tip.textContent = this.dataManager.cellCountTips$.value;
     };
     const onMouseUp = () => {
       this.columnDragging$.value = false;
@@ -228,7 +189,6 @@ export class AddButton extends NativeViewElement {
       this.dataManager.addNRow(rowCount);
       this.dataManager.addNColumn(columnCount);
 
-      tipsHandler.dispose();
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
@@ -242,6 +202,12 @@ export class AddButton extends NativeViewElement {
       const i18n = table?.std.getOptional(EditorI18nProvider) ?? undefined;
       const column = kind !== "row";
       const row = kind !== "column";
+      const dragging =
+        kind === "column"
+          ? this.columnDragging$.value
+          : kind === "row"
+            ? this.rowDragging$.value
+            : this.rowColumnDragging$.value;
       const rowLabel = resolveEditorMessage(
         editorMessage("com.myoxus.editor.table.insert-below", "Insert below"),
         i18n,
@@ -251,6 +217,9 @@ export class AddButton extends NativeViewElement {
         i18n,
       );
       return {
+        dragBadge: dragging
+          ? this.dataManager.cellCountTips$.value || undefined
+          : undefined,
         action: {
           id: `add-${kind}-button`,
           icon: "PlusIcon",
