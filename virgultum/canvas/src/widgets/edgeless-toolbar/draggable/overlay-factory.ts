@@ -1,6 +1,4 @@
-import { render } from "lit";
-
-import type { ElementInfo, OverlayLayer } from "./types.js";
+import type { DraggablePreview, ElementInfo, OverlayLayer } from "./types.js";
 
 export type DraggingInfo<T> = {
   startPos: { x: number; y: number };
@@ -35,6 +33,17 @@ const className = (name: string) =>
 const addClass = (node: HTMLElement, name: string) =>
   node.classList.add(className(name));
 
+export function mountDraggablePreview(
+  preview: DraggablePreview,
+  container: HTMLElement,
+) {
+  if (typeof preview === "string") {
+    container.innerHTML = preview;
+  } else {
+    container.replaceChildren(preview());
+  }
+}
+
 export const createShapeDraggingOverlay = <T>(
   info: DraggingInfo<T>,
 ): OverlayLayer => {
@@ -50,9 +59,6 @@ export const createShapeDraggingOverlay = <T>(
     height: edgelessRect.height + "px",
     overflow: "hidden",
     zIndex: "9999",
-
-    // for debug purpose
-    // background: 'rgba(255, 0, 0, 0.1)',
   });
 
   const element = document.createElement("div");
@@ -68,7 +74,7 @@ export const createShapeDraggingOverlay = <T>(
   transitionWrapper.style.setProperty("--rotate", "0deg");
   transitionWrapper.style.setProperty("--scale", "1");
 
-  render(info.elementInfo.preview, transitionWrapper);
+  mountDraggablePreview(info.elementInfo.preview, transitionWrapper);
 
   Object.assign(element.style, {
     transform:

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useI18n } from "@myoxus/i18n";
-import type { MountReactPortal } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import {
   ChevronDownIcon,
   ChevronUpIcon,

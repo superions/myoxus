@@ -1,6 +1,4 @@
-import { html } from "lit";
-
-export const EdgelessBrushLightIcon = html`
+export const EdgelessBrushLightIcon = `
   <svg
     width="36"
     height="60"
@@ -130,7 +128,7 @@ export const EdgelessBrushLightIcon = html`
     </defs>
   </svg>
 `;
-export const EdgelessBrushDarkIcon = html`<svg
+export const EdgelessBrushDarkIcon = `<svg
   width="34"
   height="60"
   viewBox="0 0 34 60"
@@ -270,7 +268,7 @@ export const EdgelessBrushDarkIcon = html`<svg
   </defs>
 </svg>`;
 
-export const EdgelessHighlighterDarkIcon = html`
+export const EdgelessHighlighterDarkIcon = `
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="29"
@@ -443,7 +441,7 @@ export const EdgelessHighlighterDarkIcon = html`
   </svg>
 `;
 
-export const EdgelessHighlighterLightIcon = html`
+export const EdgelessHighlighterLightIcon = `
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="29"

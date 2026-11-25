@@ -4,41 +4,9 @@ import { DocEmbedProvider } from "@virgultum/editor/shared/services";
  *
  * Unlike `EditorChatPanel` (which is a sidebar panel anchored to an open
  * document), this page provides a full-screen, document-independent AI chat
- * experience.  It is rendered inside a `ViewBody` / `ViewHeader` pair and
- * mounts the retained Virgultum content into a React ref:
- *
- *  - `AIChatContent`  — the scrollable chat message area (body)
- * Session controls use the same native React `ChatToolbar` as document chat.
- *
- * ### "Independent mode"
- * The content component is created with `independentMode = true`, which tells
- * it not to assume a real `EditorHost` is present.  A minimal
- * `BlockStdScope` (`useMockStd`) is still required by some AI extensions that
- * read workspace-level configuration; it is created from an arbitrary open doc
- * just to satisfy the extension contracts.
- *
- * ### Session lifecycle
- * 1. On first mount the component queries the server for a pinned session.  If
- *    one exists it is restored without creating a new session.
- * 2. The user can toggle the pin state of the current session.
- * 3. "New chat" creates a fresh session and remounts `AIChatContent`.
- * 4. Session switching (from the history menu) fetches the target session,
- *    updates state, and remounts the content component.
- * 5. Deleting the active session clears state and remounts.
- *
- * ### Remounting strategy
- * `reMountChatContent` removes the old `AIChatContent` element and sets
- * `chatContent` to `null`.  The subsequent render then re-creates and mounts a
- * fresh element in the `useEffect` that initialises `AIChatContent`. Failed
- * transitions do not remount, so the conversation and unsent input survive.
- *
- * ### Doc-link navigation
- * Reference-node click events from the mock `BlockStdScope` are forwarded to
- * `workbench.openDoc(...)` so that clicking a `@mention` or doc-link inside an
- * AI response navigates to the referenced document in the active workbench tab.
+ * experience using the shared React `AIChatContent` and `ChatToolbar`.
  */
 import { useAIChatConfig } from "@myoxus/core/components/hooks/myoxus/use-ai-chat-config";
-import { useAISpecs } from "@myoxus/core/components/hooks/myoxus/use-ai-specs";
 import { useEnableAI } from "@myoxus/core/components/hooks/myoxus/use-enable-ai";
 import { WorkbenchToolsHeaderMenuButton } from "@myoxus/core/components/workbench-tools-menu";
 import {
@@ -60,16 +28,12 @@ import {
   AIToolsConfigService,
 } from "@myoxus/core/modules/ai-button";
 import { AIModelService } from "@myoxus/core/modules/ai-button/services/models";
-import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
-import { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
 import { PeekViewService } from "@myoxus/core/modules/peek-view";
 import {
   EventSourceService,
   FetchService,
   GraphQLService,
-  ServerService,
 } from "@myoxus/core/modules/server";
-import { AppThemeService } from "@myoxus/core/modules/theme";
 import {
   ViewBody,
   ViewHeader,
@@ -82,27 +46,23 @@ import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { useI18n } from "@myoxus/i18n";
 import { AiIcon, ArrowLeftIcon } from "@myoxus/icons/react";
 import { useFramework, useService } from "@myoxus/infra";
-import { useLitPortalFactory } from "@myoxus/lit-react";
 import {
-  Button,
   Alert,
-  IconButton,
-  Group,
+  Button,
   DialogFooterActions,
+  Group,
+  IconButton,
   MyoxusTitle,
   Stack,
   useConfirmModal,
-  useResponsiveElementSize,
   WorkbenchHeaderFrame,
 } from "@myoxus/ui-facade";
-import { type Signal, signal } from "@preact/signals-core";
 import { RefNodeSlotsProvider } from "@virgultum/editor/inlines/reference";
 import { BlockStdScope } from "@virgultum/editor/std";
 import type { Workspace } from "@virgultum/editor/store";
 import { nanoid } from "nanoid";
 import {
   type ReactNode,
-  Fragment,
   useCallback,
   useEffect,
   useMemo,
@@ -110,19 +70,12 @@ import {
   useState,
 } from "react";
 
-import { registerAIAppEffects } from "@myoxus/core/editor/ai/effects/app";
 import { WorkbenchRouteStatus } from "../../404";
 import { createSessionDeleteHandler } from "../chat-panel-utils";
 import { ChatLoadingState } from "../detail-page/sidecards/ai-chat/loading-state";
 
-/** Shorthand for the resolved session type returned by `CopilotClient.getSession`. */
 type CopilotSession = Awaited<ReturnType<CopilotClient["getSession"]>>;
 
-/**
- * Creates and memoises a `CopilotClient` from the DI-provided transport
- * services.  The client is stable as long as `GraphQLService` and
- * `EventSourceService` references are unchanged.
- */
 function useCopilotClient() {
   const graphqlService = useService(GraphQLService);
   const fetchService = useService(FetchService);
@@ -139,20 +92,8 @@ function useCopilotClient() {
   );
 }
 
-/**
- * Creates a minimal `BlockStdScope` that satisfies Virgultum AI extension
- * contracts without requiring a real open editor.
- *
- * The scope is initialised from an arbitrary existing doc in the workspace
- * (`docs.values().next()`).  The doc itself is never displayed — we only need
- * the scope so that extensions like `RefNodeSlotsProvider` and view-manager
- * configurations are available to AI chat components.
- *
- * Returns `null` if the workspace has no docs yet (edge case on first launch).
- */
 function createMockStd(workspace: Workspace) {
   workspace.meta.initialize();
-  // just pick a random doc for now
   const store = workspace.docs.values().next().value?.getStore();
   if (!store) return null;
   const std = new BlockStdScope({
@@ -163,37 +104,15 @@ function createMockStd(workspace: Workspace) {
   return std;
 }
 
-/**
- * React hook that creates and memoises a mock `BlockStdScope` for the current
- * workspace.  Re-creates the scope only when the workspace identity changes.
- */
 function useMockStd() {
   const workspace = useService(WorkspaceService).workspace;
-  const std = useMemo(() => {
+  return useMemo(() => {
     if (!workspace) return null;
     return createMockStd(workspace.docCollection);
   }, [workspace]);
-  return std;
 }
 
-/**
- * Lazy route component for the `/chat` workbench path.
- *
- * Orchestrates session management, Lit web component lifecycle, and all AI
- * service wiring for the standalone (document-independent) chat view.
- *
- * Key state:
- * - `currentSession` — the active `CopilotSession`; `null` when no session has
- *   been started yet.
- * - `chatContent` — the mounted Lit content, or `null` before mounting.
- * - `isBodyProvided` — prevents mounting before the body DOM ref is ready.
- * - `hasRestoredPinnedSessionRef` — guards a completed initial restore while
- *   allowing a canceled StrictMode setup to retry the sidebar handoff.
- * - `widthSignalRef` — a Preact signal that communicates the container width
- *   to the `AIChatContent` element reactively (without re-rendering React).
- */
 export const WorkspaceChatPage = () => {
-  const [reactToLit, portals, mountPortal] = useLitPortalFactory();
   const t = useI18n();
   const framework = useFramework();
   const confirmModal = useConfirmModal();
@@ -205,8 +124,7 @@ export const WorkspaceChatPage = () => {
       ),
     [confirmModal.closeConfirmModal, confirmModal.openConfirmModal],
   );
-  const [isBodyProvided, setIsBodyProvided] = useState(false);
-  const [chatContent, setChatContent] = useState<AIChatContent | null>(null);
+  const [contentRemountKey, setContentRemountKey] = useState(0);
   const [currentSession, setCurrentSession] = useState<CopilotSession | null>(
     null,
   );
@@ -219,10 +137,6 @@ export const WorkspaceChatPage = () => {
   const retrySessionRef = useRef<() => void>(() => {});
   const sessionLoadSeqRef = useRef(0);
   const hasRestoredPinnedSessionRef = useRef(false);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-  const widthSignalRef = useRef<Signal<number>>(signal(0));
-  const { ref: chatContainerSizeRef, width: chatContainerWidth } =
-    useResponsiveElementSize<HTMLDivElement>();
   const client = useCopilotClient();
   const workbench = useService(WorkbenchService).workbench;
   const initialNavigation = useRef(
@@ -234,7 +148,6 @@ export const WorkspaceChatPage = () => {
 
   useEffect(() => {
     hasRestoredPinnedSessionRef.current = false;
-    // Cleanup also invalidates callbacks from StrictMode's abandoned setup.
     return () => {
       sessionLoadSeqRef.current += 1;
     };
@@ -245,7 +158,6 @@ export const WorkspaceChatPage = () => {
 
   const createSession = useCallback(
     async (options: Partial<VirgultumPresets.AICreateSessionOptions> = {}) => {
-      // Idempotent: if a session already exists, return it to avoid duplicates.
       if (currentSession) {
         return currentSession;
       }
@@ -265,7 +177,6 @@ export const WorkspaceChatPage = () => {
   );
 
   const togglePin = useCallback(async () => {
-    // Debounce: ignore rapid double-taps while the RPC is in flight.
     if (isTogglingPin) return;
     const requestSeq = ++sessionLoadSeqRef.current;
     setIsTogglingPin(true);
@@ -289,8 +200,6 @@ export const WorkspaceChatPage = () => {
           sessionId: currentSession.sessionId,
           pinned,
         });
-        // Fetch the full session object so `currentSession.pinned` reflects
-        // the server state rather than an optimistic local toggle.
         const session = await client.getSession(
           workspaceId,
           currentSession.sessionId,
@@ -306,13 +215,8 @@ export const WorkspaceChatPage = () => {
     }
   }, [client, currentSession, isTogglingPin, workspaceId]);
 
-  // Remount only after a transition succeeds; failures keep the conversation
-  // and its unsent input mounted.
   const reMountChatContent = useCallback(() => {
-    setChatContent((prev) => {
-      prev?.remove();
-      return null;
-    });
+    setContentRemountKey((value) => value + 1);
   }, []);
 
   const createFreshSession = useCallback(async () => {
@@ -345,7 +249,6 @@ export const WorkspaceChatPage = () => {
 
   const onOpenSession = useCallback(
     async (sessionId: string) => {
-      // Skip if already loading or if the requested session is already active.
       if (isOpeningSession || currentSession?.sessionId === sessionId) return;
       setIsOpeningSession(true);
       setSessionError(false);
@@ -386,19 +289,17 @@ export const WorkspaceChatPage = () => {
     },
     [workbench],
   );
+
   const onOpenSessionDoc = useCallback(
     (docId: string, sessionId: string) => {
       const { workbench } = framework.get(WorkbenchService);
       const viewService = framework.get(ViewService);
-      // Navigate to the document and open the chat sidebar pre-seeded with
-      // the session, so the user lands on the right conversation context.
       workbench.open(`/${docId}?sessionId=${sessionId}`, { at: "active" });
       viewService.view.showTool("chat");
     },
     [framework],
   );
 
-  const specs = useAISpecs(reactToLit, mountPortal);
   const mockStd = useMockStd();
   const deleteSession = useMemo(
     () =>
@@ -427,68 +328,6 @@ export const WorkspaceChatPage = () => {
       t,
     ],
   );
-
-  // init or update ai-chat-content
-  useEffect(() => {
-    if (!isBodyProvided || !initialResolved) {
-      return;
-    }
-
-    let content = chatContent;
-
-    if (!content) {
-      // A direct chat URL can mount before the document sidebar or Peek.
-      registerAIAppEffects();
-      content = new AIChatContent();
-    }
-
-    content.session = currentSession;
-    content.workspaceId = workspaceId;
-    content.extensions = specs;
-    content.host = mockStd?.host;
-    content.reactToLit = reactToLit;
-    content.docDisplayConfig = docDisplayConfig;
-    content.searchMenuConfig = searchMenuConfig;
-    content.reasoningConfig = reasoningConfig;
-    content.onContextChange = onContextChange;
-    content.myoxusFeatureFlagService = framework.get(FeatureFlagService);
-    content.myoxusWorkspaceDialogService = framework.get(
-      WorkspaceDialogService,
-    );
-    content.peekViewService = framework.get(PeekViewService);
-    content.myoxusThemeService = framework.get(AppThemeService);
-    content.notificationService = notificationService;
-    content.aiDraftService = framework.get(AIDraftService);
-    content.aiToolsConfigService = framework.get(AIToolsConfigService);
-    content.serverService = framework.get(ServerService);
-    content.aiModelService = framework.get(AIModelService);
-    content.createSession = createSession;
-    content.onOpenDoc = onOpenDoc;
-
-    if (!chatContent) {
-      // initial values that won't change
-      content.independentMode = true;
-      chatContainerRef.current?.append(content);
-      setChatContent(content);
-    }
-  }, [
-    chatContent,
-    createSession,
-    currentSession,
-    docDisplayConfig,
-    framework,
-    isBodyProvided,
-    initialResolved,
-    mockStd,
-    reasoningConfig,
-    searchMenuConfig,
-    workspaceId,
-    onContextChange,
-    notificationService,
-    specs,
-    reactToLit,
-    onOpenDoc,
-  ]);
 
   const { jumpToPageBlock } = useNavigateHelper();
   useEffect(() => {
@@ -531,8 +370,6 @@ export const WorkspaceChatPage = () => {
     return () => sub.unsubscribe();
   }, [framework, mockStd, jumpToPageBlock]);
 
-  // Keep pinned precedence, then consume a sidebar handoff only after resolving
-  // it. An aborted StrictMode setup must leave the next setup able to load it.
   useEffect(() => {
     if (hasRestoredPinnedSessionRef.current || currentSession) return;
 
@@ -586,7 +423,6 @@ export const WorkspaceChatPage = () => {
     };
     void loadPinnedSession();
 
-    // abort the request
     return () => {
       controller.abort();
     };
@@ -599,29 +435,9 @@ export const WorkspaceChatPage = () => {
     restoreAttempt,
   ]);
 
-  const onChatContainerRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      chatContainerSizeRef(node);
-      if (node) {
-        setIsBodyProvided(true);
-        chatContainerRef.current = node;
-      }
-    },
-    [chatContainerSizeRef],
-  );
-
-  // Keep the Lit chat content informed; element measurement belongs to facade.
-  useEffect(() => {
-    if (!isBodyProvided || chatContainerWidth <= 0) return;
-    widthSignalRef.current.value = chatContainerWidth;
-  }, [chatContainerWidth, isBodyProvided]);
-
   return (
     <>
       <ViewTitle title={t["com.myoxus.sidebar.tab.chat"]()} />
-      {portals.map(({ id, portal }) => (
-        <Fragment key={id}>{portal}</Fragment>
-      ))}
       <ViewIcon icon="ai" />
       <ViewHeader>
         <WorkbenchHeaderFrame
@@ -696,9 +512,28 @@ export const WorkspaceChatPage = () => {
               title={t["com.myoxus.ai.chat-panel.loading-history"]()}
             />
           ) : null}
-          {/* The bounded route, not the conversation's min-content height, owns
-              this flex item. Keep long history in AIChatContent's scroller. */}
-          <Stack ref={onChatContainerRef} flex={1} mih={0} />
+          <Stack flex={1} mih={0}>
+            {initialResolved ? (
+              <AIChatContent
+                key={contentRemountKey}
+                independentMode
+                session={currentSession}
+                workspaceId={workspaceId}
+                host={mockStd?.host}
+                docDisplayConfig={docDisplayConfig}
+                searchMenuConfig={searchMenuConfig}
+                reasoningConfig={reasoningConfig}
+                onContextChange={onContextChange}
+                peekViewService={framework.get(PeekViewService)}
+                notificationService={notificationService}
+                aiDraftService={framework.get(AIDraftService)}
+                aiToolsConfigService={framework.get(AIToolsConfigService)}
+                aiModelService={framework.get(AIModelService)}
+                createSession={createSession}
+                onOpenDoc={onOpenDoc}
+              />
+            ) : null}
+          </Stack>
         </Stack>
       </ViewBody>
     </>

@@ -1,6 +1,7 @@
 import { createReferenceIcon } from "@virgultum/core/view/icons";
-import { computed, effect, signal } from "@preact/signals-core";
+import { computed, effect, signal, untracked } from "@preact/signals-core";
 import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import type { BlockStyleMap } from "@virgultum/content/caption";
 import { EmbedBlockComponent, isEmptyDoc } from "../../embed/index";
 import { Peekable } from "@virgultum/core/view/peek";
 import { ViewExtensionManagerIdentifier } from "@virgultum/core/extensions";
@@ -57,12 +58,6 @@ import {
   documentReferenceSelectionQuery,
   hasDocumentReferenceSelection,
 } from "@virgultum/core/adapters";
-import { html, nothing, type PropertyValues } from "lit";
-import { query, state } from "lit/decorators.js";
-import { choose } from "lit/directives/choose.js";
-import { classMap } from "lit/directives/class-map.js";
-import { guard } from "lit/directives/guard.js";
-import { type StyleInfo, styleMap } from "lit/directives/style-map.js";
 import * as Y from "yjs";
 
 import type { EmbedSyncedDocCard } from "./components/embed-synced-doc-card.js";
@@ -72,12 +67,73 @@ import { blockStyles } from "./styles.js";
   enableOn: ({ store }: EmbedSyncedDocBlockComponent) => !store.readonly,
 })
 export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSyncedDocModel> {
+  protected override blockStyles = blockStyles;
+  protected override useCaptionEditor = true;
+
   private _referenceIdentity: string | undefined;
   private _referenceScope: ReturnType<
     NonNullable<DocEmbedProvider["inWorkspace"]>
   >;
   private _referenceBinding:
     ReturnType<NonNullable<DocEmbedProvider["openReference"]>> | undefined;
+
+  private readonly _cycle$ = signal(false);
+  private readonly _deleted$ = signal(false);
+  private readonly _docUpdatedAt$ = signal<Date>(new Date());
+  private readonly _error$ = signal(false);
+  protected readonly _isEmptySyncedDoc$ = signal(true);
+  private readonly _loading$ = signal(false);
+  private readonly _depth$ = signal(0);
+  private readonly _syncedDocMode$ = signal<DocMode>("page");
+  protected readonly cardStyleMap$ = signal<BlockStyleMap>({
+    position: "relative",
+    display: "block",
+    width: "100%",
+  });
+
+  // Caches total bounds, includes all blocks and elements.
+  private _cachedBounds: Bound | null = null;
+  private _hasRenderedSyncedView = false;
+  private _hasInitedFitEffect = false;
+
+  constructor() {
+    super();
+    this.embedContainerStyle$.value = { height: "unset" };
+  }
+
+  get depth() {
+    return this._depth$.value;
+  }
+  set depth(value: number) {
+    this._depth$.value = value;
+  }
+
+  get syncedDocMode() {
+    return this._syncedDocMode$.value;
+  }
+  set syncedDocMode(value: DocMode) {
+    this._syncedDocMode$.value = value;
+  }
+
+  protected get _isEmptySyncedDoc() {
+    return this._isEmptySyncedDoc$.value;
+  }
+  protected set _isEmptySyncedDoc(value: boolean) {
+    this._isEmptySyncedDoc$.value = value;
+  }
+
+  get syncedDocCard(): EmbedSyncedDocCard | null {
+    return this.querySelector<EmbedSyncedDocCard>(
+      ":scope > .myoxus-block-component > div > .embed-block-container > myoxus-embed-synced-doc-card, :scope > .myoxus-block-component > .embed-block-container > myoxus-embed-synced-doc-card",
+    );
+  }
+
+  get syncedDocEditorHost(): EditorHost | null {
+    return this.querySelector<EditorHost>(
+      ".myoxus-embed-synced-doc-container > .myoxus-embed-synced-doc-editor > div > editor-host",
+    );
+  }
+
   private get targetContext() {
     const workspaceId = this.model.props.workspaceId ?? this.std.workspace.id;
     const pageId = this.model.props.pageId;
@@ -110,14 +166,6 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
       this.std.getOptional(EditorI18nProvider) ?? undefined,
     );
   }
-
-  static override styles = blockStyles;
-
-  // Caches total bounds, includes all blocks and elements.
-  private _cachedBounds: Bound | null = null;
-
-  private _hasRenderedSyncedView = false;
-  private _hasInitedFitEffect = false;
 
   private readonly _initEdgelessFitEffect = () => {
     const fitToContent = () => {
@@ -154,7 +202,7 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
 
     observer.observe(block);
 
-    this._disposables.add(() => {
+    this.disposables.add(() => {
       observer.disconnect();
     });
 
@@ -177,7 +225,7 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
   };
 
   protected _buildPreviewSpec = (name: "preview-page" | "preview-edgeless") => {
-    const nextDepth = this.depth + 1;
+    const nextDepth = this._depth$.peek() + 1;
     const viewExtensionManager = this.std.get(ViewExtensionManagerIdentifier);
     const previewSpec = viewExtensionManager.get(name);
     const currentDisposables = this.disposables;
@@ -248,122 +296,6 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
     ]);
   };
 
-  protected _renderSyncedView = () => {
-    const syncedDoc = this.syncedDoc;
-    const editorMode = this.editorMode;
-    const isPageMode = this.isPageMode;
-
-    if (!syncedDoc) {
-      console.error("Synced doc is not found");
-      return html`${nothing}`;
-    }
-
-    if (isPageMode) {
-      this.dataset.pageMode = "";
-    }
-
-    const containerStyleMap = styleMap({
-      position: "relative",
-      width: "100%",
-    });
-
-    const themeService = this.std.get(ThemeProvider);
-    const themeExtension = this.std.getOptional(ThemeExtensionIdentifier);
-    const appTheme = themeService.app$.value;
-    let edgelessTheme = themeService.edgeless$.value;
-    if (themeExtension?.getEdgelessTheme && this.syncedDoc?.id) {
-      edgelessTheme = themeExtension.getEdgelessTheme(this.syncedDoc.id).value;
-    }
-    const theme = isPageMode ? appTheme : edgelessTheme;
-
-    this.dataset.nestedEditor = "";
-
-    const renderEditor = () => {
-      return choose(editorMode, [
-        [
-          "page",
-          () => html`
-            <div class="myoxus-page-viewport" data-theme=${appTheme}>
-              ${new BlockStdScope({
-                store: syncedDoc,
-                extensions: this._buildPreviewSpec("preview-page"),
-              }).render()}
-            </div>
-          `,
-        ],
-        [
-          "edgeless",
-          () => html`
-            <div class="myoxus-edgeless-viewport" data-theme=${edgelessTheme}>
-              ${new BlockStdScope({
-                store: syncedDoc,
-                extensions: this._buildPreviewSpec("preview-edgeless"),
-              }).render()}
-            </div>
-          `,
-        ],
-      ]);
-    };
-
-    return this.renderEmbed(
-      () => html`
-        <div
-          class=${classMap({
-            "myoxus-embed-synced-doc-container": true,
-            [editorMode]: true,
-            [theme]: true,
-            surface: false,
-            "selected-reference": hasDocumentReferenceSelection(
-              this.model.props.params,
-            ),
-            selected: this.selected$.value,
-            "show-hover-border": true,
-            "comment-highlighted": this.isCommentHighlighted,
-          })}
-          @click=${this._handleClick}
-          style=${containerStyleMap}
-          ?data-scale=${undefined}
-        >
-          <div class="myoxus-embed-synced-doc-editor">
-            ${
-              isPageMode && this._isEmptySyncedDoc
-                ? html`
-                    <div class="myoxus-embed-synced-doc-editor-empty">
-                      <span
-                        >${this._text(editorMessage("com.myoxus.editor.embed.synced-empty-hint", "This is a linked doc, you can add content here."))}</span
-                      >
-                    </div>
-                  `
-                : guard(
-                    [editorMode, syncedDoc, appTheme, edgelessTheme],
-                    renderEditor,
-                  )
-            }
-          </div>
-          <div
-            class=${classMap({
-              "myoxus-embed-synced-doc-header-wrapper": true,
-              selected: this.selected$.value,
-            })}
-          >
-            <div class="myoxus-embed-synced-doc-header">
-              <span class="myoxus-embed-synced-doc-icon"
-                >${this.icon$.value}</span
-              >
-              <span class="myoxus-embed-synced-doc-title">${this.title$}</span>
-            </div>
-          </div>
-        </div>
-      `,
-    );
-  };
-
-  protected cardStyleMap = styleMap({
-    position: "relative",
-    display: "block",
-    width: "100%",
-  });
-
   convertToCard = (aliasInfo?: AliasInfo) => {
     const { store } = this.model;
     if (store.readonly) return;
@@ -426,10 +358,6 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
     store.deleteBlock(this.model);
   };
 
-  protected override embedContainerStyle: StyleInfo = {
-    height: "unset",
-  };
-
   icon$ = computed(() => {
     const { params } = this.model.props;
     const pageId = this.targetDocId;
@@ -438,7 +366,7 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
       !context ||
       (context.access && context.access.readable(pageId).value !== true)
     )
-      return nothing;
+      return null;
     if (context.collection.id !== this.std.workspace.id)
       return createReferenceIcon(this.ownerDocument, "LinkIcon");
     return createReferenceIcon(
@@ -471,13 +399,16 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
   refreshData = () => {
     this._load()
       .then(() => {
-        this._isEmptySyncedDoc = isEmptyDoc(this.syncedDoc, this.editorMode);
+        this._isEmptySyncedDoc$.value = isEmptyDoc(
+          this.syncedDoc,
+          this.editorMode,
+        );
       })
       .catch((e) => {
         console.debug("[embed-synced-doc] Preview unavailable", e);
         this._releaseSelectionView();
-        this._error = true;
-        this._loading = false;
+        this._error$.value = true;
+        this._loading$.value = false;
       });
   };
 
@@ -501,10 +432,10 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
 
   get blockState() {
     return {
-      isLoading: this._loading,
-      isError: this._error,
-      isDeleted: this._deleted,
-      isCycle: this._cycle,
+      isLoading: this._loading$.value,
+      isError: this._error$.value,
+      isDeleted: this._deleted$.value,
+      isCycle: this._cycle$.value,
     };
   }
 
@@ -517,12 +448,12 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
 
   get docUpdatedAt() {
     return this.targetContext?.access?.readable(this.targetDocId).value === true
-      ? this._docUpdatedAt
+      ? this._docUpdatedAt$.value
       : null;
   }
 
   get editorMode() {
-    return this.linkedMode ?? this.syncedDocMode;
+    return this.linkedMode ?? this._syncedDocMode$.value;
   }
 
   protected get isPageMode() {
@@ -590,9 +521,9 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
       return this._resolveSyncedDoc();
     } catch {
       // Render reads the same getter as loading. An invalidated selection must
-      // render the existing error card instead of leaving the previous Lit tree.
+      // render the existing error card instead of leaving the previous tree.
       this._releaseSelectionView();
-      this._error = true;
+      this._error$.value = true;
       return null;
     }
   }
@@ -664,8 +595,9 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
 
   private _checkCycle() {
     let editorHost: EditorHost | null = this.host;
-    while (editorHost && !this._cycle) {
-      this._cycle =
+    let isCycle = false;
+    while (editorHost && !isCycle) {
+      isCycle =
         !!editorHost &&
         editorHost.store.id === this.targetDocId &&
         editorHost.store.workspace.id ===
@@ -676,6 +608,7 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
         editorHost.parentElement?.closest<EditorHost>(editorHostSelector) ??
         null;
     }
+    this._cycle$.value = isCycle;
   }
 
   private _isClickAtBorder(
@@ -708,10 +641,10 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
     this._loadAbort = attempt;
     this._targetDisposables.dispose();
     this._targetDisposables = new DisposableGroup();
-    this._loading = true;
-    this._error = false;
-    this._deleted = false;
-    this._cycle = false;
+    this._loading$.value = true;
+    this._error$.value = false;
+    this._deleted$.value = false;
+    this._cycle$.value = false;
 
     // Track authored selection changes before the asynchronous load boundary.
     void this.model.props.params;
@@ -720,18 +653,19 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
     const pageId = context?.docId ?? this.model.props.pageId;
     if (!context) {
       this._releaseSelectionView();
-      this._loading =
+      const loading =
         !!this._referenceBinding &&
         this._referenceBinding.target.value === undefined;
-      this._error = !this._loading;
+      this._loading$.value = loading;
+      this._error$.value = !loading;
       return;
     }
     const access = context.access;
     const readable = access?.readable(pageId).value;
     if (access && readable !== true) {
       this._releaseSelectionView();
-      this._error = readable === false;
-      this._loading = readable === undefined;
+      this._error$.value = readable === false;
+      this._loading$.value = readable === undefined;
       return;
     }
 
@@ -751,8 +685,8 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
           if (attempt.signal.aborted) return;
           this._selectionGeneration++;
           const current = this.syncedDoc;
-          this._isEmptySyncedDoc = isEmptyDoc(current, this.editorMode);
-          this._error = !current;
+          this._isEmptySyncedDoc$.value = isEmptyDoc(current, this.editorMode);
+          this._error$.value = !current;
           this.requestUpdate();
         });
       };
@@ -773,14 +707,14 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
         );
       } catch {
         if (attempt.signal.aborted) return;
-        this._error = true;
-        this._loading = false;
+        this._error$.value = true;
+        this._loading$.value = false;
         return;
       }
       if (attempt.signal.aborted) return;
       if (access.readable(pageId).value !== true) {
-        this._error = true;
-        this._loading = false;
+        this._error$.value = true;
+        this._loading$.value = false;
         return;
       }
     }
@@ -790,14 +724,14 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
     const syncedDoc = this.syncedDoc;
     const trash = syncedDoc?.meta?.trash;
     if (trash || !syncedDoc) {
-      this._deleted = !this._error;
-      this._loading = false;
+      this._deleted$.value = !this._error$.peek();
+      this._loading$.value = false;
       return;
     }
 
     this._checkCycle();
-    if (this._cycle || this.depth >= 1) {
-      this._loading = false;
+    if (this._cycle$.peek() || this._depth$.peek() >= 1) {
+      this._loading$.value = false;
       return;
     }
 
@@ -816,15 +750,18 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
       this._targetDisposables.add(
         mode.onPrimaryModeChange((next) => {
           this.syncedDocMode = next;
-          this._isEmptySyncedDoc = isEmptyDoc(this.syncedDoc, this.editorMode);
+          this._isEmptySyncedDoc$.value = isEmptyDoc(
+            this.syncedDoc,
+            this.editorMode,
+          );
         }, pageId),
       );
     }
 
     if (access) {
-      this._error = !syncedDoc.root;
-      this._isEmptySyncedDoc = isEmptyDoc(syncedDoc, this.editorMode);
-      this._loading = false;
+      this._error$.value = !syncedDoc.root;
+      this._isEmptySyncedDoc$.value = isEmptyDoc(syncedDoc, this.editorMode);
+      this._loading$.value = false;
       return;
     }
 
@@ -833,11 +770,11 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
         syncedDoc.load();
       } catch (e) {
         console.error(e);
-        this._error = true;
+        this._error$.value = true;
       }
     }
 
-    if (!this._error && !syncedDoc.root) {
+    if (!this._error$.peek() && !syncedDoc.root) {
       await new Promise<void>((resolve) => {
         const finish = () => {
           subscription.unsubscribe();
@@ -851,8 +788,8 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
       });
     }
     if (attempt.signal.aborted) return;
-    this._isEmptySyncedDoc = isEmptyDoc(this.syncedDoc, this.editorMode);
-    this._loading = false;
+    this._isEmptySyncedDoc$.value = isEmptyDoc(this.syncedDoc, this.editorMode);
+    this._loading$.value = false;
   }
 
   private _selectBlock() {
@@ -871,7 +808,7 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
         : undefined;
     if (meta) {
       const date = meta.updatedDate || meta.createDate;
-      this._docUpdatedAt = new Date(date);
+      this._docUpdatedAt$.value = new Date(date);
     }
   }
 
@@ -879,19 +816,159 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
     this._selectBlock();
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this._cardStyle = this.model.props.style;
+  protected mountSyncedView(container: HTMLElement): () => void {
+    const doc = this.ownerDocument;
+    const outer = doc.createElement("div");
+    Object.assign(outer.style, {
+      position: "relative",
+      width: "100%",
+    });
+    const onClick = (e: MouseEvent) => this._handleClick(e);
+    outer.addEventListener("click", onClick);
 
+    const editorEl = doc.createElement("div");
+    editorEl.className = "myoxus-embed-synced-doc-editor";
+
+    const headerWrapper = doc.createElement("div");
+    headerWrapper.className = "myoxus-embed-synced-doc-header-wrapper";
+    const header = doc.createElement("div");
+    header.className = "myoxus-embed-synced-doc-header";
+    const iconSpan = doc.createElement("span");
+    iconSpan.className = "myoxus-embed-synced-doc-icon";
+    const titleSpan = doc.createElement("span");
+    titleSpan.className = "myoxus-embed-synced-doc-title";
+    header.append(iconSpan, titleSpan);
+    headerWrapper.append(header);
+
+    outer.append(editorEl, headerWrapper);
+    container.replaceChildren(outer);
+
+    let mountedEditorKey: {
+      mode: DocMode;
+      doc: Store;
+      viewport: HTMLDivElement;
+    } | null = null;
+
+    const stopEffect = effect(() => {
+      void this.revision$.value;
+      const syncedDoc = this.syncedDoc;
+      const editorMode = this.editorMode;
+      const isPageMode = this.isPageMode;
+      if (!syncedDoc) {
+        console.error("Synced doc is not found");
+        return;
+      }
+
+      if (isPageMode) {
+        this.dataset.pageMode = "";
+      } else {
+        delete this.dataset.pageMode;
+      }
+      this.dataset.nestedEditor = "";
+
+      const themeService = this.std.get(ThemeProvider);
+      const themeExtension = this.std.getOptional(ThemeExtensionIdentifier);
+      const appTheme = themeService.app$.value;
+      let edgelessTheme = themeService.edgeless$.value;
+      if (themeExtension?.getEdgelessTheme && syncedDoc.id) {
+        edgelessTheme = themeExtension.getEdgelessTheme(syncedDoc.id).value;
+      }
+      const theme = isPageMode ? appTheme : edgelessTheme;
+      const selected = this.selected$.value;
+      const isEmpty = isPageMode && this._isEmptySyncedDoc$.value;
+      const iconNode = this.icon$.value;
+      const titleText = this.title$.value ?? "";
+
+      untracked(() => {
+        outer.className = [
+          "myoxus-embed-synced-doc-container",
+          editorMode,
+          theme,
+          hasDocumentReferenceSelection(this.model.props.params)
+            ? "selected-reference"
+            : "",
+          selected ? "selected" : "",
+          "show-hover-border",
+          this.isCommentHighlighted ? "comment-highlighted" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        headerWrapper.classList.toggle("selected", selected);
+        if (iconNode) {
+          iconSpan.replaceChildren(iconNode);
+        } else {
+          iconSpan.replaceChildren();
+        }
+        titleSpan.textContent = titleText;
+
+        if (isEmpty) {
+          mountedEditorKey = null;
+          const empty = doc.createElement("div");
+          empty.className = "myoxus-embed-synced-doc-editor-empty";
+          const span = doc.createElement("span");
+          span.textContent = this._text(
+            editorMessage(
+              "com.myoxus.editor.embed.synced-empty-hint",
+              "This is a linked doc, you can add content here.",
+            ),
+          );
+          empty.append(span);
+          editorEl.replaceChildren(empty);
+        } else if (
+          !mountedEditorKey ||
+          mountedEditorKey.mode !== editorMode ||
+          mountedEditorKey.doc !== syncedDoc
+        ) {
+          const viewport = doc.createElement("div");
+          viewport.className =
+            editorMode === "page"
+              ? "myoxus-page-viewport"
+              : "myoxus-edgeless-viewport";
+          viewport.dataset.theme =
+            editorMode === "page" ? appTheme : edgelessTheme;
+          viewport.append(
+            new BlockStdScope({
+              store: syncedDoc,
+              extensions: this._buildPreviewSpec(
+                editorMode === "page" ? "preview-page" : "preview-edgeless",
+              ),
+            }).render(),
+          );
+          mountedEditorKey = { mode: editorMode, doc: syncedDoc, viewport };
+          editorEl.replaceChildren(viewport);
+        } else {
+          mountedEditorKey.viewport.dataset.theme =
+            editorMode === "page" ? appTheme : edgelessTheme;
+        }
+
+        if (!this._hasInitedFitEffect) {
+          this._hasInitedFitEffect = true;
+          this._initEdgelessFitEffect();
+        }
+      });
+    });
+
+    return () => {
+      stopEffect();
+      outer.removeEventListener("click", onClick);
+      outer.remove();
+    };
+  }
+
+  protected override mountEmbedContent(container: HTMLElement) {
+    this._cardStyle = this.model.props.style;
     this.style.display = "block";
     this.contentEditable = "false";
+
     this.disposables.add(
       effect(() => {
-        this._cardStyle = this.model.props.style;
+        this._cardStyle = this.model.props.style$.value;
         // _load reads the relation and access signal before its first await.
         this.refreshData();
       }),
     );
+
     this.disposables.add(() => {
       this._loadAbort?.abort();
       this._referenceBinding?.dispose();
@@ -909,94 +986,74 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
         this.refreshData();
       }),
     );
-  }
 
-  override firstUpdated() {
-    this.disposables.addFromEvent(this, "click", (e) => {
+    this.disposables.addFromEvent(this, "click", (e: MouseEvent) => {
       e.stopPropagation();
       if (this._isClickAtBorder(e, this)) {
         e.preventDefault();
         this._selectBlock();
       }
     });
-  }
 
-  override renderBlock() {
-    delete this.dataset.nestedEditor;
-
-    const syncedDoc = this.syncedDoc;
-    const { isLoading, isError, isDeleted, isCycle } = this.blockState;
-    const isCardOnly = this.depth >= 1;
-
-    if (
-      isLoading ||
-      isError ||
-      isDeleted ||
-      isCardOnly ||
-      isCycle ||
-      !syncedDoc
-    ) {
-      return this.renderEmbed(
-        () => html`
-          <myoxus-embed-synced-doc-card
-            style=${this.cardStyleMap}
-            .block=${this}
-          ></myoxus-embed-synced-doc-card>
-        `,
-        "native",
+    const showCard$ = computed(() => {
+      const syncedDoc = this.syncedDoc;
+      const { isLoading, isError, isDeleted, isCycle } = this.blockState;
+      const isCardOnly = this._depth$.value >= 1;
+      return (
+        isLoading || isError || isDeleted || isCardOnly || isCycle || !syncedDoc
       );
-    }
+    });
 
-    !this._hasRenderedSyncedView && (this._hasRenderedSyncedView = true);
+    this.disposables.add(
+      effect(() => {
+        const showCard = showCard$.value;
 
-    return this._renderSyncedView();
+        return untracked(() => {
+          delete this.dataset.nestedEditor;
+          if (showCard) {
+            this.embedSelectionMode = "native";
+            const card = this.ownerDocument.createElement(
+              "myoxus-embed-synced-doc-card",
+            ) as EmbedSyncedDocCard;
+            card.block = this;
+            container.replaceChildren(card);
+
+            let appliedKeys: string[] = [];
+            const stopCardStyle = effect(() => {
+              void this.revision$.value;
+              const style = this.cardStyleMap$.value;
+              for (const key of appliedKeys) {
+                if (style[key] === undefined) {
+                  card.style.setProperty(
+                    key.replace(/[A-Z]/g, (ch) => `-${ch.toLowerCase()}`),
+                    "",
+                  );
+                }
+              }
+              appliedKeys = [];
+              for (const [key, value] of Object.entries(style)) {
+                if (value !== undefined) {
+                  (card.style as unknown as Record<string, string>)[key] =
+                    value;
+                  appliedKeys.push(key);
+                }
+              }
+              untracked(() => card.requestUpdate());
+            });
+
+            return () => {
+              stopCardStyle();
+              card.remove();
+            };
+          }
+
+          this.embedSelectionMode = "editor";
+          if (!this._hasRenderedSyncedView) {
+            this._hasRenderedSyncedView = true;
+          }
+          return this.mountSyncedView(container);
+        });
+      }),
+    );
   }
-
-  override updated(changedProperties: PropertyValues) {
-    super.updated(changedProperties);
-    this.syncedDocCard?.requestUpdate();
-
-    if (!this._hasInitedFitEffect && this._hasRenderedSyncedView) {
-      /* Register the resizeObserver AFTER syncdView viewport's own resizeObserver
-       * so that viewport.onResize() use up-to-date boundingClientRect values */
-      this._hasInitedFitEffect = true;
-      this._initEdgelessFitEffect();
-    }
-  }
-
-  @state()
-  private accessor _cycle = false;
-
-  @state()
-  private accessor _deleted = false;
-
-  @state()
-  private accessor _docUpdatedAt: Date = new Date();
-
-  @state()
-  private accessor _error = false;
-
-  @state()
-  protected accessor _isEmptySyncedDoc: boolean = true;
-
-  @state()
-  private accessor _loading = false;
-
-  @state()
-  accessor depth = 0;
-
-  @query(
-    ":scope > .myoxus-block-component > .embed-block-container > myoxus-embed-synced-doc-card",
-  )
-  accessor syncedDocCard: EmbedSyncedDocCard | null = null;
-
-  @query(
-    ":scope > .myoxus-block-component > .embed-block-container > .myoxus-embed-synced-doc-container > .myoxus-embed-synced-doc-editor > div > editor-host",
-  )
-  accessor syncedDocEditorHost: EditorHost | null = null;
-
-  @state()
-  accessor syncedDocMode: DocMode = "page";
-
-  override accessor useCaptionEditor = true;
 }

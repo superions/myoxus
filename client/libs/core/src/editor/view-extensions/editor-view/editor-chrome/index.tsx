@@ -2,11 +2,11 @@
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import { EditorCodePreview } from "../../code-block-preview/preview";
-import { decorateEditorEmbeddedUI } from "../embedded-ui-root";
-import { EditorTableControl } from "./table-control";
+import { EditorEmbeddedUIRoot } from "../embedded-ui-root";
+import { RegisteredTableControl } from "./table-control";
 import { EditorDocumentCard } from "./document-card";
-import { EditorAttachmentCard } from "./attachment-card";
-import { EditorBookmarkCard } from "./bookmark-card";
+import { RegisteredAttachmentCard } from "./attachment-card";
+import { RegisteredBookmarkCard } from "./bookmark-card";
 import { EditorGithubCard } from "./github-card";
 import { EventReferenceCard } from "./event-card";
 import { EditorHtmlFullscreenToolbar } from "./html-fullscreen-toolbar";
@@ -14,7 +14,7 @@ import { EditorYoutubeCard } from "./youtube-card";
 import { EditorFigmaCard } from "./figma-card";
 import { EditorLoomCard } from "./loom-card";
 
-import type { MountReactPortal } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import {
   EditorAutoCompleteTrigger,
   EditorAutoCompletePanel,
@@ -29,13 +29,17 @@ import { RegisteredCanvasToolbar, EditorCanvasTool } from "./canvas-toolbar";
 
 import { EditorSelectionToolbar } from "./selection-toolbar";
 
-import type { ReactToLit, LitPortalDecorator } from "@myoxus/lit-react";
-import type { ComponentType } from "react";
-import { EditorChromeHostExtension } from "@virgultum/editor/shared/services";
+import type { ReadonlySignal } from "@preact/signals-core";
+import { useSyncExternalStore, type ComponentType } from "react";
+import {
+  EditorChromeHostExtension,
+  type EditorCanvasToolControls,
+  type EditorOutlineEntryControls,
+} from "@virgultum/editor/shared/services";
 import { EditorSlashMenu } from "./slash-menu";
 import { EditorZoom } from "./zoom";
-import { EditorImageFallback } from "./image-fallback";
-import { EditorIframeStatusCard } from "./iframe-status-card";
+import { RegisteredImageFallback } from "./image-fallback";
+import { RegisteredIframeStatusCard } from "./iframe-status-card";
 import { EditorIframeLinkEditor } from "./iframe-link-editor";
 import { EditorLinkEditor } from "./link-editor";
 import { EditorReferenceEditor } from "./reference-editor";
@@ -56,108 +60,119 @@ import {
   EditorFrameTitle,
 } from "./frame-navigator";
 
+function RegisteredStateControl<Controls>({
+  state,
+  View,
+}: {
+  state: ReadonlySignal<Controls | null>;
+  View: ComponentType<{ controls: Controls }>;
+}) {
+  const controls = useSyncExternalStore(
+    (onStoreChange) => state.subscribe(onStoreChange),
+    () => state.peek(),
+  );
+  return controls ? <View controls={controls} /> : null;
+}
+
+function RegisteredCanvasTool({
+  controls,
+}: {
+  controls: EditorCanvasToolControls;
+}) {
+  return <EditorCanvasTool {...controls} />;
+}
+
+function RegisteredOutlineEntry({
+  controls,
+}: {
+  controls: EditorOutlineEntryControls;
+}) {
+  return <EditorOutlineEntry {...controls} />;
+}
+
 /** Reuse the owning React tree so editor chrome inherits its theme and services. */
-export function patchEditorChromeHost(
-  reactToLit: ReactToLit,
-  mountPortal: MountReactPortal,
-) {
-  const renderControl =
-    <Controls,>(
-      View: ComponentType<{ controls: Controls }>,
-      decorator?: LitPortalDecorator,
-    ) =>
-    (controls: Controls) =>
-      reactToLit(<View controls={controls} />, true, decorator);
+export function patchEditorChromeHost(mountPortal: MountReactPortal) {
   const mountControl =
     <Controls,>(View: ComponentType<{ controls: Controls }>) =>
     (anchor: HTMLElement, controls: Controls) =>
       mountPortal(anchor, <View controls={controls} />);
+  const mountStateControl =
+    <Controls,>(
+      View: ComponentType<{ controls: Controls }>,
+      embedded = false,
+    ) =>
+    (anchor: HTMLElement, state: ReadonlySignal<Controls | null>) =>
+      mountPortal(
+        anchor,
+        embedded ? (
+          <EditorEmbeddedUIRoot portalRoot={anchor}>
+            <RegisteredStateControl state={state} View={View} />
+          </EditorEmbeddedUIRoot>
+        ) : (
+          <RegisteredStateControl state={state} View={View} />
+        ),
+      );
   return EditorChromeHostExtension({
-    renderTableControl: renderControl(
-      EditorTableControl,
-      decorateEditorEmbeddedUI,
-    ),
-    renderAutoCompleteTrigger: renderControl(
-      EditorAutoCompleteTrigger,
-      decorateEditorEmbeddedUI,
-    ),
-    renderAutoCompletePanel: renderControl(
-      EditorAutoCompletePanel,
-      decorateEditorEmbeddedUI,
-    ),
-    renderAutoConnectLabel: renderControl(
-      EditorAutoConnectLabel,
-      decorateEditorEmbeddedUI,
-    ),
-    renderAutoConnectNavigator: renderControl(
-      EditorAutoConnectNavigator,
-      decorateEditorEmbeddedUI,
-    ),
-    renderCanvasTemplates: renderControl(EditorCanvasTemplates),
-    renderCanvasMenu: (controls) =>
-      reactToLit(
-        <EditorCanvasMenu controls={controls} />,
-        true,
-        controls.actions.some(
-          (action) =>
-            action.id === "frame-panel-label" ||
-            action.id === "presentation-dark-background" ||
-            action.id === "presentation-hide-toolbar",
-        )
-          ? decorateEditorEmbeddedUI
-          : undefined,
+    mountTableControl: (anchor, state) =>
+      mountPortal(
+        anchor,
+        <EditorEmbeddedUIRoot portalRoot={anchor}>
+          <RegisteredTableControl state={state} />
+        </EditorEmbeddedUIRoot>,
       ),
+    mountAutoCompleteTrigger: mountStateControl(
+      EditorAutoCompleteTrigger,
+      true,
+    ),
+    mountAutoCompletePanel: mountStateControl(EditorAutoCompletePanel, true),
+    mountAutoConnectLabel: mountStateControl(EditorAutoConnectLabel, true),
+    mountAutoConnectNavigator: mountStateControl(
+      EditorAutoConnectNavigator,
+      true,
+    ),
+    mountCanvasTemplates: mountStateControl(EditorCanvasTemplates),
+    mountCanvasMenu: mountStateControl(EditorCanvasMenu, true),
     mountCanvasToolbar: (anchor, state) =>
       mountPortal(anchor, <RegisteredCanvasToolbar state={state} />),
-    renderCanvasTool: (controls) =>
-      reactToLit(
-        <EditorCanvasTool {...controls} />,
-        true,
-        [
-          "presentation-settings",
-          "presentation-start",
-          "presentation-previous",
-          "presentation-next",
-          "presentation-fullscreen",
-          "presentation-stop",
-          "presentation-frame-order",
-          "toggle-outline-panel-button",
-          "myoxus-bpmn-edgeless-toolbar-button",
-        ].includes(controls.action.id)
-          ? decorateEditorEmbeddedUI
-          : undefined,
-      ),
-    renderKeyboardToolbar: renderControl(EditorKeyboardToolbar),
-    renderKeyboardPanel: renderControl(EditorKeyboardPanel),
-    renderFrameOrder: renderControl(EditorFrameOrder, decorateEditorEmbeddedUI),
-    renderFrameNavigator: renderControl(EditorFrameNavigator),
-    renderFrameCard: renderControl(EditorFrameCard),
-    renderFrameTitle: renderControl(EditorFrameTitle),
+    mountCanvasTool: (anchor, state) => {
+      if ("peek" in state) {
+        return mountStateControl(RegisteredCanvasTool, true)(anchor, state);
+      }
+      return mountPortal(
+        anchor,
+        <EditorEmbeddedUIRoot portalRoot={anchor}>
+          <EditorCanvasTool {...state} />
+        </EditorEmbeddedUIRoot>,
+      );
+    },
+    mountKeyboardToolbar: mountStateControl(EditorKeyboardToolbar),
+    mountKeyboardPanel: mountStateControl(EditorKeyboardPanel),
+    mountFrameOrder: mountStateControl(EditorFrameOrder, true),
+    mountFrameNavigator: mountStateControl(EditorFrameNavigator),
+    mountFrameCard: mountStateControl(EditorFrameCard),
+    mountFrameTitle: mountStateControl(EditorFrameTitle),
     mountCodePreview: mountControl(EditorCodePreview),
-    renderImageFallback: renderControl(EditorImageFallback),
-    renderDocumentCard: renderControl(EditorDocumentCard),
-    renderAttachmentCard: (controls) =>
-      reactToLit(
-        <EditorAttachmentCard controls={controls} />,
-        true,
-        controls.statusPopover ? decorateEditorEmbeddedUI : undefined,
+    mountImageFallback: (anchor, state) =>
+      mountPortal(anchor, <RegisteredImageFallback state={state} />),
+    mountDocumentCard: mountStateControl(EditorDocumentCard),
+    mountAttachmentCard: (anchor, state) =>
+      mountPortal(
+        anchor,
+        <RegisteredAttachmentCard state={state} portalRoot={anchor} />,
       ),
-    renderBookmarkCard: renderControl(EditorBookmarkCard),
-    renderGithubCard: renderControl(EditorGithubCard),
+    mountBookmarkCard: (anchor, state) =>
+      mountPortal(anchor, <RegisteredBookmarkCard state={state} />),
+    mountGithubCard: mountStateControl(EditorGithubCard),
     mountEventReference: mountControl(EventReferenceCard),
-    renderHtmlFullscreenToolbar: renderControl(
+    mountHtmlFullscreenToolbar: mountStateControl(
       EditorHtmlFullscreenToolbar,
-      decorateEditorEmbeddedUI,
+      true,
     ),
-    renderYoutubeCard: renderControl(
-      EditorYoutubeCard,
-      decorateEditorEmbeddedUI,
-    ),
-    renderFigmaCard: renderControl(EditorFigmaCard, decorateEditorEmbeddedUI),
-    renderLoomCard: renderControl(EditorLoomCard, decorateEditorEmbeddedUI),
-    renderDocumentOutline: renderControl(EditorDocumentOutline),
-    renderOutlineEntry: (controls) =>
-      reactToLit(<EditorOutlineEntry {...controls} />, true),
+    mountYoutubeCard: mountStateControl(EditorYoutubeCard, true),
+    mountFigmaCard: mountStateControl(EditorFigmaCard, true),
+    mountLoomCard: mountStateControl(EditorLoomCard, true),
+    mountDocumentOutline: mountControl(EditorDocumentOutline),
+    mountOutlineEntry: mountStateControl(RegisteredOutlineEntry, true),
     mountCitationPreview: mountControl(EditorCitationPreview),
     mountBlockCaption: (anchor, state) =>
       mountPortal(anchor, <RegisteredBlockCaption state={state} />),
@@ -170,14 +185,13 @@ export function patchEditorChromeHost(
     mountImport: (container, controls) =>
       mountPortal(container, <EditorImportDialog controls={controls} />),
     mountDocumentPicker: mountControl(EditorDocumentPicker),
-    renderIframeStatusCard: renderControl(EditorIframeStatusCard),
+    mountIframeStatusCard: (anchor, state) =>
+      mountPortal(anchor, <RegisteredIframeStatusCard state={state} />),
     mountIframeLinkEditor: mountControl(EditorIframeLinkEditor),
     mountLinkEditor: mountControl(EditorLinkEditor),
     mountReferenceEditor: mountControl(EditorReferenceEditor),
     mountSelection: mountControl(EditorSelectionToolbar),
     mountSlash: mountControl(EditorSlashMenu),
-    mountCanvasTool: (anchor, controls) =>
-      mountPortal(anchor, <EditorCanvasTool {...controls} />),
     mountZoom: (anchor, controls) =>
       mountPortal(anchor, <EditorZoom controls={controls} />),
   });

@@ -70,8 +70,8 @@ export function startDragging(
   let idx: undefined | number;
   let indicatorTranslateY: undefined | number;
 
-  container.renderRoot.append(maskElement);
-  container.renderRoot.append(...cardElements);
+  container.append(maskElement);
+  container.append(...cardElements);
 
   const insideListContainer = (e: MouseEvent) => {
     return (

@@ -1,35 +1,18 @@
 import {
-  sourceMindmapSelection,
   sourceMindmapOutline,
+  sourceMindmapSelection,
 } from "../../actions/mindmap-source";
-import {
-  CommentIcon,
-  ExplainIcon,
-  ImageIcon,
-  ImproveWritingIcon,
-  LanguageIcon,
-  LongerIcon,
-  MakeItRealIcon,
-  MindmapIcon,
-  MindmapNodeIcon,
-  PenIcon,
-  PresentationIcon,
-  SearchIcon,
-  SelectionIcon,
-  ShorterIcon,
-  ToneIcon,
-} from "@myoxus/icons/lit";
 import {
   EdgelessClipboardController,
   splitElements,
 } from "@virgultum/editor/blocks/root";
-import { AIStarIconWithAnimation } from "@virgultum/editor/components/icons";
 import { ShapeElementModel, TextElementModel } from "@virgultum/editor/model";
 
 import {
   AIImageIconWithAnimation,
   AIMindMapIconWithAnimation,
   AIPenIconWithAnimation,
+  AIStarIconWithAnimation,
   AIPresentationIconWithAnimation,
   MakeItRealIconWithAnimation,
 } from "../../_common/icons";
@@ -59,8 +42,6 @@ import {
   imageCustomInput,
 } from "../../utils/selection-utils";
 
-const EDGELESS_ACTION_ICON_SIZE =
-  "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))";
 // Canvas snapshots are sent to AI providers as neutral bitmap inputs. This is
 // export data, not product UI chrome, so keep the persisted canvas background
 // explicit and outside runtime theme color roles.
@@ -118,10 +99,7 @@ const othersGroup: AIItemGroupConfig = {
     {
       name: "Continue in AI Chat",
       testId: "action-continue-with-ai",
-      icon: CommentIcon({
-        width: EDGELESS_ACTION_ICON_SIZE,
-        height: EDGELESS_ACTION_ICON_SIZE,
-      }),
+      icon: "CommentIcon",
       showWhen: () => true,
       handler: (host) => {
         const panel = getAIPanelWidget(host);
@@ -149,21 +127,21 @@ const editTextGroup: AIItemGroupConfig = {
     {
       name: "Translate to",
       testId: "action-translate",
-      icon: LanguageIcon(),
+      icon: "LanguageIcon",
       showWhen: noteBlockOrTextShowWhen,
       subItem: translateSubItem,
     },
     {
       name: "Change tone to",
       testId: "action-change-tone",
-      icon: ToneIcon(),
+      icon: "ToneIcon",
       showWhen: noteBlockOrTextShowWhen,
       subItem: toneSubItem,
     },
     {
       name: "Improve writing",
       testId: "action-improve-writing",
-      icon: ImproveWritingIcon(),
+      icon: "ImproveWritingIcon",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("improveWriting", AIStarIconWithAnimation),
     },
@@ -171,21 +149,21 @@ const editTextGroup: AIItemGroupConfig = {
     {
       name: "Make it longer",
       testId: "action-make-it-longer",
-      icon: LongerIcon(),
+      icon: "LongerIcon",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("makeLonger", AIStarIconWithAnimation),
     },
     {
       name: "Make it shorter",
       testId: "action-make-it-shorter",
-      icon: ShorterIcon(),
+      icon: "ShorterIcon",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("makeShorter", AIStarIconWithAnimation),
     },
     {
       name: "Continue writing",
       testId: "action-continue-writing",
-      icon: PenIcon(),
+      icon: "PenIcon",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("continueWriting", AIPenIconWithAnimation),
     },
@@ -198,35 +176,35 @@ const draftFromTextGroup: AIItemGroupConfig = {
     {
       name: "Write an article about this",
       testId: "action-write-article",
-      icon: PenIcon(),
+      icon: "PenIcon",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("writeArticle", AIPenIconWithAnimation),
     },
     {
       name: "Write a tweet about this",
       testId: "action-write-twitter-post",
-      icon: PenIcon(),
+      icon: "PenIcon",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("writeTwitterPost", AIPenIconWithAnimation),
     },
     {
       name: "Write a poem about this",
       testId: "action-write-poem",
-      icon: PenIcon(),
+      icon: "PenIcon",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("writePoem", AIPenIconWithAnimation),
     },
     {
       name: "Write a blog post about this",
       testId: "action-write-blog-post",
-      icon: PenIcon(),
+      icon: "PenIcon",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("writeBlogPost", AIPenIconWithAnimation),
     },
     {
       name: "Brainstorm ideas about this",
       testId: "action-brainstorm",
-      icon: PenIcon(),
+      icon: "PenIcon",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("brainstorm", AIPenIconWithAnimation),
     },
@@ -238,7 +216,7 @@ const reviewImageGroup: AIItemGroupConfig = {
   items: [
     {
       name: "Explain this image",
-      icon: PenIcon(),
+      icon: "PenIcon",
       testId: "action-explain-image",
       showWhen: imageOnlyShowWhen,
       handler: actionToHandler(
@@ -256,14 +234,14 @@ const reviewCodeGroup: AIItemGroupConfig = {
   items: [
     {
       name: "Explain this code",
-      icon: ExplainIcon(),
+      icon: "ExplainIcon",
       testId: "action-explain-code",
       showWhen: noteWithCodeBlockShowWen,
       handler: actionToHandler("explainCode", AIStarIconWithAnimation),
     },
     {
       name: "Check code error",
-      icon: ExplainIcon(),
+      icon: "ExplainIcon",
       testId: "action-check-code-error",
       showWhen: noteWithCodeBlockShowWen,
       handler: actionToHandler("checkCodeErrors", AIStarIconWithAnimation),
@@ -276,14 +254,14 @@ const reviewTextGroup: AIItemGroupConfig = {
   items: [
     {
       name: "Fix spelling",
-      icon: PenIcon(),
+      icon: "PenIcon",
       testId: "action-fix-spelling",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("fixSpelling", AIStarIconWithAnimation),
     },
     {
       name: "Fix grammar",
-      icon: PenIcon(),
+      icon: "PenIcon",
       testId: "action-fix-grammar",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("improveGrammar", AIStarIconWithAnimation),
@@ -291,10 +269,7 @@ const reviewTextGroup: AIItemGroupConfig = {
 
     {
       name: "Explain selection",
-      icon: SelectionIcon({
-        width: EDGELESS_ACTION_ICON_SIZE,
-        height: EDGELESS_ACTION_ICON_SIZE,
-      }),
+      icon: "SelectionIcon",
       testId: "action-explain-selection",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("explain", AIStarIconWithAnimation),
@@ -307,14 +282,14 @@ const generateFromTextGroup: AIItemGroupConfig = {
   items: [
     {
       name: "Summarize",
-      icon: PenIcon(),
+      icon: "PenIcon",
       testId: "action-summarize",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("summary", AIPenIconWithAnimation),
     },
     {
       name: "Generate headings",
-      icon: PenIcon(),
+      icon: "PenIcon",
       testId: "action-generate-headings",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("createHeadings", AIPenIconWithAnimation),
@@ -322,14 +297,14 @@ const generateFromTextGroup: AIItemGroupConfig = {
     },
     {
       name: "Generate outline",
-      icon: PenIcon(),
+      icon: "PenIcon",
       testId: "action-generate-outline",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("writeOutline", AIPenIconWithAnimation),
     },
     {
       name: "Generate an image",
-      icon: ImageIcon(),
+      icon: "ImageIcon",
       testId: "action-generate-image",
       showWhen: notAllAIChatBlockShowWhen,
       handler: actionToHandler(
@@ -404,7 +379,7 @@ const generateFromTextGroup: AIItemGroupConfig = {
     },
     {
       name: "Expand from this mind map node",
-      icon: MindmapNodeIcon(),
+      icon: "MindmapNodeIcon",
       testId: "action-expand-mindmap-node",
       showWhen: mindmapChildShowWhen,
       handler: actionToHandler(
@@ -428,14 +403,14 @@ const generateFromTextGroup: AIItemGroupConfig = {
     },
     {
       name: "Brainstorm ideas with mind map",
-      icon: MindmapIcon(),
+      icon: "MindmapIcon",
       testId: "action-brainstorm-mindmap",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("brainstormMindmap", AIMindMapIconWithAnimation),
     },
     {
       name: "Regenerate mind map",
-      icon: MindmapIcon(),
+      icon: "MindmapIcon",
       testId: "action-regenerate-mindmap",
       showWhen: mindmapRootShowWhen,
       handler: actionToHandler(
@@ -448,7 +423,7 @@ const generateFromTextGroup: AIItemGroupConfig = {
     },
     {
       name: "Generate presentation",
-      icon: PresentationIcon(),
+      icon: "PresentationIcon",
       testId: "action-generate-presentation",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("createSlides", AIPresentationIconWithAnimation),
@@ -456,10 +431,7 @@ const generateFromTextGroup: AIItemGroupConfig = {
     },
     {
       name: "Make it real",
-      icon: MakeItRealIcon({
-        width: EDGELESS_ACTION_ICON_SIZE,
-        height: EDGELESS_ACTION_ICON_SIZE,
-      }),
+      icon: "MakeItRealIcon",
       testId: "action-make-it-real",
       beta: true,
       showWhen: notAllAIChatBlockShowWhen,
@@ -541,7 +513,7 @@ const generateFromTextGroup: AIItemGroupConfig = {
     },
     {
       name: "AI image filter",
-      icon: PenIcon(),
+      icon: "PenIcon",
       testId: "action-ai-image-filter",
       showWhen: imageOnlyShowWhen,
       subItem: imageFilterSubItem,
@@ -550,7 +522,7 @@ const generateFromTextGroup: AIItemGroupConfig = {
     },
     {
       name: "Image processing",
-      icon: ImageIcon(),
+      icon: "ImageIcon",
       testId: "action-image-processing",
       showWhen: imageOnlyShowWhen,
       subItem: imageProcessingSubItem,
@@ -559,7 +531,7 @@ const generateFromTextGroup: AIItemGroupConfig = {
     },
     {
       name: "Generate a caption",
-      icon: PenIcon(),
+      icon: "PenIcon",
       testId: "action-generate-caption",
       showWhen: imageOnlyShowWhen,
       beta: true,
@@ -572,7 +544,7 @@ const generateFromTextGroup: AIItemGroupConfig = {
     },
     {
       name: "Find actions",
-      icon: SearchIcon(),
+      icon: "SearchIcon",
       testId: "action-find-actions",
       showWhen: noteBlockOrTextShowWhen,
       handler: actionToHandler("findActions", AIStarIconWithAnimation),

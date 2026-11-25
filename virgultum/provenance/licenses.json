@@ -4,20 +4,19 @@
     "generator": "build/scripts/ci/generate-virgultum-source-provenance.mjs",
     "sourceInventory": {
       "path": "virgultum/provenance/sources.json",
-      "sha256": "be035eb2b62208f992dc8620fa76a40d58b30497370b6387fe8d64f1555e0613"
+      "sha256": "ce7102d22d0d63edf1cb0de9e96ddedf6b5e55fc4d1542112fd2624ce59e2e40"
     },
-    "trackedPathCount": 3239,
-    "trackedPathSha256": "8053168eaf65a901b206368b71847b178331ff8db78ddfe18b734293add1f5c9",
+    "trackedPathCount": 3216,
+    "trackedPathSha256": "e47f5e5ff1d83c9dae893f377b531dfd573c45f5f1918f38443e1d25c42328f1",
     "publicExport": {
       "excludedPaths": ["virgultum/icons/dist/**"],
-      "trackedPathCount": 3225,
-      "trackedPathSha256": "3f64b94790b9f91daf459408a25aff11288d0488768889341eb7a269acdf81b2"
+      "trackedPathCount": 3205,
+      "trackedPathSha256": "e1acc6f35cde16c7863c4e2c59dd0e31131a6c4b96f55f377b81b8d7d142bd32"
     },
     "packageManifestCount": 10,
     "packageLicenseCounts": {
       "AGPL-3.0-or-later": 1,
-      "AGPL-3.0-or-later AND BSD-3-Clause AND MIT": 1,
-      "AGPL-3.0-or-later AND MIT": 8
+      "AGPL-3.0-or-later AND MIT": 9
     }
   },
   "policy": {
@@ -85,17 +84,15 @@
       "manifest": "virgultum/core/package.json",
       "path": "virgultum/core/**",
       "packageName": "@virgultum/core",
-      "declaredPackageLicense": "AGPL-3.0-or-later AND BSD-3-Clause AND MIT",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
       "origin": "F1/F2/M0/T1",
-      "licenseExpression": "AGPL-3.0-or-later AND BSD-3-Clause AND MIT",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
       "copyrightNotices": [
         "2020 Titus Wormer <tituswormer@gmail.com>",
         "2021 Stephen Ruiz Ltd",
         "2021 Tien Pham",
         "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
-        "2023 Google LLC. All rights reserved.",
-        "2026-present Daniel Scharf and Myoxus contributors",
-        "The Lit Project Contributors."
+        "2026-present Daniel Scharf and Myoxus contributors"
       ]
     },
     {
@@ -216,21 +213,6 @@
       "licenseExpression": "MIT",
       "copyrightNotices": ["2020-2026 Paweł Kuna"],
       "sha256": "b815747a1cd72bd1e242b0bd21ad76b9293505a942957528571af80abbd2f2a7"
-    },
-    {
-      "path": "virgultum/provenance/LICENSE-LIT-BSD-3-Clause.txt",
-      "paths": [
-        "virgultum/core/src/primitives/lit/signal-watcher.ts",
-        "virgultum/core/src/primitives/lit/watch.ts"
-      ],
-      "origin": "T1",
-      "licenseExpression": "BSD-3-Clause",
-      "copyrightNotices": [
-        "The Lit Project Contributors.",
-        "2023 Google LLC. All rights reserved."
-      ],
-      "sha256": "4df18318e39a537b9af159f5ebbc7da3b30effde5644b9c40b750ce8197a4996",
-      "upstreamUrl": "https://github.com/lit/lit/blob/16507ef656417c9c53a55a02a44a563bbbf2c484/packages/labs/preact-signals/LICENSE"
     },
     {
       "path": "virgultum/provenance/LICENSE-FIGMA-SQUIRCLE-MIT.txt",

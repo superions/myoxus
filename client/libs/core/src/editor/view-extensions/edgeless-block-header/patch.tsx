@@ -1,6 +1,6 @@
 import { JournalService } from "@myoxus/core/modules/journal";
 import type { FrameworkProvider } from "@myoxus/infra";
-import type { MountReactPortal, ReactToLit } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import { EmbedSyncedDocConfigExtension } from "@virgultum/editor/blocks/embed-doc";
 import { NoteConfigExtension } from "@virgultum/editor/blocks/note";
 import { EDGELESS_BLOCK_CHILD_PADDING } from "@virgultum/editor/blocks/root";
@@ -108,9 +108,12 @@ export function patchForEdgelessNoteConfig(
   });
 }
 
-export function patchForEmbedSyncedDocConfig(reactToLit: ReactToLit) {
+export function patchForEmbedSyncedDocConfig(mountPortal: MountReactPortal) {
   return EmbedSyncedDocConfigExtension({
-    edgelessHeader: ({ model, std }) =>
-      reactToLit(<EdgelessEmbedSyncedDocHeader model={model} std={std} />),
+    mountEdgelessHeader: (anchor, { model, std }) =>
+      mountPortal(
+        anchor,
+        <EdgelessEmbedSyncedDocHeader model={model} std={std} />,
+      ),
   });
 }

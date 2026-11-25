@@ -1,6 +1,7 @@
+import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import type { DocMode } from "@virgultum/editor/model";
 import type { Chain, EditorHost, InitCommandCtx } from "@virgultum/editor/std";
-import type { TemplateResult } from "lit";
+import type { ReactNode } from "react";
 
 export interface AIItemGroupConfig {
   name?: string;
@@ -11,8 +12,8 @@ export interface AIItemGroupConfig {
 export interface AIItemConfig {
   name: string;
   testId: string;
-  icon: TemplateResult | (() => HTMLElement);
-  iconName?: import("@myoxus/icons/names").MyoxusIconExportName;
+  icon?: MyoxusIconExportName | ReactNode;
+  iconName?: MyoxusIconExportName;
   showWhen?: (
     chain: Chain<InitCommandCtx>,
     editorMode: DocMode,

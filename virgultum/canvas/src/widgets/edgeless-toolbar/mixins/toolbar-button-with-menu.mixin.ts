@@ -1,5 +1,4 @@
 import type { Constructor } from "@virgultum/core/primitives/utils";
-import type { LitElement } from "lit";
 
 import {
   // oxlint-disable-next-line no-unused-vars
@@ -10,7 +9,7 @@ import {
 export declare abstract class ToolbarButtonWithMenuClass extends EdgelessToolbarToolClass {}
 
 export const ToolbarButtonWithMenuMixin = <
-  T extends Constructor<LitElement> = Constructor<LitElement>,
+  T extends Constructor<HTMLElement> = Constructor<HTMLElement>,
 >(
   SuperClass: T,
 ) => {

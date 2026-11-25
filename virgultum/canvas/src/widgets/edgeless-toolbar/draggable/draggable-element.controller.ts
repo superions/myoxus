@@ -6,11 +6,7 @@ import {
   ViewportElementProvider,
 } from "@virgultum/core/services";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
-import {
-  type ReactiveController,
-  type ReactiveControllerHost,
-  render,
-} from "lit";
+import type { NativeReactiveController } from "../mixins/tool.mixin.js";
 
 import {
   type ElementDragEvent,
@@ -20,6 +16,7 @@ import {
 import {
   createShapeDraggingOverlay,
   defaultInfo,
+  mountDraggablePreview,
   type DraggingInfo,
 } from "./overlay-factory.js";
 import {
@@ -44,7 +41,7 @@ interface EventCache {
 
 export class EdgelessDraggableElementController<
   T,
-> implements ReactiveController {
+> implements NativeReactiveController {
   clearTimeout: ReturnType<typeof setTimeout> | null = null;
 
   events: EventCache = {};
@@ -60,7 +57,7 @@ export class EdgelessDraggableElementController<
   };
 
   constructor(
-    public host: EdgelessDraggableElementHost & ReactiveControllerHost,
+    public host: EdgelessDraggableElementHost,
     public options: EdgelessDraggableElementOptions<T>,
   ) {
     host.addController(this);
@@ -484,7 +481,10 @@ export class EdgelessDraggableElementController<
     };
 
     if (elementInfo.preview && this.overlay) {
-      render(elementInfo.preview, this.overlay.transitionWrapper);
+      mountDraggablePreview(
+        elementInfo.preview,
+        this.overlay.transitionWrapper,
+      );
     }
   }
 }

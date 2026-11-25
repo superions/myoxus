@@ -26,7 +26,6 @@ export default defineConfig({
         repoRoot,
         "client/libs/icons/src/keywords/en.ts",
       ),
-      "@myoxus/icons/lit": resolve(repoRoot, "client/libs/icons/src/lit.ts"),
       "@myoxus/icons/names": resolve(
         repoRoot,
         "client/libs/icons/src/names.ts",

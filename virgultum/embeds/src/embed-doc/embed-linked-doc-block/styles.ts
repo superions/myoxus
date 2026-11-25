@@ -1,8 +1,7 @@
 import { embedNoteContentStyles } from "../../embed/index";
-import { css } from "lit";
 
 // Document-preview clipping belongs to the nested editor renderer, not card chrome.
-export const styles = css`
+export const styles = `
   .myoxus-embed-linked-doc-block {
     height: 100%;
     user-select: none;

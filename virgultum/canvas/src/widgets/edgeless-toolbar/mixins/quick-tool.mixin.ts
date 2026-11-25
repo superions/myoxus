@@ -1,5 +1,4 @@
 import type { Constructor } from "@virgultum/core/primitives/utils";
-import type { LitElement } from "lit";
 
 import {
   // oxlint-disable-next-line no-unused-vars
@@ -12,7 +11,7 @@ export declare abstract class QuickToolMixinClass extends EdgelessToolbarToolCla
 /**
  * Mixin for quick tool item.
  */
-export const QuickToolMixin = <T extends Constructor<LitElement>>(
+export const QuickToolMixin = <T extends Constructor<HTMLElement>>(
   SuperClass: T,
 ) => {
   abstract class DerivedClass extends EdgelessToolbarToolMixin(SuperClass) {}

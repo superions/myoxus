@@ -300,7 +300,6 @@ export {
   PdfPreviewViewport,
 } from "./pdf-preview";
 export { shallowEqual, shallowUpdater } from "./helpers/shallow-equal";
-export { templateToString } from "./helpers/template-to-string";
 export { useDisposable } from "./helpers/use-disposable";
 export { useThemeValue, useThemeColorMeta, useThemeColor } from "./theme-hooks";
 export { startScopedViewTransition } from "./helpers/view-transition";

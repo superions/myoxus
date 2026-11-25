@@ -4,13 +4,43 @@ import {
   resolveEditorMessage,
   type EditorI18nMessage,
 } from "@virgultum/core/services";
-import { ImageIcon } from "@myoxus/icons/lit";
+import { ImageIcon } from "@myoxus/icons/native";
 import type { ImageBlockModel } from "@virgultum/core/models";
-import { unsafeCSSVar } from "@virgultum/core/theme";
-import { BlockComponent } from "@virgultum/core/runtime";
-import { css, html } from "lit";
+import {
+  installEditorStyles,
+  NativeBlockComponent,
+} from "@virgultum/core/runtime";
 
-export class ImagePlaceholderBlockComponent extends BlockComponent<ImageBlockModel> {
+const imagePlaceholderStyles = `
+  .myoxus-placeholder-preview-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 4px;
+    box-sizing: border-box;
+
+    border-radius: 8px;
+    background-color: var(--myoxus-background-overlay-panel-color);
+  }
+
+  .placeholder-preview-content {
+    padding: 4px 16px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .placeholder-preview-content > svg {
+    color: var(--myoxus-icon-color);
+  }
+
+  .placeholder-preview-content > .text {
+    color: var(--myoxus-text-primary-color);
+    font-size: 14px;
+    line-height: 24px;
+  }
+`;
+
+export class ImagePlaceholderBlockComponent extends NativeBlockComponent<ImageBlockModel> {
   private _text(message: EditorI18nMessage) {
     return resolveEditorMessage(
       message,
@@ -18,48 +48,43 @@ export class ImagePlaceholderBlockComponent extends BlockComponent<ImageBlockMod
     );
   }
 
-  static override styles = css`
-    .myoxus-placeholder-preview-container {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 4px;
-      box-sizing: border-box;
+  override requestUpdate() {}
 
-      border-radius: 8px;
-      background-color: ${unsafeCSSVar("backgroundOverlayPanelColor")};
+  connectedCallback() {
+    if (!this.connectBlock()) return;
+    installEditorStyles(this, imagePlaceholderStyles);
+
+    const doc = this.ownerDocument;
+    const container = doc.createElement("div");
+    container.className = "myoxus-placeholder-preview-container";
+    container.contentEditable = "false";
+
+    const content = doc.createElement("div");
+    content.className = "placeholder-preview-content";
+
+    const template = doc.createElement("template");
+    template.innerHTML = ImageIcon;
+    const icon = template.content.firstElementChild as SVGSVGElement | null;
+    if (icon) {
+      icon.setAttribute("width", "24px");
+      icon.setAttribute("height", "24px");
+      content.append(icon);
     }
 
-    .placeholder-preview-content {
-      padding: 4px 16px;
-      display: flex;
-      gap: 8px;
-    }
+    const label = doc.createElement("span");
+    label.className = "text";
+    label.textContent = this._text(
+      editorMessage("com.myoxus.editor.drag.image-block", "Image Block"),
+    );
+    content.append(label);
 
-    .placeholder-preview-content > svg {
-      color: ${unsafeCSSVar("iconColor")};
-    }
+    container.append(content);
+    this.replaceChildren(container);
+  }
 
-    .placeholder-preview-content > .text {
-      color: var(--myoxus-text-primary-color);
-      color: ${unsafeCSSVar("textPrimaryColor")};
-      font-size: 14px;
-      line-height: 24px;
-    }
-  `;
-
-  override renderBlock() {
-    return html`<div
-      class="myoxus-placeholder-preview-container"
-      contenteditable="false"
-    >
-      <div class="placeholder-preview-content">
-        ${ImageIcon({ width: "24px", height: "24px" })}
-        <span class="text"
-          >${this._text(editorMessage("com.myoxus.editor.drag.image-block", "Image Block"))}</span
-        >
-      </div>
-    </div>`;
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this.replaceChildren();
   }
 }
 

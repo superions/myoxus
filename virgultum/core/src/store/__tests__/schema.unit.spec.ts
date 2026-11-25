@@ -1,4 +1,3 @@
-import { literal } from "lit/static-html.js";
 import { describe, expect, it, vi } from "vitest";
 
 import { BlockSchemaExtension } from "../extension/schema.js";
@@ -28,7 +27,7 @@ const TestCustomNoteBlockSchema = defineBlockSchema({
   metadata: {
     version: 1,
     role: "content",
-    tag: literal`myoxus-note-block-video`,
+    tag: "myoxus-note-block-video",
     parent: ["myoxus:note"],
   },
 });
@@ -45,7 +44,7 @@ const TestInvalidNoteBlockSchema = defineBlockSchema({
   metadata: {
     version: 1,
     role: "content",
-    tag: literal`myoxus-invalid-note-block-video`,
+    tag: "myoxus-invalid-note-block-video",
     parent: ["myoxus:note"],
   },
 });

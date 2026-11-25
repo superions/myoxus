@@ -21,11 +21,6 @@
       "import": "./dist/rc.mjs",
       "require": "./dist/rc.js"
     },
-    "./lit": {
-      "types": "./dist/lit.d.ts",
-      "import": "./dist/lit.mjs",
-      "require": "./dist/lit.js"
-    },
     "./keywords/*": {
       "types": "./dist/keywords.d.ts",
       "import": "./dist/keywords/*",
@@ -45,13 +40,9 @@
     }
   },
   "peerDependencies": {
-    "lit": "^3.1.1",
     "react": "^18.2.0 || ^19.0.0"
   },
   "peerDependenciesMeta": {
-    "lit": {
-      "optional": true
-    },
     "react": {
       "optional": true
     }

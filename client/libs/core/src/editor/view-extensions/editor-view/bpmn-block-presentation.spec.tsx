@@ -10,7 +10,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { I18nextProvider, getOrCreateI18n } from "@myoxus/i18n";
-import { useLitPortalFactory } from "@myoxus/lit-react";
+import { usePortalFactory } from "@myoxus/core/editor/portal";
 import { MyoxusUIProvider } from "@myoxus/ui-facade/provider";
 import {
   BpmnBlockPresentationIdentifier,
@@ -53,7 +53,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 function Host({ props }: { props: BpmnBlockPresentationProps }) {
-  const [, portals, mountPortal] = useLitPortalFactory();
+  const [portals, mountPortal] = usePortalFactory();
   const anchor = useRef<HTMLDivElement>(null);
   const [source] = useState(() => new BehaviorSubject(props));
   const provider = useMemo(() => {

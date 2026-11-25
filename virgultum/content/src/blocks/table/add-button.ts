@@ -8,16 +8,13 @@ import {
 import {
   EditorChromeHostIdentifier,
   EditorI18nProvider,
+  type EditorTableControl,
   editorMessage,
   resolveEditorMessage,
 } from "@virgultum/core/services";
-import { signal } from "@preact/signals-core";
-import { SignalWatcher, WithDisposable } from "@virgultum/core/primitives/lit";
-import { ShadowlessElement } from "@virgultum/core/runtime";
-import { html, nothing } from "lit";
-import { property } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { styleMap } from "lit/directives/style-map.js";
+import { computed, effect, signal } from "@preact/signals-core";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import { NativeViewElement } from "@virgultum/core/runtime";
 
 import {
   addColumnButtonStyle,
@@ -30,14 +27,12 @@ import { DefaultColumnWidth, DefaultRowHeight } from "./consts";
 import type { TableDataManager } from "./table-data-manager";
 
 export const AddButtonComponentName = "myoxus-table-add-button";
-export class AddButton extends SignalWatcher(
-  WithDisposable(ShadowlessElement),
-) {
-  @property({ type: Boolean })
-  accessor vertical = false;
+export class AddButton extends NativeViewElement {
+  disposables = new DisposableGroup();
 
-  @property({ attribute: false })
-  accessor dataManager!: TableDataManager;
+  vertical = false;
+
+  dataManager!: TableDataManager;
 
   get hoverColumnIndex$() {
     return this.dataManager.hoverColumnIndex$;
@@ -241,8 +236,88 @@ export class AddButton extends SignalWatcher(
     window.addEventListener("mouseup", onMouseUp);
   }
 
-  override connectedCallback(): void {
-    super.connectedCallback();
+  private createControlState(kind: "column" | "row" | "row-column") {
+    return computed<EditorTableControl | null>(() => {
+      const table = this.closest<TableBlockComponent>("myoxus-table");
+      const i18n = table?.std.getOptional(EditorI18nProvider) ?? undefined;
+      const column = kind !== "row";
+      const row = kind !== "column";
+      const rowLabel = resolveEditorMessage(
+        editorMessage("com.myoxus.editor.table.insert-below", "Insert below"),
+        i18n,
+      );
+      const columnLabel = resolveEditorMessage(
+        editorMessage("com.myoxus.editor.table.insert-right", "Insert right"),
+        i18n,
+      );
+      return {
+        action: {
+          id: `add-${kind}-button`,
+          icon: "PlusIcon",
+          label:
+            row && column
+              ? `${rowLabel} / ${columnLabel}`
+              : row
+                ? rowLabel
+                : columnLabel,
+          disabled: this.dataManager.readonly$.value,
+          run: (_element, event) => this.add(kind, event),
+        },
+      };
+    });
+  }
+
+  connectedCallback(): void {
+    this.disposables = new DisposableGroup();
+    const doc = this.ownerDocument;
+    const table = this.closest<TableBlockComponent>("myoxus-table");
+    const chrome = table?.std.getOptional(EditorChromeHostIdentifier);
+
+    const colEdge = doc.createElement("div");
+    colEdge.className = `${addColumnButtonStyle} column-add`;
+    const rowEdge = doc.createElement("div");
+    rowEdge.className = `${addRowButtonStyle} row-add`;
+    const cornerEdge = doc.createElement("div");
+    cornerEdge.className = `${addRowColumnButtonStyle} row-column-add`;
+
+    this.replaceChildren(colEdge, rowEdge, cornerEdge);
+
+    if (chrome) {
+      this.disposables.add(
+        chrome.mountTableControl(colEdge, this.createControlState("column")),
+      );
+      this.disposables.add(
+        chrome.mountTableControl(rowEdge, this.createControlState("row")),
+      );
+      this.disposables.add(
+        chrome.mountTableControl(
+          cornerEdge,
+          this.createControlState("row-column"),
+        ),
+      );
+    }
+
+    this.disposables.add(
+      effect(() => {
+        const colHovered =
+          this.hoverColumnIndex$.value === this.columns$.value.length - 1;
+        const colDragging = this.columnDragging$.value;
+        colEdge.classList.toggle("active", colDragging);
+        colEdge.style.opacity = colHovered || colDragging ? "1" : "";
+
+        const rowHovered =
+          this.hoverRowIndex$.value === this.rows$.value.length - 1;
+        const rowDragging = this.rowDragging$.value;
+        rowEdge.classList.toggle("active", rowDragging);
+        rowEdge.style.opacity = rowHovered || rowDragging ? "1" : "";
+
+        const cornerHovered = rowHovered && colHovered;
+        const cornerDragging = this.rowColumnDragging$.value;
+        cornerEdge.classList.toggle("active", cornerDragging);
+        cornerEdge.style.opacity = cornerHovered || cornerDragging ? "1" : "";
+      }),
+    );
+
     this.disposables.addFromEvent(this, "mousedown", (e: MouseEvent) => {
       this.onDragStart(e);
     });
@@ -264,6 +339,11 @@ export class AddButton extends SignalWatcher(
     });
   }
 
+  disconnectedCallback(): void {
+    this.disposables.dispose();
+    this.replaceChildren();
+  }
+
   private add(kind: "column" | "row" | "row-column", event: MouseEvent) {
     const suppress = this.suppressDragClick && event.detail > 0;
     this.suppressDragClick = false;
@@ -272,80 +352,6 @@ export class AddButton extends SignalWatcher(
     if (kind !== "column") this.dataManager.addRow(this.rows$.value.length - 1);
     if (kind !== "row")
       this.dataManager.addColumn(this.columns$.value.length - 1);
-  }
-
-  private renderControl(kind: "column" | "row" | "row-column") {
-    const table = this.closest<TableBlockComponent>("myoxus-table");
-    const chrome = table?.std.getOptional(EditorChromeHostIdentifier);
-    if (!chrome) return nothing;
-    const i18n = table?.std.getOptional(EditorI18nProvider) ?? undefined;
-    const column = kind !== "row";
-    const row = kind !== "column";
-    const rowLabel = resolveEditorMessage(
-      editorMessage("com.myoxus.editor.table.insert-below", "Insert below"),
-      i18n,
-    );
-    const columnLabel = resolveEditorMessage(
-      editorMessage("com.myoxus.editor.table.insert-right", "Insert right"),
-      i18n,
-    );
-    return chrome.renderTableControl({
-      action: {
-        id: `add-${kind}-button`,
-        icon: "PlusIcon",
-        label:
-          row && column
-            ? `${rowLabel} / ${columnLabel}`
-            : row
-              ? rowLabel
-              : columnLabel,
-        disabled: this.dataManager.readonly$.value,
-        run: (_element, event) => this.add(kind, event),
-      },
-    });
-  }
-
-  renderAddColumnButton() {
-    const hovered =
-      this.hoverColumnIndex$.value === this.columns$.value.length - 1;
-    const dragging = this.columnDragging$.value;
-    return html`<div
-      class=${classMap({ [addColumnButtonStyle]: true, active: dragging, "column-add": true })}
-      style=${styleMap({ opacity: hovered || dragging ? 1 : undefined })}
-    >
-      ${this.renderControl("column")}
-    </div>`;
-  }
-
-  renderAddRowButton() {
-    const hovered = this.hoverRowIndex$.value === this.rows$.value.length - 1;
-    const dragging = this.rowDragging$.value;
-    return html`<div
-      class=${classMap({ [addRowButtonStyle]: true, active: dragging, "row-add": true })}
-      style=${styleMap({ opacity: hovered || dragging ? 1 : undefined })}
-    >
-      ${this.renderControl("row")}
-    </div>`;
-  }
-
-  renderAddRowColumnButton() {
-    const hovered =
-      this.hoverRowIndex$.value === this.rows$.value.length - 1 &&
-      this.hoverColumnIndex$.value === this.columns$.value.length - 1;
-    const dragging = this.rowColumnDragging$.value;
-    return html`<div
-      class=${classMap({ [addRowColumnButtonStyle]: true, active: dragging, "row-column-add": true })}
-      style=${styleMap({ opacity: hovered || dragging ? 1 : undefined })}
-    >
-      ${this.renderControl("row-column")}
-    </div>`;
-  }
-
-  override render() {
-    return html`
-      ${this.renderAddColumnButton()} ${this.renderAddRowButton()}
-      ${this.renderAddRowColumnButton()}
-    `;
   }
 }
 declare global {

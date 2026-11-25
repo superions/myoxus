@@ -29,8 +29,10 @@ import {
   NoteBlockModel,
   type ShapeElementModel,
 } from "@virgultum/core/models";
+import { signal } from "@preact/signals-core";
 import {
   EditorChromeHostIdentifier,
+  type EditorAutoCompletePanelControls,
   EditPropsStore,
   ThemeProvider,
   editorMessage,
@@ -42,7 +44,6 @@ import { matchModels } from "@virgultum/core/utils";
 import type { BlockComponent } from "@virgultum/core/runtime";
 import { NativeCanvasWidget } from "../native-canvas-widget";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
-import { nothing, render } from "lit";
 import * as Y from "yjs";
 
 import {
@@ -62,6 +63,10 @@ import {
 
 export class EdgelessAutoCompletePanel extends NativeCanvasWidget {
   private readonly chrome = this.ownerDocument.createElement("div");
+  private readonly panelState$ = signal<EditorAutoCompletePanelControls | null>(
+    null,
+  );
+  private unmountPanel?: () => void;
 
   private _text(message: EditorI18nMessage) {
     return resolveEditorMessage(
@@ -466,7 +471,10 @@ export class EdgelessAutoCompletePanel extends NativeCanvasWidget {
 
   override disconnectedCallback() {
     this._removeOverlay();
-    render(nothing, this.chrome);
+    this.unmountPanel?.();
+    this.unmountPanel = undefined;
+    this.panelState$.value = null;
+    this.chrome.remove();
     super.disconnectedCallback();
   }
 
@@ -474,6 +482,13 @@ export class EdgelessAutoCompletePanel extends NativeCanvasWidget {
     super.connectedCallback();
     this.chrome.style.display = "contents";
     this.append(this.chrome);
+    const host = this.std.getOptional(EditorChromeHostIdentifier);
+    if (host) {
+      this.unmountPanel = host.mountAutoCompletePanel(
+        this.chrome,
+        this.panelState$,
+      );
+    }
     this.disposables.add(
       this.store.readonly$.subscribe(() => this.requestUpdate()),
     );
@@ -494,7 +509,7 @@ export class EdgelessAutoCompletePanel extends NativeCanvasWidget {
     const host = this.std.getOptional(EditorChromeHostIdentifier);
     if (!host || !this._active()) {
       this._removeOverlay();
-      render(nothing, this.chrome);
+      this.panelState$.value = null;
       return;
     }
     const point = this.gfx.viewport.toViewCoord(...this.position);
@@ -547,33 +562,30 @@ export class EdgelessAutoCompletePanel extends NativeCanvasWidget {
         "DuplicateIcon",
       ),
     ];
-    render(
-      host.renderAutoCompletePanel({
-        label: this._text(
-          editorMessage(
-            "com.myoxus.editor.canvas.add-same-object",
-            "Add another object of this type",
-          ),
+    this.panelState$.value = {
+      label: this._text(
+        editorMessage(
+          "com.myoxus.editor.canvas.add-same-object",
+          "Add another object of this type",
         ),
-        options,
-        // Only the renderer-owned anchor follows world coordinates; Mantine owns menu size/flip/clipping.
-        setAnchor: (anchor) => {
-          if (!anchor) return;
-          Object.assign(anchor.style, {
-            position: "absolute",
-            left: `${point[0]}px`,
-            top: `${point[1]}px`,
-            width: "1px",
-            height: "1px",
-          });
-        },
-        close: () => {
-          this.remove();
-          this.edgeless.host.focus({ preventScroll: true });
-        },
-      }),
-      this.chrome,
-    );
+      ),
+      options,
+      // Only the renderer-owned anchor follows world coordinates; Mantine owns menu size/flip/clipping.
+      setAnchor: (anchor) => {
+        if (!anchor) return;
+        Object.assign(anchor.style, {
+          position: "absolute",
+          left: `${point[0]}px`,
+          top: `${point[1]}px`,
+          width: "1px",
+          height: "1px",
+        });
+      },
+      close: () => {
+        this.remove();
+        this.edgeless.host.focus({ preventScroll: true });
+      },
+    };
   }
 
   readonly connector: ConnectorElementModel;

@@ -8,26 +8,21 @@ import {
   resolveEditorMessage,
 } from "@virgultum/core/services";
 import { computed } from "@preact/signals-core";
-import { SignalWatcher } from "@virgultum/core/primitives/lit";
 import {
   ConnectorMode,
   DefaultTheme,
   BRUSH_LINE_WIDTHS,
   resolveColor,
 } from "@virgultum/core/models";
-
+import { NativeViewElement } from "@virgultum/core/runtime";
 import { EdgelessToolbarToolMixin } from "../../../widgets/edgeless-toolbar/index";
-import { LitElement } from "lit";
-import { property } from "lit/decorators.js";
 
 import { ConnectorTool } from "../connector-tool";
 
 export class EdgelessConnectorMenu extends EdgelessToolbarToolMixin(
-  SignalWatcher(LitElement),
+  NativeViewElement,
 ) {
-  override createRenderRoot() {
-    return this;
-  }
+  private _onChange!: (props: Record<string, unknown>) => void;
 
   private readonly _props$ = computed(() => {
     const { mode, stroke, strokeWidth } =
@@ -41,11 +36,23 @@ export class EdgelessConnectorMenu extends EdgelessToolbarToolMixin(
 
   override type = ConnectorTool;
 
-  override render() {
+  get onChange() {
+    return this._onChange;
+  }
+
+  set onChange(value: (props: Record<string, unknown>) => void) {
+    this._onChange = value;
+    this.requestUpdate();
+  }
+
+  protected override paint() {
+    const chrome = this.edgeless.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
     const { stroke, strokeWidth, mode } = this._props$.value;
     const i18n = this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined;
+    void i18n?.locale$.value;
     const theme = this._theme$.value;
-    return this.edgeless.std.get(EditorChromeHostIdentifier).renderCanvasMenu({
+    this.mountSlot("menu", this, chrome.mountCanvasMenu, {
       tools: [
         {
           action: {
@@ -126,7 +133,4 @@ export class EdgelessConnectorMenu extends EdgelessToolbarToolMixin(
       ],
     });
   }
-
-  @property({ attribute: false })
-  accessor onChange!: (props: Record<string, unknown>) => void;
 }

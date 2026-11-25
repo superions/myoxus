@@ -1,6 +1,4 @@
-import { html } from "lit";
-
-export const ScribbledSquareIcon = html`<svg
+export const ScribbledSquareIcon = `<svg
   width="20"
   height="20"
   viewBox="0 0 20 20"
@@ -49,7 +47,7 @@ export const ScribbledSquareIcon = html`<svg
   />
 </svg>`;
 
-export const ScribbledEllipseIcon = html`<svg
+export const ScribbledEllipseIcon = `<svg
   width="20"
   height="20"
   viewBox="0 0 20 20"
@@ -63,7 +61,7 @@ export const ScribbledEllipseIcon = html`<svg
   />
 </svg>`;
 
-export const ScribbledDiamondIcon = html`<svg
+export const ScribbledDiamondIcon = `<svg
   width="20"
   height="20"
   viewBox="0 0 20 20"
@@ -112,7 +110,7 @@ export const ScribbledDiamondIcon = html`<svg
   />
 </svg>`;
 
-export const ScribbledTriangleIcon = html`<svg
+export const ScribbledTriangleIcon = `<svg
   width="20"
   height="20"
   viewBox="0 0 20 20"
@@ -151,7 +149,7 @@ export const ScribbledTriangleIcon = html`<svg
   />
 </svg>`;
 
-export const ScribbledRoundedRectangleIcon = html`<svg
+export const ScribbledRoundedRectangleIcon = `<svg
   width="20"
   height="20"
   viewBox="0 0 20 20"
@@ -212,7 +210,7 @@ export const ScribbledRoundedRectangleIcon = html`<svg
   />
 </svg>`;
 
-export const ellipseSvg = html`<svg
+export const ellipseSvg = `<svg
   width="48"
   height="48"
   viewBox="0 0 48 48"
@@ -222,7 +220,7 @@ export const ellipseSvg = html`<svg
   <circle cx="24" cy="24" r="23.5" fill="currentColor" stroke="inherit" />
 </svg> `;
 
-export const triangleSvg = html`<svg
+export const triangleSvg = `<svg
   width="62"
   height="50"
   viewBox="0 0 62 50"
@@ -236,7 +234,7 @@ export const triangleSvg = html`<svg
   />
 </svg> `;
 
-export const roundedSvg = html`<svg
+export const roundedSvg = `<svg
   width="48"
   height="48"
   viewBox="0 0 48 48"

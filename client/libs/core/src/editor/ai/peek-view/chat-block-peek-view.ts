@@ -2,12 +2,8 @@ import { StoredChatMessages } from "../blocks/ai-chat-block/components/stored-ch
 import type { AIToolsConfigService } from "@myoxus/core/modules/ai-button";
 import type { AIModelService } from "@myoxus/core/modules/ai-button/services/models";
 import type { PeekViewService } from "@myoxus/core/modules/peek-view";
-import type { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
-import type { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
-import type { ServerService } from "@myoxus/core/modules/server";
-import type { ReactToLit } from "@myoxus/lit-react";
 import { i18nTime } from "@myoxus/i18n";
-import { InsideModalContext, MyoxusText, Stack } from "@myoxus/ui-facade";
+import { MyoxusText, Stack } from "@myoxus/ui-facade";
 import { createElement, type ReactNode } from "react";
 import { signal } from "@preact/signals-core";
 import { CopilotResponseActions } from "../components/response-actions";
@@ -35,8 +31,8 @@ import {
 import { type AIChatBlockModel } from "../blocks";
 import type { SearchMenuConfig } from "../components/ai-chat-add-context";
 import type { DocDisplayConfig } from "../components/ai-chat-chips";
-import type { AIChatComposer } from "../components/ai-chat-composer";
-import type { AIHistoryClear } from "../components/ai-history-clear";
+import { AIChatComposer } from "../components/ai-chat-composer/ai-chat-composer";
+import { AIHistoryClear } from "../components/ai-history-clear/ai-history-clear";
 import type { AIReasoningConfig } from "../components/ai-chat-input";
 import {
   type ChatMessage,
@@ -65,14 +61,10 @@ type PeekSessionOptions = {
   peekViewService: PeekViewService;
   host: EditorHost;
   reasoningConfig: AIReasoningConfig;
-  serverService: ServerService;
   docDisplayConfig: DocDisplayConfig;
   searchMenuConfig: SearchMenuConfig;
-  myoxusFeatureFlagService: FeatureFlagService;
-  myoxusWorkspaceDialogService: WorkspaceDialogService;
   aiToolsConfigService: AIToolsConfigService;
   aiModelService: AIModelService;
-  reactToLit: ReactToLit;
 };
 
 export class AIChatBlockPeekSession {
@@ -82,20 +74,15 @@ export class AIChatBlockPeekSession {
   private isConnected = false;
   private lifetime = 0;
   private scrollTimer?: ReturnType<typeof setTimeout>;
-  private parentElement?: HTMLElement;
 
   readonly blockModel!: AIChatBlockModel;
   readonly peekViewService!: PeekViewService;
   readonly host!: EditorHost;
   readonly reasoningConfig!: AIReasoningConfig;
-  readonly serverService!: ServerService;
   readonly docDisplayConfig!: DocDisplayConfig;
   readonly searchMenuConfig!: SearchMenuConfig;
-  readonly myoxusFeatureFlagService!: FeatureFlagService;
-  readonly myoxusWorkspaceDialogService!: WorkspaceDialogService;
   readonly aiToolsConfigService!: AIToolsConfigService;
   readonly aiModelService!: AIModelService;
-  readonly reactToLit!: ReactToLit;
 
   constructor(options: PeekSessionOptions) {
     Object.assign(this, options);
@@ -104,27 +91,6 @@ export class AIChatBlockPeekSession {
   private refresh() {
     this.revision.value++;
   }
-
-  // These islands still belong to the host's portal tree, but their physical
-  // destination is the existing peek modal. Keep native popups in its layer and
-  // focus owner; do not create another portal root or compensate with z-index.
-  private readonly modalReactToLit: ReactToLit = (
-    element,
-    rerendering,
-    ...args
-  ) =>
-    this.reactToLit(
-      () =>
-        createElement(
-          InsideModalContext.Provider,
-          {
-            value: '[data-testid="peek-view-modal"]',
-          },
-          typeof element === "function" ? element() : element,
-        ),
-      rerendering,
-      ...args,
-    );
 
   private get _modeService() {
     return this.host.std.get(DocModeProvider);
@@ -431,7 +397,6 @@ export class AIChatBlockPeekSession {
     this.chatContext.abortController?.abort();
     this._throttledScrollToEnd.cancel();
     clearTimeout(this.scrollTimer);
-    this.parentElement = undefined;
     this._chatMessagesContainer = null;
   }
 
@@ -645,8 +610,7 @@ export class AIChatBlockPeekSession {
     });
   }
 
-  connect(anchor: HTMLElement) {
-    this.parentElement = anchor;
+  connect() {
     this.isConnected = true;
     const lifetime = ++this.lifetime;
     this.initSession().catch(console.error);
@@ -684,16 +648,6 @@ export class AIChatBlockPeekSession {
     else this.scrollTimer = setTimeout(this._scrollToEnd, 500);
   };
 
-  // These retained composer elements accept callbacks as properties rather
-  // than DOM events. React treats an on-prefixed custom-element prop as an event.
-  private readonly bindComposer = (element: AIChatComposer | null) => {
-    if (element) element.onChatSuccess = this._onChatSuccess;
-  };
-
-  private readonly bindHistoryClear = (element: AIHistoryClear | null) => {
-    if (element) element.onHistoryCleared = this._onHistoryCleared;
-  };
-
   render(): ReactNode {
     const { host, _historyMessages } = this;
     if (!_historyMessages.length) {
@@ -711,16 +665,14 @@ export class AIChatBlockPeekSession {
       ChatPeekConversation,
       {
         viewportRef: this._setMessagesViewport,
-        header: createElement("ai-history-clear", {
-          reactToLit: this.modalReactToLit,
+        header: createElement(AIHistoryClear, {
           doc: this.host.store,
           session: this.forkSession,
-          ref: this.bindHistoryClear,
+          onHistoryCleared: this._onHistoryCleared,
           chatContextValue: chatContext,
           notificationService,
         }),
-        composer: createElement("ai-chat-composer", {
-          reactToLit: this.modalReactToLit,
+        composer: createElement(AIChatComposer, {
           host,
           workspaceId: host.store.workspace.id,
           docId: host.store.id,
@@ -730,15 +682,11 @@ export class AIChatBlockPeekSession {
           updateContext,
           docDisplayConfig: this.docDisplayConfig,
           searchMenuConfig: this.searchMenuConfig,
-          myoxusWorkspaceDialogService: this.myoxusWorkspaceDialogService,
           notificationService,
           aiToolsConfigService: this.aiToolsConfigService,
-          myoxusFeatureFlagService: this.myoxusFeatureFlagService,
-          ref: this.bindComposer,
+          onChatSuccess: () => void this._onChatSuccess(),
           trackOptions: peekTracking,
-          portalContainer: this.parentElement,
           reasoningConfig: this.reasoningConfig,
-          serverService: this.serverService,
           aiModelService: this.aiModelService,
         }),
       },

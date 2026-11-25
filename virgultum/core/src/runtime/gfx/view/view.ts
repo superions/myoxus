@@ -6,7 +6,7 @@ import {
 } from "../../../primitives/exceptions/index";
 import { type Bound, type IVec } from "../../../primitives/gfx/index";
 import type { Extension } from "../../../store/index";
-import type { TemplateResult } from "lit";
+import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import type { GfxModel } from "../model/model.js";
 
 /** Family-owned actions on a selected element. Coordinates are screen offsets
@@ -16,7 +16,7 @@ export type GfxSelectionAction = {
   left: number;
   top: number;
   mirrored?: boolean;
-  icon: TemplateResult;
+  icon: MyoxusIconExportName;
   run: () => void;
 };
 

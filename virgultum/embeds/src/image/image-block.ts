@@ -1,9 +1,6 @@
-import { BrokenImageIcon, ImageIcon } from "@myoxus/icons/lit";
-import { cssVar } from "@myoxus/theme";
-import { computed } from "@preact/signals-core";
-import { CaptionedBlockComponent } from "@virgultum/content/caption";
+import { computed, effect, untracked } from "@preact/signals-core";
+import { NativeCaptionedBlockComponent } from "@virgultum/content/caption";
 import { whenHover } from "@virgultum/core/view/hover";
-import { LoadingIcon } from "@virgultum/core/view/icons";
 import { Peekable } from "@virgultum/core/view/peek";
 import { ResourceController } from "@virgultum/core/resource";
 import { IS_MOBILE } from "@virgultum/core/primitives/env";
@@ -15,11 +12,8 @@ import {
 } from "@virgultum/core/services";
 import { formatSize } from "@virgultum/core/utils";
 import { BlockSelection } from "@virgultum/core/runtime";
-import { html } from "lit";
-import { query } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
-import { when } from "lit/directives/when.js";
 
+import type { ImageBlockFallbackCard } from "./components/image-fallback";
 import type { ImageBlockPageComponent } from "./components/page-image-block";
 import {
   copyImageBlob,
@@ -31,7 +25,10 @@ import {
 @Peekable({
   enableOn: () => !IS_MOBILE,
 })
-export class ImageBlockComponent extends CaptionedBlockComponent<ImageBlockModel> {
+export class ImageBlockComponent extends NativeCaptionedBlockComponent<ImageBlockModel> {
+  protected override useCaptionEditor = true;
+  protected override useZeroWidth = true;
+
   resizeable$ = computed(() =>
     this.std.selection.value.some(
       (selection) =>
@@ -43,6 +40,14 @@ export class ImageBlockComponent extends CaptionedBlockComponent<ImageBlockModel
     computed(() => this.model.props.sourceId$.value),
     "Image",
   );
+
+  hoverableContainer!: HTMLDivElement;
+  private pageImage: ImageBlockPageComponent | null = null;
+
+  constructor() {
+    super();
+    this.blockContainerStyles$.value = { margin: "18px 0" };
+  }
 
   get blobUrl() {
     return this.resourceController.blobUrl$.value;
@@ -76,7 +81,7 @@ export class ImageBlockComponent extends CaptionedBlockComponent<ImageBlockModel
     );
   }
 
-  private _handleClick(event: MouseEvent) {
+  private readonly _handleClick = (event: MouseEvent) => {
     // the peek view need handle shift + click
     if (event.defaultPrevented) return;
 
@@ -86,7 +91,7 @@ export class ImageBlockComponent extends CaptionedBlockComponent<ImageBlockModel
       blockId: this.blockId,
     });
     selectionManager.setGroup("note", [blockSelection]);
-  }
+  };
 
   private _initHover() {
     const { setReference, setFloating, dispose } = whenHover(
@@ -108,12 +113,10 @@ export class ImageBlockComponent extends CaptionedBlockComponent<ImageBlockModel
       { enterDelay: 500 },
     );
     setReference(this.hoverableContainer);
-    this._disposables.add(dispose);
+    this.disposables.add(dispose);
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-
+  protected override mountBlock(container: HTMLElement) {
     this.contentEditable = "false";
 
     this.resourceController.setEngine(this.std.store.blobSync);
@@ -126,77 +129,82 @@ export class ImageBlockComponent extends CaptionedBlockComponent<ImageBlockModel
         this.refreshData();
       }),
     );
-  }
 
-  override firstUpdated() {
-    // lazy bindings
+    const doc = this.ownerDocument;
+    const imageContainer = doc.createElement("div");
+    imageContainer.className = "myoxus-image-container";
+    imageContainer.style.position = "relative";
+    imageContainer.style.width = "100%";
+    this.hoverableContainer = imageContainer;
+
+    container.replaceChildren(imageContainer);
+    this.mountBlockWidgets(container);
+
     this.disposables.addFromEvent(this, "click", this._handleClick);
     this._initHover();
-  }
 
-  override renderBlock() {
-    const blobUrl = this.blobUrl;
-    const { size = 0 } = this.model.props;
-
-    const containerStyleMap = styleMap({
-      position: "relative",
-      width: "100%",
+    const resolvedState$ = computed(() => {
+      void this.revision$.value;
+      const { size = 0 } = this.model.props;
+      return this.resourceController.resolveStateWith({
+        title: "Image",
+        description: formatSize(size),
+      });
     });
 
-    const alignItemsStyleMap = styleMap({
-      alignItems:
-        this.model.props.textAlign$.value === "left"
-          ? "flex-start"
-          : this.model.props.textAlign$.value === "right"
-            ? "flex-end"
-            : undefined,
-    });
+    let fallbackCard: ImageBlockFallbackCard | null = null;
 
-    const resovledState = this.resourceController.resolveStateWith({
-      loadingIcon: LoadingIcon({
-        strokeColor: cssVar("pureWhite"),
-        ringColor: cssVar("white60"),
+    this.disposables.add(
+      effect(() => {
+        const blobUrl = this.blobUrl;
+        const resolvedState = resolvedState$.value;
+        const textAlign = this.model.props.textAlign$.value;
+
+        untracked(() => {
+          if (blobUrl) {
+            fallbackCard = null;
+            if (!this.pageImage) {
+              const pageImage = doc.createElement(
+                "myoxus-page-image",
+              ) as ImageBlockPageComponent;
+              pageImage.block = this;
+              pageImage.state = resolvedState;
+              this.pageImage = pageImage;
+              imageContainer.replaceChildren(pageImage);
+            } else {
+              this.pageImage.state = resolvedState;
+              this.pageImage.requestUpdate();
+            }
+            this.pageImage.style.alignItems =
+              textAlign === "left"
+                ? "flex-start"
+                : textAlign === "right"
+                  ? "flex-end"
+                  : "";
+            return;
+          }
+
+          this.pageImage = null;
+          if (!fallbackCard) {
+            fallbackCard = doc.createElement(
+              "myoxus-image-fallback-card",
+            ) as ImageBlockFallbackCard;
+            fallbackCard.std = this.std;
+            fallbackCard.inSurface = false;
+            fallbackCard.state = resolvedState;
+            imageContainer.replaceChildren(fallbackCard);
+          } else {
+            fallbackCard.state = resolvedState;
+          }
+        });
       }),
-      errorIcon: BrokenImageIcon(),
-      icon: ImageIcon(),
-      title: "Image",
-      description: formatSize(size),
-    });
-
-    return html`
-      <div class="myoxus-image-container" style=${containerStyleMap}>
-        ${when(
-          blobUrl,
-          () =>
-            html`<myoxus-page-image
-              .block=${this}
-              .state=${resovledState}
-              style="${alignItemsStyleMap}"
-            ></myoxus-page-image>`,
-          () =>
-            html`<myoxus-image-fallback-card
-              .std=${this.std}
-              .inSurface=${false}
-              .state=${resovledState}
-            ></myoxus-image-fallback-card>`,
-        )}
-      </div>
-
-      ${Object.values(this.widgets)}
-    `;
+    );
   }
 
-  override accessor blockContainerStyles = { margin: "18px 0" };
-
-  @query("myoxus-page-image")
-  private accessor pageImage: ImageBlockPageComponent | null = null;
-
-  @query(".myoxus-image-container")
-  accessor hoverableContainer!: HTMLDivElement;
-
-  override accessor useCaptionEditor = true;
-
-  override accessor useZeroWidth = true;
+  override disconnectedCallback() {
+    this.pageImage = null;
+    super.disconnectedCallback();
+  }
 }
 
 declare global {

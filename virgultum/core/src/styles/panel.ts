@@ -1,18 +1,16 @@
-import { css, unsafeCSS } from "lit";
-
 import { unsafeCSSValue, unsafeCSSVar } from "../theme/css-variables";
 import { fontSMStyle } from "./font";
 
-export const panelBaseColorsStyle = (container: string) => css`
-  ${unsafeCSS(container)} {
+export const panelBaseColorsStyle = (container: string) => `
+  ${container} {
     color: var(--myoxus-icon-color);
     box-shadow: var(--myoxus-overlay-shadow);
     background: ${unsafeCSSVar("backgroundOverlayPanelColor")};
   }
 `;
 
-export const panelBaseStyle = (container: string) => css`
-  ${unsafeCSS(container)} {
+export const panelBaseStyle = (container: string) => `
+  ${container} {
     display: flex;
     align-items: center;
     gap: ${unsafeCSSValue("var(--mantine-spacing-sm)")};

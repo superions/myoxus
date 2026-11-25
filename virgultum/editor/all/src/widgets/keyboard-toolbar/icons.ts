@@ -1,35 +1,28 @@
-import {
-  Heading1Icon,
-  Heading2Icon,
-  Heading3Icon,
-  Heading4Icon,
-  Heading5Icon,
-  Heading6Icon,
-} from "@myoxus/icons/lit";
+import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import { cssVar } from "@myoxus/theme";
-import { html } from "lit";
+import type { EditorKeyboardIcon } from "@virgultum/core/services";
 
-export function HeadingIcon(i: 1 | 2 | 3 | 4 | 5 | 6) {
+export function HeadingIcon(i: 1 | 2 | 3 | 4 | 5 | 6): MyoxusIconExportName {
   switch (i) {
     case 1:
-      return Heading1Icon();
+      return "Heading1Icon";
     case 2:
-      return Heading2Icon();
+      return "Heading2Icon";
     case 3:
-      return Heading3Icon();
+      return "Heading3Icon";
     case 4:
-      return Heading4Icon();
+      return "Heading4Icon";
     case 5:
-      return Heading5Icon();
+      return "Heading5Icon";
     case 6:
-      return Heading6Icon();
+      return "Heading6Icon";
     default:
-      return Heading1Icon();
+      return "Heading1Icon";
   }
 }
 
-export const HighLightDuotoneIcon = (color: string) =>
-  html`<svg
+export const HighLightDuotoneIcon = (color: string): EditorKeyboardIcon => ({
+  svg: `<svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
     height="24"
@@ -46,10 +39,11 @@ export const HighLightDuotoneIcon = (color: string) =>
       d="M19.0095 3.63759C17.9526 2.58067 16.26 2.516 15.1255 3.48919L7.32135 10.1837C6.35438 11.0132 6.05275 12.3823 6.58163 13.5414L6.73501 13.8775L5.67697 14.9356C5.30169 15.3108 5.30169 15.9193 5.67697 16.2946L8.06379 18.6814C8.43907 19.0567 9.04752 19.0567 9.4228 18.6814L10.4808 17.6234L10.8171 17.7768C11.9761 18.3057 13.3452 18.0041 14.1747 17.0371L20.8692 9.23294C21.8424 8.09846 21.7778 6.40588 20.7208 5.34896L19.0095 3.63759ZM16.1021 4.62769C16.6415 4.16498 17.4463 4.19572 17.9488 4.69825L19.6602 6.40962C20.1627 6.91215 20.1935 7.7169 19.7307 8.25631L14.6424 14.188L10.1704 9.71604L16.1021 4.62769ZM9.02857 10.6955L8.29798 11.3222C7.83822 11.7166 7.6948 12.3676 7.94627 12.9187L8.29785 13.6892C8.4348 13.9893 8.37947 14.3544 8.13372 14.6001L7.11878 15.6151L8.74329 17.2396L9.75812 16.2247C10.004 15.9789 10.3691 15.9236 10.6693 16.0606L11.4398 16.4122C11.9908 16.6636 12.6418 16.5202 13.0362 16.0605L13.6629 15.3299L9.02857 10.6955Z"
       fill="${cssVar("iconColor")}"
     />
-  </svg>`;
+  </svg>`,
+});
 
-export const TextColorIcon = (color: string) =>
-  html`<svg
+export const TextColorIcon = (color: string): EditorKeyboardIcon => ({
+  svg: `<svg
     xmlns="http://www.w3.org/2000/svg"
     width="32"
     height="32"
@@ -68,12 +62,15 @@ export const TextColorIcon = (color: string) =>
       width="21.3333"
       height="3.33333"
       rx="1"
-      fill=${color}
+      fill="${color}"
     />
-  </svg>`;
+  </svg>`,
+});
 
-export const TextBackgroundDuotoneIcon = (color: string) =>
-  html`<svg
+export const TextBackgroundDuotoneIcon = (
+  color: string,
+): EditorKeyboardIcon => ({
+  svg: `<svg
     xmlns="http://www.w3.org/2000/svg"
     width="32"
     height="32"
@@ -99,9 +96,11 @@ export const TextBackgroundDuotoneIcon = (color: string) =>
       d="M14.5379 10.0064C14.8251 9.24064 15.5571 8.73332 16.375 8.73332C17.1928 8.73332 17.9249 9.24064 18.2121 10.0064L22.6446 21.8266C22.8386 22.3438 22.5766 22.9202 22.0594 23.1141C21.5423 23.308 20.9659 23.046 20.772 22.5289L19.5196 19.1891H13.2304L11.978 22.5289C11.7841 23.046 11.2076 23.308 10.6905 23.1141C10.1734 22.9202 9.9114 22.3438 10.1053 21.8266L14.5379 10.0064ZM13.9804 17.1891H18.7696L16.375 10.8035L13.9804 17.1891Z"
       fill="${cssVar("textPrimaryColor")}"
     />
-  </svg>`;
+  </svg>`,
+});
 
-export const FigmaDuotoneIcon = html`<svg
+export const FigmaDuotoneIcon: EditorKeyboardIcon = {
+  svg: `<svg
   width="32"
   height="32"
   viewBox="0 0 24 24"
@@ -135,4 +134,5 @@ export const FigmaDuotoneIcon = html`<svg
       fill="#1ABCFE"
     />
   </g>
-</svg> `;
+</svg>`,
+};

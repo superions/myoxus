@@ -77,11 +77,11 @@ type CapturedOverride = {
 };
 
 function applyExtensionAndCaptureConfig() {
-  const reactToLit = vi.fn(
-    (_element: unknown, _rerendering?: boolean) =>
-      "lit-template" as unknown as never,
+  const dispose = vi.fn();
+  const mountPortal = vi.fn(
+    (_anchor: HTMLElement, _element: unknown) => dispose,
   );
-  const ext = patchForPDFEmbedView(reactToLit);
+  const ext = patchForPDFEmbedView(mountPortal);
   const captured: CapturedOverride[] = [];
   const di = {
     override: (identifier: { __id: string }, factory: () => unknown) => {
@@ -104,9 +104,10 @@ function applyExtensionAndCaptureConfig() {
         props: { xywh: string };
         store: { updateBlock: (...args: unknown[]) => void };
       }) => void;
-      render: (m: { id: string }, _: string) => unknown;
+      mount: (anchor: HTMLElement, m: { id: string }, _: string) => () => void;
     },
-    reactToLit,
+    mountPortal,
+    dispose,
   };
 }
 
@@ -170,14 +171,15 @@ describe("patchForPDFEmbedView — mode-agnostic PDF embed contract", () => {
     expect(patch.xywh).toBe("[0,0,537,759]");
   });
 
-  test("INV-PDF-VIEW-EXT-06: render forwards to reactToLit with AttachmentEmbedPreview", () => {
-    const { config, reactToLit } = applyExtensionAndCaptureConfig();
+  test("INV-PDF-VIEW-EXT-06: mount forwards to mountPortal with AttachmentEmbedPreview", () => {
+    const { config, mountPortal, dispose } = applyExtensionAndCaptureConfig();
+    const anchor = document.createElement("div");
     const model = { id: "block-id" };
-    const out = config.render(model, "ignored-blob-url");
-    expect(out).toBe("lit-template");
-    expect(reactToLit).toHaveBeenCalledTimes(1);
-    const [element, rerendering] = reactToLit.mock.calls[0];
+    const out = config.mount(anchor, model, "ignored-blob-url");
+    expect(out).toBe(dispose);
+    expect(mountPortal).toHaveBeenCalledTimes(1);
+    const [calledAnchor, element] = mountPortal.mock.calls[0];
+    expect(calledAnchor).toBe(anchor);
     expect(element).toBeTruthy();
-    expect(rerendering).toBe(true);
   });
 });

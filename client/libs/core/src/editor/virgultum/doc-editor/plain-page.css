@@ -383,3 +383,12 @@
 [data-canvas-reader]:active {
   cursor: grabbing;
 }
+[data-page-body-stage] {
+  position: relative;
+}
+[data-plain-remote-overlay] {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}

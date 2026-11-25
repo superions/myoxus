@@ -1,6 +1,7 @@
-import { AIStarIconWithAnimation } from "@virgultum/editor/components/icons";
+import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import { type EditorHost, TextSelection } from "@virgultum/editor/std";
-import type { TemplateResult } from "lit";
+
+import { AIStarIconWithAnimation } from "../_common/icons";
 
 import {
   buildCopyConfig,
@@ -172,7 +173,7 @@ function actionToGenerateAnswer<T extends keyof VirgultumPresets.AIActions>(
 function updateAIPanelConfig<T extends keyof VirgultumPresets.AIActions>(
   aiPanel: MyoxusAIPanelWidget,
   id: T,
-  generatingIcon: TemplateResult<1>,
+  generatingIcon: MyoxusIconExportName,
   variants?: Omit<
     Parameters<VirgultumPresets.AIActions[T]>[0],
     keyof VirgultumPresets.AITextActionOptions
@@ -201,7 +202,7 @@ function updateAIPanelConfig<T extends keyof VirgultumPresets.AIActions>(
 
 export function actionToHandler<T extends keyof VirgultumPresets.AIActions>(
   id: T,
-  generatingIcon: TemplateResult<1>,
+  generatingIcon: MyoxusIconExportName,
   variants?: Omit<
     Parameters<VirgultumPresets.AIActions[T]>[0],
     keyof VirgultumPresets.AITextActionOptions

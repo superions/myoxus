@@ -1,22 +1,17 @@
 import { computed } from "@preact/signals-core";
-import { SignalWatcher } from "@virgultum/core/primitives/lit";
 import { ConnectorMode, getConnectorModeName } from "@virgultum/core/models";
 import {
   EditPropsStore,
   EditorChromeHostIdentifier,
 } from "@virgultum/core/services";
+import { NativeViewElement } from "@virgultum/core/runtime";
 import { QuickToolMixin } from "../../../widgets/edgeless-toolbar/index";
-import { LitElement } from "lit";
 
 import { ConnectorTool } from "../connector-tool";
 
 export class EdgelessConnectorToolButton extends QuickToolMixin(
-  SignalWatcher(LitElement),
+  NativeViewElement,
 ) {
-  override createRenderRoot() {
-    return this;
-  }
-
   private readonly _mode$ = computed(() => {
     return this.edgeless.std.get(EditPropsStore).lastProps$.value.connector
       .mode;
@@ -27,20 +22,27 @@ export class EdgelessConnectorToolButton extends QuickToolMixin(
   private _toggleMenu() {
     if (this.tryDisposePopper()) return;
 
-    const menu = this.createPopper("edgeless-connector-menu", this);
-    menu.element.edgeless = this.edgeless;
-    menu.element.onChange = (props: Record<string, unknown>) => {
-      this.edgeless.std.get(EditPropsStore).recordLastProps("connector", props);
-      this.setEdgelessTool(this.type, {
-        mode: this._mode$.value,
-      });
-    };
+    this.createPopper("edgeless-connector-menu", this, {
+      setProps: (element) => {
+        element.edgeless = this.edgeless;
+        element.onChange = (props: Record<string, unknown>) => {
+          this.edgeless.std
+            .get(EditPropsStore)
+            .recordLastProps("connector", props);
+          this.setEdgelessTool(this.type, {
+            mode: this._mode$.value,
+          });
+        };
+      },
+    });
   }
 
-  override render() {
+  protected override paint() {
+    const chrome = this.edgeless.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
     const { active } = this;
     const mode = this._mode$.value;
-    return this.edgeless.std.get(EditorChromeHostIdentifier).renderCanvasTool({
+    this.mountSlot("tool", this, chrome.mountCanvasTool, {
       expanded: this.popper !== null,
       action: {
         id: "canvas-connector",

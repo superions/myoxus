@@ -8,7 +8,6 @@ import {
   ArrowRightSmallIcon,
   InvisibleIcon,
 } from "@myoxus/icons/react";
-import { toReactNode } from "@myoxus/lit-react";
 import {
   Button,
   IconButton,
@@ -55,9 +54,7 @@ export function EditorAutoCompleteTrigger({
       onFocus={() => controls.preview(true)}
       onBlur={() => controls.preview(false)}
     >
-      {controls.artwork
-        ? toReactNode(controls.artwork)
-        : editorGlyph(controls.icon)}
+      {editorGlyph(controls.icon)}
     </IconButton>
   );
 }

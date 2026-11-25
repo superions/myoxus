@@ -6,13 +6,15 @@ import {
   type BlockStdScope,
   ConfigExtensionFactory,
 } from "@virgultum/core/runtime";
-import type { TemplateResult } from "lit";
 
 export type EmbedSyncedDocConfig = {
-  edgelessHeader: (context: {
-    model: EmbedSyncedDocModel;
-    std: BlockStdScope;
-  }) => TemplateResult;
+  mountEdgelessHeader: (
+    anchor: HTMLElement,
+    context: {
+      model: EmbedSyncedDocModel;
+      std: BlockStdScope;
+    },
+  ) => () => void;
 };
 
 export const EmbedSyncedDocConfigExtension =

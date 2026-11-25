@@ -1,3 +1,4 @@
+import { computed, signal } from "@preact/signals-core";
 import { EditorChromeHostIdentifier } from "@virgultum/core/services";
 import type {
   EmbedYoutubeModel,
@@ -5,7 +6,6 @@ import type {
 } from "@virgultum/core/models";
 import { ImageProxyService } from "@virgultum/core/adapters";
 import { BlockSelection } from "@virgultum/core/runtime";
-import { property, state } from "lit/decorators.js";
 import { EmbedBlockComponent } from "../common/embed-block-element.js";
 import { youtubeUrlRegex } from "./embed-youtube-model.js";
 import type { EmbedYoutubeBlockService } from "./embed-youtube-service.js";
@@ -15,7 +15,29 @@ export class EmbedYoutubeBlockComponent extends EmbedBlockComponent<
   EmbedYoutubeModel,
   EmbedYoutubeBlockService
 > {
-  override _cardStyle: (typeof EmbedYoutubeStyles)[number] = "video";
+  protected override embedSelectionMode = "native" as const;
+
+  private readonly _showImage$ = signal(false);
+  private readonly _loading$ = signal(false);
+
+  constructor() {
+    super();
+    this._cardStyle$.value = "video";
+  }
+
+  get loading() {
+    return this._loading$.value;
+  }
+  set loading(value: boolean) {
+    this._loading$.value = value;
+  }
+
+  override get _cardStyle(): (typeof EmbedYoutubeStyles)[number] {
+    return super._cardStyle as (typeof EmbedYoutubeStyles)[number];
+  }
+  override set _cardStyle(value: (typeof EmbedYoutubeStyles)[number]) {
+    super._cardStyle = value;
+  }
 
   open = () => {
     let link = this.model.props.url;
@@ -44,8 +66,7 @@ export class EmbedYoutubeBlockComponent extends EmbedBlockComponent<
     this._selectBlock();
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
+  protected override mountEmbedContent(container: HTMLElement) {
     this._cardStyle = this.model.props.style;
 
     if (!this.model.props.videoId) {
@@ -69,7 +90,9 @@ export class EmbedYoutubeBlockComponent extends EmbedBlockComponent<
 
     this.disposables.add(
       this.model.propsUpdated.subscribe(({ key }) => {
-        this.requestUpdate();
+        if (key === "style") {
+          this._cardStyle = this.model.props.style;
+        }
         if (key === "url") {
           this.refreshData();
         }
@@ -77,40 +100,44 @@ export class EmbedYoutubeBlockComponent extends EmbedBlockComponent<
     );
 
     const print = matchMedia("print");
-    this._showImage = print.matches;
+    this._showImage$.value = print.matches;
     this.disposables.addFromEvent(print, "change", () => {
-      this._showImage = print.matches;
+      this._showImage$.value = print.matches;
+    });
+
+    const chrome = this.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
+
+    const host = this.ownerDocument.createElement("div");
+    host.style.display = "contents";
+    container.replaceChildren(host);
+
+    const state$ = computed(() => {
+      void this.revision$.value;
+      const { image, title, description, creator, creatorImage, videoId, url } =
+        this.model.props;
+      const proxy = this.store.get(ImageProxyService);
+      return {
+        title: title ?? "YouTube",
+        description: description ?? null,
+        creator: creator ?? null,
+        creatorImage: creatorImage ? proxy.buildUrl(creatorImage) : null,
+        image: image ? proxy.buildUrl(image) : null,
+        videoId: videoId ?? null,
+        url,
+        loading: this._loading$.value,
+        printImage: this._showImage$.value,
+        selected: this.selected$.value,
+        showOverlay: this.showOverlay$.value,
+        select: (event: MouseEvent) => this._handleClick(event),
+        open: this.open,
+      };
+    });
+
+    const unmount = chrome.mountYoutubeCard(host, state$);
+    this.disposables.add(() => {
+      unmount();
+      host.remove();
     });
   }
-
-  override renderBlock() {
-    const { image, title, description, creator, creatorImage, videoId, url } =
-      this.model.props;
-    const proxy = this.store.get(ImageProxyService);
-    return this.renderEmbed(
-      () =>
-        this.std.get(EditorChromeHostIdentifier).renderYoutubeCard({
-          title: title ?? "YouTube",
-          description: description ?? null,
-          creator: creator ?? null,
-          creatorImage: creatorImage ? proxy.buildUrl(creatorImage) : null,
-          image: image ? proxy.buildUrl(image) : null,
-          videoId: videoId ?? null,
-          url,
-          loading: this.loading,
-          printImage: this._showImage,
-          selected: this.selected$.value,
-          showOverlay: this.showOverlay$.value,
-          select: (event) => this._handleClick(event),
-          open: this.open,
-        }),
-      "native",
-    );
-  }
-
-  @state()
-  private accessor _showImage = false;
-
-  @property({ attribute: false })
-  accessor loading = false;
 }

@@ -46,3 +46,4 @@ export * from "./menu-context";
 export * from "./toolbar-more-menu";
 
 export * from "./template-authoring";
+export * from "./remote-presence";

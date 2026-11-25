@@ -32,7 +32,7 @@ import {
   useServiceOptional,
   useServices,
 } from "@myoxus/infra";
-import { useLitPortalFactory } from "@myoxus/lit-react";
+import { usePortalFactory } from "@myoxus/core/editor/portal";
 import {
   DetailPageEditorViewport,
   DocumentEditorBlankGap,
@@ -161,7 +161,7 @@ function useMermaidDiagramDocumentTitle(page: Store, docsService: DocsService) {
 }
 
 const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
-  const [reactToLit, portals, mountPortal] = useLitPortalFactory();
+  const [portals, mountPortal] = usePortalFactory();
   const { workspaceService, featureFlagService } = useServices({
     WorkspaceService,
     FeatureFlagService,
@@ -195,12 +195,11 @@ const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
     const manager = getViewManager()
       .config.init()
       .foundation(framework)
-      .ai(enableAI, framework, reactToLit, mountPortal)
+      .ai(enableAI, framework, mountPortal)
       .theme(framework)
       .editorConfig(framework)
       .editorView({
         framework,
-        reactToLit,
         mountPortal,
         confirmModal,
         // Detached snapshots have no Doc/Editor scope. Keep their read-only
@@ -210,11 +209,10 @@ const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
       })
       .cloud(framework, isCloud)
       .turboRenderer(enableTurboRenderer)
-      .pdf(reactToLit)
+      .pdf(mountPortal)
       .edgelessBlockHeader({
         framework,
         isInPeekView,
-        reactToLit,
         mountPortal,
       })
       .database(framework)
@@ -246,7 +244,6 @@ const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
     isCloud,
     mode,
     mountPortal,
-    reactToLit,
     shared,
   ]);
 

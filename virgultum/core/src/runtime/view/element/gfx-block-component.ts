@@ -1,22 +1,19 @@
-import { computed, effect, signal, type Signal } from "@preact/signals-core";
+import { effect, type Signal } from "@preact/signals-core";
 import {
   ErrorCode,
   VirgultumError,
 } from "../../../primitives/exceptions/index";
 import { Bound } from "../../../primitives/gfx/index";
-import { nothing } from "lit";
 
-import type { GfxController } from "../../gfx/controller.js";
 import type { BlockService } from "../../extension/index.js";
-import { GfxControllerIdentifier } from "../../gfx/identifiers.js";
+import type { GfxController } from "../../gfx/controller.js";
 import type {
   BoxSelectionContext,
   DragMoveContext,
   GfxViewTransformInterface,
 } from "../../gfx/interactivity/index.js";
 import type { GfxBlockElementModel } from "../../gfx/model/gfx-block-model.js";
-import { SurfaceSelection } from "../../selection/index.js";
-import { BlockComponent } from "./block-component.js";
+import type { BlockComponent } from "./block-component.js";
 
 export function isGfxBlockComponent(
   element: unknown,
@@ -110,6 +107,7 @@ export function gfxBlockTransform(view: GfxBlockComponent) {
 
   return `translate(${translateX / viewScale + deltaX}px, ${translateY / viewScale + deltaY}px) scale(${zoom / viewScale})`;
 }
+
 export function gfxBlockRenderingRect(view: GfxBlockComponent) {
   const { xywh$ } = view.model;
 
@@ -125,92 +123,6 @@ export function gfxBlockRenderingRect(view: GfxBlockComponent) {
   return { x, y, w, h, zIndex: view.toZIndex() };
 }
 
-export abstract class LitGfxBlockComponent<
-  Model extends GfxBlockElementModel = GfxBlockElementModel,
-  Service extends BlockService = BlockService,
-  WidgetName extends string = string,
->
-  extends BlockComponent<Model, Service, WidgetName>
-  implements GfxBlockComponent<Model, Service, WidgetName>
-{
-  [GfxElementSymbol] = true;
-
-  readonly transformState$ = signal<"idle" | "active">("active");
-
-  get gfx() {
-    return this.std.get(GfxControllerIdentifier);
-  }
-
-  override connectedCallback(): void {
-    super.connectedCallback();
-    bindGfxBlockView(this);
-  }
-
-  onDragMove = (context: DragMoveContext) => moveGfxBlock(this.model, context);
-
-  onDragStart() {
-    this.model.stash("xywh");
-  }
-
-  onDragEnd() {
-    this.model.pop("xywh");
-  }
-
-  onBoxSelected(_: BoxSelectionContext) {}
-
-  getCSSTransform() {
-    return gfxBlockTransform(this);
-  }
-
-  getRenderingRect() {
-    return gfxBlockRenderingRect(this);
-  }
-
-  override renderBlock() {
-    const { x, y, w, h, zIndex } = this.getRenderingRect();
-
-    if (this.style.left !== `${x}px`) this.style.left = `${x}px`;
-    if (this.style.top !== `${y}px`) this.style.top = `${y}px`;
-    if (this.style.width !== `${w}px`) this.style.width = `${w}px`;
-    if (this.style.height !== `${h}px`) this.style.height = `${h}px`;
-    if (this.style.zIndex !== zIndex) this.style.zIndex = zIndex;
-
-    return this.renderGfxBlock();
-  }
-
-  renderGfxBlock(): unknown {
-    return nothing;
-  }
-
-  renderPageContent(): unknown {
-    return nothing;
-  }
-
-  override async scheduleUpdate() {
-    const parent = this.parentElement;
-
-    if (this.hasUpdated || !parent || !("scheduleUpdateChildren" in parent)) {
-      return super.scheduleUpdate();
-    } else {
-      await (parent.scheduleUpdateChildren as (id: string) => Promise<void>)(
-        this.model.id,
-      );
-
-      return super.scheduleUpdate();
-    }
-  }
-
-  toZIndex(): string {
-    return this.gfx.layer.getZIndex(this.model).toString() ?? "0";
-  }
-
-  updateZIndex(): void {
-    this.style.zIndex = this.toZIndex();
-  }
-}
-
-export const GfxBlockComponent = LitGfxBlockComponent;
-
 export function moveGfxBlock(
   model: GfxBlockElementModel,
   context: DragMoveContext,
@@ -218,123 +130,4 @@ export function moveGfxBlock(
   model.xywh = context.currentBound
     .moveDelta(context.dx, context.dy)
     .serialize();
-}
-
-export interface LegacyGfxBlockRendering {
-  renderGfxBlock(): unknown;
-  renderPageContent(): unknown;
-}
-
-export function toGfxBlockComponent<
-  Model extends GfxBlockElementModel,
-  Service extends BlockService,
-  WidgetName extends string,
-  B extends typeof BlockComponent<Model, Service, WidgetName>,
->(CustomBlock: B) {
-  // @ts-expect-error ignore
-  return class extends CustomBlock {
-    [GfxElementSymbol] = true;
-
-    readonly transformState$ = signal<"idle" | "active">("active");
-
-    override selected$ = computed(() => {
-      const selection = this.std.selection.value.find(
-        (selection) => selection.blockId === this.model?.id,
-      );
-      if (!selection) return false;
-      return selection.is(SurfaceSelection);
-    });
-
-    onDragMove({ dx, dy, currentBound }: DragMoveContext) {
-      this.model.xywh = currentBound.moveDelta(dx, dy).serialize();
-    }
-
-    onDragStart() {
-      this.model.stash("xywh");
-    }
-
-    onDragEnd() {
-      this.model.pop("xywh");
-    }
-
-    onBoxSelected(_: BoxSelectionContext) {}
-
-    get gfx() {
-      return this.std.get(GfxControllerIdentifier);
-    }
-
-    override connectedCallback(): void {
-      super.connectedCallback();
-      bindGfxBlockView(this);
-    }
-
-    getCSSTransform() {
-      return GfxBlockComponent.prototype.getCSSTransform.call(this);
-    }
-
-    getRenderingRect(): {
-      x: number;
-      y: number;
-      w: number | string;
-      h: number | string;
-      zIndex: string;
-    } {
-      const { xywh$ } = this.model;
-
-      if (!xywh$) {
-        throw new VirgultumError(
-          ErrorCode.GfxBlockElementError,
-          `Error on rendering '${this.model.flavour}': Gfx block's model should have 'xywh' property.`,
-        );
-      }
-
-      const [x, y, w, h] = JSON.parse(xywh$.value);
-
-      return { x, y, w, h, zIndex: this.toZIndex() };
-    }
-
-    override renderBlock() {
-      const { x, y, w, h, zIndex } = this.getRenderingRect();
-
-      this.style.left = `${x}px`;
-      this.style.top = `${y}px`;
-      this.style.width = typeof w === "number" ? `${w}px` : w;
-      this.style.height = typeof h === "number" ? `${h}px` : h;
-      this.style.zIndex = zIndex;
-
-      return this.renderGfxBlock();
-    }
-
-    renderGfxBlock(): unknown {
-      return this.renderPageContent();
-    }
-
-    renderPageContent() {
-      return super.renderBlock();
-    }
-
-    override async scheduleUpdate() {
-      const parent = this.parentElement;
-
-      if (this.hasUpdated || !parent || !("scheduleUpdateChildren" in parent)) {
-        return super.scheduleUpdate();
-      } else {
-        await (parent.scheduleUpdateChildren as (id: string) => Promise<void>)(
-          this.model.id,
-        );
-
-        return super.scheduleUpdate();
-      }
-    }
-
-    toZIndex(): string {
-      return this.gfx.layer.getZIndex(this.model).toString() ?? "0";
-    }
-
-    updateZIndex(): void {
-      this.style.zIndex = this.toZIndex();
-    }
-  } as B & {
-    new (...args: any[]): GfxBlockComponent & LegacyGfxBlockRendering;
-  };
 }

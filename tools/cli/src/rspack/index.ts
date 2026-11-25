@@ -248,7 +248,6 @@ export function createHTMLTargetConfig(
       fallback: { async_hooks: false },
       alias: {
         yjs: ProjectRoot.join("node_modules", "yjs").value,
-        lit: ProjectRoot.join("node_modules", "lit").value,
         [RSPACK_RRULE_COMPAT_ALIAS]: ProjectRoot.join(
           "tools",
           "cli",

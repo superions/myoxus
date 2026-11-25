@@ -1,47 +1,47 @@
-import {
-  EdgelessToolbarToolMixin,
-  QuickToolMixin,
-} from "../../../widgets/edgeless-toolbar/index";
+import { QuickToolMixin } from "../../../widgets/edgeless-toolbar/index";
 import {
   EditorI18nProvider,
   EditorChromeHostIdentifier,
   resolveLegacyEditorText,
 } from "@virgultum/core/services";
-import { css, html, nothing } from "lit";
-import { ShadowlessElement } from "@virgultum/core/runtime";
+import { NativeViewElement } from "@virgultum/core/runtime";
 
 import { PresentTool } from "../present-tool";
 
-export class EdgelessPresentButton extends QuickToolMixin(
-  EdgelessToolbarToolMixin(ShadowlessElement),
-) {
-  static override styles = css`
-    edgeless-present-button {
-      display: flex;
-    }
-  `;
+export class EdgelessPresentButton extends QuickToolMixin(NativeViewElement) {
+  private readonly _btnWrap: HTMLSpanElement;
 
   override type = PresentTool;
 
-  override render() {
+  constructor() {
+    super();
+    this._btnWrap = this.ownerDocument.createElement("span");
+    this._btnWrap.className = "edgeless-frame-navigator-button";
+  }
+
+  protected override onConnected() {
+    this.style.display = "flex";
+    if (!this._btnWrap.parentElement) {
+      this.append(this._btnWrap);
+    }
+  }
+
+  protected override paint() {
+    const chrome = this.edgeless.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
     const i18n = this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined;
+    void i18n?.locale$.value;
     const text = (value: string) =>
       resolveLegacyEditorText(value, i18n) ?? value;
 
-    return html`<span class="edgeless-frame-navigator-button">
-      ${
-        this.edgeless.std
-          .getOptional(EditorChromeHostIdentifier)
-          ?.renderCanvasTool({
-            action: {
-              id: "presentation-start",
-              icon: "PresentationIcon",
-              label: text("Present"),
-              disabled: false,
-              run: () => this.setEdgelessTool(PresentTool),
-            },
-          }) ?? nothing
-      }
-    </span>`;
+    this.mountSlot("tool", this._btnWrap, chrome.mountCanvasTool, {
+      action: {
+        id: "presentation-start",
+        icon: "PresentationIcon",
+        label: text("Present"),
+        disabled: false,
+        run: () => this.setEdgelessTool(PresentTool),
+      },
+    });
   }
 }

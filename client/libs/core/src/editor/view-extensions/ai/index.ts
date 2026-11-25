@@ -1,6 +1,5 @@
-import type { MountReactPortal, ReactToLit } from "@myoxus/lit-react";
-import { aiWidgetUI, nativeAIWidgetUI } from "../../ai/widgets/native-ui";
-import { decorateEditorEmbeddedUI } from "../editor-view/embedded-ui-root";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
+import { nativeAIWidgetUI } from "../../ai/widgets/native-ui";
 import { toolbarAIEntryConfig } from "@myoxus/core/editor/ai";
 import { AIChatBlockComponent } from "../../ai/blocks/ai-chat-block/ai-chat-block";
 import { EdgelessAIChatBlockComponent } from "../../ai/blocks/ai-chat-block/ai-chat-edgeless-block";
@@ -37,7 +36,6 @@ import { EdgelessClipboardAIChatConfig } from "./edgeless-clipboard";
 
 const optionsSchema = z.object({
   enable: z.boolean().optional(),
-  reactToLit: z.custom<ReactToLit>().optional(),
   mountPortal: z.custom<MountReactPortal>().optional(),
   framework: z.instanceof(FrameworkProvider).optional(),
 });
@@ -68,13 +66,6 @@ export class AIViewExtension extends ViewExtensionProvider<AIViewOptions> {
     super.setup(context, options);
     const framework = options?.framework;
     if (!framework) return;
-
-    if (options.reactToLit) {
-      const render = options.reactToLit;
-      context.register(
-        aiWidgetUI((view) => render(view, true, decorateEditorEmbeddedUI)),
-      );
-    }
 
     if (options.mountPortal)
       context.register(nativeAIWidgetUI(options.mountPortal));

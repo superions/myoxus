@@ -1,15 +1,8 @@
 import { acceptSourceMindmap } from "./mindmap-source";
-import {
-  ChatWithAiIcon,
-  DeleteIcon,
-  InsertBleowIcon as InsertBelowIcon,
-  PenIcon,
-  ResetIcon,
-} from "@myoxus/icons/lit";
+import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import { CodeBlockPreviewIdentifier } from "@virgultum/editor/blocks/code";
 import { addImages } from "@virgultum/editor/blocks/image";
 import { DefaultTool, getSurfaceBlock } from "@virgultum/editor/blocks/surface";
-import { LoadingIcon } from "@virgultum/editor/components/icons";
 import { createTemplateJob } from "@virgultum/editor/gfx/template";
 import { Bound } from "@virgultum/editor/global/gfx";
 import {
@@ -26,7 +19,6 @@ import {
   MYOXUS_TOOLBAR_WIDGET,
   type MyoxusToolbarWidget,
 } from "@virgultum/editor/widgets/toolbar";
-import type { TemplateResult } from "lit";
 
 import { insertFromMarkdown } from "../../utils";
 import type { ChatContextValue } from "../components/ai-chat-content/type";
@@ -45,9 +37,6 @@ import {
 import type { MyoxusAIPanelWidget } from "../widgets/ai-panel/ai-panel";
 import type { EdgelessCopilotWidget } from "../widgets/edgeless-copilot";
 import { EXCLUDING_INSERT_ACTIONS, generatingStages } from "./consts";
-
-const EDGELESS_RESPONSE_ICON_SIZE =
-  "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))";
 
 type FinishConfig = Exclude<
   MyoxusAIPanelWidget["config"],
@@ -81,7 +70,7 @@ export function discard(
 ): AIItemConfig {
   return {
     name: "Discard",
-    icon: DeleteIcon(),
+    icon: "DeleteIcon",
     testId: "answer-discard",
     showWhen: () => !!panel.answer,
     handler: () => {
@@ -93,7 +82,7 @@ export function discard(
 export function retry(panel: MyoxusAIPanelWidget): AIItemConfig {
   return {
     name: "Retry",
-    icon: ResetIcon(),
+    icon: "ResetIcon",
     testId: "answer-retry",
     handler: () => {
       reportResponse("result:retry");
@@ -120,7 +109,7 @@ export function createInsertItems<T extends keyof VirgultumPresets.AIActions>(
   return [
     {
       name: `${buttonText} - Loading...`,
-      icon: LoadingIcon({ size: EDGELESS_RESPONSE_ICON_SIZE }),
+      icon: "LoadingIcon",
       testId: "answer-insert-below-loading",
       showWhen: () => {
         const panel = getAIPanelWidget(host);
@@ -135,7 +124,7 @@ export function createInsertItems<T extends keyof VirgultumPresets.AIActions>(
     },
     {
       name: buttonText,
-      icon: InsertBelowIcon(),
+      icon: "InsertBelowIcon",
       testId:
         buttonText === "Replace" ? "answer-replace" : `answer-insert-below`,
       showWhen: () => {
@@ -191,7 +180,7 @@ export function asCaption<T extends keyof VirgultumPresets.AIActions>(
 ): AIItemConfig {
   return {
     name: "Use as caption",
-    icon: PenIcon(),
+    icon: "PenIcon",
     testId: "answer-use-as-caption",
     showWhen: () => {
       const panel = getAIPanelWidget(host);
@@ -508,7 +497,7 @@ export function actionToResponse<T extends keyof VirgultumPresets.AIActions>(
           {
             name: "Continue in chat",
             testId: "answer-continue-in-chat",
-            icon: ChatWithAiIcon({}),
+            icon: "ChatWithAiIcon",
             handler: () => {
               reportResponse("result:continue-in-chat");
               edgelesContinueResponseHandler(id, host, ctx).catch(
@@ -631,7 +620,7 @@ async function edgelesContinueResponseHandler<
 
 export function actionToGenerating<T extends keyof VirgultumPresets.AIActions>(
   id: T,
-  generatingIcon: TemplateResult<1>,
+  generatingIcon: MyoxusIconExportName,
 ) {
   return {
     generatingIcon,

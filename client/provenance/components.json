@@ -40,8 +40,8 @@
         "client/apps/electron",
         "client/apps/electron-renderer"
       ],
-      "pathCount": 5522,
-      "pathSha256": "f44526b1097f1e4a8d1244cedb8681ad4ea88ca735f45f6ae672e1d5c0f8782b"
+      "pathCount": 5507,
+      "pathSha256": "31c6c283b9ed079e4a76195397d631d6ee9bfe27f21393b34546d0f3bc8bf7b8"
     },
     "bundledAssets": {
       "extensions": [
@@ -78,7 +78,6 @@
       "client/libs/i18n/package.json": "AGPL-3.0-or-later",
       "client/libs/icons/package.json": "AGPL-3.0-or-later",
       "client/libs/infra/package.json": "AGPL-3.0-or-later",
-      "client/libs/lit-react/package.json": "AGPL-3.0-or-later",
       "client/libs/local-store/package.json": "MIT AND AGPL-3.0-or-later",
       "client/libs/media-capture/package.json": "AGPL-3.0-or-later",
       "client/libs/notifications/package.json": "AGPL-3.0-or-later",
@@ -495,40 +494,6 @@
       },
       "noticePaths": ["client/REUSE.toml", "client/libs/icons/PROVENANCE.md"],
       "rationale": "Deterministic indices generated from the checked-in Myoxus-owned SVG asset set."
-    },
-    {
-      "id": "client-libs-lit-react-google",
-      "paths": ["client/libs/lit-react/src/create-component.ts"],
-      "origin": "T1",
-      "licenseExpression": "BSD-3-Clause",
-      "copyrightNotices": ["2018 Google LLC"],
-      "upstreamUrl": "https://github.com/lit/lit",
-      "noticePaths": [
-        "client/libs/lit-react/src/create-component.ts",
-        "client/REUSE.toml"
-      ],
-      "rationale": "The file carries Google's embedded BSD-3-Clause notice; Myoxus and AFFiNE are not asserted as blanket copyright holders."
-    },
-    {
-      "id": "client-libs-lit-react-wrapper",
-      "paths": ["client/libs/lit-react/**"],
-      "origin": "F1/F2/M0/T1",
-      "licenseExpression": "BSD-3-Clause AND MIT AND AGPL-3.0-or-later",
-      "copyrightNotices": [
-        "2018 Google LLC",
-        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
-        "2026-present Daniel Scharf and Myoxus contributors"
-      ],
-      "upstreamCutoff": {
-        "revision": "e31cca33540af2737dc9e520b70acac170c0709e",
-        "date": "2026-03-04"
-      },
-      "noticePaths": [
-        "client/REUSE.toml",
-        "client/provenance/LICENSE-UPSTREAM-MIT.txt",
-        "client/libs/lit-react/src/create-component.ts"
-      ],
-      "rationale": "Mixed wrapper component; exact file entries prevent the embedded Google source from inheriting blanket Myoxus or AFFiNE notices."
     },
     {
       "id": "client-branding-runtime",

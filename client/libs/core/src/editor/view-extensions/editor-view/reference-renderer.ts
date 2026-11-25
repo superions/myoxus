@@ -1,4 +1,4 @@
-import type { MountReactPortal } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import {
   type MyoxusReference,
   ReferenceNodeConfigExtension,

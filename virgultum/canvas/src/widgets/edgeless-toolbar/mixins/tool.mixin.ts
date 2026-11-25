@@ -1,10 +1,6 @@
 import { cssVar } from "@myoxus/theme";
-import { effect } from "@preact/signals-core";
-import {
-  // oxlint-disable-next-line no-unused-vars
-  type DisposableClass,
-  WithDisposable,
-} from "@virgultum/core/primitives/lit";
+import { effect, signal, type ReadonlySignal } from "@preact/signals-core";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import type { Constructor } from "@virgultum/core/primitives/utils";
 import type { BlockComponent } from "@virgultum/core/runtime";
 import {
@@ -14,8 +10,6 @@ import {
   type ToolOptionWithType,
   type ToolType,
 } from "@virgultum/core/runtime/gfx";
-import type { LitElement } from "lit";
-import { property, state } from "lit/decorators.js";
 
 import { createPopper, type MenuPopper } from "../create-popper";
 import {
@@ -23,14 +17,23 @@ import {
   type EdgelessToolbarWidget,
 } from "../edgeless-toolbar";
 
-export declare abstract class EdgelessToolbarToolClass extends DisposableClass {
+export interface NativeReactiveController {
+  hostConnected?: () => void;
+  hostDisconnected?: () => void;
+}
+
+export declare abstract class EdgelessToolbarToolClass {
+  protected _disposables: DisposableGroup;
+
+  readonly disposables: DisposableGroup;
+
   active: boolean;
 
   createPopper: typeof createPopper;
 
   edgeless: BlockComponent;
 
-  edgelessTool: ToolOptionWithType;
+  edgelessTool: ToolOptionWithType | null;
 
   enableActiveBackground?: boolean;
 
@@ -42,27 +45,115 @@ export declare abstract class EdgelessToolbarToolClass extends DisposableClass {
 
   toolbarContainer: HTMLElement | null;
 
+  addController(controller: NativeReactiveController): void;
+
+  requestUpdate(): void;
+
+  connectedCallback(): void;
+
+  disconnectedCallback(): void;
+
+  protected onConnected(): void;
+
+  protected paint(): void;
+
+  protected mountSlot<Controls>(
+    key: string,
+    container: HTMLElement,
+    mount: (
+      anchor: HTMLElement,
+      state: ReadonlySignal<Controls | null>,
+    ) => () => void,
+    controls: Controls | null,
+  ): void;
+
+  protected clearSlots(): void;
+
   /**
    * @return true if operation was successful
    */
-  tryDisposePopper: () => boolean;
+  tryDisposePopper(): boolean;
 
   abstract type: ToolType | ToolType[];
 
   readonly toolbar: EdgelessToolbarWidget;
 }
 
-export const EdgelessToolbarToolMixin = <T extends Constructor<LitElement>>(
+export const EdgelessToolbarToolMixin = <T extends Constructor<HTMLElement>>(
   SuperClass: T,
 ) => {
-  abstract class DerivedClass extends WithDisposable(SuperClass) {
+  abstract class DerivedClass extends SuperClass {
+    protected _disposables = new DisposableGroup();
+    private _edgeless!: BlockComponent;
+    private _edgelessTool: ToolOptionWithType | null = null;
+    private _popper: MenuPopper<HTMLElement> | null = null;
+    private _toolbarContainer: HTMLElement | null = null;
+    private readonly _revision$ = signal(0);
+    private readonly _controllers = new Set<NativeReactiveController>();
+    private readonly _slots = new Map<
+      string,
+      {
+        host: HTMLSpanElement;
+        state$: ReturnType<typeof signal<unknown>>;
+        unmount: () => void;
+      }
+    >();
+    private _bound = false;
+
     enableActiveBackground = false;
 
     abstract type: ToolType | ToolType[];
 
+    get disposables() {
+      return this._disposables;
+    }
+
+    get edgeless() {
+      return this._edgeless;
+    }
+
+    set edgeless(value: BlockComponent) {
+      if (this._edgeless === value) return;
+      this._edgeless = value;
+      if (this.isConnected) {
+        this._ensureBound();
+        this.requestUpdate();
+      }
+    }
+
+    get edgelessTool() {
+      return this._edgelessTool;
+    }
+
+    set edgelessTool(value: ToolOptionWithType | null) {
+      if (this._edgelessTool === value) return;
+      this._edgelessTool = value;
+      this.requestUpdate();
+    }
+
+    get popper() {
+      return this._popper;
+    }
+
+    set popper(value: MenuPopper<HTMLElement> | null) {
+      if (this._popper === value) return;
+      this._popper = value;
+      this.requestUpdate();
+    }
+
+    get toolbarContainer() {
+      return this._toolbarContainer;
+    }
+
+    set toolbarContainer(value: HTMLElement | null) {
+      if (this._toolbarContainer === value) return;
+      this._toolbarContainer = value;
+      this.requestUpdate();
+    }
+
     get active() {
       const { type } = this;
-      const activeType = this.edgelessTool?.toolType;
+      const activeType = this._edgelessTool?.toolType;
 
       return activeType
         ? Array.isArray(type)
@@ -79,6 +170,59 @@ export const EdgelessToolbarToolMixin = <T extends Constructor<LitElement>>(
       return this.gfx.tool.setTool;
     }
 
+    addController(controller: NativeReactiveController) {
+      this._controllers.add(controller);
+      if (this.isConnected && this._bound) {
+        controller.hostConnected?.();
+      }
+    }
+
+    requestUpdate() {
+      this._revision$.value = this._revision$.peek() + 1;
+    }
+
+    protected onConnected() {}
+
+    protected paint() {}
+
+    protected mountSlot<Controls>(
+      key: string,
+      container: HTMLElement,
+      mount: (
+        anchor: HTMLElement,
+        state: ReadonlySignal<Controls | null>,
+      ) => () => void,
+      controls: Controls | null,
+    ) {
+      let slot = this._slots.get(key);
+      if (!slot) {
+        const host = this.ownerDocument.createElement("span");
+        host.style.display = "contents";
+        container.append(host);
+        const state$ = signal<Controls | null>(controls);
+        const unmount = mount(host, state$);
+        slot = {
+          host,
+          state$: state$ as ReturnType<typeof signal<unknown>>,
+          unmount,
+        };
+        this._slots.set(key, slot);
+        return;
+      }
+      if (slot.host.parentElement !== container) {
+        container.append(slot.host);
+      }
+      slot.state$.value = controls;
+    }
+
+    protected clearSlots() {
+      for (const slot of this._slots.values()) {
+        slot.unmount();
+        slot.host.remove();
+      }
+      this._slots.clear();
+    }
+
     private _applyActiveStyle() {
       if (!this.enableActiveBackground) return;
       this.style.background = this.active
@@ -91,9 +235,12 @@ export const EdgelessToolbarToolMixin = <T extends Constructor<LitElement>>(
       this._applyActiveStyle();
     }
 
-    override connectedCallback() {
-      super.connectedCallback();
-      if (!this.edgeless) return;
+    private _ensureBound() {
+      if (this._bound || !this.isConnected || !this._edgeless) return;
+      this._bound = true;
+      if (this._disposables.disposed) {
+        this._disposables = new DisposableGroup();
+      }
       this._updateActiveEdgelessTool();
       this._applyActiveStyle();
 
@@ -102,6 +249,21 @@ export const EdgelessToolbarToolMixin = <T extends Constructor<LitElement>>(
           this._updateActiveEdgelessTool();
         }),
       );
+      this.onConnected();
+      for (const controller of this._controllers) {
+        controller.hostConnected?.();
+      }
+      this._disposables.add(
+        effect(() => {
+          void this._revision$.value;
+          if (!this.isConnected || !this._edgeless) return;
+          this.paint();
+        }),
+      );
+    }
+
+    connectedCallback() {
+      this._ensureBound();
     }
 
     // TODO: move to toolbar-tool-with-menu.mixin
@@ -121,9 +283,15 @@ export const EdgelessToolbarToolMixin = <T extends Constructor<LitElement>>(
       return this.popper;
     }
 
-    override disconnectedCallback() {
-      super.disconnectedCallback();
+    disconnectedCallback() {
+      for (const controller of this._controllers) {
+        controller.hostDisconnected?.();
+      }
       this.popper?.dispose();
+      this._popper = null;
+      this.clearSlots();
+      this._disposables.dispose();
+      this._bound = false;
     }
 
     tryDisposePopper() {
@@ -136,24 +304,12 @@ export const EdgelessToolbarToolMixin = <T extends Constructor<LitElement>>(
       return false;
     }
 
-    @property({ attribute: false })
-    accessor edgeless!: BlockComponent;
-
-    @state()
-    accessor edgelessTool!: ToolOptionWithType | null;
-
-    @state()
-    public accessor popper: MenuPopper<HTMLElement> | null = null;
-
     get toolbar() {
       return this.edgeless.std.view.getWidget(
         EDGELESS_TOOLBAR_WIDGET,
         this.edgeless.model.id,
       ) as EdgelessToolbarWidget;
     }
-
-    @property({ attribute: false })
-    accessor toolbarContainer: HTMLElement | null = null;
   }
 
   return DerivedClass as unknown as T & Constructor<EdgelessToolbarToolClass>;

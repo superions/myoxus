@@ -1,58 +1,67 @@
-import { EdgelessLegacySlotIdentifier } from "@virgultum/canvas-runtime/surface";
+import {
+  EdgelessLegacySlotIdentifier,
+  toNativeGfxBlockComponent,
+} from "@virgultum/canvas-runtime/surface";
 import { Bound, clamp } from "@virgultum/core/primitives/gfx";
 import { EmbedIframeBlockSchema } from "@virgultum/core/models";
-import { toGfxBlockComponent } from "@virgultum/core/runtime";
 import { GfxViewInteractionExtension } from "@virgultum/core/runtime/gfx";
-import { styleMap } from "lit/directives/style-map.js";
-import { html } from "lit/static-html.js";
 
 import { EmbedIframeBlockComponent } from "./embed-iframe-block";
 
-export class EmbedEdgelessIframeBlockComponent extends toGfxBlockComponent(
+export class EmbedEdgelessIframeBlockComponent extends toNativeGfxBlockComponent(
   EmbedIframeBlockComponent,
 ) {
-  override selectedStyle$ = null;
-
+  override showEditorSelection = false;
   override blockDraggable = false;
 
-  override accessor blockContainerStyles = {
-    margin: "0",
-    backgroundColor: "transparent",
-  };
+  constructor() {
+    super();
+    this.blockContainerStyles$.value = {
+      margin: "0",
+      backgroundColor: "transparent",
+    };
+  }
 
   get edgelessSlots() {
     return this.std.get(EdgelessLegacySlotIdentifier);
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-
-    this.edgelessSlots.elementResizeStart.subscribe(() => {
-      this.isResizing$.value = true;
-    });
-
-    this.edgelessSlots.elementResizeEnd.subscribe(() => {
-      this.isResizing$.value = false;
-    });
+  protected override wrapContentHost(container: HTMLElement): HTMLElement {
+    const wrapper = this.ownerDocument.createElement("div");
+    wrapper.className = "edgeless-embed-iframe-block";
+    container.replaceChildren(wrapper);
+    this._edgelessWrapper = wrapper;
+    return wrapper;
   }
 
-  override renderGfxBlock() {
+  override connectedCallback() {
+    super.connectedCallback();
+    if (!this.model) return;
+
+    this.disposables.add(
+      this.edgelessSlots.elementResizeStart.subscribe(() => {
+        this.isResizing$.value = true;
+      }),
+    );
+
+    this.disposables.add(
+      this.edgelessSlots.elementResizeEnd.subscribe(() => {
+        this.isResizing$.value = false;
+      }),
+    );
+  }
+
+  override syncGfxLayout() {
+    const wrapper = this._edgelessWrapper;
+    if (!wrapper) return;
     const bound = Bound.deserialize(this.model.props.xywh$.value);
     const scale = this.model.props.scale$.value;
     const width = bound.w / scale;
     const height = bound.h / scale;
-    const style = {
-      width: `${width}px`,
-      height: `${height}px`,
-      transformOrigin: "0 0",
-      transform: `scale(${scale})`,
-    };
-
-    return html`
-      <div class="edgeless-embed-iframe-block" style=${styleMap(style)}>
-        ${this.renderPageContent()}
-      </div>
-    `;
+    wrapper.style.width = `${width}px`;
+    wrapper.style.height = `${height}px`;
+    wrapper.style.transformOrigin = "0 0";
+    wrapper.style.transform = `scale(${scale})`;
   }
 }
 
@@ -83,13 +92,16 @@ export const EmbedIframeInteraction =
             let scale = initialScale;
             const originalRealWidth = originalBound.w / scale;
 
-            // update scale if resize is proportional
             if (lockRatio) {
               scale = newBound.w / originalRealWidth;
             }
 
-            let newRealWidth = clamp(newBound.w / scale, minWidth, maxWidth);
-            let newRealHeight = clamp(newBound.h / scale, minHeight, maxHeight);
+            const newRealWidth = clamp(newBound.w / scale, minWidth, maxWidth);
+            const newRealHeight = clamp(
+              newBound.h / scale,
+              minHeight,
+              maxHeight,
+            );
 
             newBound.w = newRealWidth * scale;
             newBound.h = newRealHeight * scale;

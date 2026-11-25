@@ -3,22 +3,17 @@ import {
   patchForEmbedSyncedDocConfig,
 } from "@myoxus/core/editor/view-extensions/edgeless-block-header/patch";
 import { FrameworkProvider } from "@myoxus/infra";
-import type { ElementOrFactory, MountReactPortal } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import {
   type ViewExtensionContext,
   ViewExtensionProvider,
 } from "@virgultum/editor/ext-loader";
-import type { TemplateResult } from "lit";
 import { z } from "zod";
 
 const optionsSchema = z.object({
   isInPeekView: z.boolean(),
   framework: z.instanceof(FrameworkProvider),
   mountPortal: z.custom<MountReactPortal>(),
-  reactToLit: z
-    .function()
-    .input([z.custom<ElementOrFactory>(), z.boolean().optional()], z.unknown())
-    .output(z.custom<TemplateResult>()),
 });
 
 export type EdgelessBlockHeaderViewOptions = z.infer<typeof optionsSchema>;
@@ -33,11 +28,11 @@ export class EdgelessBlockHeaderConfigViewExtension extends ViewExtensionProvide
   ) {
     super.setup(context, options);
     if (!options) return;
-    const { framework, isInPeekView, reactToLit, mountPortal } = options;
+    const { framework, isInPeekView, mountPortal } = options;
 
     context.register(
       patchForEdgelessNoteConfig(framework, mountPortal, isInPeekView),
     );
-    context.register(patchForEmbedSyncedDocConfig(reactToLit));
+    context.register(patchForEmbedSyncedDocConfig(mountPortal));
   }
 }

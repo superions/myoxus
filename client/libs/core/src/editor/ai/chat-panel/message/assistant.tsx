@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
-import { createElement, type ComponentProps } from "react";
+import { type ComponentProps } from "react";
 import { Box } from "@myoxus/ui-facade";
 import { isInsidePageEditor } from "@virgultum/editor/shared/utils";
 import {
@@ -9,6 +9,8 @@ import {
   ChatMessageSurface,
 } from "../../components/message-chrome";
 import { CopilotResponseActions } from "../../components/response-actions";
+import { ChatContentImages } from "../../components/ai-message-content/images";
+import { StoredAnswerText } from "../../components/ai-message-content/stored-answer-text";
 import { StreamObjectsView } from "../../components/ai-message-content/stream-objects";
 import type {
   ChatMessage,
@@ -97,9 +99,9 @@ export function AssistantReply({
           assistant
           identity={reasoningFirst ? undefined : identity}
         >
-          {item.attachments?.length
-            ? createElement("chat-content-images", { images: item.attachments })
-            : null}
+          {item.attachments?.length ? (
+            <ChatContentImages images={item.attachments} />
+          ) : null}
           {parts?.length ? (
             <StreamObjectsView
               {...context}
@@ -108,13 +110,7 @@ export function AssistantReply({
               reasoningIdentity={reasoningFirst ? identity : undefined}
             />
           ) : (
-            createElement("chat-content-rich-text", {
-              text: item.content,
-              state,
-              extensions: context.extensions,
-              myoxusFeatureFlagService: context.myoxusFeatureFlagService,
-              theme: context.theme,
-            })
+            <StoredAnswerText host={host} text={item.content} />
           )}
           {failure}
           {actions}

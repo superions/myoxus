@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
-import { createElement, type ReactNode, useRef, useState } from "react";
+import {
+  createElement,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { ReadonlySignal } from "@preact/signals-core";
 import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
 import { useI18n } from "@myoxus/i18n";
-import { toReactNode } from "@myoxus/lit-react";
 import {
   Box,
   Center,
@@ -32,10 +37,31 @@ import {
 import { renderControl } from "./selection-toolbar";
 import { editorGlyph } from "./glyphs";
 
+function NativeDomArtwork({
+  svg,
+  mount,
+}: {
+  svg?: string;
+  mount?: (host: HTMLElement) => (() => void) | void;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (mount) return mount(el) ?? undefined;
+    if (svg !== undefined) el.innerHTML = svg;
+    return () => {
+      el.replaceChildren();
+    };
+  }, [svg, mount]);
+  return <Box component="span" ref={ref} style={{ display: "contents" }} />;
+}
+
 export function EditorCanvasTool({
   action,
   menu,
-  artwork,
+  artworkSvg,
+  mountArtwork,
   nativeArtwork,
   artworkBounds,
   artworkColor,
@@ -52,7 +78,7 @@ export function EditorCanvasTool({
     setActions(menu?.actions(value) ?? []);
   };
   const isExpanded = menu ? opened : expanded;
-  const hasArtwork = Boolean(nativeArtwork ?? artwork);
+  const hasArtwork = Boolean(nativeArtwork ?? artworkSvg ?? mountArtwork);
   const Control =
     !hasArtwork && isExpanded !== undefined ? MenuTrigger : IconButton;
   const trigger = (
@@ -72,7 +98,11 @@ export function EditorCanvasTool({
     >
       {hasArtwork ? (
         <Box component="span" style={{ color: artworkColor }}>
-          {(nativeArtwork as ReactNode) ?? toReactNode(artwork)}
+          {nativeArtwork ? (
+            (nativeArtwork as ReactNode)
+          ) : (
+            <NativeDomArtwork svg={artworkSvg} mount={mountArtwork} />
+          )}
         </Box>
       ) : (
         editorGlyph(action.icon)

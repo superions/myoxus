@@ -1,6 +1,5 @@
 import { computed, signal } from "@preact/signals-core";
 import { keepColor } from "@virgultum/core/color";
-import { SignalWatcher } from "@virgultum/core/primitives/lit";
 import {
   EditPropsStore,
   ThemeProvider,
@@ -9,8 +8,8 @@ import {
   editorMessage,
   resolveEditorMessage,
 } from "@virgultum/core/services";
+import { NativeViewElement } from "@virgultum/core/runtime";
 import { EdgelessToolbarToolMixin } from "../../../../../widgets/edgeless-toolbar/index";
-import { LitElement } from "lit";
 
 import { BrushTool } from "../../../brush-tool";
 import { HighlighterTool } from "../../../highlighter-tool";
@@ -18,12 +17,8 @@ import { penIconMap, penInfoMap } from "./consts";
 import type { Pen } from "./types";
 
 export class EdgelessPenToolButton extends EdgelessToolbarToolMixin(
-  SignalWatcher(LitElement),
+  NativeViewElement,
 ) {
-  override createRenderRoot() {
-    return this;
-  }
-
   get themeProvider() {
     return this.edgeless.std.get(ThemeProvider);
   }
@@ -92,7 +87,7 @@ export class EdgelessPenToolButton extends EdgelessToolbarToolMixin(
 
   override type = [BrushTool, HighlighterTool];
 
-  override firstUpdated() {
+  protected override onConnected() {
     this.disposables.add(
       this.gfx.tool.currentToolName$.subscribe((name) => {
         const tool = this.type.find((t) => t.toolName === name);
@@ -125,22 +120,29 @@ export class EdgelessPenToolButton extends EdgelessToolbarToolMixin(
       const pen = this.pen$.peek();
       setPenByType(pen);
     }
-    const menu = this.createPopper("edgeless-pen-menu", this);
-    Object.assign(menu.element, {
-      colors$: this.colors$,
-      penIconMap$: this.penIconMap$,
-      pen$: this.pen$,
-      penInfo$: this.penInfo$,
-      edgeless: this.edgeless,
-      onChange: (props: Record<string, unknown>) => {
-        const pen = this.pen$.peek();
-        this.edgeless.std.get(EditPropsStore).recordLastProps(pen, props);
-        setPenByType(pen);
+    this.createPopper("edgeless-pen-menu", this, {
+      setProps: (element) => {
+        Object.assign(element, {
+          colors$: this.colors$,
+          penIconMap$: this.penIconMap$,
+          pen$: this.pen$,
+          penInfo$: this.penInfo$,
+          edgeless: this.edgeless,
+          onChange: (props: Record<string, unknown>) => {
+            const pen = this.pen$.peek();
+            this.edgeless.std.get(EditPropsStore).recordLastProps(pen, props);
+            setPenByType(pen);
+          },
+        });
       },
     });
   }
 
-  override render() {
+  protected override paint() {
+    const chrome = this.edgeless.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
+    const i18n = this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined;
+    void i18n?.locale$.value;
     const {
       active,
       penInfo$: {
@@ -148,7 +150,7 @@ export class EdgelessPenToolButton extends EdgelessToolbarToolMixin(
       },
     } = this;
 
-    return this.edgeless.std.get(EditorChromeHostIdentifier).renderCanvasTool({
+    this.mountSlot("tool", this, chrome.mountCanvasTool, {
       expanded: this.popper !== null,
       action: {
         id: "canvas-pen",
@@ -159,16 +161,16 @@ export class EdgelessPenToolButton extends EdgelessToolbarToolMixin(
               : "com.myoxus.editor.tool.highlighter",
             tip,
           ),
-          this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined,
+          i18n,
         ),
         shortcut,
-        active,
         disabled: false,
+        active,
         run: () => this._togglePenMenu(),
       },
-      artwork: icon,
+      artworkSvg: icon,
       artworkColor: color,
-      artworkBounds: { width: 35, height: 64 },
+      artworkBounds: { width: 42, height: 64 },
     });
   }
 }

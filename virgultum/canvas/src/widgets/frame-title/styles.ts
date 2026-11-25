@@ -1,19 +1,16 @@
-import { unsafeCSSVar } from "@virgultum/core/theme";
-import { css } from "lit";
-
 export const frameTitleStyleVars = {
   nestedFrameOffset: 4,
   height: 22,
   fontSize: 14,
 };
 
-export const frameTitleStyle = css`
+export const frameTitleStyle = `
   :host {
     position: absolute;
     display: flex;
     align-items: center;
     z-index: 3;
-    border: 1px solid ${unsafeCSSVar("borderColor")};
+    border: 1px solid var(--myoxus-border-color);
     border-radius: 4px;
     width: fit-content;
     height: ${frameTitleStyleVars.height}px;

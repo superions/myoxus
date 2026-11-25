@@ -128,7 +128,6 @@ reviewed source.
 | **Glirulus workflow runtime**                  | MIT, Copyright (c) 2026 Sayiir; Daniel Scharf's fork modifications                                  | Published `1.0.0` packages; [fork provenance and original archive identities](https://github.com/superions/glirulus/blob/v1.0.0/UPSTREAM.md); each resolved package's `LICENSE` and `NOTICE`, Cargo checksums and release legal bundle        |
 | **Rust server assets**                         | Fonts, ICC profiles and vendored Typst modules                                                      | [Server component inventory](../server/provenance/components.json)                                                                                                                                                                            |
 | **Media capture**                              | MIT retained implementation; AGPL wrapper                                                           | [Notice](../client/libs/media-capture/NOTICE.md), [inner license](../client/libs/media-capture/media_capture/LICENSE)                                                                                                                         |
-| **Lit React component**                        | Google Lit source, BSD-3-Clause; embedded Google LLC notice                                         | [Component source](../client/libs/lit-react/src/create-component.ts)                                                                                                                                                                          |
 | **Icons**                                      | Myoxus artwork/generators and attributed MIT Tabler inputs                                          | [Client provenance](../client/libs/icons/PROVENANCE.md), [Virgultum icon provenance](../virgultum/icons/PROVENANCE.md)                                                                                                                        |
 | **Bundled fonts**                              | OFL-1.1, Bitstream Vera/public-domain changes and GUST Font License, by family                      | [Font manifest](../server/static/fonts/manifest.json), [license texts](../server/static/fonts/licenses/)                                                                                                                                      |
 | **Typst documentation/presentation templates** | MIT-0 ilm including changes; independent AGPL adapters; MIT Touying and uniwarn                     | [Vendor notices](../server/templates/pdf/vendor/NOTICE)                                                                                                                                                                                       |
@@ -139,11 +138,12 @@ File-level origin evidence, explicit author decisions and retained licenses/noti
 are authoritative. Package labels do not determine source licensing. The project's
 [AGPL-3.0-or-later license](../LICENSE) does not replace third-party grants.
 
-Virgultum's Lit signal adapters retain their Google LLC copyright and
-BSD-3-Clause source headers. The [complete retained BSD license](../virgultum/provenance/LICENSE-LIT-BSD-3-Clause.txt)
-also preserves The Lit Project Contributors' notice; its exact publisher source
-and SHA-256 are recorded in the editor inventory. Tabler's embedded MIT geometry
-and notice remain separate from the Myoxus icon implementation.
+Virgultum's former Lit signal adapters and the `client/libs/lit-react` bridge
+were retired in Phase 11 (Final Lit Exit); the
+[historical BSD license text](../virgultum/provenance/LICENSE-LIT-BSD-3-Clause.txt)
+remains archived beside the provenance ledger for traceability. Tabler's
+embedded MIT geometry and notice remain separate from the Myoxus icon
+implementation.
 
 The client inventory also covers the Electron main/helper/preload and renderer
 source. Its per-file declarations separate retained MIT material from independent

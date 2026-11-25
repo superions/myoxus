@@ -1,13 +1,4 @@
-import {
-  ChatWithAiIcon,
-  DeleteIcon,
-  InsertBleowIcon as InsertBelowIcon,
-  InsertTopIcon,
-  PageIcon,
-  PenIcon,
-  ReplaceIcon,
-  ResetIcon,
-} from "@myoxus/icons/lit";
+import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import { Bound } from "@virgultum/editor/global/gfx";
 import {
   ImageBlockModel,
@@ -20,8 +11,6 @@ import {
 } from "@virgultum/editor/shared/utils";
 import type { EditorHost } from "@virgultum/editor/std";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
-import { ThemeProvider } from "@virgultum/core/services";
-import type { TemplateResult } from "lit";
 
 import { insertFromMarkdown } from "../utils";
 import { AIStarIconWithAnimation } from "./_common/icons";
@@ -54,7 +43,6 @@ function asCaption<T extends keyof VirgultumPresets.AIActions>(
 ): AIItemConfig {
   return {
     name: "Use as caption",
-    icon: PenIcon(),
     iconName: "PenIcon",
     testId: "answer-use-as-caption",
     showWhen: () => {
@@ -82,7 +70,6 @@ function asCaption<T extends keyof VirgultumPresets.AIActions>(
 function createNewNote(host: EditorHost): AIItemConfig {
   return {
     name: "Create new note",
-    icon: PageIcon(),
     iconName: "PageIcon",
     testId: "answer-create-new-note",
     showWhen: () => {
@@ -158,7 +145,6 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
         {
           name: "Insert below",
           testId: "answer-insert-below",
-          icon: InsertBelowIcon(),
           iconName: "InsertBelowIcon",
           showWhen: () =>
             !!panel.answer && (!id || !INSERT_ABOVE_ACTIONS.includes(id)),
@@ -183,7 +169,6 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
         {
           name: "Insert above",
           testId: "answer-insert-above",
-          icon: InsertTopIcon(),
           iconName: "InsertAboveIcon",
           showWhen: () =>
             !!panel.answer && !!id && INSERT_ABOVE_ACTIONS.includes(id),
@@ -209,7 +194,6 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
         {
           name: "Replace selection",
           testId: "answer-replace",
-          icon: ReplaceIcon(),
           iconName: "ReplaceIcon",
           showWhen: () =>
             !!panel.answer && !EXCLUDING_REPLACE_ACTIONS.includes(id),
@@ -228,7 +212,6 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
       items: [
         {
           name: "Continue in chat",
-          icon: ChatWithAiIcon(),
           iconName: "ChatWithAiIcon",
           testId: "answer-continue-in-chat",
           handler: () => {
@@ -239,7 +222,6 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
         },
         {
           name: "Regenerate",
-          icon: ResetIcon(),
           iconName: "ResetIcon",
           testId: "answer-regenerate",
           handler: () => {
@@ -249,7 +231,6 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
         },
         {
           name: "Discard",
-          icon: DeleteIcon(),
           iconName: "DeleteIcon",
           testId: "answer-discard",
           handler: () => {
@@ -270,7 +251,6 @@ export function buildErrorResponseConfig(
       items: [
         {
           name: "Retry",
-          icon: ResetIcon(),
           iconName: "ResetIcon",
           testId: "error-retry",
           showWhen: () => true,
@@ -281,7 +261,6 @@ export function buildErrorResponseConfig(
         },
         {
           name: "Discard",
-          icon: DeleteIcon(),
           iconName: "DeleteIcon",
           testId: "error-discard",
           showWhen: () => !!panel.answer,
@@ -321,7 +300,7 @@ export function buildErrorConfig(panel: MyoxusAIPanelWidget) {
   };
 }
 
-export function buildGeneratingConfig(generatingIcon?: TemplateResult<1>) {
+export function buildGeneratingConfig(generatingIcon?: MyoxusIconExportName) {
   return {
     generatingIcon: generatingIcon ?? AIStarIconWithAnimation,
   };
@@ -342,9 +321,7 @@ export function buildAIPanelConfig(
   const ctx = new AIContext();
   return {
     answerRenderer: createAIScrollableTextRenderer(
-      {
-        theme: panel.host.std.get(ThemeProvider).app$,
-      },
+      { host: panel.host },
       320,
       true,
     ),

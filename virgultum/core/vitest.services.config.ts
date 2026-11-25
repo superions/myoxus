@@ -14,20 +14,7 @@ export default defineConfig({
   // The title renderer reaches these dependencies through its editor imports.
   // Prebundle them before the browser suite starts to prevent mid-test reloads.
   optimizeDeps: {
-    include: [
-      "lit/directives/class-map.js",
-      "lit-html/directives/if-defined.js",
-      "lit-html/directives/repeat.js",
-      "lit/directives/cache.js",
-      "lit/directives/join.js",
-      "lit-html/directives/when.js",
-      "lit/directives/keyed.js",
-      "lit/directives/ref.js",
-      "react",
-      "react/jsx-runtime",
-      "html2canvas",
-      "lodash-es/chunk",
-    ],
+    include: ["react", "react/jsx-runtime", "html2canvas", "lodash-es/chunk"],
   },
   oxc: {
     jsx: { runtime: "automatic" },
@@ -60,9 +47,6 @@ export default defineConfig({
      * Return `false` to ignore the log.
      */
     onConsoleLog(log, type) {
-      if (log.includes("https://lit.dev/msg/dev-mode")) {
-        return false;
-      }
       console.warn(`Unexpected ${type} log`, log);
       throw new Error(log);
     },

@@ -25,8 +25,10 @@ import {
   shapeMethods,
   type ShapeType,
 } from "@virgultum/core/models";
+import { signal, type Signal } from "@preact/signals-core";
 import {
   EditorChromeHostIdentifier,
+  type EditorAutoCompleteTriggerControls,
   editorMessage,
   EditorI18nProvider,
   resolveEditorMessage,
@@ -40,7 +42,6 @@ import {
   GfxControllerIdentifier,
   GfxElementModelView,
 } from "@virgultum/core/runtime/gfx";
-import { nothing, render, type TemplateResult } from "lit";
 
 import { EdgelessAutoCompletePanel } from "./auto-complete-panel.js";
 import {
@@ -80,13 +81,20 @@ type AutoCompleteControl = {
   key: string;
   family: boolean;
   style: Partial<CSSStyleDeclaration>;
-  control: TemplateResult | typeof nothing;
+  control: EditorAutoCompleteTriggerControls | null;
 };
 
 export class EdgelessAutoComplete extends NativeCanvasWidget {
   private readonly chrome = this.ownerDocument.createElement("div");
   private readonly container = this.ownerDocument.createElement("div");
-  private readonly controls = new Map<string, HTMLDivElement>();
+  private readonly controls = new Map<
+    string,
+    {
+      anchor: HTMLDivElement;
+      state$: Signal<EditorAutoCompleteTriggerControls | null>;
+      unmount: () => void;
+    }
+  >();
   private _isHover = true;
   private _isMoving = false;
 
@@ -423,7 +431,7 @@ export class EdgelessAutoComplete extends NativeCanvasWidget {
     });
   }
 
-  private _renderTrigger(type: Direction) {
+  private _renderTrigger(type: Direction): EditorAutoCompleteTriggerControls {
     const sourceId = this.current.id;
     const label = {
       [Direction.Right]: editorMessage(
@@ -443,38 +451,34 @@ export class EdgelessAutoComplete extends NativeCanvasWidget {
         "Add another object of this type above",
       ),
     }[type];
-    return (
-      this.std
-        .getOptional(EditorChromeHostIdentifier)
-        ?.renderAutoCompleteTrigger({
-          label: resolveEditorMessage(
-            label,
-            this.std.getOptional(EditorI18nProvider) ?? undefined,
-          ),
-          icon: isShape(this.current) ? "ArrowUpBigIcon" : "PlusIcon",
-          preview: (active) => {
-            this.removeOverlay();
-            if (active && this._active(sourceId) && isShape(this.current)) {
-              this._timer = setTimeout(() => {
-                if (!this._active(sourceId) || !isShape(this.current)) return;
-                const bound = this._computeNextBound(type);
-                this._showNextShape(
-                  this.current,
-                  bound,
-                  this._computeLine(type, this.current, bound),
-                  this.current.shapeType,
-                );
-              }, 300);
-            }
-          },
-          pointerDown: (event) => {
-            if (this._active(sourceId)) this._onPointerDown(event, type);
-          },
-          activate: () => {
-            if (this._active(sourceId)) this._generateElementOnClick(type);
-          },
-        }) ?? nothing
-    );
+    return {
+      label: resolveEditorMessage(
+        label,
+        this.std.getOptional(EditorI18nProvider) ?? undefined,
+      ),
+      icon: isShape(this.current) ? "ArrowUpBigIcon" : "PlusIcon",
+      preview: (active) => {
+        this.removeOverlay();
+        if (active && this._active(sourceId) && isShape(this.current)) {
+          this._timer = setTimeout(() => {
+            if (!this._active(sourceId) || !isShape(this.current)) return;
+            const bound = this._computeNextBound(type);
+            this._showNextShape(
+              this.current,
+              bound,
+              this._computeLine(type, this.current, bound),
+              this.current.shapeType,
+            );
+          }, 300);
+        }
+      },
+      pointerDown: (event) => {
+        if (this._active(sourceId)) this._onPointerDown(event, type);
+      },
+      activate: () => {
+        if (this._active(sourceId)) this._generateElementOnClick(type);
+      },
+    };
   }
 
   private _showNextShape(
@@ -583,25 +587,31 @@ export class EdgelessAutoComplete extends NativeCanvasWidget {
   }
 
   private drawControls(entries: readonly AutoCompleteControl[]) {
+    const chrome = this.std.getOptional(EditorChromeHostIdentifier);
     const stale = new Set(this.controls.keys());
-    for (const { key, family, style, control } of entries) {
-      let anchor = this.controls.get(key);
-      if (!anchor) {
-        anchor = this.ownerDocument.createElement("div");
-        anchor.className = family
-          ? "edgeless-auto-complete-arrow-wrapper family"
-          : "edgeless-auto-complete-arrow-wrapper";
-        this.controls.set(key, anchor);
-        this.container.append(anchor);
+    if (chrome) {
+      for (const { key, family, style, control } of entries) {
+        let entry = this.controls.get(key);
+        if (!entry) {
+          const anchor = this.ownerDocument.createElement("div");
+          anchor.className = family
+            ? "edgeless-auto-complete-arrow-wrapper family"
+            : "edgeless-auto-complete-arrow-wrapper";
+          const state$ = signal<EditorAutoCompleteTriggerControls | null>(null);
+          const unmount = chrome.mountAutoCompleteTrigger(anchor, state$);
+          entry = { anchor, state$, unmount };
+          this.controls.set(key, entry);
+          this.container.append(anchor);
+        }
+        Object.assign(entry.anchor.style, style);
+        entry.state$.value = control;
+        stale.delete(key);
       }
-      Object.assign(anchor.style, style);
-      render(control, anchor);
-      stale.delete(key);
     }
     for (const key of stale) {
-      const anchor = this.controls.get(key)!;
-      render(nothing, anchor);
-      anchor.remove();
+      const entry = this.controls.get(key)!;
+      entry.unmount();
+      entry.anchor.remove();
       this.controls.delete(key);
     }
   }
@@ -661,20 +671,17 @@ export class EdgelessAutoComplete extends NativeCanvasWidget {
               pointerEvents: "auto",
               transform: `translate(${action.left}px, ${action.top}px)${action.mirrored ? " scale(-1)" : ""} translate(-13px, -13px)`,
             },
-            control:
-              this.std
-                .getOptional(EditorChromeHostIdentifier)
-                ?.renderAutoCompleteTrigger({
-                  label: action.id,
-                  artwork: action.icon,
-                  preview: () => {},
-                  pointerDown: () => {
-                    if (this._active(sourceId)) action.run();
-                  },
-                  activate: () => {
-                    if (this._active(sourceId)) action.run();
-                  },
-                }) ?? nothing,
+            control: {
+              label: action.id,
+              icon: action.icon,
+              preview: () => {},
+              pointerDown: () => {
+                if (this._active(sourceId)) action.run();
+              },
+              activate: () => {
+                if (this._active(sourceId)) action.run();
+              },
+            },
           }))
         : this._renderArrows(),
     );

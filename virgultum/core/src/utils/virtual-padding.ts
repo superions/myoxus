@@ -1,15 +1,12 @@
 import { autoUpdate } from "@floating-ui/dom";
 import { signal } from "@preact/signals-core";
-import type { LitBlockComponent } from "../runtime/index";
-import type { ReactiveController } from "lit";
+import type { BlockComponent } from "../runtime/index";
 
 import { DocModeProvider } from "../services/doc-mode-service";
 
-export class VirtualPaddingController implements ReactiveController {
+export class VirtualPaddingController {
   public readonly virtualPadding$ = signal(0);
-  constructor(private readonly block: LitBlockComponent) {
-    block.addController(this);
-  }
+  constructor(private readonly block: BlockComponent) {}
 
   get std() {
     return this.host.std;
@@ -19,7 +16,7 @@ export class VirtualPaddingController implements ReactiveController {
     return this.block.host;
   }
 
-  hostConnected(): void {
+  connect(): void {
     if (this.std.get(DocModeProvider).getEditorMode() === "edgeless") {
       return;
     }

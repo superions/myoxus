@@ -1,5 +1,4 @@
 import type { ShapeToolOption } from "../index";
-import { render, type TemplateResult } from "lit";
 
 type TransformState = {
   /** horizental offset base on center */
@@ -14,7 +13,7 @@ type TransformState = {
 
 export type DraggableShape = {
   name: ShapeToolOption["shapeName"];
-  svg: TemplateResult;
+  svg: string;
   style: {
     default?: TransformState;
     hover?: TransformState;
@@ -129,7 +128,7 @@ export const createShapeDraggingOverlay = (info: DraggingInfo) => {
     transition: "transform 0.1s",
     transformOrigin: "var(--o, center)",
   });
-  render(info.shape.svg, shapeScaleWrapper);
+  shapeScaleWrapper.innerHTML = info.shape.svg;
   Object.assign(shape.style, {
     position: "absolute",
     color: info.style.color,

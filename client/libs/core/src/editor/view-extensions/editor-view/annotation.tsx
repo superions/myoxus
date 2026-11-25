@@ -10,7 +10,7 @@ import {
 } from "@myoxus/icons/react";
 import type { ReadonlySignal } from "@preact/signals-core";
 import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
-import type { MountReactPortal } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import {
   AnnotationPaper,
   Button,

@@ -20,7 +20,7 @@ import {
   useLiveData,
   useServices,
 } from "@myoxus/infra";
-import { uniReactRoot } from "@myoxus/lit-react";
+import { uniReactRoot } from "@myoxus/core/editor/uni-react-root";
 import {
   type PropsWithChildren,
   useEffect,

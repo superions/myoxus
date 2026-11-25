@@ -1,6 +1,8 @@
 import { patchEditorChromeHost } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome";
-import { useLitPortalFactory } from "@myoxus/lit-react";
-import type { MountReactPortal, ReactToLit } from "@myoxus/lit-react";
+import {
+  usePortalFactory,
+  type MountReactPortal,
+} from "@myoxus/core/editor/portal";
 import { DocumentViewport } from "@myoxus/core/editor/editors";
 import { SnapshotHelper } from "@myoxus/core/modules/comment/services/snapshot-helper";
 import type { CommentAttachment } from "@myoxus/core/modules/comment/types";
@@ -47,11 +49,7 @@ import { getCommentEditorViewManager } from "./specs";
 const MAX_ATTACHMENT_COUNT = 10;
 const logger = new DebugLogger("CommentEditor");
 
-const usePatchSpecs = (
-  readonly: boolean,
-  reactToLit: ReactToLit,
-  mountPortal: MountReactPortal,
-) => {
+const usePatchSpecs = (readonly: boolean, mountPortal: MountReactPortal) => {
   const framework = useFramework();
   // const confirmModal = useConfirmModal();
 
@@ -61,9 +59,9 @@ const usePatchSpecs = (
       .get(readonly ? "preview-page" : "page")
       .concat([
         ViewportElementExtension(`.${commentEditorViewportClassName}`),
-        ...(!readonly ? [patchEditorChromeHost(reactToLit, mountPortal)] : []),
+        ...(!readonly ? [patchEditorChromeHost(mountPortal)] : []),
       ]);
-  }, [framework, readonly, reactToLit, mountPortal]);
+  }, [framework, readonly, mountPortal]);
 
   return patchedSpecs;
 };
@@ -244,8 +242,8 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
     if (!defaultSnapshotOrDoc) {
       throw new Error("Either defaultSnapshot or doc must be provided");
     }
-    const [reactToLit, portals, mountPortal] = useLitPortalFactory();
-    const specs = usePatchSpecs(!!readonly, reactToLit, mountPortal);
+    const [portals, mountPortal] = usePortalFactory();
+    const specs = usePatchSpecs(!!readonly, mountPortal);
     const doc = useSnapshotDoc(defaultSnapshotOrDoc, readonly);
     const snapshotHelper = useService(SnapshotHelper);
     const peekViewService = useService(PeekViewService);

@@ -1,3 +1,4 @@
+import { computed, signal } from "@preact/signals-core";
 import type {
   EmbedGithubModel,
   EmbedGithubStyles,
@@ -8,7 +9,6 @@ import {
   EditorI18nProvider,
 } from "@virgultum/core/services";
 import { BlockSelection, isGfxBlockComponent } from "@virgultum/core/runtime";
-import { property } from "lit/decorators.js";
 
 import { EmbedBlockComponent } from "../common/embed-block-element.js";
 import type { EmbedGithubBlockService } from "./embed-github-service.js";
@@ -28,7 +28,23 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
   EmbedGithubModel,
   EmbedGithubBlockService
 > {
-  override _cardStyle: (typeof EmbedGithubStyles)[number] = "horizontal";
+  protected override embedSelectionMode = "native" as const;
+
+  private readonly _loading$ = signal(false);
+
+  get loading() {
+    return this._loading$.value;
+  }
+  set loading(value: boolean) {
+    this._loading$.value = value;
+  }
+
+  override get _cardStyle(): (typeof EmbedGithubStyles)[number] {
+    return super._cardStyle as (typeof EmbedGithubStyles)[number];
+  }
+  override set _cardStyle(value: (typeof EmbedGithubStyles)[number]) {
+    super._cardStyle = value;
+  }
 
   open = () => {
     let link = this.model.props.url;
@@ -62,36 +78,6 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
       blockId: this.blockId,
     });
     selectionManager.setGroup("note", [blockSelection]);
-  }
-
-  override connectedCallback() {
-    super.connectedCallback();
-    this._cardStyle = this.model.props.style;
-
-    // The URL is the source of truth for the persisted identity; re-resolve
-    // it for every provider even when stale identity props exist (GFC-05F).
-    const identity = parseGitForgeUrl(this.model.props.url);
-    if (identity) {
-      this.store.withoutTransact(() => {
-        this.store.updateBlock(this.model, identity);
-      });
-    }
-
-    this.store.withoutTransact(() => {
-      if (!this.model.props.description && !this.model.props.title) {
-        this.refreshData();
-      } else {
-        this.refreshStatus();
-      }
-    });
-
-    this.disposables.add(
-      this.model.propsUpdated.subscribe(({ key }) => {
-        if (key === "url") {
-          this._replaceResource();
-        }
-      }),
-    );
   }
 
   /**
@@ -129,65 +115,102 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
     this.refreshData();
   }
 
-  override renderBlock() {
-    const {
-      title,
-      githubType,
-      status,
-      statusReason,
-      owner,
-      repo,
-      createdAt,
-      assignees,
-      description,
-      image,
-      style,
-      url,
-    } = this.model.props;
-    // Keep renderer geometry in sync with toolbar style changes before reload.
-    this._cardStyle = style;
+  protected override mountEmbedContent(container: HTMLElement) {
+    this._cardStyle = this.model.props.style;
     // Page follows the shared template; Canvas retains its stored renderer bounds.
-    if (!isGfxBlockComponent(this)) this.embedContainerStyle.height = "auto";
-    const targets = resolveGitForgeTargets(url);
-    const fallbackHost = parseCardUrl(url)?.host ?? "";
-    const dateText = formatForgeCardDate(
-      createdAt,
-      this.std.getOptional(EditorI18nProvider)?.locale$.value,
+    if (!isGfxBlockComponent(this)) {
+      this.embedContainerStyle$.value = {
+        ...this.embedContainerStyle$.peek(),
+        height: "auto",
+      };
+    }
+
+    // The URL is the source of truth for the persisted identity; re-resolve
+    // it for every provider even when stale identity props exist (GFC-05F).
+    const identity = parseGitForgeUrl(this.model.props.url);
+    if (identity) {
+      this.store.withoutTransact(() => {
+        this.store.updateBlock(this.model, identity);
+      });
+    }
+
+    this.store.withoutTransact(() => {
+      if (!this.model.props.description && !this.model.props.title) {
+        this.refreshData();
+      } else {
+        this.refreshStatus();
+      }
+    });
+
+    this.disposables.add(
+      this.model.propsUpdated.subscribe(({ key }) => {
+        if (key === "style") {
+          this._cardStyle = this.model.props.style;
+        }
+        if (key === "url") {
+          this._replaceResource();
+        }
+      }),
     );
 
-    // Read reactive state in the mounted block; the host receives plain values
-    // and never owns fetching, persisted identity or selection policy.
-    return this.renderEmbed(
-      () =>
-        this.std.get(EditorChromeHostIdentifier).renderGithubCard({
-          inSurface: isGfxBlockComponent(this),
-          selected: this.selected$.value,
-          style,
-          family: resolveGitForgeFamily(url),
-          host: targets?.host ?? fallbackHost,
-          repository: owner || repo ? `${owner}/${repo}` : "",
-          date: dateText,
-          title,
-          description,
-          image: image
-            ? this.store.get(ImageProxyService).buildUrl(image)
-            : null,
-          loading: this.loading,
-          type: githubType,
-          status,
-          statusReason,
-          assignees,
-          open: () => this.open(),
-          openAssignee: (assignee) => this._handleAssigneeClick(assignee),
-          select: () => {
-            if (!this.store.readonly && !isGfxBlockComponent(this))
-              this._selectBlock();
-          },
-        }),
-      "native",
-    );
+    const chrome = this.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
+
+    const host = this.ownerDocument.createElement("div");
+    host.style.display = "contents";
+    container.replaceChildren(host);
+
+    const state$ = computed(() => {
+      void this.revision$.value;
+      const {
+        title,
+        githubType,
+        status,
+        statusReason,
+        owner,
+        repo,
+        createdAt,
+        assignees,
+        description,
+        image,
+        style,
+        url,
+      } = this.model.props;
+      const targets = resolveGitForgeTargets(url);
+      const fallbackHost = parseCardUrl(url)?.host ?? "";
+      const dateText = formatForgeCardDate(
+        createdAt,
+        this.std.getOptional(EditorI18nProvider)?.locale$.value,
+      );
+      return {
+        inSurface: isGfxBlockComponent(this),
+        selected: this.selected$.value,
+        style,
+        family: resolveGitForgeFamily(url),
+        host: targets?.host ?? fallbackHost,
+        repository: owner || repo ? `${owner}/${repo}` : "",
+        date: dateText,
+        title,
+        description,
+        image: image ? this.store.get(ImageProxyService).buildUrl(image) : null,
+        loading: this._loading$.value,
+        type: githubType,
+        status,
+        statusReason,
+        assignees,
+        open: () => this.open(),
+        openAssignee: (assignee: string) => this._handleAssigneeClick(assignee),
+        select: () => {
+          if (!this.store.readonly && !isGfxBlockComponent(this))
+            this._selectBlock();
+        },
+      };
+    });
+
+    const unmount = chrome.mountGithubCard(host, state$);
+    this.disposables.add(() => {
+      unmount();
+      host.remove();
+    });
   }
-
-  @property({ attribute: false })
-  accessor loading = false;
 }

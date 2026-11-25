@@ -2,7 +2,7 @@
 import { useI18n } from "@myoxus/i18n";
 import { prepareBpmnPreviewSvg } from "@myoxus/bpmn-editor/preview";
 import { BRANDING_STYLE_ID } from "@myoxus/theme";
-import type { MountReactPortal } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import {
   Button,
   Card,

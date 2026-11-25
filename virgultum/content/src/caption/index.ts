@@ -1,9 +1,10 @@
 import { BlockCaptionEditor } from "./caption-session.js";
 export { BlockCaptionEditor } from "./caption-session.js";
 export {
-  CaptionedBlockComponent,
+  NativeCaptionedBlockComponent,
   SelectedStyle,
-} from "./captioned-block-component.js";
+  type BlockStyleMap,
+} from "./native-captioned-block.js";
 
 export function effects() {
   customElements.define("block-caption-editor", BlockCaptionEditor);

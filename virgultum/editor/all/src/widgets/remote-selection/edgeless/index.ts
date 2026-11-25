@@ -21,7 +21,7 @@ import {
   type SurfaceBlockModel,
   type Viewport,
 } from "@virgultum/core/runtime/gfx";
-import { RemoteColorManager } from "../manager/remote-color-manager";
+import { RemoteColorManager } from "@virgultum/core/services";
 
 export const MYOXUS_EDGELESS_REMOTE_SELECTION_WIDGET =
   "myoxus-edgeless-remote-selection-widget";
@@ -61,24 +61,33 @@ const styles = `
     }
 
     .remote-username {
-      margin-left: 22px;
+      margin-left: 20px;
       margin-top: -2px;
-
-      color: white;
-
-      max-width: 160px;
-      padding: 0px 3px;
-      border: 1px solid var(--myoxus-pure-black-20);
-
-      box-shadow: 0px 1px 6px 0px rgba(0, 0, 0, 0.16);
-      border-radius: 4px;
-
-      font-size: 12px;
-      line-height: 18px;
-
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background-color: var(--myoxus-background-primary-color);
+      color: var(--myoxus-text-primary-color);
+      max-width: 168px;
+      padding: 0 6px 0 4px;
+      border: 1.5px solid var(--remote-color, var(--myoxus-border-color));
+      box-shadow: var(--myoxus-shadow-1);
+      border-radius: 6px;
+      font-family: var(--myoxus-font-sans-family);
+      font-size: var(--myoxus-font-xs);
+      font-weight: 600;
+      line-height: 15px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .remote-username-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+      background-color: var(--remote-color, currentColor);
     }
   `;
 
@@ -119,16 +128,23 @@ export function mountCanvasPeerOverlay(
         icon.style.fill = icon.style.stroke = "currentColor";
         const label = host.ownerDocument.createElement("div");
         label.className = "remote-username";
+        const dot = host.ownerDocument.createElement("span");
+        dot.className = "remote-username-dot";
+        const nameText = host.ownerDocument.createElement("span");
+        label.append(dot, nameText);
         node.append(label);
         cursors.set(id, node);
         overlay.append(node);
       }
       const color = colors.get(id) ?? "";
       node.style.color = color;
+      node.style.setProperty("--remote-color", color);
       node.style.transform = `translate(${cursor.x}px, ${cursor.y}px) scale(calc(1/var(--v-zoom)))`;
       const label = node.lastElementChild as HTMLElement;
-      label.style.backgroundColor = color;
-      label.textContent = states.get(id)?.user?.name ?? "Unknown";
+      const nameText = label.lastElementChild as HTMLElement | null;
+      if (nameText) {
+        nameText.textContent = states.get(id)?.user?.name ?? "Unknown";
+      }
     }
     for (const [id, node] of cursors) {
       if (selections.has(id)) continue;
@@ -175,6 +191,7 @@ export function mountCanvasPeerOverlay(
     }
   };
   const receive = () => {
+    colors.resolveCollisions();
     selections.clear();
     surfaces.clear();
     selectedIds.clear();

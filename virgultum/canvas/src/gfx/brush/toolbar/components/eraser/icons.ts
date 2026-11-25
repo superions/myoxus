@@ -1,6 +1,4 @@
-import { html } from "lit";
-
-export const EdgelessEraserLightIcon = html`<svg
+export const EdgelessEraserLightIcon = `<svg
   width="44"
   height="49"
   viewBox="0 0 44 49"
@@ -195,7 +193,7 @@ export const EdgelessEraserLightIcon = html`<svg
     </linearGradient>
   </defs>
 </svg>`;
-export const EdgelessEraserDarkIcon = html`<svg
+export const EdgelessEraserDarkIcon = `<svg
   width="44"
   height="49"
   viewBox="0 0 44 49"

@@ -15,16 +15,18 @@ describe("ai effects registration split", () => {
     ...sharedEffectElementTags,
   ]);
 
-  test("registerAIEditorEffects skips app-only elements", () => {
+  test("registerAIEditorEffects registers editor widgets and shared previews only", () => {
     expect(editorTags.has("myoxus-ai-chat")).toBe(true);
+    expect(editorTags.has("myoxus-ai-panel-widget")).toBe(true);
+    expect(editorTags.has("ai-slides-renderer")).toBe(true);
     expect(editorTags.has("chat-panel")).toBe(false);
-    expect(editorTags.has("text-renderer")).toBe(true);
+    expect(editorTags.has("text-renderer")).toBe(false);
   });
 
   test("registerAIAppEffects skips editor-only elements", () => {
-    expect(appTags.has("ai-chat-content")).toBe(true);
+    expect(appTags.has("ai-slides-renderer")).toBe(true);
     expect(appTags.has("chat-panel")).toBe(false);
     expect(appTags.has("myoxus-ai-chat")).toBe(false);
-    expect(appTags.has("text-renderer")).toBe(true);
+    expect(appTags.has("ai-chat-content")).toBe(false);
   });
 });

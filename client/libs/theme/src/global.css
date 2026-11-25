@@ -279,14 +279,6 @@ body,
   overflow: clip;
 }
 
-/**
- * A hack to make the anchor wrapper not affect the layout of the page.
- */
-[data-lit-react-wrapper],
-myoxus-lit-template-wrapper {
-  display: contents;
-}
-
 /* Avoid color overriden by user-agent */
 button,
 input {

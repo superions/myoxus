@@ -1,3 +1,4 @@
+import { computed } from "@preact/signals-core";
 import type { EmbedFigmaModel, EmbedFigmaStyles } from "@virgultum/core/models";
 import { BlockSelection } from "@virgultum/core/runtime";
 import { EditorChromeHostIdentifier } from "@virgultum/core/services";
@@ -5,7 +6,19 @@ import { EditorChromeHostIdentifier } from "@virgultum/core/services";
 import { EmbedBlockComponent } from "../common/embed-block-element.js";
 
 export class EmbedFigmaBlockComponent extends EmbedBlockComponent<EmbedFigmaModel> {
-  override _cardStyle: (typeof EmbedFigmaStyles)[number] = "figma";
+  protected override embedSelectionMode = "native" as const;
+
+  constructor() {
+    super();
+    this._cardStyle$.value = "figma";
+  }
+
+  override get _cardStyle(): (typeof EmbedFigmaStyles)[number] {
+    return super._cardStyle as (typeof EmbedFigmaStyles)[number];
+  }
+  override set _cardStyle(value: (typeof EmbedFigmaStyles)[number]) {
+    super._cardStyle = value;
+  }
 
   open = () => {
     let link = this.model.props.url;
@@ -30,8 +43,7 @@ export class EmbedFigmaBlockComponent extends EmbedBlockComponent<EmbedFigmaMode
     this._selectBlock();
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
+  protected override mountEmbedContent(container: HTMLElement) {
     this._cardStyle = this.model.props.style;
 
     if (!this.model.props.title) {
@@ -44,28 +56,41 @@ export class EmbedFigmaBlockComponent extends EmbedBlockComponent<EmbedFigmaMode
 
     this.disposables.add(
       this.model.propsUpdated.subscribe(({ key }) => {
+        if (key === "style") {
+          this._cardStyle = this.model.props.style;
+        }
         if (key === "url") {
           this.refreshData();
         }
       }),
     );
-  }
 
-  override renderBlock() {
-    const { title, description, url } = this.model.props;
-    return this.renderEmbed(
-      () =>
-        this.std.get(EditorChromeHostIdentifier).renderFigmaCard({
-          title: title ?? "Figma",
-          description: description ?? null,
-          url,
-          iframeUrl: `https://www.figma.com/embed?embed_host=virgultum&url=${url}`,
-          selected: this.selected$.value,
-          showOverlay: this.showOverlay$.value,
-          select: (event) => this._handleClick(event),
-          open: this.open,
-        }),
-      "native",
-    );
+    const chrome = this.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
+
+    const host = this.ownerDocument.createElement("div");
+    host.style.display = "contents";
+    container.replaceChildren(host);
+
+    const state$ = computed(() => {
+      void this.revision$.value;
+      const { title, description, url } = this.model.props;
+      return {
+        title: title ?? "Figma",
+        description: description ?? null,
+        url,
+        iframeUrl: `https://www.figma.com/embed?embed_host=virgultum&url=${url}`,
+        selected: this.selected$.value,
+        showOverlay: this.showOverlay$.value,
+        select: (event: MouseEvent) => this._handleClick(event),
+        open: this.open,
+      };
+    });
+
+    const unmount = chrome.mountFigmaCard(host, state$);
+    this.disposables.add(() => {
+      unmount();
+      host.remove();
+    });
   }
 }

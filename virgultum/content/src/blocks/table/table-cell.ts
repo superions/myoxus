@@ -1,16 +1,17 @@
 import {
   EditorChromeHostIdentifier,
+  type EditorTableControl,
   templateRepeatLabel,
   templateRepeatActions,
   templateVariableLabel,
 } from "@virgultum/core/services";
-import { computed, effect, signal } from "@preact/signals-core";
+import { computed, effect, signal, untracked } from "@preact/signals-core";
 import {
   type PopupTarget,
   popupTargetFromElement,
 } from "@virgultum/core/view/portal";
 import { IS_MAC } from "@virgultum/core/primitives/env";
-import { SignalWatcher, WithDisposable } from "@virgultum/core/primitives/lit";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import { DefaultInlineManagerExtension } from "../../inlines/preset/index";
 import {
   type TableColumn,
@@ -33,7 +34,7 @@ import {
 import { cssVar } from "@virgultum/core/theme";
 import { visitDocumentFieldRuns } from "@virgultum/core/types";
 import { editorToast, getViewportElement } from "@virgultum/core/utils";
-import { ShadowlessElement } from "@virgultum/core/runtime";
+import { NativeViewElement } from "@virgultum/core/runtime";
 import { expandRangeEmbeds } from "@virgultum/core/runtime/inline";
 import {
   nanoid,
@@ -43,12 +44,6 @@ import {
   type SliceSnapshot,
   type Text,
 } from "@virgultum/core/store";
-import { html, nothing } from "lit";
-import { eventOptions, property, query } from "lit/decorators.js";
-import { ifDefined } from "lit/directives/if-defined.js";
-import { ref } from "lit/directives/ref.js";
-import { styleMap } from "lit/directives/style-map.js";
-import { html as staticHtml, literal } from "lit/static-html.js";
 
 import { resolveTableColors } from "./color";
 import { openTableMenu } from "./table-menu";
@@ -69,12 +64,27 @@ import {
   rowTopIndicatorStyle,
 } from "./table-cell-css";
 import type { TableDataManager } from "./table-data-manager";
+
 export const TableCellComponentName = "myoxus-table-cell";
-export class TableCell extends SignalWatcher(
-  WithDisposable(ShadowlessElement),
-) {
-  @property({ attribute: false })
-  accessor text: Text | undefined = undefined;
+
+export class TableCell extends NativeViewElement {
+  disposables = new DisposableGroup();
+
+  private readonly _text$ = signal<Text | undefined>(undefined);
+  private readonly _rowIndex$ = signal(0);
+  private readonly _columnIndex$ = signal(0);
+  private readonly _isHeader$ = signal(false);
+  private readonly _row$ = signal<TableRow | undefined>(undefined);
+  private readonly _column$ = signal<TableColumn | undefined>(undefined);
+  private readonly _height$ = signal<number | undefined>(undefined);
+  private readonly _syncRevision$ = signal(0);
+
+  get text() {
+    return this._text$.value;
+  }
+  set text(value: Text | undefined) {
+    this._text$.value = value;
+  }
 
   get readonly() {
     return this.dataManager.readonly$.value;
@@ -91,35 +101,66 @@ export class TableCell extends SignalWatcher(
     return this.textProtection === "fixed";
   }
 
-  @property({ attribute: false })
-  accessor dataManager!: TableDataManager;
+  dataManager!: TableDataManager;
 
-  @query("rich-text")
-  accessor richText: RichText | null = null;
+  get richText(): RichText | null {
+    return this.richText$.peek() ?? this.querySelector("rich-text");
+  }
 
-  @property({ type: Number })
-  accessor rowIndex = 0;
+  get rowIndex() {
+    return this._rowIndex$.value;
+  }
+  set rowIndex(value: number) {
+    this._rowIndex$.value = value;
+  }
 
-  @property({ type: Number })
-  accessor columnIndex = 0;
+  get columnIndex() {
+    return this._columnIndex$.value;
+  }
+  set columnIndex(value: number) {
+    this._columnIndex$.value = value;
+  }
 
-  @property({ type: Boolean })
-  accessor isHeader = false;
+  get isHeader() {
+    return this._isHeader$.value;
+  }
+  set isHeader(value: boolean) {
+    this._isHeader$.value = value;
+  }
 
-  @property({ attribute: false })
-  accessor row: TableRow | undefined = undefined;
+  get row() {
+    return this._row$.value;
+  }
+  set row(value: TableRow | undefined) {
+    this._row$.value = value;
+  }
 
-  @property({ attribute: false })
-  accessor column: TableColumn | undefined = undefined;
+  get column() {
+    return this._column$.value;
+  }
+  set column(value: TableColumn | undefined) {
+    this._column$.value = value;
+  }
 
-  @property({ attribute: false })
-  accessor selectionController!: SelectionController;
+  selectionController!: SelectionController;
 
   // The session owns table selection until its native menu releases focus.
   menuSession?: AbortSignal;
 
-  @property({ attribute: false })
-  accessor height: number | undefined;
+  get height() {
+    return this._height$.value;
+  }
+  set height(value: number | undefined) {
+    this._height$.value = value;
+  }
+
+  notifyModelUpdate() {
+    this._syncRevision$.value++;
+  }
+
+  get updateComplete() {
+    return Promise.resolve(this.isConnected);
+  }
 
   get hoverColumnIndex$() {
     return this.dataManager.hoverColumnIndex$;
@@ -159,8 +200,7 @@ export class TableCell extends SignalWatcher(
     this.inlineEditor?.syncInlineRange();
   }
 
-  @eventOptions({ capture: true })
-  private copyNativeFields(event: ClipboardEvent) {
+  private readonly copyNativeFields = (event: ClipboardEvent) => {
     const table = this.closest<TableBlockComponent>("myoxus-table");
     const editor = this.inlineEditor;
     const text = this.text;
@@ -235,10 +275,9 @@ export class TableCell extends SignalWatcher(
         );
         console.error(error);
       });
-  }
+  };
 
-  @eventOptions({ capture: true })
-  private pasteNativeFields(event: ClipboardEvent) {
+  private readonly pasteNativeFields = (event: ClipboardEvent) => {
     const table = this.closest<TableBlockComponent>("myoxus-table");
     const editor = this.inlineEditor;
     const text = this.text;
@@ -361,7 +400,7 @@ export class TableCell extends SignalWatcher(
         }
       })
       .catch((error: unknown) => this.notifyNativePasteFailure(table, error));
-  }
+  };
 
   notifyNativePasteFailure(table: TableBlockComponent, error: unknown) {
     editorToast(
@@ -589,7 +628,7 @@ export class TableCell extends SignalWatcher(
     ];
   }
 
-  onContextMenu(e: Event) {
+  private readonly onContextMenu = (e: Event) => {
     if (this.readonly) return;
     e.preventDefault();
     e.stopPropagation();
@@ -615,96 +654,7 @@ export class TableCell extends SignalWatcher(
         kind: "cell",
         area: selected,
       });
-  }
-
-  renderColumnOptions(column: TableColumn, columnIndex: number) {
-    return this.renderOptionsControl("column", column.columnId, columnIndex);
-  }
-
-  renderRowOptions(row: TableRow, rowIndex: number) {
-    return this.renderOptionsControl("row", row.rowId, rowIndex);
-  }
-
-  private renderOptionsControl(
-    kind: "row" | "column",
-    id: string,
-    index: number,
-  ) {
-    const table = this.closest<TableBlockComponent>("myoxus-table");
-    const chrome = table?.std.getOptional(EditorChromeHostIdentifier);
-    if (!chrome) return nothing;
-    const column = kind === "column";
-    const hovered =
-      index === (column ? this.hoverColumnIndex$ : this.hoverRowIndex$).value;
-    return html`<div
-      class=${column ? columnOptionsCellStyle : rowOptionsCellStyle}
-      style=${styleMap({ opacity: hovered ? 1 : undefined })}
-    >
-      ${chrome.renderTableControl({
-        menu: true,
-        mouseDown: (element, event) => {
-          if (!this.isConnected || this.readonly || event.button !== 0) return;
-          // SVG glyph targets are not HTMLElements; pass the native button to the
-          // existing drag controller rather than relying on ancestor delegation.
-          if (column) this.selectionController.columnDrag(element, event);
-          else this.selectionController.rowDrag(element, event);
-        },
-        setElement: (element) => {
-          if (element)
-            element.dataset[column ? "dragColumnId" : "dragRowId"] = id;
-        },
-        action: {
-          id: column ? "drag-column-handle" : "drag-row-handle",
-          icon: "MoreHorizontalIcon",
-          label: this.message(
-            column
-              ? editorMessage(
-                  "com.myoxus.editor.table.column-options",
-                  "Column options",
-                )
-              : editorMessage(
-                  "com.myoxus.editor.table.row-options",
-                  "Row options",
-                ),
-          ),
-          disabled: this.readonly,
-          run: (element) => {
-            if (!element || !this.isConnected || this.readonly) return;
-            // Re-resolve identity after structural edits instead of using a stale index.
-            const target = popupTargetFromElement(element);
-            if (column) {
-              const live = this.dataManager.columns$.value.find(
-                (item) => item.columnId === id,
-              );
-              if (live) this.openColumnOptions(target, live);
-            } else {
-              const live = this.dataManager.rows$.value.find(
-                (item) => item.rowId === id,
-              );
-              if (live) this.openRowOptions(target, live);
-            }
-          },
-        },
-      })}
-    </div>`;
-  }
-  renderOptionsButton() {
-    if (this.readonly || !this.row || !this.column) {
-      return nothing;
-    }
-    return html`
-      ${
-        this.rowIndex === 0
-          ? this.renderColumnOptions(this.column, this.columnIndex)
-          : nothing
-      }
-      ${
-        this.columnIndex === 0
-          ? this.renderRowOptions(this.row, this.rowIndex)
-          : nothing
-      }
-    `;
-  }
+  };
 
   tdMouseEnter(rowIndex: number, columnIndex: number) {
     this.hoverColumnIndex$.value = columnIndex;
@@ -724,32 +674,36 @@ export class TableCell extends SignalWatcher(
     return virtualWidth.width;
   });
 
-  tdStyle() {
-    const columnWidth = this.virtualWidth$.value ?? this.column?.width;
+  private applyCellStyle(cellEl: HTMLTableCellElement) {
+    void this._syncRevision$.value;
+    const column = this.column;
+    const row = this.row;
+    const columnWidth = this.virtualWidth$.value ?? column?.width;
     const backgroundColor =
-      (this.row && this.column
-        ? this.dataManager.getCell(this.row.rowId, this.column.columnId)
-            ?.backgroundColor
+      (row && column
+        ? this.dataManager.getCell(row.rowId, column.columnId)?.backgroundColor
         : undefined) ??
-      this.column?.backgroundColor ??
-      this.row?.backgroundColor ??
+      column?.backgroundColor ??
+      row?.backgroundColor ??
       (this.isHeader ? cssVar("backgroundSecondaryColor") : undefined);
     const theme =
       this.closest<TableBlockComponent>("myoxus-table")?.std.get(ThemeProvider);
     const appearance = this.dataManager.appearance$.value ?? "grid";
-    return styleMap({
-      ...(backgroundColor && theme
+    const colors =
+      backgroundColor && theme
         ? resolveTableColors(theme, backgroundColor)
-        : { backgroundColor }),
-      borderWidth:
-        appearance === "grid"
-          ? undefined
-          : appearance === "ruled"
-            ? "1px 0"
-            : "0",
-      minWidth: columnWidth ? `${columnWidth}px` : `${DefaultColumnWidth}px`,
-      maxWidth: columnWidth ? `${columnWidth}px` : `${ColumnMaxWidth}px`,
-    });
+        : { backgroundColor: backgroundColor ?? "", color: "" };
+
+    cellEl.style.backgroundColor = colors.backgroundColor ?? "";
+    cellEl.style.color = colors.color ?? "";
+    cellEl.style.borderWidth =
+      appearance === "grid" ? "" : appearance === "ruled" ? "1px 0" : "0";
+    cellEl.style.minWidth = columnWidth
+      ? `${columnWidth}px`
+      : `${DefaultColumnWidth}px`;
+    cellEl.style.maxWidth = columnWidth
+      ? `${columnWidth}px`
+      : `${ColumnMaxWidth}px`;
   }
 
   showColumnIndicator$ = computed(() => {
@@ -763,6 +717,7 @@ export class TableCell extends SignalWatcher(
     }
     return;
   });
+
   showRowIndicator$ = computed(() => {
     const indicatorIndex = this.dataManager.ui.rowIndicatorIndex$.value ?? -1;
     if (indicatorIndex === 0 && this.rowIndex === 0) {
@@ -773,87 +728,6 @@ export class TableCell extends SignalWatcher(
     }
     return;
   });
-  renderRowIndicator() {
-    if (this.readonly) {
-      return nothing;
-    }
-    const columnIndex = this.columnIndex;
-    const isFirstColumn = columnIndex === 0;
-    const isLastColumn =
-      columnIndex === this.dataManager.uiColumns$.value.length - 1;
-    const showIndicator = this.showRowIndicator$.value;
-    const style = (show: boolean) =>
-      styleMap({
-        opacity: show ? 1 : 0,
-        borderRadius: isFirstColumn
-          ? "3px 0 0 3px"
-          : isLastColumn
-            ? "0 3px 3px 0"
-            : "0",
-      });
-    const indicator0 =
-      this.rowIndex === 0
-        ? html`
-            <div
-              style=${style(showIndicator === "top")}
-              class=${rowTopIndicatorStyle}
-            ></div>
-          `
-        : nothing;
-    return html`
-      ${indicator0}
-      <div
-        style=${style(showIndicator === "bottom")}
-        class=${rowBottomIndicatorStyle}
-      ></div>
-    `;
-  }
-  renderColumnIndicator() {
-    if (this.readonly) {
-      return nothing;
-    }
-    const hoverColumnId$ = this.dataManager.hoverDragHandleColumnId$;
-    const draggingColumnId$ = this.dataManager.widthAdjustColumnId$;
-    const rowIndex = this.rowIndex;
-    const isFirstRow = rowIndex === 0;
-    const isLastRow = rowIndex === this.dataManager.uiRows$.value.length - 1;
-    const showWidthAdjustIndicator =
-      draggingColumnId$.value === this.column?.columnId ||
-      hoverColumnId$.value === this.column?.columnId;
-    const showIndicator = this.showColumnIndicator$.value;
-    const style = (show: boolean) =>
-      styleMap({
-        opacity: show ? 1 : 0,
-        borderRadius: isFirstRow
-          ? "3px 3px 0 0"
-          : isLastRow
-            ? "0 0 3px 3px"
-            : "0",
-      });
-    const indicator0 =
-      this.columnIndex === 0
-        ? html`
-            <div
-              style=${style(showIndicator === "left")}
-              class=${columnLeftIndicatorStyle}
-            ></div>
-          `
-        : nothing;
-    const mouseEnter = () => {
-      hoverColumnId$.value = this.column?.columnId;
-    };
-    const mouseLeave = () => {
-      hoverColumnId$.value = undefined;
-    };
-    return html` ${indicator0}
-      <div
-        @mouseenter=${mouseEnter}
-        @mouseleave=${mouseLeave}
-        style=${style(showWidthAdjustIndicator || showIndicator === "right")}
-        data-width-adjust-column-id=${this.column?.columnId}
-        class=${columnRightIndicatorStyle}
-      ></div>`;
-  }
 
   richText$ = signal<RichText>();
 
@@ -894,8 +768,8 @@ export class TableCell extends SignalWatcher(
     );
     table.store.captureSync();
     this.tabRowPending = true;
-    // A new row has no inline editor until Lit has mounted its cells and
-    // rich-text children. Keep repeated keydowns from adding duplicate rows.
+    // A new row has no inline editor until its cells and rich-text children
+    // finish mounting. Keep repeated keydowns from adding duplicate rows.
     void this.focusNewTabRow(table, rowId)
       .catch(console.error)
       .finally(() => {
@@ -948,12 +822,190 @@ export class TableCell extends SignalWatcher(
     }
   };
 
-  override connectedCallback() {
-    super.connectedCallback();
-    if (this.readonly) {
-      return;
-    }
+  private mountOptionControl(
+    cellEl: HTMLTableCellElement,
+    kind: "row" | "column",
+  ) {
+    const column = kind === "column";
+    const doc = this.ownerDocument;
+    const table = this.closest<TableBlockComponent>("myoxus-table");
+    const chrome = table?.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return () => {};
+
+    const container = doc.createElement("div");
+    container.className = column ? columnOptionsCellStyle : rowOptionsCellStyle;
+    cellEl.append(container);
+
+    const state = computed<EditorTableControl | null>(() => {
+      const id = column ? this.column?.columnId : this.row?.rowId;
+      if (!id || this.readonly) return null;
+      return {
+        menu: true,
+        mouseDown: (element, event) => {
+          if (!this.isConnected || this.readonly || event.button !== 0) return;
+          // SVG glyph targets are not HTMLElements; pass the native button to the
+          // existing drag controller rather than relying on ancestor delegation.
+          if (column) this.selectionController.columnDrag(element, event);
+          else this.selectionController.rowDrag(element, event);
+        },
+        setElement: (element) => {
+          if (element)
+            element.dataset[column ? "dragColumnId" : "dragRowId"] = id;
+        },
+        action: {
+          id: column ? "drag-column-handle" : "drag-row-handle",
+          icon: "MoreHorizontalIcon",
+          label: this.message(
+            column
+              ? editorMessage(
+                  "com.myoxus.editor.table.column-options",
+                  "Column options",
+                )
+              : editorMessage(
+                  "com.myoxus.editor.table.row-options",
+                  "Row options",
+                ),
+          ),
+          disabled: this.readonly,
+          run: (element) => {
+            if (!element || !this.isConnected || this.readonly) return;
+            // Re-resolve identity after structural edits instead of using a stale index.
+            const target = popupTargetFromElement(element);
+            if (column) {
+              const live = this.dataManager.columns$.value.find(
+                (item) => item.columnId === id,
+              );
+              if (live) this.openColumnOptions(target, live);
+            } else {
+              const live = this.dataManager.rows$.value.find(
+                (item) => item.rowId === id,
+              );
+              if (live) this.openRowOptions(target, live);
+            }
+          },
+        },
+      };
+    });
+
+    const releasePortal = chrome.mountTableControl(container, state);
+    const stopOpacity = effect(() => {
+      const index = column ? this.columnIndex : this.rowIndex;
+      const hovered =
+        index === (column ? this.hoverColumnIndex$ : this.hoverRowIndex$).value;
+      container.style.opacity = hovered ? "1" : "";
+    });
+
+    return () => {
+      stopOpacity();
+      releasePortal();
+      container.remove();
+    };
+  }
+
+  private mountIndicators(cellEl: HTMLTableCellElement) {
+    const doc = this.ownerDocument;
+    const group = new DisposableGroup();
+
+    const colLeft = doc.createElement("div");
+    colLeft.className = columnLeftIndicatorStyle;
+
+    const colRight = doc.createElement("div");
+    colRight.className = columnRightIndicatorStyle;
+    const onColRightEnter = () => {
+      this.dataManager.hoverDragHandleColumnId$.value = this.column?.columnId;
+    };
+    const onColRightLeave = () => {
+      this.dataManager.hoverDragHandleColumnId$.value = undefined;
+    };
+    colRight.addEventListener("mouseenter", onColRightEnter);
+    colRight.addEventListener("mouseleave", onColRightLeave);
+    group.add(() => {
+      colRight.removeEventListener("mouseenter", onColRightEnter);
+      colRight.removeEventListener("mouseleave", onColRightLeave);
+    });
+
+    const rowTop = doc.createElement("div");
+    rowTop.className = rowTopIndicatorStyle;
+
+    const rowBottom = doc.createElement("div");
+    rowBottom.className = rowBottomIndicatorStyle;
+
+    cellEl.append(colRight, rowBottom);
+    group.add(() => {
+      colLeft.remove();
+      colRight.remove();
+      rowTop.remove();
+      rowBottom.remove();
+    });
+
+    group.add(
+      effect(() => {
+        const colIdx = this.columnIndex;
+        const rowIdx = this.rowIndex;
+        const uiRows = this.dataManager.uiRows$.value;
+        const uiCols = this.dataManager.uiColumns$.value;
+        const isFirstRow = rowIdx === 0;
+        const isLastRow = rowIdx === uiRows.length - 1;
+        const isFirstCol = colIdx === 0;
+        const isLastCol = colIdx === uiCols.length - 1;
+
+        const columnId = this.column?.columnId;
+        if (columnId !== undefined) {
+          colRight.dataset.widthAdjustColumnId = columnId;
+        } else {
+          delete colRight.dataset.widthAdjustColumnId;
+        }
+
+        const showWidthAdjust =
+          this.dataManager.widthAdjustColumnId$.value === columnId ||
+          this.dataManager.hoverDragHandleColumnId$.value === columnId;
+        const showCol = this.showColumnIndicator$.value;
+        const colRadius = isFirstRow
+          ? "3px 3px 0 0"
+          : isLastRow
+            ? "0 0 3px 3px"
+            : "0";
+
+        if (isFirstCol) {
+          if (!colLeft.parentNode) cellEl.insertBefore(colLeft, colRight);
+          colLeft.style.opacity = showCol === "left" ? "1" : "0";
+          colLeft.style.borderRadius = colRadius;
+        } else if (colLeft.parentNode) {
+          colLeft.remove();
+        }
+
+        colRight.style.opacity =
+          showWidthAdjust || showCol === "right" ? "1" : "0";
+        colRight.style.borderRadius = colRadius;
+
+        const showRow = this.showRowIndicator$.value;
+        const rowRadius = isFirstCol
+          ? "3px 0 0 3px"
+          : isLastCol
+            ? "0 3px 3px 0"
+            : "0";
+
+        if (isFirstRow) {
+          if (!rowTop.parentNode) cellEl.insertBefore(rowTop, rowBottom);
+          rowTop.style.opacity = showRow === "top" ? "1" : "0";
+          rowTop.style.borderRadius = rowRadius;
+        } else if (rowTop.parentNode) {
+          rowTop.remove();
+        }
+
+        rowBottom.style.opacity = showRow === "bottom" ? "1" : "0";
+        rowBottom.style.borderRadius = rowRadius;
+      }),
+    );
+
+    return () => group.dispose();
+  }
+
+  connectedCallback() {
+    this.disposables = new DisposableGroup();
+
     const selectAll = (e: KeyboardEvent) => {
+      if (this.readonly) return;
       if (e.key === "a" && (IS_MAC ? e.metaKey : e.ctrlKey)) {
         e.stopPropagation();
         e.preventDefault();
@@ -966,6 +1018,7 @@ export class TableCell extends SignalWatcher(
     // with the selection changed by this same keydown.
     this.disposables.addFromEvent(this, "keydown", (e: KeyboardEvent) => {
       if (
+        !this.readonly &&
         e.key === "Tab" &&
         !e.defaultPrevented &&
         e.target instanceof Node &&
@@ -979,6 +1032,7 @@ export class TableCell extends SignalWatcher(
     // native path consistently, so own the table menu shortcut at the cell.
     this.disposables.addFromEvent(this, "keydown", (e: KeyboardEvent) => {
       if (
+        !this.readonly &&
         !e.defaultPrevented &&
         ((e.shiftKey && e.key === "F10") || e.key === "ContextMenu")
       ) {
@@ -986,6 +1040,7 @@ export class TableCell extends SignalWatcher(
       }
     });
     this.disposables.addFromEvent(this, "click", (e: MouseEvent) => {
+      if (this.readonly) return;
       e.stopPropagation();
       const clickedFocus = document.activeElement;
       requestAnimationFrame(() => {
@@ -1004,123 +1059,207 @@ export class TableCell extends SignalWatcher(
         }
       });
     });
-  }
 
-  override firstUpdated() {
-    if (this.readonly) {
-      return;
-    }
-    this.richText$.value?.updateComplete
-      .then(() => {
-        const inlineEditor = this.inlineEditor;
-        if (inlineEditor) {
-          this.disposables.add(
-            inlineEditor.slots.keydown.subscribe(this._handleKeyDown),
-          );
+    this.disposables.add(
+      effect(() => {
+        const isHeader = this._isHeader$.value;
+        const hasText = Boolean(this._text$.value);
+        const doc = this.ownerDocument;
+        const cellEl = doc.createElement(isHeader ? "th" : "td");
+        cellEl.setAttribute("data-table-cell", "");
+        if (isHeader) cellEl.setAttribute("scope", "col");
+        cellEl.className = cellContainerStyle;
+
+        if (!hasText) {
+          const pad = doc.createElement("div");
+          pad.style.padding =
+            "var(--myoxus-table-cell-padding-block) var(--myoxus-table-cell-padding-inline)";
+          const spacer = doc.createElement("div");
+          spacer.style.height = "22px";
+          pad.append(spacer);
+          cellEl.append(pad);
+          this.richText$.value = undefined;
+          this.replaceChildren(cellEl);
+          const stopStyle = effect(() => this.applyCellStyle(cellEl));
+          return () => {
+            stopStyle();
+          };
         }
 
-        this.disposables.add(
+        const inner = new DisposableGroup();
+
+        const onEnter = () =>
+          this.tdMouseEnter(this.rowIndex, this.columnIndex);
+        const onLeave = () => this.tdMouseLeave();
+        cellEl.addEventListener("mouseenter", onEnter);
+        cellEl.addEventListener("mouseleave", onLeave);
+        cellEl.addEventListener("contextmenu", this.onContextMenu);
+        cellEl.addEventListener("copy", this.copyNativeFields, {
+          capture: true,
+        });
+        cellEl.addEventListener("cut", this.copyNativeFields, {
+          capture: true,
+        });
+        cellEl.addEventListener("paste", this.pasteNativeFields, {
+          capture: true,
+        });
+        inner.add(() => {
+          cellEl.removeEventListener("mouseenter", onEnter);
+          cellEl.removeEventListener("mouseleave", onLeave);
+          cellEl.removeEventListener("contextmenu", this.onContextMenu);
+          cellEl.removeEventListener("copy", this.copyNativeFields, {
+            capture: true,
+          });
+          cellEl.removeEventListener("cut", this.copyNativeFields, {
+            capture: true,
+          });
+          cellEl.removeEventListener("paste", this.pasteNativeFields, {
+            capture: true,
+          });
+        });
+
+        const richText = doc.createElement("rich-text") as RichText;
+        richText.setAttribute("data-disable-ask-ai", "");
+        richText.setAttribute("data-not-block-text", "");
+        richText.setAttribute("data-parent-flavour", "myoxus:table");
+        richText.style.minHeight = "22px";
+        richText.style.padding =
+          "var(--myoxus-table-cell-padding-block) var(--myoxus-table-cell-padding-inline)";
+        richText.enableUndoRedo = false;
+        richText.enableClipboard = true;
+        richText.verticalScrollContainerGetter = () =>
+          this.topContenteditableElement?.host
+            ? getViewportElement(this.topContenteditableElement.host)
+            : null;
+
+        untracked(() => {
+          const table = this.closest<TableBlockComponent>("myoxus-table");
+          const manager = this.inlineManager;
+          richText.yText = this._text$.peek()!;
+          richText.undoManager = table?.store.history.undoManager;
+          richText.inlineEventSource =
+            this.topContenteditableElement ?? undefined;
+          richText.attributesSchema = manager?.getSchema();
+          richText.attributeRenderer = manager?.getRenderer();
+          if (manager?.embedChecker)
+            richText.embedChecker = manager.embedChecker;
+          if (manager?.markdownMatches)
+            richText.markdownMatches = manager.markdownMatches;
+          richText.readonly = this.readonly || this.textProtected;
+          richText.style.textAlign =
+            normalizeTableColumnTextAlign(this._column$.peek()?.textAlign) ??
+            "start";
+          richText.title = textProtectionHint(this.textProtection, this.i18n);
+        });
+
+        cellEl.append(richText);
+        this.replaceChildren(cellEl);
+        this.richText$.value = richText;
+
+        inner.add(
           effect(() => {
-            const richText = this.richText$.value;
-            if (!richText) {
-              return;
-            }
-            const inlineEditor = this.inlineEditor;
-            if (!inlineEditor) {
-              return;
-            }
-            const inlineRange = inlineEditor.inlineRange$.value;
-            const targetSelection: TableAreaSelection = {
-              type: "area",
-              rowStartIndex: this.rowIndex,
-              rowEndIndex: this.rowIndex,
-              columnStartIndex: this.columnIndex,
-              columnEndIndex: this.columnIndex,
-            };
-            const currentSelection = this.selectionController.selected$.peek();
-            if (
-              inlineRange &&
-              (!this.menuSession || this.menuSession.aborted) &&
-              !TableSelectionData.equals(targetSelection, currentSelection)
-            ) {
-              this.selectionController.setSelected(targetSelection, false);
-            }
+            void this._syncRevision$.value;
+            const row = this.row;
+            const column = this.column;
+            if (row?.rowId !== undefined) cellEl.dataset.rowId = row.rowId;
+            else delete cellEl.dataset.rowId;
+            if (column?.columnId !== undefined)
+              cellEl.dataset.columnId = column.columnId;
+            else delete cellEl.dataset.columnId;
+
+            this.applyCellStyle(cellEl);
+
+            const text = this.text;
+            if (text && richText.yText !== text) richText.yText = text;
+            const ro = this.readonly || this.textProtected;
+            if (richText.readonly !== ro) richText.readonly = ro;
+            richText.style.textAlign =
+              normalizeTableColumnTextAlign(column?.textAlign) ?? "start";
+            richText.title = textProtectionHint(this.textProtection, this.i18n);
           }),
         );
-      })
-      .catch(console.error);
+
+        inner.add(
+          effect(() => {
+            if (this.readonly) return;
+            const inlineEditor = richText.inlineEditor;
+            if (!inlineEditor) return;
+            const sub = inlineEditor.slots.keydown.subscribe(
+              this._handleKeyDown,
+            );
+            const stopRange = effect(() => {
+              const inlineRange = inlineEditor.inlineRange$.value;
+              const targetSelection: TableAreaSelection = {
+                type: "area",
+                rowStartIndex: this.rowIndex,
+                rowEndIndex: this.rowIndex,
+                columnStartIndex: this.columnIndex,
+                columnEndIndex: this.columnIndex,
+              };
+              const currentSelection =
+                this.selectionController.selected$.peek();
+              if (
+                inlineRange &&
+                (!this.menuSession || this.menuSession.aborted) &&
+                !TableSelectionData.equals(targetSelection, currentSelection)
+              ) {
+                this.selectionController.setSelected(targetSelection, false);
+              }
+            });
+            return () => {
+              stopRange();
+              sub.unsubscribe();
+            };
+          }),
+        );
+
+        inner.add(
+          effect(() => {
+            if (
+              this.readonly ||
+              !this.row ||
+              !this.column ||
+              this.rowIndex !== 0
+            )
+              return;
+            return untracked(() => this.mountOptionControl(cellEl, "column"));
+          }),
+        );
+
+        inner.add(
+          effect(() => {
+            if (
+              this.readonly ||
+              !this.row ||
+              !this.column ||
+              this.columnIndex !== 0
+            )
+              return;
+            return untracked(() => this.mountOptionControl(cellEl, "row"));
+          }),
+        );
+
+        inner.add(
+          effect(() => {
+            if (this.readonly) return;
+            return untracked(() => this.mountIndicators(cellEl));
+          }),
+        );
+
+        return () => {
+          inner.dispose();
+          if (this.richText$.peek() === richText) {
+            this.richText$.value = undefined;
+          }
+        };
+      }),
+    );
   }
 
-  override render() {
-    const cellTag = this.isHeader ? literal`th` : literal`td`;
-    if (!this.text) {
-      return staticHtml`<${cellTag}
-        data-table-cell
-        scope=${ifDefined(this.isHeader ? "col" : undefined)}
-        class=${cellContainerStyle}
-        style=${this.tdStyle()}
-      >
-        <div
-          style=${styleMap({
-            padding:
-              "var(--myoxus-table-cell-padding-block) var(--myoxus-table-cell-padding-inline)",
-          })}
-        >
-          <div style="height:22px"></div>
-        </div>
-      </${cellTag}>`;
-    }
-    return staticHtml`
-      <${cellTag}
-        data-table-cell
-        scope=${ifDefined(this.isHeader ? "col" : undefined)}
-        data-row-id=${this.row?.rowId}
-        data-column-id=${this.column?.columnId}
-        @mouseenter=${() => {
-          this.tdMouseEnter(this.rowIndex, this.columnIndex);
-        }}
-        @mouseleave=${() => {
-          this.tdMouseLeave();
-        }}
-        @contextmenu=${this.onContextMenu}
-        @copy=${this.copyNativeFields}
-        @cut=${this.copyNativeFields}
-        @paste=${this.pasteNativeFields}
-        class=${cellContainerStyle}
-        style=${this.tdStyle()}
-      >
-        <rich-text
-          ${ref(this.richText$)}
-          data-disable-ask-ai
-          data-not-block-text
-          style=${styleMap({
-            minHeight: "22px",
-            padding:
-              "var(--myoxus-table-cell-padding-block) var(--myoxus-table-cell-padding-inline)",
-            textAlign:
-              normalizeTableColumnTextAlign(this.column?.textAlign) ?? "start",
-          })}
-          .yText="${this.text}"
-          .undoManager=${this.closest<TableBlockComponent>("myoxus-table")?.store.history.undoManager}
-          .enableUndoRedo=${false}
-          .inlineEventSource="${this.topContenteditableElement ?? nothing}"
-          .attributesSchema="${this.inlineManager?.getSchema()}"
-          .attributeRenderer="${this.inlineManager?.getRenderer()}"
-          .embedChecker="${this.inlineManager?.embedChecker}"
-          .markdownMatches="${this.inlineManager?.markdownMatches}"
-          .readonly="${this.readonly || this.textProtected}"
-          title=${textProtectionHint(this.textProtection, this.i18n)}
-          .enableClipboard="${true}"
-          .verticalScrollContainerGetter="${() =>
-            this.topContenteditableElement?.host
-              ? getViewportElement(this.topContenteditableElement.host)
-              : null}"
-          data-parent-flavour="myoxus:table"
-        ></rich-text>
-        ${this.renderOptionsButton()} ${this.renderColumnIndicator()}
-        ${this.renderRowIndicator()}
-      </${cellTag}>
-    `;
+  disconnectedCallback() {
+    this.disposables.dispose();
+    this.richText$.value = undefined;
+    this.replaceChildren();
   }
 }
 

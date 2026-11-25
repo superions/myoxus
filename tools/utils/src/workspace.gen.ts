@@ -134,7 +134,6 @@ export const PackageList = [
       "client/libs/i18n",
       "client/libs/icons",
       "client/libs/infra",
-      "client/libs/lit-react",
       "client/libs/reader",
       "client/libs/storage",
       "client/libs/theme",
@@ -211,11 +210,6 @@ export const PackageList = [
       "client/libs/env",
       "client/libs/error"
     ]
-  },
-  {
-    "location": "client/libs/lit-react",
-    "name": "@myoxus/lit-react",
-    "workspaceDependencies": ["virgultum/core"]
   },
   {
     "location": "client/libs/local-store",
@@ -455,7 +449,6 @@ export const PackageList = [
       "client/libs/env",
       "client/libs/i18n",
       "client/libs/icons",
-      "client/libs/lit-react",
       "client/libs/theme",
       "client/libs/ui-facade",
       "virgultum/editor/all"
@@ -485,7 +478,6 @@ export type PackageName =
   | "@myoxus/i18n"
   | "@myoxus/icons"
   | "@myoxus/infra"
-  | "@myoxus/lit-react"
   | "@myoxus/local-store"
   | "@myoxus/media-capture"
   | "@myoxus/notifications"

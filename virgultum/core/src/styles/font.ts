@@ -1,5 +1,3 @@
-import { css, unsafeCSS } from "lit";
-
 import { unsafeCSSValue } from "../theme/css-variables";
 
 export type WebTypographySlot =
@@ -14,8 +12,8 @@ export type WebTypographySlot =
   | "journal-caption"
   | "mobile-dialog";
 
-export const fontBaseStyle = (container: string) => css`
-  ${unsafeCSS(container)} {
+export const fontBaseStyle = (container: string) => `
+  ${container} {
     font-family: ${unsafeCSSValue(
       "var(--mantine-font-family-nav, var(--mantine-font-family))",
     )};
@@ -27,14 +25,14 @@ export const fontBaseStyle = (container: string) => css`
 `;
 
 /**
- * Projects a named Myoxus web typography slot into Lit-based editor chrome.
+ * Projects a named Myoxus web typography slot into editor stylesheets.
  *
  * Product code should call this helper instead of declaring local
  * font-size/weight/line-height values. The slots are owned by the global theme
  * projection and are mirrored into the Mantine theme by @myoxus/ui-facade.
  */
-export const fontWebStyle = (container: string, slot: WebTypographySlot) => css`
-  ${unsafeCSS(container)} {
+export const fontWebStyle = (container: string, slot: WebTypographySlot) => `
+  ${container} {
     font-family: ${unsafeCSSValue(
       `var(--mantine-font-family-${slot}, var(--mantine-font-family))`,
     )};
@@ -55,13 +53,13 @@ export const fontWebStyle = (container: string, slot: WebTypographySlot) => css`
 `;
 
 /**
- * Projects the global mono typography slot into Lit code/content previews.
+ * Projects the global mono typography slot into code/content previews.
  *
  * This is for code rendering surfaces only. Normal product chrome should use
  * `fontSMStyle`, `fontXSStyle` or `fontWebStyle`.
  */
-export const fontMonoStyle = (container: string) => css`
-  ${unsafeCSS(container)} {
+export const fontMonoStyle = (container: string) => `
+  ${container} {
     font-family: var(
       --myoxus-typography-mono-family,
       var(--myoxus-font-code-family)
@@ -76,9 +74,9 @@ export const fontMonoStyle = (container: string) => css`
   }
 `;
 
-export const fontSMStyle = (container: string) => css`
+export const fontSMStyle = (container: string) => `
   ${fontBaseStyle(container)}
-  ${unsafeCSS(container)} {
+  ${container} {
     font-size: ${unsafeCSSValue(
       "var(--mantine-font-size-nav, var(--mantine-font-size-md))",
     )};
@@ -91,9 +89,9 @@ export const fontSMStyle = (container: string) => css`
   }
 `;
 
-export const fontXSStyle = (container: string) => css`
+export const fontXSStyle = (container: string) => `
   ${fontBaseStyle(container)}
-  ${unsafeCSS(container)} {
+  ${container} {
     font-size: ${unsafeCSSValue(
       "var(--mantine-font-size-body-small, var(--mantine-font-size-md))",
     )};

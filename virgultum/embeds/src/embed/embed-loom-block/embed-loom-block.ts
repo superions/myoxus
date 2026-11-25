@@ -1,8 +1,8 @@
+import { computed, signal } from "@preact/signals-core";
 import { EditorChromeHostIdentifier } from "@virgultum/core/services";
 import type { EmbedLoomModel, EmbedLoomStyles } from "@virgultum/core/models";
 import { ImageProxyService } from "@virgultum/core/adapters";
 import { BlockSelection } from "@virgultum/core/runtime";
-import { property } from "lit/decorators.js";
 
 import { EmbedBlockComponent } from "../common/embed-block-element.js";
 import { loomUrlRegex } from "./embed-loom-model.js";
@@ -13,7 +13,28 @@ export class EmbedLoomBlockComponent extends EmbedBlockComponent<
   EmbedLoomModel,
   EmbedLoomBlockService
 > {
-  override _cardStyle: (typeof EmbedLoomStyles)[number] = "video";
+  protected override embedSelectionMode = "native" as const;
+
+  private readonly _loading$ = signal(false);
+
+  constructor() {
+    super();
+    this._cardStyle$.value = "video";
+  }
+
+  get loading() {
+    return this._loading$.value;
+  }
+  set loading(value: boolean) {
+    this._loading$.value = value;
+  }
+
+  override get _cardStyle(): (typeof EmbedLoomStyles)[number] {
+    return super._cardStyle as (typeof EmbedLoomStyles)[number];
+  }
+  override set _cardStyle(value: (typeof EmbedLoomStyles)[number]) {
+    super._cardStyle = value;
+  }
 
   open = () => {
     let link = this.model.props.url;
@@ -42,8 +63,7 @@ export class EmbedLoomBlockComponent extends EmbedBlockComponent<
     this._selectBlock();
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
+  protected override mountEmbedContent(container: HTMLElement) {
     this._cardStyle = this.model.props.style;
 
     if (!this.model.props.videoId) {
@@ -67,35 +87,44 @@ export class EmbedLoomBlockComponent extends EmbedBlockComponent<
 
     this.disposables.add(
       this.model.propsUpdated.subscribe(({ key }) => {
-        this.requestUpdate();
+        if (key === "style") {
+          this._cardStyle = this.model.props.style;
+        }
         if (key === "url") {
           this.refreshData();
         }
       }),
     );
-  }
 
-  override renderBlock() {
-    const { image, title, description, videoId, url } = this.model.props;
-    const imageProxy = this.store.get(ImageProxyService);
-    return this.renderEmbed(
-      () =>
-        this.std.get(EditorChromeHostIdentifier).renderLoomCard({
-          title: title ?? "Loom",
-          description: description ?? null,
-          image: image ? imageProxy.buildUrl(image) : null,
-          videoId: videoId ?? null,
-          url,
-          loading: this.loading,
-          selected: this.selected$.value,
-          showOverlay: this.showOverlay$.value,
-          select: (event) => this._handleClick(event),
-          open: this.open,
-        }),
-      "native",
-    );
-  }
+    const chrome = this.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
 
-  @property({ attribute: false })
-  accessor loading = false;
+    const host = this.ownerDocument.createElement("div");
+    host.style.display = "contents";
+    container.replaceChildren(host);
+
+    const state$ = computed(() => {
+      void this.revision$.value;
+      const { image, title, description, videoId, url } = this.model.props;
+      const imageProxy = this.store.get(ImageProxyService);
+      return {
+        title: title ?? "Loom",
+        description: description ?? null,
+        image: image ? imageProxy.buildUrl(image) : null,
+        videoId: videoId ?? null,
+        url,
+        loading: this._loading$.value,
+        selected: this.selected$.value,
+        showOverlay: this.showOverlay$.value,
+        select: (event: MouseEvent) => this._handleClick(event),
+        open: this.open,
+      };
+    });
+
+    const unmount = chrome.mountLoomCard(host, state$);
+    this.disposables.add(() => {
+      unmount();
+      host.remove();
+    });
+  }
 }

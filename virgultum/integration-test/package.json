@@ -19,7 +19,6 @@
     "@myoxus/env": "workspace:*",
     "@myoxus/i18n": "workspace:*",
     "@myoxus/icons": "workspace:*",
-    "@myoxus/lit-react": "workspace:*",
     "@myoxus/theme": "workspace:*",
     "@myoxus/ui-facade": "workspace:*",
     "@preact/signals-core": "^1.14.5",

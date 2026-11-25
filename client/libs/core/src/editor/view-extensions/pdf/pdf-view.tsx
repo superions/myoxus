@@ -1,5 +1,5 @@
 import { AttachmentEmbedPreview } from "@myoxus/core/editor/attachment-viewer/attachment-embed-preview";
-import type { ReactToLit } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import { AttachmentEmbedConfigIdentifier } from "@virgultum/editor/blocks/attachment";
 import { Bound } from "@virgultum/editor/global/gfx";
 import {
@@ -8,7 +8,9 @@ import {
 } from "@virgultum/editor/shared/consts";
 import type { ExtensionType } from "@virgultum/editor/store";
 
-export function patchForPDFEmbedView(reactToLit: ReactToLit): ExtensionType {
+export function patchForPDFEmbedView(
+  mountPortal: MountReactPortal,
+): ExtensionType {
   return {
     setup: (di) => {
       di.override(AttachmentEmbedConfigIdentifier("pdf"), () => ({
@@ -27,8 +29,8 @@ export function patchForPDFEmbedView(reactToLit: ReactToLit): ExtensionType {
             xywh: bound.serialize(),
           });
         },
-        render: (model, _) =>
-          reactToLit(<AttachmentEmbedPreview model={model} />, true),
+        mount: (anchor, model) =>
+          mountPortal(anchor, <AttachmentEmbedPreview model={model} />),
       }));
     },
   };

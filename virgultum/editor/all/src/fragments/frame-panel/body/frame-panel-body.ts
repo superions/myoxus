@@ -1,21 +1,22 @@
+import { computed, signal } from "@preact/signals-core";
 import { EdgelessFrameManager } from "@virgultum/canvas/blocks";
-import { DisposableGroup } from "@virgultum/core/primitives/disposable";
-import { Bound } from "@virgultum/core/primitives/gfx";
-import { SignalWatcher, WithDisposable } from "@virgultum/core/primitives/lit";
 import type { FrameBlockModel } from "@virgultum/core/models";
-import {
-  DocModeProvider,
-  EditPropsStore,
-  EditorChromeHostIdentifier,
-} from "@virgultum/core/services";
-import { type EditorHost, ShadowlessElement } from "@virgultum/core/runtime";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import { NativeViewElement } from "@virgultum/core/primitives/env";
+import { Bound } from "@virgultum/core/primitives/gfx";
+import type { EditorHost } from "@virgultum/core/runtime";
 import {
   generateKeyBetweenV2,
   GfxControllerIdentifier,
 } from "@virgultum/core/runtime/gfx";
+import {
+  DocModeProvider,
+  EditPropsStore,
+  type EditorChromeHost,
+  EditorChromeHostIdentifier,
+  type EditorFrameNavigatorControls,
+} from "@virgultum/core/services";
 import type { Store } from "@virgultum/core/store";
-import { nothing, type PropertyValues } from "lit";
-import { property, state } from "lit/decorators.js";
 
 import type {
   DragEvent,
@@ -43,9 +44,23 @@ type FrameListItem = {
 
 export const MYOXUS_FRAME_PANEL_BODY = "myoxus-frame-panel-body";
 
-export class FramePanelBody extends SignalWatcher(
-  WithDisposable(ShadowlessElement),
-) {
+export class FramePanelBody extends NativeViewElement {
+  disposables = new DisposableGroup();
+
+  private readonly _revision$ = signal(0);
+  private readonly _dragging$ = signal(false);
+  private readonly _selected$ = signal<string[]>([]);
+  private readonly _insertIndex$ = signal<number | undefined>(undefined);
+
+  private _domHost!: Document | HTMLElement;
+  private _editorHost!: EditorHost;
+  private _fitPadding!: number[];
+  private _labels: FramePanelLabels = defaultFramePanelLabels;
+
+  private _navigatorHost: HTMLDivElement | null = null;
+  private _chromeUnmount: (() => void) | null = null;
+  private _mountedChrome: EditorChromeHost | null = null;
+
   private readonly _clearDocDisposables = () => {
     this._docDisposables?.dispose();
     this._docDisposables = null;
@@ -59,14 +74,14 @@ export class FramePanelBody extends SignalWatcher(
     // check if click at frame-card, if not, set this._selected to empty
     if (
       (e.target as HTMLElement).closest("myoxus-frame-card") ||
-      this._selected.length === 0
+      this._selected$.peek().length === 0
     ) {
       return;
     }
 
-    this._selected = [];
+    this._selected$.value = [];
     this._gfx.selection.set({
-      elements: this._selected,
+      elements: [],
       editing: false,
     });
   };
@@ -81,29 +96,88 @@ export class FramePanelBody extends SignalWatcher(
 
   private _lastEdgelessRootId = "";
 
+  frameListContainer: HTMLElement | null = null;
+
+  get domHost(): Document | HTMLElement {
+    return this._domHost;
+  }
+  set domHost(value: Document | HTMLElement) {
+    this._domHost = value;
+  }
+
+  get editorHost(): EditorHost {
+    return this._editorHost;
+  }
+  set editorHost(value: EditorHost) {
+    const changed = this._editorHost !== value;
+    this._editorHost = value;
+    if (changed && this.isConnected) {
+      this._bindHost();
+    }
+    this._bump();
+  }
+
+  get fitPadding(): number[] {
+    return this._fitPadding;
+  }
+  set fitPadding(value: number[]) {
+    this._fitPadding = value;
+    this._bump();
+  }
+
+  get labels(): FramePanelLabels {
+    return this._labels;
+  }
+  set labels(value: FramePanelLabels) {
+    this._labels = value;
+    this._bump();
+  }
+
+  get insertIndex(): number | undefined {
+    return this._insertIndex$.value;
+  }
+  set insertIndex(value: number | undefined) {
+    this._insertIndex$.value = value;
+  }
+
   private get _gfx() {
     return this.editorHost.std.get(GfxControllerIdentifier);
   }
 
+  private _bump() {
+    this._revision$.value = this._revision$.peek() + 1;
+  }
+
+  requestUpdate() {
+    this._bump();
+  }
+
   private readonly _selectFrame = (e: SelectEvent) => {
     const { selected, id, multiselect } = e.detail;
+    const current = this._selected$.peek();
 
+    let next: string[];
     if (!selected) {
       // de-select frame
-      this._selected = this._selected.filter((frameId) => frameId !== id);
+      next = current.filter((frameId) => frameId !== id);
     } else if (multiselect) {
-      this._selected = [...this._selected, id];
+      next = [...current, id];
     } else {
-      this._selected = [id];
+      next = [id];
     }
 
+    this._selected$.value = next;
     this._gfx.selection.set({
-      elements: this._selected,
+      elements: next,
       editing: false,
     });
   };
 
   private readonly _updateFrameItems = () => {
+    if (!this._editorHost) {
+      this._frameItems = [];
+      return;
+    }
     this._frameItems = this.frames.map((frame, idx) => ({
       frame,
       frameIndex: frame.props.presentationIndex ?? frame.props.index,
@@ -127,9 +201,10 @@ export class FramePanelBody extends SignalWatcher(
   }
 
   private readonly _drag = (e: DragEvent) => {
-    if (!this._selected.length || !this.frameListContainer) return;
+    const selected = this._selected$.peek().slice();
+    if (!selected.length || !this.frameListContainer) return;
 
-    this._dragging = true;
+    this._dragging$.value = true;
 
     const framesMap = this._frameItems.reduce((map, frame) => {
       map.set(frame.frame.id, {
@@ -137,14 +212,13 @@ export class FramePanelBody extends SignalWatcher(
       });
       return map;
     }, new Map<string, FrameListItem>());
-    const selected = this._selected.slice();
 
     const draggedFramesInfo = selected.map((id) => {
       const frame = framesMap.get(id) as FrameListItem;
 
       return {
         frame: frame.frame,
-        element: this.renderRoot.querySelector(
+        element: this.querySelector(
           `[data-frame-id="${frame.frame.id}"]`,
         ) as FrameCard,
         cardIndex: frame.cardIndex,
@@ -168,15 +242,15 @@ export class FramePanelBody extends SignalWatcher(
       frameListContainer: this.frameListContainer,
       frameElementHeight: this._frameElementHeight,
       onDragEnd: (insertIdx) => {
-        this._dragging = false;
+        this._dragging$.value = false;
         this.insertIndex = undefined;
 
         if (insertIdx === undefined || this._frameItems.length <= 1) return;
         this._reorderFrames(selected, framesMap, insertIdx);
       },
       onDragMove: (idx, indicatorTranslateY) => {
-        this.insertIndex = idx;
         this._indicatorTranslateY = indicatorTranslateY ?? 0;
+        this.insertIndex = idx;
       },
     });
   };
@@ -202,39 +276,50 @@ export class FramePanelBody extends SignalWatcher(
     }
   };
 
-  private _renderNavigator() {
-    const host = this.editorHost.std.getOptional(EditorChromeHostIdentifier);
-    if (!host) return nothing;
-    const selected = new Set(this._selected);
-    return host.renderFrameNavigator({
-      emptyLabel: this.labels.emptyPlaceholder,
-      setList: (element) => {
-        this.frameListContainer = element;
-      },
-      indicatorY:
-        this.insertIndex === undefined ? undefined : this._indicatorTranslateY,
-      items: this._frameItems.map(({ frame, frameIndex, cardIndex }) => ({
-        id: frame.id,
-        mount: (element) => {
-          if (!element) return;
-          const card = element as FrameCard;
-          card.frame = frame;
-          card.std = this.editorHost.std;
-          card.cardIndex = cardIndex;
-          card.frameIndex = frameIndex;
-          card.status = selected.has(frame.id)
-            ? this._dragging
-              ? "placeholder"
-              : "selected"
-            : "none";
-          // Stable listeners are deduplicated when React updates the same card ref.
-          card.addEventListener("select", this._selectFrame as EventListener);
-          card.addEventListener("fitview", this._fitToElement as EventListener);
-          card.addEventListener("drag", this._drag as EventListener);
+  private readonly _controls$ = computed<EditorFrameNavigatorControls | null>(
+    () => {
+      void this._revision$.value;
+      const selectedList = this._selected$.value;
+      const dragging = this._dragging$.value;
+      const insertIndex = this._insertIndex$.value;
+      if (!this._editorHost) return null;
+
+      this._updateFrameItems();
+      const selected = new Set(selectedList);
+
+      return {
+        emptyLabel: this._labels.emptyPlaceholder,
+        setList: (element) => {
+          this.frameListContainer = element;
         },
-      })),
-    });
-  }
+        indicatorY:
+          insertIndex === undefined ? undefined : this._indicatorTranslateY,
+        items: this._frameItems.map(({ frame, frameIndex, cardIndex }) => ({
+          id: frame.id,
+          mount: (element) => {
+            if (!element) return;
+            const card = element as FrameCard;
+            card.frame = frame;
+            card.std = this.editorHost.std;
+            card.cardIndex = cardIndex;
+            card.frameIndex = frameIndex;
+            card.status = selected.has(frame.id)
+              ? dragging
+                ? "placeholder"
+                : "selected"
+              : "none";
+            // Stable listeners are deduplicated when React updates the same card ref.
+            card.addEventListener("select", this._selectFrame as EventListener);
+            card.addEventListener(
+              "fitview",
+              this._fitToElement as EventListener,
+            );
+            card.addEventListener("drag", this._drag as EventListener);
+          },
+        })),
+      };
+    },
+  );
 
   private _reorderFrames(
     selected: string[],
@@ -282,16 +367,17 @@ export class FramePanelBody extends SignalWatcher(
   }
 
   private _updateFrames() {
-    if (this._dragging) return;
+    if (this._dragging$.peek()) return;
 
-    if (!this.frames.length) {
-      this._selected = [];
+    if (!this._editorHost || !this.frames.length) {
+      this._selected$.value = [];
       this._frameItems = [];
+      this._bump();
       return;
     }
 
     const frameItems: FramePanelBody["_frameItems"] = [];
-    const oldSelectedSet = new Set(this._selected);
+    const oldSelectedSet = new Set(this._selected$.peek());
     const newSelected: string[] = [];
     const frames = this.frames.sort(compare);
     frames.forEach((frame, idx) => {
@@ -308,69 +394,62 @@ export class FramePanelBody extends SignalWatcher(
     });
 
     this._frameItems = frameItems;
-    this._selected = newSelected;
-    this.requestUpdate();
+    this._selected$.value = newSelected;
+    this._bump();
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this._updateFrameItems();
-  }
+  private _bindHost() {
+    if (!this._editorHost || !this._navigatorHost) return;
+    this._setDocDisposables(this._editorHost.store);
 
-  override disconnectedCallback() {
-    super.disconnectedCallback();
-    this._clearDocDisposables();
-  }
+    // after switch to edgeless mode, should update the selection
+    if (this._editorHost.store.id === this._lastEdgelessRootId) {
+      this._gfx.selection.set({
+        elements: this._selected$.peek(),
+        editing: false,
+      });
+    } else if (this._selected$.peek().length) {
+      this._selected$.value = [];
+    }
+    this._lastEdgelessRootId = this._editorHost.store.id;
 
-  override firstUpdated() {
-    const disposables = this.disposables;
-    disposables.addFromEvent(this, "click", this._clickBlank);
-  }
-
-  override render() {
-    this._updateFrameItems();
-    return this._renderNavigator();
-  }
-
-  override updated(_changedProperties: PropertyValues) {
-    if (_changedProperties.has("editorHost") && this.editorHost) {
-      this._setDocDisposables(this.editorHost.store);
-      // after switch to edgeless mode, should update the selection
-      if (this.editorHost.store.id === this._lastEdgelessRootId) {
-        this._gfx.selection.set({
-          elements: this._selected,
-          editing: false,
-        });
-      } else {
-        this._selected = this._selected.length ? [] : this._selected;
+    const chrome =
+      this._editorHost.std.getOptional(EditorChromeHostIdentifier) ?? null;
+    if (this._mountedChrome !== chrome) {
+      this._chromeUnmount?.();
+      this._chromeUnmount = null;
+      this._mountedChrome = chrome;
+      if (chrome) {
+        this._chromeUnmount = chrome.mountFrameNavigator(
+          this._navigatorHost,
+          this._controls$,
+        );
       }
-      this._lastEdgelessRootId = this.editorHost.store.id;
     }
   }
 
-  @state()
-  private accessor _dragging = false;
+  connectedCallback() {
+    if (this.disposables.disposed) {
+      this.disposables = new DisposableGroup();
+    }
+    if (!this._navigatorHost) {
+      this._navigatorHost = this.ownerDocument.createElement("div");
+      this._navigatorHost.style.display = "contents";
+      this.replaceChildren(this._navigatorHost);
+    }
+    this.disposables.addFromEvent(this, "click", this._clickBlank);
+    this._bindHost();
+    this._updateFrameItems();
+    this._bump();
+  }
 
-  // Store the ids of the selected frames
-  @state()
-  private accessor _selected: string[] = [];
-
-  @property({ attribute: false })
-  accessor domHost!: Document | HTMLElement;
-
-  @property({ attribute: false })
-  accessor editorHost!: EditorHost;
-
-  @property({ attribute: false })
-  accessor fitPadding!: number[];
-
-  @property({ attribute: false })
-  accessor labels: FramePanelLabels = defaultFramePanelLabels;
-
-  frameListContainer: HTMLElement | null = null;
-
-  @property({ attribute: false })
-  accessor insertIndex: number | undefined = undefined;
+  disconnectedCallback() {
+    this._chromeUnmount?.();
+    this._chromeUnmount = null;
+    this._mountedChrome = null;
+    this._clearDocDisposables();
+    this.disposables.dispose();
+  }
 }
 
 declare global {

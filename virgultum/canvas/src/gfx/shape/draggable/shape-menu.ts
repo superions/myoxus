@@ -1,5 +1,5 @@
 import { computed, effect, type Signal, signal } from "@preact/signals-core";
-import { SignalWatcher, WithDisposable } from "@virgultum/core/primitives/lit";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import {
   DefaultTheme,
   resolveColor,
@@ -12,6 +12,7 @@ import {
 import {
   EditPropsStore,
   EditorChromeHostIdentifier,
+  type EditorCanvasMenuControls,
   createToolbarColorControl,
   ThemeProvider,
   editorMessage,
@@ -19,20 +20,30 @@ import {
   resolveEditorMessage,
   type EditorI18nMessage,
 } from "@virgultum/core/services";
-import type { BlockComponent } from "@virgultum/core/runtime";
+import {
+  type BlockComponent,
+  NativeViewElement,
+} from "@virgultum/core/runtime";
 import {
   GfxControllerIdentifier,
   type ToolOptionWithType,
 } from "@virgultum/core/runtime/gfx";
-import { LitElement } from "lit";
-import { property } from "lit/decorators.js";
 
 import { ShapeTool } from "../shape-tool";
 import { ShapeComponentConfig } from "../toolbar";
 
-export class EdgelessShapeMenu extends SignalWatcher(
-  WithDisposable(LitElement),
-) {
+export class EdgelessShapeMenu extends NativeViewElement {
+  private _disposables = new DisposableGroup();
+  private _edgeless!: BlockComponent;
+  private _onChange!: (name: ShapeName) => void;
+  private readonly _revision$ = signal(0);
+  private _bound = false;
+  private _chrome?: {
+    host: HTMLSpanElement;
+    state$: Signal<EditorCanvasMenuControls | null>;
+    unmount: () => void;
+  };
+
   private _text(message: EditorI18nMessage) {
     return resolveEditorMessage(
       message,
@@ -40,14 +51,33 @@ export class EdgelessShapeMenu extends SignalWatcher(
     );
   }
 
-  override createRenderRoot() {
-    return this;
-  }
-
   private readonly _shapeName$: Signal<ShapeName> = signal(ShapeType.Rect);
 
-  @property({ attribute: false })
-  accessor edgeless!: BlockComponent;
+  get edgeless() {
+    return this._edgeless;
+  }
+
+  set edgeless(value: BlockComponent) {
+    if (this._edgeless === value) return;
+    this._edgeless = value;
+    if (this.isConnected) {
+      this._ensureBound();
+      this._requestUpdate();
+    }
+  }
+
+  get onChange() {
+    return this._onChange;
+  }
+
+  set onChange(value: (name: ShapeName) => void) {
+    this._onChange = value;
+    this._requestUpdate();
+  }
+
+  private _requestUpdate() {
+    this._revision$.value = this._revision$.peek() + 1;
+  }
 
   private readonly _props$ = computed(() => {
     const shapeName: ShapeName = this._shapeName$.value;
@@ -88,8 +118,12 @@ export class EdgelessShapeMenu extends SignalWatcher(
     return this.edgeless.std.get(ThemeProvider).theme$.value;
   });
 
-  override connectedCallback(): void {
-    super.connectedCallback();
+  private _ensureBound() {
+    if (this._bound || !this.isConnected || !this._edgeless) return;
+    this._bound = true;
+    if (this._disposables.disposed) {
+      this._disposables = new DisposableGroup();
+    }
 
     const gfx = this.edgeless.std.get(GfxControllerIdentifier);
     this._disposables.add(
@@ -105,24 +139,50 @@ export class EdgelessShapeMenu extends SignalWatcher(
         }
       }),
     );
+    this._disposables.add(
+      effect(() => {
+        void this._revision$.value;
+        if (!this.isConnected || !this._edgeless) return;
+        this._paint();
+      }),
+    );
   }
 
-  override render() {
-    const { fillColor, shapeStyle, shapeName } = this._props$.value;
+  connectedCallback(): void {
+    this._ensureBound();
+  }
 
+  disconnectedCallback(): void {
+    if (this._chrome) {
+      this._chrome.unmount();
+      this._chrome.host.remove();
+      this._chrome = undefined;
+    }
+    this._disposables.dispose();
+    this._bound = false;
+  }
+
+  private _paint() {
+    const chrome = this.edgeless.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
+    const i18n = this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined;
+    void i18n?.locale$.value;
+    const { fillColor, shapeStyle, shapeName } = this._props$.value;
     const theme = this._theme$.value;
-    return this.edgeless.std.get(EditorChromeHostIdentifier).renderCanvasMenu({
+
+    const controls: EditorCanvasMenuControls = {
       tools: ShapeComponentConfig.map(
-        ({ name, generalIcon, scribbledIcon, tooltip }) => ({
+        ({ name, iconName, scribbledIcon, tooltip }) => ({
           action: {
             id: `canvas-shape-${name}`,
+            icon: shapeStyle === ShapeStyle.General ? iconName : undefined,
             label: this._text(tooltip),
             active: shapeName === name,
             disabled: false,
             run: () => this.onChange(name),
           },
-          artwork:
-            shapeStyle === ShapeStyle.General ? generalIcon : scribbledIcon,
+          artworkSvg:
+            shapeStyle === ShapeStyle.General ? undefined : scribbledIcon,
         }),
       ),
       actions: [
@@ -149,9 +209,17 @@ export class EdgelessShapeMenu extends SignalWatcher(
           }),
         },
       ],
-    });
-  }
+    };
 
-  @property({ attribute: false })
-  accessor onChange!: (name: ShapeName) => void;
+    if (!this._chrome) {
+      const host = this.ownerDocument.createElement("span");
+      host.style.display = "contents";
+      this.append(host);
+      const state$ = signal<EditorCanvasMenuControls | null>(controls);
+      const unmount = chrome.mountCanvasMenu(host, state$);
+      this._chrome = { host, state$, unmount };
+    } else {
+      this._chrome.state$.value = controls;
+    }
+  }
 }

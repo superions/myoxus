@@ -1,4 +1,3 @@
-import { SignalWatcher } from "@virgultum/core/primitives/lit";
 import { effect } from "@preact/signals-core";
 import { addAttachments } from "@virgultum/embeds/blocks";
 import { insertLinkByQuickSearchCommand } from "@virgultum/embeds/blocks";
@@ -18,17 +17,28 @@ import {
   getImageFilesFromLocal,
   openSingleFileWith,
 } from "@virgultum/core/utils";
+import { NativeViewElement } from "@virgultum/core/runtime";
 import type { ToolOptions } from "@virgultum/core/runtime/gfx";
 import { EdgelessToolbarToolMixin } from "../../../widgets/edgeless-toolbar/index";
-import { LitElement } from "lit";
-import { property, state } from "lit/decorators.js";
 
 import { NoteTool, type NoteToolOption } from "../note-tool.js";
 import { NOTE_MENU_ITEMS } from "./note-menu-config.js";
 
 export class EdgelessNoteMenu extends EdgelessToolbarToolMixin(
-  SignalWatcher(LitElement),
+  NativeViewElement,
 ) {
+  private _imageLoading = false;
+  private _childFlavour!: NoteChildrenFlavour;
+  private _childType: string | null = null;
+  private _tip = "";
+  private _onChange!: (
+    props: Partial<{
+      childFlavour: NoteToolOption["childFlavour"];
+      childType: string | null;
+      tip: string;
+    }>,
+  ) => void;
+
   private _text(message: EditorI18nMessage) {
     return resolveEditorMessage(
       message,
@@ -36,19 +46,64 @@ export class EdgelessNoteMenu extends EdgelessToolbarToolMixin(
     );
   }
 
-  override createRenderRoot() {
-    return this;
+  override type = NoteTool;
+
+  get childFlavour() {
+    return this._childFlavour;
   }
 
-  override type = NoteTool;
+  set childFlavour(value: NoteChildrenFlavour) {
+    if (this._childFlavour === value) return;
+    this._childFlavour = value;
+    this.requestUpdate();
+  }
+
+  get childType() {
+    return this._childType;
+  }
+
+  set childType(value: string | null) {
+    if (this._childType === value) return;
+    this._childType = value;
+    this.requestUpdate();
+  }
+
+  get tip() {
+    return this._tip;
+  }
+
+  set tip(value: string) {
+    if (this._tip === value) return;
+    this._tip = value;
+    this.requestUpdate();
+  }
+
+  get onChange() {
+    return this._onChange;
+  }
+
+  set onChange(
+    value: (
+      props: Partial<{
+        childFlavour: NoteToolOption["childFlavour"];
+        childType: string | null;
+        tip: string;
+      }>,
+    ) => void,
+  ) {
+    this._onChange = value;
+    this.requestUpdate();
+  }
 
   private async _addImages() {
     this._imageLoading = true;
+    this.requestUpdate();
     const imageFiles = await getImageFilesFromLocal();
     const ids = await addImages(this.edgeless.std, imageFiles, {
       maxWidth: MAX_IMAGE_WIDTH,
     });
     this._imageLoading = false;
+    this.requestUpdate();
     this.gfx.tool.setTool(DefaultTool);
     this.gfx.selection.set({ elements: ids });
   }
@@ -75,11 +130,7 @@ export class EdgelessNoteMenu extends EdgelessToolbarToolMixin(
       .catch(console.error);
   }
 
-  override disconnectedCallback() {
-    super.disconnectedCallback();
-  }
-
-  override firstUpdated() {
+  protected override onConnected() {
     this.disposables.add(
       effect(() => {
         const tool = this.gfx.tool.currentToolOption$.value;
@@ -93,10 +144,14 @@ export class EdgelessNoteMenu extends EdgelessToolbarToolMixin(
     );
   }
 
-  override render() {
+  protected override paint() {
+    const chrome = this.edgeless.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
+    const i18n = this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined;
+    void i18n?.locale$.value;
     const { childType } = this;
 
-    return this.edgeless.std.get(EditorChromeHostIdentifier).renderCanvasMenu({
+    this.mountSlot("menu", this, chrome.mountCanvasMenu, {
       tools: [
         {
           action: {
@@ -137,6 +192,7 @@ export class EdgelessNoteMenu extends EdgelessToolbarToolMixin(
         ...NOTE_MENU_ITEMS.map((item, index) => ({
           action: {
             id: `canvas-note-${item.childFlavour}-${item.childType}`,
+            icon: item.icon,
             label: this._text(item.tooltip),
             disabled: false,
             active: childType === item.childType,
@@ -147,7 +203,6 @@ export class EdgelessNoteMenu extends EdgelessToolbarToolMixin(
                 tip: this._text(item.tooltip),
               }),
           },
-          artwork: item.icon,
           separatorBefore: index === 0,
         })),
       ],
@@ -170,25 +225,4 @@ export class EdgelessNoteMenu extends EdgelessToolbarToolMixin(
         type: "attachment",
       });
   }
-
-  @state()
-  private accessor _imageLoading = false;
-
-  @property({ attribute: false })
-  accessor childFlavour!: NoteChildrenFlavour;
-
-  @property({ attribute: false })
-  accessor childType!: string | null;
-
-  @property({ attribute: false })
-  accessor onChange!: (
-    props: Partial<{
-      childFlavour: NoteToolOption["childFlavour"];
-      childType: string | null;
-      tip: string;
-    }>,
-  ) => void;
-
-  @property({ attribute: false })
-  accessor tip!: string;
 }

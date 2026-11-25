@@ -4,7 +4,7 @@ import { DeleteIcon } from "@myoxus/icons/react";
 import { useLiveData, useService } from "@myoxus/infra";
 import type { ListedBlobRecord } from "@myoxus/storage";
 import track from "@myoxus/track";
-import { getAttachmentFileIcon } from "@virgultum/editor/components/icons";
+import { getAttachmentFileIconRC } from "@virgultum/editor/components/icons";
 import { formatByteSize } from "@virgultum/core/primitives/utils";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -27,7 +27,6 @@ import {
   Stack,
   SurfaceListItem,
   SurfaceListItemFrame,
-  templateToString,
   useConfirmModal,
   useDisposable,
 } from "../../primitives";
@@ -64,15 +63,13 @@ const BlobPreview = ({
     if (!data?.url || !data.type) return null;
 
     const { url, type, mime } = data;
-
-    const icon = templateToString(getAttachmentFileIcon(type));
+    const Icon = getAttachmentFileIconRC(type);
 
     if (error) {
       return (
-        <MediaPreviewIcon
-          dangerouslySetInnerHTML={{ __html: icon }}
-          aria-label={blobRecord.key}
-        />
+        <MediaPreviewIcon aria-label={blobRecord.key}>
+          <Icon />
+        </MediaPreviewIcon>
       );
     }
 
@@ -80,10 +77,9 @@ const BlobPreview = ({
       return <MediaPreviewImage src={url} alt={blobRecord.key} />;
     } else {
       return (
-        <MediaPreviewIcon
-          dangerouslySetInnerHTML={{ __html: icon }}
-          aria-label={blobRecord.key}
-        />
+        <MediaPreviewIcon aria-label={blobRecord.key}>
+          <Icon />
+        </MediaPreviewIcon>
       );
     }
   }, [loading, data, error, blobRecord.key]);

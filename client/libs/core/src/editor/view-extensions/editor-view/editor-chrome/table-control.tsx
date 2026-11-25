@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import type { KeyboardEvent } from "react";
+import type { ReadonlySignal } from "@preact/signals-core";
+import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
 import { IconButton } from "@myoxus/ui-facade";
 import type { EditorTableControl as Controls } from "@virgultum/core/services";
 import { editorGlyph } from "./glyphs";
@@ -38,4 +40,13 @@ export function EditorTableControl({ controls }: { controls: Controls }) {
       {editorGlyph(action.icon)}
     </IconButton>
   );
+}
+
+export function RegisteredTableControl({
+  state,
+}: {
+  state: ReadonlySignal<Controls | null>;
+}) {
+  const controls = useSignalValue(state);
+  return controls && <EditorTableControl controls={controls} />;
 }

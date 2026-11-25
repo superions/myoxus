@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import type { ReadonlySignal } from "@preact/signals-core";
+import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
 import { useI18n } from "@myoxus/i18n";
 import { ResetIcon, WarningIcon } from "@myoxus/icons/react";
 import {
@@ -24,6 +26,7 @@ import {
 } from "react";
 import { getAttachmentFileIconRC } from "@virgultum/editor/components/icons";
 import type { EditorAttachmentCardControls } from "@virgultum/editor/shared/services";
+import { EditorEmbeddedUIRoot } from "../embedded-ui-root";
 
 /** Resource state, renderer bounds and guarded commands stay with the mounted block. */
 export function EditorAttachmentCard({
@@ -140,5 +143,22 @@ export function EditorAttachmentCard({
         </MenuPanel>
       </PopoverContent>
     </Popover>
+  );
+}
+
+export function RegisteredAttachmentCard({
+  state,
+  portalRoot,
+}: {
+  state: ReadonlySignal<EditorAttachmentCardControls | null>;
+  portalRoot?: HTMLElement;
+}) {
+  const controls = useSignalValue(state);
+  if (!controls) return null;
+  const view = <EditorAttachmentCard controls={controls} />;
+  return controls.statusPopover && portalRoot ? (
+    <EditorEmbeddedUIRoot portalRoot={portalRoot}>{view}</EditorEmbeddedUIRoot>
+  ) : (
+    view
   );
 }

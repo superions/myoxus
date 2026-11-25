@@ -1,5 +1,5 @@
 import { DisposableGroup } from "@virgultum/core/primitives/disposable";
-import { effect, computed } from "@preact/signals-core";
+import { computed, effect, signal, untracked } from "@preact/signals-core";
 import {
   EmbedBlockComponent,
   RENDER_CARD_THROTTLE_MS,
@@ -26,6 +26,7 @@ import {
   OpenDocExtensionIdentifier,
   type OpenDocMode,
   EditorChromeHostIdentifier,
+  type EditorDocumentCardControls,
   editorMessage,
   EditorI18nProvider,
   resolveEditorMessage,
@@ -41,10 +42,6 @@ import {
 } from "@virgultum/core/utils";
 import { BlockSelection } from "@virgultum/core/runtime";
 import { Text } from "@virgultum/core/store";
-import { html, nothing } from "lit";
-import { property, state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { styleMap } from "lit/directives/style-map.js";
 import throttle from "lodash-es/throttle";
 import { filter } from "rxjs/operators";
 import * as Y from "yjs";
@@ -56,6 +53,9 @@ import { styles } from "./styles.js";
   enableOn: ({ store }: EmbedLinkedDocBlockComponent) => !store.readonly,
 })
 export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinkedDocModel> {
+  protected override blockStyles = styles;
+  protected override embedSelectionMode = "native" as const;
+
   private _loadAttempt?: AbortController;
   private _targetListeners = new DisposableGroup();
   private _referenceIdentity: string | undefined;
@@ -64,6 +64,43 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
   >;
   private _referenceBinding:
     ReturnType<NonNullable<DocEmbedProvider["openReference"]>> | undefined;
+
+  private readonly _docUpdatedAt$ = signal<Date | null>(null);
+  private readonly _linkedDocMode$ = signal<DocMode>("page");
+  private readonly _loading$ = signal(false);
+  private readonly _referenceToNode$ = signal(false);
+  private readonly _isBannerEmpty$ = signal(false);
+  private readonly _isError$ = signal(false);
+  private readonly _isNoteContentEmpty$ = signal(false);
+
+  get isBannerEmpty() {
+    return this._isBannerEmpty$.value;
+  }
+  set isBannerEmpty(value: boolean) {
+    this._isBannerEmpty$.value = value;
+  }
+
+  get isError() {
+    return this._isError$.value;
+  }
+  set isError(value: boolean) {
+    this._isError$.value = value;
+  }
+
+  get isNoteContentEmpty() {
+    return this._isNoteContentEmpty$.value;
+  }
+  set isNoteContentEmpty(value: boolean) {
+    this._isNoteContentEmpty$.value = value;
+  }
+
+  override get _cardStyle(): (typeof EmbedLinkedDocStyles)[number] {
+    return super._cardStyle as (typeof EmbedLinkedDocStyles)[number];
+  }
+  override set _cardStyle(value: (typeof EmbedLinkedDocStyles)[number]) {
+    super._cardStyle = value;
+  }
+
   private get targetContext() {
     const workspaceId = this.model.props.workspaceId ?? this.std.workspace.id;
     const pageId = this.model.props.pageId;
@@ -97,8 +134,6 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
     );
   }
 
-  static override styles = styles;
-
   private readonly _load = async () => {
     this._loadAttempt?.abort();
     const attempt = new AbortController();
@@ -111,7 +146,7 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
     const context = this.targetContext;
     const access = context?.access;
     if (context && access?.readable(context.docId).value === true) {
-      this._loading = true;
+      this._loading$.value = true;
       try {
         await access.waitForLoaded(
           context.docId,
@@ -124,7 +159,7 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
       if (attempt.signal.aborted) return;
       if (access.readable(context.docId).value !== true) {
         this.isError = true;
-        this._loading = false;
+        this._loading$.value = false;
         return;
       }
     }
@@ -136,23 +171,22 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
       isNoteContentEmpty = true,
     } = this.getInitialState();
 
-    this._loading = loading;
+    this._loading$.value = loading;
     this.isError = isError;
     this.isBannerEmpty = isBannerEmpty;
     this.isNoteContentEmpty = isNoteContentEmpty;
 
-    if (!this._loading) {
+    if (!this._loading$.peek()) {
       return;
     }
 
     const linkedDoc = this.linkedDoc;
     if (!linkedDoc) {
-      const context = this.targetContext;
-      this._loading =
+      const ctx = this.targetContext;
+      this._loading$.value =
         (this._referenceBinding?.target.value === undefined &&
           !!this._referenceBinding) ||
-        (context?.access?.readable(context.docId).value === undefined &&
-          !!context?.access);
+        (ctx?.access?.readable(ctx.docId).value === undefined && !!ctx?.access);
       return;
     }
 
@@ -171,10 +205,10 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
     }
     if (attempt.signal.aborted || linkedDoc !== this.linkedDoc) return;
 
-    this._loading = false;
+    this._loading$.value = false;
 
     // If it is a link to a block or element, the content will not be rendered.
-    if (this._referenceToNode) {
+    if (this._referenceToNode$.peek()) {
       return;
     }
 
@@ -202,13 +236,12 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
         : undefined;
     const value = meta?.updatedDate || meta?.createDate;
     const date = value === undefined ? null : new Date(value);
-    this._docUpdatedAt = date && !Number.isNaN(date.getTime()) ? date : null;
+    this._docUpdatedAt$.value =
+      date && !Number.isNaN(date.getTime()) ? date : null;
   };
 
-  override _cardStyle: (typeof EmbedLinkedDocStyles)[number] = "horizontal";
-
   convertToEmbed = () => {
-    if (this._referenceToNode) return;
+    if (this._referenceToNode$.peek()) return;
 
     const { caption } = this.model.props;
     const { parent, store } = this.model;
@@ -281,7 +314,7 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
       !context ||
       (context.access && context.access.readable(pageId).value !== true)
     )
-      return nothing;
+      return undefined;
     if (context.collection.id !== this.std.workspace.id)
       return "LinkIcon" as const;
     return this.std.get(DocDisplayMetaProvider).referenceIcon(pageId, params);
@@ -337,7 +370,7 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
   }
 
   get editorMode() {
-    return this._linkedDocMode;
+    return this._linkedDocMode$.value;
   }
 
   get linkedDoc() {
@@ -385,7 +418,7 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
     return !!linkedDoc && this.isNoteContentEmpty && this.isBannerEmpty;
   }
 
-  protected _handleClick = (event: MouseEvent) => {
+  protected _handleClick(event: MouseEvent) {
     if (isNewTabTrigger(event)) {
       this.open({ openMode: "open-in-new-tab", event });
     } else if (isNewViewTrigger(event)) {
@@ -396,32 +429,7 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
       return;
     }
     this._selectBlock();
-  };
-
-  private readonly _renderCitationView = () => {
-    const { footnoteIdentifier } = this.model.props;
-    return html`<div
-      draggable="${this.blockDraggable ? "true" : "false"}"
-      class=${classMap({
-        "embed-block-container": true,
-        ...this.selectedStyle$?.value,
-      })}
-      style=${styleMap({
-        ...this.embedContainerStyle,
-      })}
-      @click=${this._handleClick}
-      @dblclick=${this._handleDoubleClick}
-    >
-      ${this.std.get(EditorChromeHostIdentifier).renderDocumentCard({
-        citationIdentifier: footnoteIdentifier ?? "",
-        citationIcon:
-          this.icon$.value === nothing ? undefined : this.icon$.value,
-        title: this.title$.value ?? "",
-        selected: this.selected$.value,
-        inSurface: matchModels(this.model.parent, [SurfaceBlockModel]),
-      })}
-    </div> `;
-  };
+  }
 
   // Keep preview identity stable across React commits and resource/alias updates.
   private readonly _noteElement = Object.assign(document.createElement("div"), {
@@ -433,56 +441,9 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
       container.replaceChildren(this._noteElement);
   };
 
-  private readonly _renderEmbedView = () => {
-    const linkedDoc = this.linkedDoc;
-    const inSurface = matchModels(this.model.parent, [SurfaceBlockModel]);
-    // Page cards follow their native content; Canvas keeps its renderer-owned bounds.
-    if (!inSurface) this.embedContainerStyle.height = "auto";
-    const updated =
-      this.targetContext?.access?.readable(this.targetDocId).value === true
-        ? this._docUpdatedAt
-        : null;
-    return this.renderEmbed(
-      () =>
-        html`<div
-          class=${classMap({ "myoxus-embed-linked-doc-block": true, [this._cardStyle]: true })}
-          @click=${this._handleClick}
-          @dblclick=${this._handleDoubleClick}
-        >
-          ${this.std.get(EditorChromeHostIdentifier).renderDocumentCard({
-            title: this.title$.value ?? "",
-            description: this.model.props.description$.value ?? "",
-            updated: updated
-              ? this._cardStyle === "cube"
-                ? updated.toLocaleTimeString(
-                    this.std.getOptional(EditorI18nProvider)?.locale$.value,
-                  )
-                : updated.toLocaleString(
-                    this.std.getOptional(EditorI18nProvider)?.locale$.value,
-                  )
-              : null,
-            loading: this._loading,
-            error: this.isError,
-            unavailable: !!linkedDoc?.meta?.trash || !linkedDoc,
-            deleted: !!linkedDoc?.meta?.trash,
-            empty: this._isDocEmpty() && this.isBannerEmpty,
-            nodeReference: this._referenceToNode,
-            selected: this.selected$.value || this.isCommentHighlighted,
-            inSurface,
-            variant: this._cardStyle,
-            height: this._cardHeight,
-            width: this._cardWidth,
-            mountPreview: this._mountPreview,
-            reload: this.refreshData,
-          })}
-        </div>`,
-      "native",
-    );
-  };
-
   private readonly _trackCitationDeleteEvent = () => {
     // Check citation delete event
-    this._disposables.add(
+    this.disposables.add(
       this.std.store.slots.blockUpdated
         .pipe(
           filter((payload) => {
@@ -505,11 +466,72 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
     );
   };
 
-  override connectedCallback() {
-    super.connectedCallback();
+  getInitialState(): {
+    loading?: boolean;
+    isError?: boolean;
+    isNoteContentEmpty?: boolean;
+    isBannerEmpty?: boolean;
+  } {
+    return {};
+  }
 
+  private _buildDocumentCardControls(): EditorDocumentCardControls {
+    void this.revision$.value;
+    const inSurface = matchModels(this.model.parent, [SurfaceBlockModel]);
+    if (this.isCitation) {
+      const { footnoteIdentifier } = this.model.props;
+      return {
+        citationIdentifier: footnoteIdentifier ?? "",
+        citationIcon: this.icon$.value,
+        title: this.title$.value ?? "",
+        selected: this.selected$.value,
+        inSurface,
+      };
+    }
+
+    const linkedDoc = this.linkedDoc;
+    const updated =
+      this.targetContext?.access?.readable(this.targetDocId).value === true
+        ? this._docUpdatedAt$.value
+        : null;
+    const cardStyle = this._cardStyle;
+    const locale = this.std.getOptional(EditorI18nProvider)?.locale$.value;
+    return {
+      title: this.title$.value ?? "",
+      description: this.model.props.description$.value ?? "",
+      updated: updated
+        ? cardStyle === "cube"
+          ? updated.toLocaleTimeString(locale)
+          : updated.toLocaleString(locale)
+        : null,
+      loading: this._loading$.value,
+      error: this._isError$.value,
+      unavailable: !!linkedDoc?.meta?.trash || !linkedDoc,
+      deleted: !!linkedDoc?.meta?.trash,
+      empty: this._isDocEmpty() && this._isBannerEmpty$.value,
+      nodeReference: this._referenceToNode$.value,
+      selected: this.selected$.value || this.isCommentHighlighted,
+      inSurface,
+      variant: cardStyle,
+      height: this._cardHeight,
+      width: this._cardWidth,
+      mountPreview: this._mountPreview,
+      reload: this.refreshData,
+    };
+  }
+
+  protected override mountEmbedContent(container: HTMLElement) {
     this._cardStyle = this.model.props.style;
-    this._referenceToNode = referenceToNode(this.model.props);
+    this._referenceToNode$.value = referenceToNode(this.model.props);
+
+    const inSurface = matchModels(this.model.parent, [SurfaceBlockModel]);
+    // Page cards follow their native content; Canvas keeps its renderer-owned bounds.
+    if (!inSurface) {
+      this.embedContainerStyle$.value = {
+        ...this.embedContainerStyle$.peek(),
+        height: "auto",
+      };
+    }
 
     this.disposables.add(() => {
       this._loadAttempt?.abort();
@@ -527,26 +549,33 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
       if (linkedDoc) {
         // Should throttle the blockUpdated event to avoid too many re-renders
         // Because the blockUpdated event is triggered too frequently at some cases
+        const updateCard = throttle(
+          (payload: {
+            type: string;
+            props?: { key?: string };
+            init?: boolean;
+          }) => {
+            if (
+              payload.type === "update" &&
+              ["", "caption", "xywh"].includes(payload.props?.key ?? "")
+            ) {
+              return;
+            }
+
+            if (payload.type === "add" && payload.init) {
+              return;
+            }
+
+            this._load().catch((e) => {
+              console.error(e);
+              this.isError = true;
+            });
+          },
+          RENDER_CARD_THROTTLE_MS,
+        );
+        this._targetListeners.add(() => updateCard.cancel());
         this._targetListeners.add(
-          linkedDoc.slots.blockUpdated.subscribe(
-            throttle((payload) => {
-              if (
-                payload.type === "update" &&
-                ["", "caption", "xywh"].includes(payload.props.key)
-              ) {
-                return;
-              }
-
-              if (payload.type === "add" && payload.init) {
-                return;
-              }
-
-              this._load().catch((e) => {
-                console.error(e);
-                this.isError = true;
-              });
-            }, RENDER_CARD_THROTTLE_MS),
-          ),
+          linkedDoc.slots.blockUpdated.subscribe(updateCard),
         );
 
         this._setDocUpdatedAt();
@@ -559,8 +588,8 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
             }),
           );
 
-        if (this._referenceToNode) {
-          this._linkedDocMode = this.model.props.params?.mode ?? "page";
+        if (this._referenceToNode$.peek()) {
+          this._linkedDocMode$.value = this.model.props.params?.mode ?? "page";
         } else {
           const docMode = this.std.get(DocModeProvider);
           if (this.targetContext?.collection.id !== this.std.workspace.id) {
@@ -569,25 +598,30 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
             );
             this._targetListeners.add(
               effect(() => {
-                this._linkedDocMode = primaryMode?.value ?? "page";
+                this._linkedDocMode$.value = primaryMode?.value ?? "page";
               }),
             );
           } else {
-            this._linkedDocMode = docMode.getPrimaryMode(this.targetDocId);
+            this._linkedDocMode$.value = docMode.getPrimaryMode(
+              this.targetDocId,
+            );
             this._targetListeners.add(
               docMode.onPrimaryModeChange((mode) => {
-                this._linkedDocMode = mode;
+                this._linkedDocMode$.value = mode;
               }, this.targetDocId),
             );
           }
         }
       }
     };
+
     this.disposables.add(
       effect(() => {
         void this.targetContext?.access?.readable(this.targetDocId).value;
-        bindTarget();
-        this.refreshData();
+        untracked(() => {
+          bindTarget();
+          this.refreshData();
+        });
       }),
     );
 
@@ -597,7 +631,7 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
           this._cardStyle = this.model.props.style;
         }
         if (["pageId", "workspaceId", "params"].includes(key)) {
-          this._referenceToNode = referenceToNode(this.model.props);
+          this._referenceToNode$.value = referenceToNode(this.model.props);
           bindTarget();
         }
         if (key === "pageId" || key === "workspaceId" || key === "style") {
@@ -610,73 +644,82 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
     );
 
     this._trackCitationDeleteEvent();
-  }
 
-  getInitialState(): {
-    loading?: boolean;
-    isError?: boolean;
-    isNoteContentEmpty?: boolean;
-    isBannerEmpty?: boolean;
-  } {
-    return {};
-  }
-
-  override renderBlock() {
-    return this.isCitation
-      ? this._renderCitationView()
-      : this._renderEmbedView();
-  }
-
-  override updated() {
-    if (this.readonly || this._loading) {
-      return;
-    }
-    // update card style when linked doc deleted
-    const linkedDoc = this.linkedDoc;
-    const { xywh, style } = this.model.props;
-    const bound = Bound.deserialize(xywh);
-    if (linkedDoc && style === "horizontalThin") {
-      bound.w = EMBED_CARD_WIDTH.horizontal;
-      bound.h = EMBED_CARD_HEIGHT.horizontal;
-      this.store.withoutTransact(() => {
-        this.store.updateBlock(this.model, {
-          xywh: bound.serialize(),
-          style: "horizontal",
+    // Update card style when linked doc deleted or restored
+    this.disposables.add(
+      effect(() => {
+        void this.revision$.value;
+        const loading = this._loading$.value;
+        if (this.readonly || loading) return;
+        const linkedDoc = this.linkedDoc;
+        const { xywh, style } = this.model.props;
+        untracked(() => {
+          const bound = Bound.deserialize(xywh);
+          if (linkedDoc && style === "horizontalThin") {
+            bound.w = EMBED_CARD_WIDTH.horizontal;
+            bound.h = EMBED_CARD_HEIGHT.horizontal;
+            this.store.withoutTransact(() => {
+              this.store.updateBlock(this.model, {
+                xywh: bound.serialize(),
+                style: "horizontal",
+              });
+            });
+          } else if (!linkedDoc && style === "horizontal") {
+            bound.w = EMBED_CARD_WIDTH.horizontalThin;
+            bound.h = EMBED_CARD_HEIGHT.horizontalThin;
+            this.store.withoutTransact(() => {
+              this.store.updateBlock(this.model, {
+                xywh: bound.serialize(),
+                style: "horizontalThin",
+              });
+            });
+          }
         });
-      });
-    } else if (!linkedDoc && style === "horizontal") {
-      bound.w = EMBED_CARD_WIDTH.horizontalThin;
-      bound.h = EMBED_CARD_HEIGHT.horizontalThin;
-      this.store.withoutTransact(() => {
-        this.store.updateBlock(this.model, {
-          xywh: bound.serialize(),
-          style: "horizontalThin",
-        });
-      });
-    }
+      }),
+    );
+
+    const doc = this.ownerDocument;
+    const cardWrapper = doc.createElement("div");
+    const portalHost = doc.createElement("div");
+    portalHost.style.display = "contents";
+    cardWrapper.append(portalHost);
+    container.replaceChildren(cardWrapper);
+
+    this.disposables.addFromEvent(cardWrapper, "click", (e: MouseEvent) =>
+      this._handleClick(e),
+    );
+    this.disposables.addFromEvent(
+      cardWrapper,
+      "dblclick",
+      this._handleDoubleClick,
+    );
+
+    this.disposables.add(
+      effect(() => {
+        const isCitation = this.isCitation;
+        const cardStyle = this._cardStyle;
+        if (isCitation) {
+          cardWrapper.className = "";
+          container.classList.toggle(
+            "selected-style",
+            this.showEditorSelection && this.selected$.value,
+          );
+        } else {
+          cardWrapper.className = `myoxus-embed-linked-doc-block ${cardStyle}`;
+        }
+      }),
+    );
+
+    const chrome = this.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
+
+    const state$ = computed(() => this._buildDocumentCardControls());
+    const unmount = chrome.mountDocumentCard(portalHost, state$);
+    this.disposables.add(() => {
+      unmount();
+      portalHost.remove();
+    });
   }
-
-  @state()
-  private accessor _docUpdatedAt: Date | null = null;
-
-  @state()
-  private accessor _linkedDocMode: DocMode = "page";
-
-  @state()
-  private accessor _loading = false;
-
-  // reference to block/element
-  @state()
-  private accessor _referenceToNode = false;
-
-  @property({ attribute: false })
-  accessor isBannerEmpty = false;
-
-  @property({ attribute: false })
-  accessor isError = false;
-
-  @property({ attribute: false })
-  accessor isNoteContentEmpty = false;
 
   get noteContainer(): Promise<HTMLDivElement | null> {
     return this.updateComplete.then(() => this._noteElement);

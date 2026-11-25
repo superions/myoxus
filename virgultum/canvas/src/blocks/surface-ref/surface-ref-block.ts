@@ -1,5 +1,5 @@
 import { DocEmbedProvider, EditorI18nProvider } from "@virgultum/core/services";
-import { effect, signal } from "@preact/signals-core";
+import { effect, signal, untracked } from "@preact/signals-core";
 import { FrameBlockComponent } from "../frame/index";
 import {
   EdgelessCRUDIdentifier,
@@ -29,14 +29,14 @@ import {
   ToolbarRegistryIdentifier,
   ViewportElementExtension,
 } from "@virgultum/core/services";
-import { unsafeCSSVar } from "@virgultum/core/theme";
 import { requestConnectedFrame } from "@virgultum/core/utils";
 import {
-  BlockComponent,
   BlockSelection,
   BlockStdScope,
   type EditorHost,
+  installEditorStyles,
   LifeCycleWatcher,
+  NativeBlockComponent,
   TextSelection,
 } from "@virgultum/core/runtime";
 import {
@@ -50,77 +50,79 @@ import type {
   ExtensionType,
   Store,
 } from "@virgultum/core/store";
-import { css, html, nothing } from "lit";
-import { query } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { guard } from "lit/directives/guard.js";
-import { styleMap } from "lit/directives/style-map.js";
+
+import type { SurfaceRefPlaceHolder } from "./components/placeholder.js";
+
+const surfaceRefStyles = `
+  myoxus-surface-ref {
+    position: relative;
+  }
+
+  myoxus-surface-ref:not(:hover)
+    myoxus-surface-ref-toolbar:not([data-open-menu-display="show"]) {
+    display: none;
+  }
+
+  .myoxus-surface-ref {
+    position: relative;
+    user-select: none;
+    margin: 10px 0;
+    break-inside: avoid;
+    border-radius: 8px;
+    border: 1px solid var(--myoxus-border-color);
+    background-color: var(--myoxus-background-primary-color);
+    overflow: hidden;
+  }
+
+  .myoxus-surface-ref.focused {
+    border-color: var(--myoxus-primary-color);
+  }
+
+  .myoxus-surface-ref.comment-highlighted {
+    outline: 2px solid var(--myoxus-primary-color);
+  }
+
+  @media print {
+    .myoxus-surface-ref {
+      outline: none !important;
+    }
+  }
+
+  .ref-content {
+    position: relative;
+    background-color: var(--myoxus-background-primary-color);
+    background: radial-gradient(
+      var(--myoxus-edgeless-grid-color) 1px,
+      var(--myoxus-background-primary-color) 1px
+    );
+  }
+
+  .ref-viewport {
+    max-width: 100%;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .ref-viewport-event-mask {
+    position: absolute;
+    inset: 0;
+  }
+`;
 
 @Peekable({
   enableOn: (block: SurfaceRefBlockComponent) => !!block.referenceModel,
 })
-export class SurfaceRefBlockComponent extends BlockComponent<SurfaceRefBlockModel> {
-  static override styles = css`
-    myoxus-surface-ref {
-      position: relative;
-    }
-
-    myoxus-surface-ref:not(:hover)
-      myoxus-surface-ref-toolbar:not([data-open-menu-display="show"]) {
-      display: none;
-    }
-
-    .myoxus-surface-ref {
-      position: relative;
-      user-select: none;
-      margin: 10px 0;
-      break-inside: avoid;
-      border-radius: 8px;
-      border: 1px solid ${unsafeCSSVar("borderColor")};
-      background-color: ${unsafeCSSVar("backgroundPrimaryColor")};
-      overflow: hidden;
-    }
-
-    .myoxus-surface-ref.focused {
-      border-color: ${unsafeCSSVar("primaryColor")};
-    }
-
-    .myoxus-surface-ref.comment-highlighted {
-      outline: 2px solid ${unsafeCSSVar("primaryColor")};
-    }
-
-    @media print {
-      .myoxus-surface-ref {
-        outline: none !important;
-      }
-    }
-
-    .ref-content {
-      position: relative;
-      background-color: var(--myoxus-background-primary-color);
-      background: radial-gradient(
-        var(--myoxus-edgeless-grid-color) 1px,
-        var(--myoxus-background-primary-color) 1px
-      );
-    }
-
-    .ref-viewport {
-      max-width: 100%;
-      margin: 0 auto;
-      position: relative;
-      overflow: hidden;
-      user-select: none;
-    }
-
-    .ref-viewport-event-mask {
-      position: absolute;
-      inset: 0;
-    }
-  `;
-
-  private _previewDoc: Store | null = null;
+export class SurfaceRefBlockComponent extends NativeBlockComponent<SurfaceRefBlockModel> {
+  private readonly _previewDoc$ = signal<Store | null>(null);
+  private readonly _referencedModel$ = signal<GfxModel | null>(null);
+  private readonly _revision$ = signal(0);
 
   private _runtimePreviewExt: ExtensionType[] = [];
+
+  hoverableContainer!: HTMLDivElement;
+  captionElement!: BlockCaptionEditor;
 
   private get _viewExtensionManager() {
     return this.std.get(ViewExtensionManagerIdentifier);
@@ -132,8 +134,6 @@ export class SurfaceRefBlockComponent extends BlockComponent<SurfaceRefBlockMode
       ViewportElementExtension(".ref-viewport"),
     ];
   }
-
-  private _referencedModel: GfxModel | null = null;
 
   // since the xywh of edgeless element is not a signal, we need to use a signal to store the xywh
   private readonly _referenceXYWH$ = signal<SerializedXYWH | null>(null);
@@ -147,7 +147,11 @@ export class SurfaceRefBlockComponent extends BlockComponent<SurfaceRefBlockMode
   }
 
   get referenceModel() {
-    return this._referencedModel;
+    return this._referencedModel$.value;
+  }
+
+  get previewEditor(): EditorHost | null {
+    return this.querySelector<EditorHost>("editor-host");
   }
 
   get isCommentHighlighted() {
@@ -156,6 +160,10 @@ export class SurfaceRefBlockComponent extends BlockComponent<SurfaceRefBlockMode
         .getOptional(BlockElementCommentManager)
         ?.isBlockCommentHighlighted(this.model) ?? false
     );
+  }
+
+  override requestUpdate() {
+    this._revision$.value = this._revision$.peek() + 1;
   }
 
   private readonly _handleClick = () => {
@@ -216,8 +224,8 @@ export class SurfaceRefBlockComponent extends BlockComponent<SurfaceRefBlockMode
       loading = undefined;
       targetListeners.dispose();
       targetListeners = new DisposableGroup();
-      this._referencedModel = null;
-      this._previewDoc = null;
+      this._referencedModel$.value = null;
+      this._previewDoc$.value = null;
       const { reference, workspaceId } = this.model.props;
       const rawDocId = this.model.props.pageId;
       const provider = this.std.getOptional(DocEmbedProvider);
@@ -276,8 +284,9 @@ export class SurfaceRefBlockComponent extends BlockComponent<SurfaceRefBlockMode
               ? block
               : getSurfaceBlock(store)?.getElementById(reference);
           if (!element?.xywh) continue;
-          this._referencedModel = element;
-          this._previewDoc = store;
+          this._referencedModel$.value = element;
+          this._previewDoc$.value = store;
+          this._referenceXYWH$.value = element.xywh;
           targetListeners.add(
             store.slots.blockUpdated.subscribe(({ id, type }) => {
               if (id === reference && type === "delete") init();
@@ -300,7 +309,7 @@ export class SurfaceRefBlockComponent extends BlockComponent<SurfaceRefBlockMode
         pageId &&
         access &&
         access.readable(pageId).value === true &&
-        !this._referencedModel
+        !this._referencedModel$.peek()
       ) {
         const attempt = new AbortController();
         loading = attempt;
@@ -446,35 +455,7 @@ export class SurfaceRefBlockComponent extends BlockComponent<SurfaceRefBlockMode
       { enterDelay: 500 },
     );
     setReference(this.hoverableContainer);
-    this._disposables.add(dispose);
-  }
-
-  private _renderRefContent() {
-    if (!this._referenceXYWH$.value) return nothing;
-    const { w, h } = Bound.deserialize(this._referenceXYWH$.value);
-    const aspectRatio = h !== 0 ? w / h : 1;
-    const _previewSpec = this._previewSpec.concat(this._runtimePreviewExt);
-    const edgelessTheme = this.std.get(ThemeProvider).edgeless$.value;
-
-    return html`<div class="ref-content">
-      <div
-        class="ref-viewport"
-        style=${styleMap({
-          aspectRatio: `${aspectRatio}`,
-        })}
-        data-theme=${edgelessTheme}
-      >
-        ${guard([this._previewDoc], () => {
-          return this._previewDoc
-            ? new BlockStdScope({
-                store: this._previewDoc,
-                extensions: _previewSpec,
-              }).render()
-            : nothing;
-        })}
-        <div class="ref-viewport-event-mask"></div>
-      </div>
-    </div>`;
+    this.disposables.add(dispose);
   }
 
   readonly open = ({
@@ -500,58 +481,127 @@ export class SurfaceRefBlockComponent extends BlockComponent<SurfaceRefBlockMode
     });
   };
 
-  override connectedCallback() {
-    super.connectedCallback();
+  connectedCallback() {
+    if (!this.connectBlock()) return;
+    installEditorStyles(this, surfaceRefStyles);
 
     this.contentEditable = "false";
-
     if (!this._shouldRender) return;
+
+    const doc = this.ownerDocument;
+    const refBox = doc.createElement("div");
+    refBox.className = "myoxus-surface-ref";
+    this.hoverableContainer = refBox;
+    this.disposables.addFromEvent(refBox, "click", this._handleClick);
+
+    const caption = doc.createElement(
+      "block-caption-editor",
+    ) as BlockCaptionEditor;
+    caption.model = this.model as unknown as BlockCaptionEditor["model"];
+    caption.std = this.std;
+    this.captionElement = caption;
+
+    this.replaceChildren(refBox, caption);
+    this.mountBlockWidgets(this);
 
     this._initReferencedModel();
     this._initHotkey();
     this._initViewport();
-  }
-
-  override firstUpdated() {
-    if (!this._shouldRender) return;
-
     this._initHover();
+
+    let placeholderEl: SurfaceRefPlaceHolder | null = null;
+    let refContentEl: HTMLDivElement | null = null;
+    let refViewportEl: HTMLDivElement | null = null;
+    let maskEl: HTMLDivElement | null = null;
+    let mountedPreviewDoc: Store | null = null;
+
+    this.disposables.add(
+      effect(() => {
+        void this._revision$.value;
+        const referencedModel = this._referencedModel$.value;
+        const previewDoc = this._previewDoc$.value;
+        const xywh = this._referenceXYWH$.value;
+        const selected = this.selected$.value;
+        const refFlavour = this.model.props.refFlavour$.value;
+        const themeProvider = this.std.get(ThemeProvider);
+        const theme = themeProvider.theme$.value;
+        const edgelessTheme = themeProvider.edgeless$.value;
+
+        untracked(() => {
+          refBox.classList.toggle("focused", selected);
+          refBox.classList.toggle(
+            "comment-highlighted",
+            this.isCommentHighlighted,
+          );
+
+          const isEmpty = !referencedModel || !referencedModel.xywh;
+          if (isEmpty) {
+            refContentEl = null;
+            refViewportEl = null;
+            maskEl = null;
+            mountedPreviewDoc = null;
+            if (!placeholderEl) {
+              placeholderEl = doc.createElement(
+                "surface-ref-placeholder",
+              ) as SurfaceRefPlaceHolder;
+              refBox.replaceChildren(placeholderEl);
+            }
+            placeholderEl.i18n =
+              this.std.getOptional(EditorI18nProvider) ?? undefined;
+            placeholderEl.referenceModel = referencedModel;
+            placeholderEl.refFlavour = refFlavour;
+            placeholderEl.theme = theme;
+            return;
+          }
+
+          placeholderEl = null;
+          if (!xywh) {
+            refBox.replaceChildren();
+            refContentEl = null;
+            refViewportEl = null;
+            maskEl = null;
+            mountedPreviewDoc = null;
+            return;
+          }
+
+          const { w, h } = Bound.deserialize(xywh);
+          const aspectRatio = h !== 0 ? w / h : 1;
+
+          if (!refContentEl || !refViewportEl || !maskEl) {
+            refContentEl = doc.createElement("div");
+            refContentEl.className = "ref-content";
+            refViewportEl = doc.createElement("div");
+            refViewportEl.className = "ref-viewport";
+            maskEl = doc.createElement("div");
+            maskEl.className = "ref-viewport-event-mask";
+            refViewportEl.append(maskEl);
+            refContentEl.append(refViewportEl);
+            refBox.replaceChildren(refContentEl);
+          }
+
+          refViewportEl.style.aspectRatio = `${aspectRatio}`;
+          refViewportEl.dataset.theme = edgelessTheme;
+
+          if (mountedPreviewDoc !== previewDoc) {
+            mountedPreviewDoc = previewDoc;
+            if (previewDoc) {
+              const previewHost = new BlockStdScope({
+                store: previewDoc,
+                extensions: this._previewSpec.concat(this._runtimePreviewExt),
+              }).render();
+              refViewportEl.replaceChildren(previewHost, maskEl);
+            } else {
+              refViewportEl.replaceChildren(maskEl);
+            }
+          }
+        });
+      }),
+    );
   }
 
-  override render() {
-    if (!this._shouldRender) return nothing;
-
-    const { _referencedModel, model } = this;
-    const isEmpty = !_referencedModel || !_referencedModel.xywh;
-    const theme = this.std.get(ThemeProvider).theme$.value;
-    const content = isEmpty
-      ? html`<surface-ref-placeholder
-          .i18n=${this.std.getOptional(EditorI18nProvider) ?? undefined}
-          .referenceModel=${_referencedModel}
-          .refFlavour=${model.props.refFlavour$.value}
-          .theme=${theme}
-        ></surface-ref-placeholder>`
-      : this._renderRefContent();
-
-    return html`
-      <div
-        class=${classMap({
-          "myoxus-surface-ref": true,
-          focused: this.selected$.value,
-          "comment-highlighted": this.isCommentHighlighted,
-        })}
-        @click=${this._handleClick}
-      >
-        ${content}
-      </div>
-
-      <block-caption-editor
-        .model=${this.model}
-        .std=${this.std}
-      ></block-caption-editor>
-
-      ${Object.values(this.widgets)}
-    `;
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this.replaceChildren();
   }
 
   viewInEdgeless() {
@@ -565,15 +615,6 @@ export class SurfaceRefBlockComponent extends BlockComponent<SurfaceRefBlockMode
     this.std.get(EditPropsStore).setStorage("viewport", viewport);
     this.std.get(DocModeProvider).setEditorMode("edgeless");
   }
-
-  @query(".myoxus-surface-ref")
-  accessor hoverableContainer!: HTMLDivElement;
-
-  @query("myoxus-surface-ref > block-caption-editor")
-  accessor captionElement!: BlockCaptionEditor;
-
-  @query("editor-host")
-  accessor previewEditor!: EditorHost | null;
 }
 
 declare global {

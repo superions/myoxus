@@ -5,17 +5,16 @@ import {
   resolveEditorMessage,
   type EditorI18nMessage,
 } from "@virgultum/core/services";
-import { SignalWatcher } from "@virgultum/core/primitives/lit";
 import { DefaultTool } from "@virgultum/canvas-runtime/surface";
+import { NativeViewElement } from "@virgultum/core/runtime";
 import { EdgelessToolbarToolMixin } from "../../../widgets/edgeless-toolbar/index";
-import { LitElement } from "lit";
 
 import { EdgelessFrameManagerIdentifier } from "../frame-manager.js";
 import { FrameTool } from "../frame-tool";
 import { FrameConfig } from "./config.js";
 
 export class EdgelessFrameMenu extends EdgelessToolbarToolMixin(
-  SignalWatcher(LitElement),
+  NativeViewElement,
 ) {
   private _text(message: EditorI18nMessage) {
     return resolveEditorMessage(
@@ -24,19 +23,19 @@ export class EdgelessFrameMenu extends EdgelessToolbarToolMixin(
     );
   }
 
-  override createRenderRoot() {
-    return this;
-  }
-
   override type = FrameTool;
 
   get frameManager() {
     return this.edgeless.std.get(EdgelessFrameManagerIdentifier);
   }
 
-  override render() {
+  protected override paint() {
+    const i18n = this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined;
+    void i18n?.locale$.value;
+    const chrome = this.edgeless.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
     const { gfx, frameManager } = this;
-    return this.edgeless.std.get(EditorChromeHostIdentifier).renderCanvasMenu({
+    this.mountSlot("menu", this, chrome.mountCanvasMenu, {
       actions: [
         {
           id: "canvas-frame-custom",

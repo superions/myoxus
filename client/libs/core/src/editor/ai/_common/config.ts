@@ -1,22 +1,5 @@
 import { continueInChat, reviewCodeActions } from "./code-actions";
 import {
-  CommentIcon,
-  DoneIcon,
-  ExplainIcon,
-  ImageIcon,
-  ImproveWritingIcon,
-  LanguageIcon,
-  LongerIcon,
-  MakeItRealIcon,
-  MindmapIcon,
-  PenIcon,
-  PresentationIcon,
-  SearchIcon,
-  SelectionIcon,
-  ShorterIcon,
-  ToneIcon,
-} from "@myoxus/icons/lit";
-import {
   CodeBlockModel,
   ImageBlockModel,
   ListBlockModel,
@@ -155,7 +138,7 @@ const EditTextAIGroup: AIItemGroupConfig = {
     {
       name: "Translate to",
       testId: "action-translate",
-      icon: LanguageIcon(),
+      icon: "LanguageIcon",
       iconName: "LanguageIcon",
       showWhen: textBlockShowWhen,
       subItem: translateSubItem,
@@ -163,7 +146,7 @@ const EditTextAIGroup: AIItemGroupConfig = {
     {
       name: "Change tone to",
       testId: "action-change-tone",
-      icon: ToneIcon(),
+      icon: "ToneIcon",
       iconName: "ToneIcon",
       showWhen: textBlockShowWhen,
       subItem: toneSubItem,
@@ -171,7 +154,7 @@ const EditTextAIGroup: AIItemGroupConfig = {
     {
       name: "Improve writing",
       testId: "action-improve-writing",
-      icon: ImproveWritingIcon(),
+      icon: "ImproveWritingIcon",
       iconName: "ImproveWritingIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("improveWriting", AIStarIconWithAnimation),
@@ -179,7 +162,7 @@ const EditTextAIGroup: AIItemGroupConfig = {
     {
       name: "Make it longer",
       testId: "action-make-it-longer",
-      icon: LongerIcon(),
+      icon: "LongerIcon",
       iconName: "LongerIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("makeLonger", AIStarIconWithAnimation),
@@ -187,7 +170,7 @@ const EditTextAIGroup: AIItemGroupConfig = {
     {
       name: "Make it shorter",
       testId: "action-make-it-shorter",
-      icon: ShorterIcon(),
+      icon: "ShorterIcon",
       iconName: "ShorterIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("makeShorter", AIStarIconWithAnimation),
@@ -195,7 +178,7 @@ const EditTextAIGroup: AIItemGroupConfig = {
     {
       name: "Continue writing",
       testId: "action-continue-writing",
-      icon: PenIcon(),
+      icon: "PenIcon",
       iconName: "PenIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("continueWriting", AIPenIconWithAnimation),
@@ -209,7 +192,7 @@ const DraftFromTextAIGroup: AIItemGroupConfig = {
     {
       name: "Write an article about this",
       testId: "action-write-article",
-      icon: PenIcon(),
+      icon: "PenIcon",
       iconName: "PenIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("writeArticle", AIPenIconWithAnimation),
@@ -217,7 +200,7 @@ const DraftFromTextAIGroup: AIItemGroupConfig = {
     {
       name: "Write a tweet about this",
       testId: "action-write-twitter-post",
-      icon: PenIcon(),
+      icon: "PenIcon",
       iconName: "PenIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("writeTwitterPost", AIPenIconWithAnimation),
@@ -225,7 +208,7 @@ const DraftFromTextAIGroup: AIItemGroupConfig = {
     {
       name: "Write a poem about this",
       testId: "action-write-poem",
-      icon: PenIcon(),
+      icon: "PenIcon",
       iconName: "PenIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("writePoem", AIPenIconWithAnimation),
@@ -233,7 +216,7 @@ const DraftFromTextAIGroup: AIItemGroupConfig = {
     {
       name: "Write a blog post about this",
       testId: "action-write-blog-post",
-      icon: PenIcon(),
+      icon: "PenIcon",
       iconName: "PenIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("writeBlogPost", AIPenIconWithAnimation),
@@ -241,7 +224,7 @@ const DraftFromTextAIGroup: AIItemGroupConfig = {
     {
       name: "Brainstorm ideas about this",
       testId: "action-brainstorm",
-      icon: PenIcon(),
+      icon: "PenIcon",
       iconName: "PenIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("brainstorm", AIPenIconWithAnimation),
@@ -255,7 +238,7 @@ const ReviewImageAIGroup: AIItemGroupConfig = {
     {
       name: "Explain this image",
       testId: "action-explain-image",
-      icon: PenIcon(),
+      icon: "PenIcon",
       iconName: "PenIcon",
       showWhen: imageBlockShowWhen,
       handler: actionToHandler("explainImage", AIStarIconWithAnimation),
@@ -267,7 +250,7 @@ const ReviewCodeAIGroup: AIItemGroupConfig = {
   name: "review code",
   items: reviewCodeActions.map(({ command, ...item }) => ({
     ...item,
-    icon: ExplainIcon(),
+    icon: "ExplainIcon",
     showWhen: codeBlockShowWhen,
     handler: actionToHandler(command, AIStarIconWithAnimation),
   })),
@@ -279,7 +262,7 @@ const ReviewTextAIGroup: AIItemGroupConfig = {
     {
       name: "Fix spelling",
       testId: "action-fix-spelling",
-      icon: DoneIcon(),
+      icon: "DoneIcon",
       iconName: "DoneIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("fixSpelling", AIStarIconWithAnimation),
@@ -287,7 +270,7 @@ const ReviewTextAIGroup: AIItemGroupConfig = {
     {
       name: "Fix grammar",
       testId: "action-fix-grammar",
-      icon: DoneIcon(),
+      icon: "DoneIcon",
       iconName: "DoneIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("improveGrammar", AIStarIconWithAnimation),
@@ -296,7 +279,7 @@ const ReviewTextAIGroup: AIItemGroupConfig = {
     {
       name: "Explain selection",
       testId: "action-explain-selection",
-      icon: SelectionIcon(),
+      icon: "SelectionIcon",
       iconName: "SelectionIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("explain", AIStarIconWithAnimation),
@@ -310,7 +293,7 @@ const GenerateFromTextAIGroup: AIItemGroupConfig = {
     {
       name: "Summarize",
       testId: "action-summarize",
-      icon: PenIcon(),
+      icon: "PenIcon",
       iconName: "PenIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("summary", AIPenIconWithAnimation),
@@ -318,7 +301,7 @@ const GenerateFromTextAIGroup: AIItemGroupConfig = {
     {
       name: "Generate headings",
       testId: "action-generate-headings",
-      icon: PenIcon(),
+      icon: "PenIcon",
       iconName: "PenIcon",
       beta: true,
       handler: actionToHandler("createHeadings", AIPenIconWithAnimation),
@@ -341,7 +324,7 @@ const GenerateFromTextAIGroup: AIItemGroupConfig = {
     {
       name: "Generate outline",
       testId: "action-generate-outline",
-      icon: PenIcon(),
+      icon: "PenIcon",
       iconName: "PenIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("writeOutline", AIPenIconWithAnimation),
@@ -349,7 +332,7 @@ const GenerateFromTextAIGroup: AIItemGroupConfig = {
     {
       name: "Generate an image",
       testId: "action-generate-image",
-      icon: ImageIcon(),
+      icon: "ImageIcon",
       iconName: "ImageIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("createImage", AIImageIconWithAnimation),
@@ -357,7 +340,7 @@ const GenerateFromTextAIGroup: AIItemGroupConfig = {
     {
       name: "Brainstorm ideas with mind map",
       testId: "action-brainstorm-mindmap",
-      icon: MindmapIcon(),
+      icon: "MindmapIcon",
       iconName: "MindmapIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("brainstormMindmap", AIPenIconWithAnimation),
@@ -365,7 +348,7 @@ const GenerateFromTextAIGroup: AIItemGroupConfig = {
     {
       name: "Generate presentation",
       testId: "action-generate-presentation",
-      icon: PresentationIcon(),
+      icon: "PresentationIcon",
       iconName: "PresentationIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("createSlides", AIPresentationIconWithAnimation),
@@ -374,7 +357,7 @@ const GenerateFromTextAIGroup: AIItemGroupConfig = {
     {
       name: "Make it real",
       testId: "action-make-it-real",
-      icon: MakeItRealIcon(),
+      icon: "MakeItRealIcon",
       iconName: "MakeItRealIcon",
       beta: true,
       showWhen: textBlockShowWhen,
@@ -383,7 +366,7 @@ const GenerateFromTextAIGroup: AIItemGroupConfig = {
     {
       name: "Find actions",
       testId: "action-find-actions",
-      icon: SearchIcon(),
+      icon: "SearchIcon",
       iconName: "SearchIcon",
       showWhen: textBlockShowWhen,
       handler: actionToHandler("findActions", AIStarIconWithAnimation),
@@ -397,7 +380,7 @@ const OthersAIGroup: AIItemGroupConfig = {
   items: [
     {
       ...continueInChat,
-      icon: CommentIcon(),
+      icon: "CommentIcon",
       handler: (host) => {
         const panel = getAIPanelWidget(host);
         const edgelessCopilot = getEdgelessCopilotWidget(host);
@@ -430,7 +413,7 @@ export function buildAIImageItemGroups(): AIItemGroupConfig[] {
         {
           name: "Explain this image",
           testId: "action-explain-image",
-          icon: ImageIcon(),
+          icon: "ImageIcon",
           iconName: "ImageIcon",
           showWhen: () => true,
           handler: actionToHandler(
@@ -448,7 +431,7 @@ export function buildAIImageItemGroups(): AIItemGroupConfig[] {
         {
           name: "Generate an image",
           testId: "action-generate-image",
-          icon: ImageIcon(),
+          icon: "ImageIcon",
           iconName: "ImageIcon",
           showWhen: () => true,
           handler: actionToHandler(
@@ -466,7 +449,7 @@ export function buildAIImageItemGroups(): AIItemGroupConfig[] {
         {
           name: "Image processing",
           testId: "action-image-processing",
-          icon: ImageIcon(),
+          icon: "ImageIcon",
           iconName: "ImageIcon",
           showWhen: () => true,
           subItem: createImageProcessingSubItem(blockActionTrackerOptions),
@@ -476,7 +459,7 @@ export function buildAIImageItemGroups(): AIItemGroupConfig[] {
         {
           name: "AI image filter",
           testId: "action-ai-image-filter",
-          icon: ImproveWritingIcon(),
+          icon: "ImproveWritingIcon",
           iconName: "ImproveWritingIcon",
           showWhen: () => true,
           subItem: createImageFilterSubItem(blockActionTrackerOptions),
@@ -486,7 +469,7 @@ export function buildAIImageItemGroups(): AIItemGroupConfig[] {
         {
           name: "Generate a caption",
           testId: "action-generate-caption",
-          icon: PenIcon(),
+          icon: "PenIcon",
           iconName: "PenIcon",
           showWhen: () => true,
           beta: true,
@@ -509,7 +492,7 @@ export function buildAICodeItemGroups(): AIItemGroupConfig[] {
       name: "review code",
       items: reviewCodeActions.map(({ command, ...item }) => ({
         ...item,
-        icon: ExplainIcon(),
+        icon: "ExplainIcon",
         handler: actionToHandler(
           command,
           AIStarIconWithAnimation,

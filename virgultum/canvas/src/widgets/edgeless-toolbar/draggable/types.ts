@@ -1,9 +1,15 @@
+import type { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import type { Bound } from "@virgultum/core/primitives/gfx";
-import type { DisposableClass } from "@virgultum/core/primitives/lit";
 import type { BlockComponent } from "@virgultum/core/runtime";
-import type { TemplateResult } from "lit";
+import type { NativeReactiveController } from "../mixins/tool.mixin.js";
 
-export interface EdgelessDraggableElementHost extends DisposableClass {}
+export interface EdgelessDraggableElementHost {
+  readonly disposables: DisposableGroup;
+  addController: (controller: NativeReactiveController) => void;
+  requestUpdate: () => void;
+}
+
+export type DraggablePreview = string | (() => Node);
 
 export interface OverlayLayer {
   /**
@@ -84,7 +90,7 @@ export interface EdgelessDraggableElementOptions<T> {
 
 export type ElementInfo<T> = {
   // TODO: maybe make it optional, if not provided, clone event target
-  preview: TemplateResult;
+  preview: DraggablePreview;
   data: T;
   /**
    * Override the value in {@link EdgelessDraggableElementOptions.standardWidth}

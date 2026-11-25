@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import type { ReadonlySignal } from "@preact/signals-core";
+import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
 import { useI18n } from "@myoxus/i18n";
 import {
   EditIcon,
@@ -68,4 +70,13 @@ export function EditorIframeStatusCard({
       aria-busy={c.status === "loading"}
     />
   );
+}
+
+export function RegisteredIframeStatusCard({
+  state,
+}: {
+  state: ReadonlySignal<EditorIframeStatusCardControls | null>;
+}) {
+  const controls = useSignalValue(state);
+  return controls && <EditorIframeStatusCard controls={controls} />;
 }

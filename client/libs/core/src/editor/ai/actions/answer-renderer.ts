@@ -1,6 +1,5 @@
 import { sourceMindmapSelection } from "./mindmap-source";
 import type { EditorHost } from "@virgultum/editor/std";
-import { ThemeProvider } from "@virgultum/core/services";
 
 import { createAIScrollableTextRenderer } from "../components/ai-scrollable-text-renderer";
 import {
@@ -46,11 +45,5 @@ export function actionToAnswerRenderer<
     return createImageRenderer(host, { height: 300 });
   }
 
-  return createAIScrollableTextRenderer(
-    {
-      theme: host.std.get(ThemeProvider).app$,
-    },
-    320,
-    true,
-  );
+  return createAIScrollableTextRenderer({ host }, 320, true);
 }

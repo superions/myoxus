@@ -1,4 +1,3 @@
-import { AIScrollableTextRenderer } from "../components/ai-scrollable-text-renderer";
 import {
   MYOXUS_AI_PANEL_WIDGET,
   MyoxusAIPanelWidget,
@@ -29,7 +28,6 @@ export function registerAIEditorEffects() {
   if (editorRegistries.has(registry)) return;
   registerAISharedEffects();
   const elements = {
-    "ai-scrollable-text-renderer": AIScrollableTextRenderer,
     [MYOXUS_BLOCK_DIFF_PLAYGROUND]: BlockDiffPlayground,
     [MYOXUS_AI_PANEL_WIDGET]: MyoxusAIPanelWidget,
     [MYOXUS_EDGELESS_COPILOT_WIDGET]: EdgelessCopilotWidget,

@@ -1,16 +1,17 @@
-import { EdgelessLegacySlotIdentifier } from "@virgultum/canvas-runtime/surface";
+import {
+  EdgelessLegacySlotIdentifier,
+  toNativeGfxBlockComponent,
+} from "@virgultum/canvas-runtime/surface";
 import {
   AttachmentBlockSchema,
   AttachmentBlockStyles,
 } from "@virgultum/core/models";
 import { EMBED_CARD_HEIGHT, EMBED_CARD_WIDTH } from "@virgultum/core/consts";
-import { toGfxBlockComponent } from "@virgultum/core/runtime";
 import { GfxViewInteractionExtension } from "@virgultum/core/runtime/gfx";
-import { styleMap } from "lit/directives/style-map.js";
 
 import { AttachmentBlockComponent } from "./attachment-block.js";
 
-export class AttachmentEdgelessBlockComponent extends toGfxBlockComponent(
+export class AttachmentEdgelessBlockComponent extends toNativeGfxBlockComponent(
   AttachmentBlockComponent,
 ) {
   override blockDraggable = false;
@@ -23,7 +24,7 @@ export class AttachmentEdgelessBlockComponent extends toGfxBlockComponent(
     return;
   }
 
-  override renderGfxBlock() {
+  override syncGfxLayout() {
     const { style$ } = this.model.props;
     const cardStyle = style$.value ?? AttachmentBlockStyles[1];
     const width = EMBED_CARD_WIDTH[cardStyle];
@@ -32,15 +33,13 @@ export class AttachmentEdgelessBlockComponent extends toGfxBlockComponent(
     const scaleX = bound.w / width;
     const scaleY = bound.h / height;
 
-    this.containerStyleMap = styleMap({
+    this.containerStyle$.value = {
       width: `${width}px`,
       height: `${height}px`,
       transform: `scale(${scaleX}, ${scaleY})`,
       transformOrigin: "0 0",
       overflow: "hidden",
-    });
-
-    return this.renderPageContent();
+    };
   }
 }
 

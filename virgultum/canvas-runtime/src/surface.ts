@@ -78,4 +78,7 @@ export {
   NativeBlockComponent,
   NativeBlockProjection,
 } from "@virgultum/core/runtime";
-export { NativeGfxBlockComponent } from "./native-gfx-block-component.js";
+export {
+  NativeGfxBlockComponent,
+  toNativeGfxBlockComponent,
+} from "./native-gfx-block-component.js";

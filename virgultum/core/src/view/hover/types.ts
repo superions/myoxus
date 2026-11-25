@@ -1,9 +1,11 @@
-import type { StyleInfo } from "lit/directives/style-map.js";
-
 import type {
   SafeBridgeOptions,
   SafeTriangleOptions,
 } from "./middlewares/safe-area.js";
+
+export type HoverStyleInfo = Readonly<
+  Record<string, string | number | null | undefined>
+>;
 
 export type WhenHoverOptions = {
   enterDelay?: number;
@@ -53,8 +55,8 @@ export type HoverOptions = {
      * Take a look at solutions from other projects: https://floating-ui.com/docs/useTransition#duration
      */
     duration: number;
-    in: StyleInfo;
-    out: StyleInfo;
+    in: HoverStyleInfo;
+    out: HoverStyleInfo;
   } | null;
   /**
    * Set the portal as hover element automatically.

@@ -4,17 +4,14 @@ import {
   ImageIcon,
   PageIcon,
   ShapeIcon,
-} from "@myoxus/icons/lit";
+} from "@myoxus/icons/native";
+import { NativeViewElement } from "@virgultum/core/primitives/env";
 import { unsafeCSSVar } from "@virgultum/core/theme";
-import { css, html, LitElement } from "lit";
-import { property } from "lit/decorators.js";
-import { repeat } from "lit/directives/repeat.js";
-import { styleMap } from "lit/directives/style-map.js";
 
 const BLOCK_PREVIEW_ICON_MAP: Record<
   string,
   {
-    icon: typeof ShapeIcon;
+    icon: string;
     name: string;
   }
 > = {
@@ -40,6 +37,49 @@ const BLOCK_PREVIEW_ICON_MAP: Record<
   },
 };
 
+const STYLES = `
+  .edgeless-dnd-preview-container {
+    position: relative;
+    padding: 12px;
+    width: 264px;
+    height: 80px;
+  }
+
+  .edgeless-dnd-preview-block {
+    display: flex;
+    position: absolute;
+
+    width: 234px;
+
+    align-items: flex-start;
+    box-sizing: border-box;
+
+    border-radius: 8px;
+    background-color: ${unsafeCSSVar("backgroundOverlayPanelColor")};
+
+    padding: 8px 20px;
+    gap: 8px;
+
+    transform-origin: center;
+
+    font-family: var(--myoxus-font-family);
+    box-shadow: 0px 0px 0px 0.5px #e3e3e4 inset;
+  }
+
+  .edgeless-dnd-preview-block > svg {
+    color: ${unsafeCSSVar("iconColor")};
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  .edgeless-dnd-preview-block > .text {
+    color: ${unsafeCSSVar("textPrimaryColor")};
+    font-size: 14px;
+    line-height: 24px;
+  }
+`;
+
 declare global {
   interface HTMLElementTagNameMap {
     "edgeless-dnd-preview-element": EdgelessDndPreviewElement;
@@ -48,51 +88,33 @@ declare global {
 
 export const EDGELESS_DND_PREVIEW_ELEMENT = "edgeless-dnd-preview-element";
 
-export class EdgelessDndPreviewElement extends LitElement {
-  static override styles = css`
-    .edgeless-dnd-preview-container {
-      position: relative;
-      padding: 12px;
-      width: 264px;
-      height: 80px;
-    }
+export class EdgelessDndPreviewElement extends NativeViewElement {
+  private _elementTypes: { type: string }[] = [];
+  private readonly _shadow: ShadowRoot;
+  private readonly _container: HTMLDivElement;
 
-    .edgeless-dnd-preview-block {
-      display: flex;
-      position: absolute;
+  constructor() {
+    super();
+    this._shadow = this.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = STYLES;
+    this._container = document.createElement("div");
+    this._container.className = "edgeless-dnd-preview-container";
+    this._shadow.append(style, this._container);
+  }
 
-      width: 234px;
+  get elementTypes(): { type: string }[] {
+    return this._elementTypes;
+  }
 
-      align-items: flex-start;
-      box-sizing: border-box;
+  set elementTypes(value: { type: string }[]) {
+    this._elementTypes = value ?? [];
+    this._render();
+  }
 
-      border-radius: 8px;
-      background-color: ${unsafeCSSVar("backgroundOverlayPanelColor")};
-
-      padding: 8px 20px;
-      gap: 8px;
-
-      transform-origin: center;
-
-      font-family: var(--myoxus-font-family);
-      box-shadow: 0px 0px 0px 0.5px #e3e3e4 inset;
-    }
-
-    .edgeless-dnd-preview-block > svg {
-      color: ${unsafeCSSVar("iconColor")};
-    }
-
-    .edgeless-dnd-preview-block > .text {
-      color: ${unsafeCSSVar("textPrimaryColor")};
-      font-size: 14px;
-      line-height: 24px;
-    }
-  `;
-
-  @property({ type: Array })
-  accessor elementTypes: {
-    type: string;
-  }[] = [];
+  connectedCallback() {
+    this._render();
+  }
 
   private _getPreviewIcon(type: string) {
     if (BLOCK_PREVIEW_ICON_MAP[type]) {
@@ -109,22 +131,30 @@ export class EdgelessDndPreviewElement extends LitElement {
     };
   }
 
-  override render() {
-    const blocks = repeat(this.elementTypes.slice(0, 3), ({ type }, index) => {
+  private _render() {
+    this._container.replaceChildren();
+    this._elementTypes.slice(0, 3).forEach(({ type }, index) => {
       const { icon, name } = this._getPreviewIcon(type);
+      const block = document.createElement("div");
+      block.className = "edgeless-dnd-preview-block";
+      block.style.transform = `rotate(${index * -2}deg)`;
+      block.style.zIndex = String(3 - index);
 
-      return html`<div
-        class="edgeless-dnd-preview-block"
-        style=${styleMap({
-          transform: `rotate(${index * -2}deg)`,
-          zIndex: 3 - index,
-        })}
-      >
-        ${icon({ width: "24px", height: "24px" })}
-        <span class="text">${name}</span>
-      </div>`;
+      const template = document.createElement("template");
+      template.innerHTML = icon.trim();
+      const svg = template.content.firstElementChild;
+      if (svg instanceof SVGElement) {
+        svg.setAttribute("width", "24px");
+        svg.setAttribute("height", "24px");
+        block.append(svg);
+      }
+
+      const text = document.createElement("span");
+      text.className = "text";
+      text.textContent = name;
+      block.append(text);
+
+      this._container.append(block);
     });
-
-    return html`<div class="edgeless-dnd-preview-container">${blocks}</div>`;
   }
 }

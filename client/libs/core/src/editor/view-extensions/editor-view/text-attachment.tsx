@@ -4,12 +4,12 @@ import {
   TextAttachmentPreview,
   textAttachmentFormat,
 } from "@myoxus/core/editor/attachment-viewer/text/text-preview";
-import type { ReactToLit } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import { AttachmentEmbedConfigIdentifier } from "@virgultum/editor/blocks/attachment";
 import type { ExtensionType } from "@virgultum/editor/store";
 
 export function patchTextAttachmentPreview(
-  reactToLit: ReactToLit,
+  mountPortal: MountReactPortal,
 ): ExtensionType {
   return {
     setup(di) {
@@ -24,10 +24,10 @@ export function patchTextAttachmentPreview(
           model.store.updateBlock(model, { embed: true });
           model.store.captureSync();
         },
-        render: (model, blobUrl) =>
-          reactToLit(
+        mount: (anchor, model, blobUrl) =>
+          mountPortal(
+            anchor,
             <TextAttachmentPreview model={model} blobUrl={blobUrl} />,
-            true,
           ),
       }));
     },

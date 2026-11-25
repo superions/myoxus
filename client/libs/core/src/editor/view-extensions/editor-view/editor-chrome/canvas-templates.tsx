@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import { useEffect, useRef } from "react";
 import { useI18n } from "@myoxus/i18n";
-import { toReactNode } from "@myoxus/lit-react";
+import { LayoutTemplateIcon } from "@myoxus/icons/react";
 import {
   AspectRatio,
   Box,
@@ -18,7 +19,42 @@ import {
   SimpleGrid,
   Tooltip,
 } from "@myoxus/ui-facade";
-import type { EditorCanvasTemplateControls } from "@virgultum/editor/shared/services";
+import type {
+  EditorCanvasTemplateControls,
+  EditorCanvasTemplatePreview,
+} from "@virgultum/editor/shared/services";
+
+function TemplatePreview({
+  preview,
+}: {
+  preview: EditorCanvasTemplatePreview;
+}) {
+  const svgRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el || preview.kind !== "svg") return;
+    el.innerHTML = preview.markup;
+    return () => {
+      el.replaceChildren();
+    };
+  }, [preview]);
+
+  if (preview.kind === "svg") {
+    return <Box className="canvas-template-preview" ref={svgRef} />;
+  }
+  if (preview.kind === "image") {
+    return (
+      <Box className="canvas-template-preview">
+        <img src={preview.src} loading="lazy" />
+      </Box>
+    );
+  }
+  return (
+    <Box className="canvas-template-preview">
+      <LayoutTemplateIcon />
+    </Box>
+  );
+}
 
 export function EditorCanvasTemplates({
   controls,
@@ -86,9 +122,7 @@ export function EditorCanvasTemplates({
                   >
                     {/* Match the existing catalog preview ratio; artwork is renderer-owned. */}
                     <AspectRatio ratio={135 / 80}>
-                      <Box className="canvas-template-preview">
-                        {toReactNode(item.preview)}
-                      </Box>
+                      <TemplatePreview preview={item.preview} />
                     </AspectRatio>
                     {item.loading && <MyoxusLoader />}
                   </SelectableCardRow>

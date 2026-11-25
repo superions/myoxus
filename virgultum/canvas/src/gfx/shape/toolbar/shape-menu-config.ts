@@ -3,16 +3,8 @@ import {
   editorMessage,
   type EditorI18nMessage,
 } from "@virgultum/core/services";
-import {
-  DiamondIcon,
-  EllipseIcon,
-  RoundedRectangleIcon,
-  SquareIcon,
-  TriangleIcon,
-} from "@myoxus/icons/lit";
 import type { ShapeToolOption } from "../index";
 import { ShapeType } from "@virgultum/core/models";
-import type { TemplateResult } from "lit";
 
 import {
   ScribbledDiamondIcon,
@@ -25,8 +17,7 @@ import {
 type Config = {
   iconName: MyoxusIconExportName;
   name: ShapeToolOption["shapeName"];
-  generalIcon: TemplateResult<1>;
-  scribbledIcon: TemplateResult<1>;
+  scribbledIcon: string;
   tooltip: EditorI18nMessage;
   disabled: boolean;
 };
@@ -35,7 +26,6 @@ export const ShapeComponentConfig: Config[] = [
   {
     name: ShapeType.Rect,
     iconName: "SquareIcon",
-    generalIcon: SquareIcon(),
     scribbledIcon: ScribbledSquareIcon,
     tooltip: editorMessage(
       "com.myoxus.settings.editorSettings.edgeless.shape.square",
@@ -46,7 +36,6 @@ export const ShapeComponentConfig: Config[] = [
   {
     name: ShapeType.Ellipse,
     iconName: "EllipseIcon",
-    generalIcon: EllipseIcon(),
     scribbledIcon: ScribbledEllipseIcon,
     tooltip: editorMessage(
       "com.myoxus.settings.editorSettings.edgeless.shape.ellipse",
@@ -57,7 +46,6 @@ export const ShapeComponentConfig: Config[] = [
   {
     name: ShapeType.Diamond,
     iconName: "DiamondIcon",
-    generalIcon: DiamondIcon(),
     scribbledIcon: ScribbledDiamondIcon,
     tooltip: editorMessage(
       "com.myoxus.settings.editorSettings.edgeless.shape.diamond",
@@ -68,7 +56,6 @@ export const ShapeComponentConfig: Config[] = [
   {
     name: ShapeType.Triangle,
     iconName: "TriangleIcon",
-    generalIcon: TriangleIcon(),
     scribbledIcon: ScribbledTriangleIcon,
     tooltip: editorMessage(
       "com.myoxus.settings.editorSettings.edgeless.shape.triangle",
@@ -79,7 +66,6 @@ export const ShapeComponentConfig: Config[] = [
   {
     name: "roundedRect",
     iconName: "RoundedRectangleIcon",
-    generalIcon: RoundedRectangleIcon(),
     scribbledIcon: ScribbledRoundedRectangleIcon,
     tooltip: editorMessage(
       "com.myoxus.editor.shape.rounded-rectangle",

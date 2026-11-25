@@ -4,7 +4,6 @@ import {
   type Signal,
 } from "@preact/signals-core";
 import { adjustColorAlpha } from "@virgultum/core/color";
-import { SignalWatcher } from "@virgultum/core/primitives/lit";
 import {
   BRUSH_LINE_WIDTHS,
   DefaultTheme,
@@ -19,9 +18,8 @@ import {
   resolveEditorMessage,
 } from "@virgultum/core/services";
 import type { ColorEvent } from "@virgultum/core/utils";
+import { NativeViewElement } from "@virgultum/core/runtime";
 import { EdgelessToolbarToolMixin } from "../../../../../widgets/edgeless-toolbar/index";
-import { LitElement, type TemplateResult } from "lit";
-import { property } from "lit/decorators.js";
 
 import { BrushTool } from "../../../brush-tool";
 import { HighlighterTool } from "../../../highlighter-tool";
@@ -29,11 +27,20 @@ import { penInfoMap } from "./consts";
 import type { Pen, PenMap } from "./types";
 
 export class EdgelessPenMenu extends EdgelessToolbarToolMixin(
-  SignalWatcher(LitElement),
+  NativeViewElement,
 ) {
-  override createRenderRoot() {
-    return this;
-  }
+  private _onChange!: (props: Record<string, unknown>) => void;
+  private _colors$!: ReadonlySignal<PenMap<string>>;
+  private _penIconMap$!: ReadonlySignal<PenMap<string>>;
+  private _pen$!: Signal<Pen>;
+  private _penInfo$!: ReadonlySignal<{
+    type: Pen;
+    color: string;
+    icon: string;
+    lineWidth: number;
+    tip: string;
+    shortcut: string;
+  }>;
 
   private readonly _theme$ = computed(() => {
     return this.edgeless.std.get(ThemeProvider).theme$.value;
@@ -63,7 +70,64 @@ export class EdgelessPenMenu extends EdgelessToolbarToolMixin(
 
   override type = [BrushTool, HighlighterTool];
 
-  override render() {
+  get onChange() {
+    return this._onChange;
+  }
+
+  set onChange(value: (props: Record<string, unknown>) => void) {
+    this._onChange = value;
+    this.requestUpdate();
+  }
+
+  get colors$() {
+    return this._colors$;
+  }
+
+  set colors$(value: ReadonlySignal<PenMap<string>>) {
+    this._colors$ = value;
+    this.requestUpdate();
+  }
+
+  get penIconMap$() {
+    return this._penIconMap$;
+  }
+
+  set penIconMap$(value: ReadonlySignal<PenMap<string>>) {
+    this._penIconMap$ = value;
+    this.requestUpdate();
+  }
+
+  get pen$() {
+    return this._pen$;
+  }
+
+  set pen$(value: Signal<Pen>) {
+    this._pen$ = value;
+    this.requestUpdate();
+  }
+
+  get penInfo$() {
+    return this._penInfo$;
+  }
+
+  set penInfo$(
+    value: ReadonlySignal<{
+      type: Pen;
+      color: string;
+      icon: string;
+      lineWidth: number;
+      tip: string;
+      shortcut: string;
+    }>,
+  ) {
+    this._penInfo$ = value;
+    this.requestUpdate();
+  }
+
+  protected override paint() {
+    if (!this.colors$ || !this.penIconMap$ || !this.penInfo$) return;
+    const chrome = this.edgeless.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
     const {
       _theme$: { value: theme },
       colors$: {
@@ -81,7 +145,8 @@ export class EdgelessPenMenu extends EdgelessToolbarToolMixin(
       type === "brush" ? BRUSH_LINE_WIDTHS : HIGHLIGHTER_LINE_WIDTHS;
 
     const i18n = this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined;
-    return this.edgeless.std.get(EditorChromeHostIdentifier).renderCanvasMenu({
+    void i18n?.locale$.value;
+    this.mountSlot("menu", this, chrome.mountCanvasMenu, {
       tools: [
         {
           action: {
@@ -95,7 +160,7 @@ export class EdgelessPenMenu extends EdgelessToolbarToolMixin(
             active: type === "brush",
             run: () => this._onPickPen("brush"),
           },
-          artwork: brushIcon,
+          artworkSvg: brushIcon,
           artworkColor: brushColor,
           artworkBounds: { width: 38, height: 64 },
         },
@@ -114,7 +179,7 @@ export class EdgelessPenMenu extends EdgelessToolbarToolMixin(
             active: type === "highlighter",
             run: () => this._onPickPen("highlighter"),
           },
-          artwork: highlighterIcon,
+          artworkSvg: highlighterIcon,
           artworkColor: highlighterColor,
           artworkBounds: { width: 38, height: 64 },
         },
@@ -164,26 +229,4 @@ export class EdgelessPenMenu extends EdgelessToolbarToolMixin(
       ],
     });
   }
-
-  @property({ attribute: false })
-  accessor onChange!: (props: Record<string, unknown>) => void;
-
-  @property({ attribute: false })
-  accessor colors$!: ReadonlySignal<PenMap<string>>;
-
-  @property({ attribute: false })
-  accessor penIconMap$!: ReadonlySignal<PenMap<TemplateResult>>;
-
-  @property({ attribute: false })
-  accessor pen$!: Signal<Pen>;
-
-  @property({ attribute: false })
-  accessor penInfo$!: ReadonlySignal<{
-    type: Pen;
-    color: string;
-    icon: TemplateResult<1>;
-    lineWidth: number;
-    tip: string;
-    shortcut: string;
-  }>;
 }

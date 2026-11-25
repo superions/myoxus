@@ -28,10 +28,12 @@ function ColorControl({
   action,
   control: c,
   compact = false,
+  afterAction,
 }: {
   action: SelectionAction;
   control: Extract<SelectionControl, { type: "color" }>;
   compact?: boolean;
+  afterAction?: () => void;
 }) {
   const [draft, setDraft] = useState(c.value);
   const [opened, setOpened] = useState(false);
@@ -50,7 +52,10 @@ function ColorControl({
     c.change(value);
   };
   const open = (next: boolean) => {
-    if (!next) finish();
+    if (!next) {
+      finish();
+      if (afterAction) queueMicrotask(afterAction);
+    }
     setOpened(next);
   };
   if (compact)
@@ -60,7 +65,7 @@ function ColorControl({
         onChange={open}
         withinPortal={false}
         trapFocus
-        returnFocus
+        returnFocus={!afterAction}
       >
         <PopoverTarget>
           <IconButton
@@ -117,10 +122,12 @@ function NumberControl({
   action,
   control: c,
   compact = false,
+  afterAction,
 }: {
   action: SelectionAction;
   control: Extract<SelectionControl, { type: "number" }>;
   compact?: boolean;
+  afterAction?: () => void;
 }) {
   const [value, setValue] = useState(c.value);
   const [opened, setOpened] = useState(false);
@@ -144,7 +151,10 @@ function NumberControl({
     if (next) {
       setValue(c.value);
       c.onOpen?.();
-    } else focused.current = false;
+    } else {
+      focused.current = false;
+      if (afterAction) queueMicrotask(afterAction);
+    }
     setOpened(next);
   };
   const input = (
@@ -170,14 +180,19 @@ function NumberControl({
         if (event.key === "Enter") {
           event.preventDefault();
           commit();
-          if (compact) setOpened(false);
+          if (compact) open(false);
         }
       }}
     />
   );
   if (!compact) return input;
   return (
-    <Popover opened={opened} onChange={open} withinPortal={false} returnFocus>
+    <Popover
+      opened={opened}
+      onChange={open}
+      withinPortal={false}
+      returnFocus={!afterAction}
+    >
       <PopoverTarget>
         <Button
           aria-label={action.label}
@@ -201,7 +216,7 @@ function NumberControl({
                   onClick={() => {
                     setValue(preset);
                     if (preset !== Number(c.value)) c.change(preset);
-                    setOpened(false);
+                    open(false);
                   }}
                 >
                   {preset}
@@ -219,9 +234,11 @@ function NumberControl({
 function TextControl({
   action,
   control: c,
+  afterAction,
 }: {
   action: SelectionAction;
   control: Extract<SelectionControl, { type: "text" }>;
+  afterAction?: () => void;
 }) {
   const t = useI18n();
   const [opened, setOpened] = useState(false),
@@ -232,6 +249,8 @@ function TextControl({
       setValue(c.value);
       setError(null);
       c.change(c.value);
+    } else if (afterAction) {
+      queueMicrotask(afterAction);
     }
     setOpened(next);
   };
@@ -239,13 +258,13 @@ function TextControl({
     c.change(value);
     const next = c.submit?.();
     setError(next);
-    if (!next) setOpened(false);
+    if (!next) open(false);
   };
   return (
     <Popover
       opened={opened}
       onChange={open}
-      returnFocus
+      returnFocus={!afterAction}
       closeOnEscape
       withinPortal={false}
     >
@@ -277,19 +296,37 @@ function TextControl({
 export function SurfacePropertyControl({
   action,
   compact = false,
+  afterAction,
 }: {
   action: SelectionAction;
   compact?: boolean;
+  afterAction?: () => void;
 }) {
   const c = action.control;
   if (!c) return null;
   switch (c.type) {
     case "color":
-      return <ColorControl action={action} control={c} compact={compact} />;
+      return (
+        <ColorControl
+          action={action}
+          control={c}
+          compact={compact}
+          afterAction={afterAction}
+        />
+      );
     case "number":
-      return <NumberControl action={action} control={c} compact={compact} />;
+      return (
+        <NumberControl
+          action={action}
+          control={c}
+          compact={compact}
+          afterAction={afterAction}
+        />
+      );
     case "text":
-      return <TextControl action={action} control={c} />;
+      return (
+        <TextControl action={action} control={c} afterAction={afterAction} />
+      );
     case "native":
       return c.node as ReactNode;
     case "notice": {

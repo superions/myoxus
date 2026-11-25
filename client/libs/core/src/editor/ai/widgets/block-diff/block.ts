@@ -1,11 +1,10 @@
 import { WidgetViewExtension } from "@virgultum/editor/std";
-import { ThemeProvider } from "@virgultum/core/services";
 import { createElement, type ReactNode } from "react";
 import track from "@myoxus/track";
+import { StoredAnswerText } from "../../components/ai-message-content/stored-answer-text";
 import type { BlockDiffProvider } from "../../services/block-diff";
 import { DiffWidget } from "./diff-widget";
 import { DiffOptions } from "./view";
-import { blockDiffWidgetForPage } from "./page";
 
 const styles = `
 myoxus-block-diff-widget-for-block .ai-block-diff {
@@ -72,13 +71,9 @@ export class MyoxusBlockDiffWidgetForBlock extends DiffWidget {
             "data-diff-id": key,
           },
           content !== null &&
-            createElement("chat-content-rich-text", {
+            createElement(StoredAnswerText, {
+              host: this.host,
               text: content,
-              state: "finished",
-              theme: this.std.get(ThemeProvider).app$,
-              extensions: this.std.userExtensions.filter(
-                (extension) => extension !== blockDiffWidgetForPage,
-              ),
             }),
           createElement(
             "div",

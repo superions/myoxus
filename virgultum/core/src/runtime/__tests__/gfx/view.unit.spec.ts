@@ -92,6 +92,7 @@ describe("gfx element view basic", () => {
     const { gfx, surfaceId, rootId } = await commonSetup();
 
     const waitGfxViewConnected = (id: string) => {
+      if (gfx.std.view.getBlock(id)) return Promise.resolve();
       const { promise, resolve } = Promise.withResolvers<void>();
       const subscription = gfx.std.view.viewUpdated.subscribe((payload) => {
         if (

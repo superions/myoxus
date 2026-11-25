@@ -70,6 +70,7 @@ import {
 import { bindDocumentTitleSync } from "./document-title-sync";
 import { StarterBar } from "./starter-bar";
 import { PageFormatting } from "./plain-page-formatting";
+import { PageRemotePresence } from "./page-remote-presence";
 import "./plain-page.css";
 
 const Directory = lazy(async () => ({
@@ -567,6 +568,7 @@ function PageView({
     useService(EditorSettingService).editorSetting.settings$,
   );
   const root = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const selector = useLiveData(editor?.selector$);
   useLayoutEffect(() => {
     if (!editor || !viewport) return;
@@ -745,284 +747,298 @@ function PageView({
         )}
         {metadata}
         <PageContentRail width="editor">
-          <div
-            data-page-body=""
-            contentEditable={!readonly}
-            suppressContentEditableWarning
-          >
-            {body.map(function renderItem(line): import("react").ReactNode {
-              if (hiddenIds.has(line.model.id)) return null;
-              return line.kind === "callout" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <Callout
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                  >
-                    {line.children.map(renderItem)}
-                  </Callout>
-                </Suspense>
-              ) : line.kind === "code" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <Code
-                    enableComment={!!openThread}
-                    enableAI={enableAI}
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                    handoff={(intent) => handoff(null, intent)}
-                  />
-                </Suspense>
-              ) : line.kind === "footnote" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <Footnote
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                  />
-                </Suspense>
-              ) : line.kind === "iframe" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <Iframe
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                    handoff={(intent) => handoff(null, intent)}
-                  />
-                </Suspense>
-              ) : line.kind === "document" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <DocumentCard
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                    handoff={handoff}
-                  />
-                </Suspense>
-              ) : line.kind === "forge" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <Forge
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                    handoff={(intent) => handoff(null, intent)}
-                  />
-                </Suspense>
-              ) : line.kind === "html" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <Html
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                    handoff={(intent) => handoff(null, intent)}
-                  />
-                </Suspense>
-              ) : line.kind === "player" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <Player
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                    handoff={(intent) => handoff(null, intent)}
-                  />
-                </Suspense>
-              ) : line.kind === "image" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <PageImage
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                    handoff={(intent) => handoff(null, intent)}
-                  />
-                </Suspense>
-              ) : line.kind === "bookmark" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <Bookmark
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                    handoff={(intent) => handoff(null, intent)}
-                  />
-                </Suspense>
-              ) : line.kind === "annotation" ? (
-                <div
-                  key={line.model.id}
-                  data-page-annotation={line.model.id}
-                  data-block-id={line.model.id}
-                  contentEditable={false}
-                  tabIndex={-1}
-                >
-                  <Suspense fallback={null}>
-                    <Annotation
-                      body={line.model.props.text.toString()}
-                      readonly={readonly || page.readonly}
-                      editRequest={0}
-                      apply={(value, expected) =>
-                        !readonly && line.model.applyBody(value, expected)
-                      }
-                    />
-                  </Suspense>
-                </div>
-              ) : line.kind === "table" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <Table
-                    detached={!editor}
-                    readCell={!editor ? readTableCell : undefined}
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                    handoff={(intent) => handoff(null, intent)}
-                  />
-                </Suspense>
-              ) : line.kind === "attachment" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <Attachment
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                    handoff={(intent) => handoff(null, intent)}
-                  />
-                </Suspense>
-              ) : line.kind === "event" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <EventCard
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                  />
-                </Suspense>
-              ) : line.kind === "database" ? (
-                <div
-                  key={line.model.id}
-                  data-server-database-reference={
-                    line.model.props.serverDatabaseId
-                  }
-                  data-block-id={line.model.id}
-                  tabIndex={-1}
-                  contentEditable={false}
-                >
-                  <Suspense fallback={null}>
-                    <DatabaseReference
+          <div data-page-body-stage="">
+            <div
+              ref={bodyRef}
+              data-page-body=""
+              contentEditable={!readonly}
+              suppressContentEditableWarning
+            >
+              {body.map(function renderItem(line): import("react").ReactNode {
+                if (hiddenIds.has(line.model.id)) return null;
+                return line.kind === "callout" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <Callout
                       model={line.model}
                       readonly={readonly || page.readonly}
-                    />
-                  </Suspense>
-                </div>
-              ) : line.kind === "equation" ? (
-                <Suspense key={line.model.id} fallback={null}>
-                  <Equation
-                    model={line.model}
-                    readonly={readonly || page.readonly}
-                  />
-                </Suspense>
-              ) : line.kind === "directory" ? (
-                <div
-                  key={line.model.id}
-                  data-page-directory={line.model.id}
-                  data-block-id={line.model.id}
-                  tabIndex={-1}
-                  contentEditable={false}
-                >
-                  <Suspense fallback={null}>
-                    <Directory
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                    />
-                  </Suspense>
-                </div>
-              ) : line.kind === "divider" ? (
-                <div
-                  key={line.model.id}
-                  data-page-divider={line.model.id}
-                  data-block-id={line.model.id}
-                  contentEditable={false}
-                  tabIndex={-1}
-                  style={{
-                    paddingInlineStart: `calc(${line.depth} * var(--mantine-spacing-xl) + var(--mantine-spacing-xs))`,
-                  }}
-                  onClick={(e) => e.currentTarget.focus()}
-                >
-                  <hr />
-                </div>
-              ) : (
-                <div
-                  className="plain-page-line"
-                  data-callout-text={
-                    line.model.flavour === "myoxus:callout" || undefined
-                  }
-                  role={line.heading ? "heading" : undefined}
-                  aria-level={
-                    line.heading ? Number(line.heading[1]) : undefined
-                  }
-                  data-heading={line.heading}
-                  data-paragraph-role={
-                    line.eyebrow
-                      ? "eyebrow"
-                      : line.kind === "quote"
-                        ? "quote"
-                        : undefined
-                  }
-                  key={line.model.id}
-                  style={{
-                    textAlign: line.alignment,
-                    ...(line.heading ? headingStyle(line.heading) : {}),
-                    paddingInlineStart: `calc(${line.depth} * var(--mantine-spacing-xl))`,
-                  }}
-                >
-                  {expandable.has(line.model.id) && (
-                    <span
-                      data-disclosure=""
-                      data-block-id={line.model.id}
-                      contentEditable={false}
                     >
-                      <IconButton
-                        aria-expanded={!isFolded(line)}
-                        aria-label={isFolded(line) ? t.Expand() : t.Collapse()}
-                        icon={
-                          isFolded(line) ? (
-                            <ChevronRightIcon />
-                          ) : (
-                            <ChevronDownIcon />
-                          )
+                      {line.children.map(renderItem)}
+                    </Callout>
+                  </Suspense>
+                ) : line.kind === "code" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <Code
+                      enableComment={!!openThread}
+                      enableAI={enableAI}
+                      model={line.model}
+                      readonly={readonly || page.readonly}
+                      handoff={(intent) => handoff(null, intent)}
+                    />
+                  </Suspense>
+                ) : line.kind === "footnote" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <Footnote
+                      model={line.model}
+                      readonly={readonly || page.readonly}
+                    />
+                  </Suspense>
+                ) : line.kind === "iframe" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <Iframe
+                      model={line.model}
+                      readonly={readonly || page.readonly}
+                      handoff={(intent) => handoff(null, intent)}
+                    />
+                  </Suspense>
+                ) : line.kind === "document" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <DocumentCard
+                      model={line.model}
+                      readonly={readonly || page.readonly}
+                      handoff={handoff}
+                    />
+                  </Suspense>
+                ) : line.kind === "forge" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <Forge
+                      model={line.model}
+                      readonly={readonly || page.readonly}
+                      handoff={(intent) => handoff(null, intent)}
+                    />
+                  </Suspense>
+                ) : line.kind === "html" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <Html
+                      model={line.model}
+                      readonly={readonly || page.readonly}
+                      handoff={(intent) => handoff(null, intent)}
+                    />
+                  </Suspense>
+                ) : line.kind === "player" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <Player
+                      model={line.model}
+                      readonly={readonly || page.readonly}
+                      handoff={(intent) => handoff(null, intent)}
+                    />
+                  </Suspense>
+                ) : line.kind === "image" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <PageImage
+                      model={line.model}
+                      readonly={readonly || page.readonly}
+                      handoff={(intent) => handoff(null, intent)}
+                    />
+                  </Suspense>
+                ) : line.kind === "bookmark" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <Bookmark
+                      model={line.model}
+                      readonly={readonly || page.readonly}
+                      handoff={(intent) => handoff(null, intent)}
+                    />
+                  </Suspense>
+                ) : line.kind === "annotation" ? (
+                  <div
+                    key={line.model.id}
+                    data-page-annotation={line.model.id}
+                    data-block-id={line.model.id}
+                    contentEditable={false}
+                    tabIndex={-1}
+                  >
+                    <Suspense fallback={null}>
+                      <Annotation
+                        body={line.model.props.text.toString()}
+                        readonly={readonly || page.readonly}
+                        editRequest={0}
+                        apply={(value, expected) =>
+                          !readonly && line.model.applyBody(value, expected)
                         }
-                        onClick={() => {
-                          const model = line.model as ParagraphBlockModel,
-                            base = !!model.props.collapsed;
-                          if (page.getModelById(model.id) !== model) return;
-                          if (readonly || page.readonly)
-                            setLocalFolds((prev) =>
-                              new Map(prev).set(model.id, {
-                                base,
-                                closed: !isFolded(line),
-                              }),
-                            );
-                          else {
-                            page.captureSync();
-                            page.updateBlock(model, { collapsed: !base });
-                            page.captureSync();
-                          }
-                        }}
                       />
-                    </span>
-                  )}
-                  {["bulleted", "numbered", "todo"].includes(line.kind) && (
-                    <span contentEditable={false}>
-                      {line.kind === "numbered" ? (
-                        `${line.ordinal}.`
-                      ) : line.kind === "todo" ? (
-                        <input
-                          type="checkbox"
-                          checked={line.checked}
-                          disabled={readonly}
-                          onChange={() => {
-                            if (!readonly && !page.readonly)
-                              page.updateBlock(line.model, {
-                                checked: !line.checked,
-                              });
+                    </Suspense>
+                  </div>
+                ) : line.kind === "table" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <Table
+                      detached={!editor}
+                      readCell={!editor ? readTableCell : undefined}
+                      model={line.model}
+                      readonly={readonly || page.readonly}
+                      handoff={(intent) => handoff(null, intent)}
+                    />
+                  </Suspense>
+                ) : line.kind === "attachment" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <Attachment
+                      model={line.model}
+                      readonly={readonly || page.readonly}
+                      handoff={(intent) => handoff(null, intent)}
+                    />
+                  </Suspense>
+                ) : line.kind === "event" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <EventCard
+                      model={line.model}
+                      readonly={readonly || page.readonly}
+                    />
+                  </Suspense>
+                ) : line.kind === "database" ? (
+                  <div
+                    key={line.model.id}
+                    data-server-database-reference={
+                      line.model.props.serverDatabaseId
+                    }
+                    data-block-id={line.model.id}
+                    tabIndex={-1}
+                    contentEditable={false}
+                  >
+                    <Suspense fallback={null}>
+                      <DatabaseReference
+                        model={line.model}
+                        readonly={readonly || page.readonly}
+                      />
+                    </Suspense>
+                  </div>
+                ) : line.kind === "equation" ? (
+                  <Suspense key={line.model.id} fallback={null}>
+                    <Equation
+                      model={line.model}
+                      readonly={readonly || page.readonly}
+                    />
+                  </Suspense>
+                ) : line.kind === "directory" ? (
+                  <div
+                    key={line.model.id}
+                    data-page-directory={line.model.id}
+                    data-block-id={line.model.id}
+                    tabIndex={-1}
+                    contentEditable={false}
+                  >
+                    <Suspense fallback={null}>
+                      <Directory
+                        model={line.model}
+                        readonly={readonly || page.readonly}
+                      />
+                    </Suspense>
+                  </div>
+                ) : line.kind === "divider" ? (
+                  <div
+                    key={line.model.id}
+                    data-page-divider={line.model.id}
+                    data-block-id={line.model.id}
+                    contentEditable={false}
+                    tabIndex={-1}
+                    style={{
+                      paddingInlineStart: `calc(${line.depth} * var(--mantine-spacing-xl) + var(--mantine-spacing-xs))`,
+                    }}
+                    onClick={(e) => e.currentTarget.focus()}
+                  >
+                    <hr />
+                  </div>
+                ) : (
+                  <div
+                    className="plain-page-line"
+                    data-callout-text={
+                      line.model.flavour === "myoxus:callout" || undefined
+                    }
+                    role={line.heading ? "heading" : undefined}
+                    aria-level={
+                      line.heading ? Number(line.heading[1]) : undefined
+                    }
+                    data-heading={line.heading}
+                    data-paragraph-role={
+                      line.eyebrow
+                        ? "eyebrow"
+                        : line.kind === "quote"
+                          ? "quote"
+                          : undefined
+                    }
+                    key={line.model.id}
+                    style={{
+                      textAlign: line.alignment,
+                      ...(line.heading ? headingStyle(line.heading) : {}),
+                      paddingInlineStart: `calc(${line.depth} * var(--mantine-spacing-xl))`,
+                    }}
+                  >
+                    {expandable.has(line.model.id) && (
+                      <span
+                        data-disclosure=""
+                        data-block-id={line.model.id}
+                        contentEditable={false}
+                      >
+                        <IconButton
+                          aria-expanded={!isFolded(line)}
+                          aria-label={
+                            isFolded(line) ? t.Expand() : t.Collapse()
+                          }
+                          icon={
+                            isFolded(line) ? (
+                              <ChevronRightIcon />
+                            ) : (
+                              <ChevronDownIcon />
+                            )
+                          }
+                          onClick={() => {
+                            const model = line.model as ParagraphBlockModel,
+                              base = !!model.props.collapsed;
+                            if (page.getModelById(model.id) !== model) return;
+                            if (readonly || page.readonly)
+                              setLocalFolds((prev) =>
+                                new Map(prev).set(model.id, {
+                                  base,
+                                  closed: !isFolded(line),
+                                }),
+                              );
+                            else {
+                              page.captureSync();
+                              page.updateBlock(model, { collapsed: !base });
+                              page.captureSync();
+                            }
                           }}
                         />
-                      ) : (
-                        "•"
-                      )}{" "}
-                    </span>
-                  )}
-                  <TextField
-                    linkMenu={openLink}
-                    comment={openThread}
-                    line={line}
-                    readonly={readonly}
-                    composing={composing}
-                  />
-                </div>
-              );
-            })}
+                      </span>
+                    )}
+                    {["bulleted", "numbered", "todo"].includes(line.kind) && (
+                      <span contentEditable={false}>
+                        {line.kind === "numbered" ? (
+                          `${line.ordinal}.`
+                        ) : line.kind === "todo" ? (
+                          <input
+                            type="checkbox"
+                            checked={line.checked}
+                            disabled={readonly}
+                            onChange={() => {
+                              if (!readonly && !page.readonly)
+                                page.updateBlock(line.model, {
+                                  checked: !line.checked,
+                                });
+                            }}
+                          />
+                        ) : (
+                          "•"
+                        )}{" "}
+                      </span>
+                    )}
+                    <TextField
+                      linkMenu={openLink}
+                      comment={openThread}
+                      line={line}
+                      readonly={readonly}
+                      composing={composing}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            {editor && (
+              <PageRemotePresence
+                page={page}
+                bodyRef={bodyRef}
+                readonly={readonly || page.readonly}
+                lines={lines}
+                epoch={epoch}
+              />
+            )}
           </div>
         </PageContentRail>
         {!contentOnly && (

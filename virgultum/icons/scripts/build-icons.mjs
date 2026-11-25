@@ -4729,16 +4729,16 @@ function escapeAttr(value) {
     .replace(/>/g, "&gt;");
 }
 
-function attrsToLit(attrs) {
+function attrsToSvg(attrs) {
   return Object.entries(attrs)
     .map(([key, value]) => `${key}="${escapeAttr(value)}"`)
     .join(" ");
 }
 
-function nodeToLit(node) {
-  const attrs = attrsToLit(node.attrs);
+function nodeToSvg(node) {
+  const attrs = attrsToSvg(node.attrs);
   if (node.children.length) {
-    return `<${node.tag}${attrs ? ` ${attrs}` : ""}>${node.children.map(nodeToLit).join("")}</${node.tag}>`;
+    return `<${node.tag}${attrs ? ` ${attrs}` : ""}>${node.children.map(nodeToSvg).join("")}</${node.tag}>`;
   }
   return `<${node.tag}${attrs ? ` ${attrs}` : ""}/>`;
 }
@@ -4830,33 +4830,11 @@ function renderReactFunction(iconName, parts) {
   return `const ${iconName} = ({ style, ...props } = {}) => /* @__PURE__ */ jsxRuntime.${fn}("svg", { xmlns: "http://www.w3.org/2000/svg", viewBox: "0 0 24 24", width: "1em", height: "1em", fill: "none", ...props, style: { userSelect: "none", flexShrink: 0, ...style }, children: ${childExpr} });`;
 }
 
-function renderLitFunction(iconName, parts) {
-  const base = cleanName(iconName);
-  const body = parts.map(nodeToLit).join("");
-  return `const ${base} = ({ width = "1em", height = "1em", style = "" } = {}) => html\`
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width=\${width} height=\${height} fill="none" style=\${"user-select:none;flex-shrink:0;" + style}>${body}</svg>
-\`;`;
-}
-
-function renderDts(kind) {
-  if (kind === "rc") {
-    return `${HEADER}import { JSX } from 'react/jsx-runtime';
+function renderDts() {
+  return `${HEADER}import { JSX } from 'react/jsx-runtime';
 import { SVGProps } from 'react';
 
 ${iconNames.map((name) => `export declare const ${name}: (props: SVGProps<SVGSVGElement>) => JSX.Element;`).join("\n\n")}
-`;
-  }
-  return `${HEADER}import { TemplateResult } from 'lit';
-
-${iconNames
-  .map(
-    (name) => `export declare const ${name}: ({ width, height, style }?: {
-    width?: string;
-    height?: string;
-    style?: string;
-}) => TemplateResult<1>;`,
-  )
-  .join("\n\n")}
 `;
 }
 
@@ -4886,34 +4864,6 @@ const jsxRuntime = require("react/jsx-runtime");
 ${functions}
 
 ${iconNames.map((name) => `exports.${name} = ${name};`).join("\n")}
-`;
-}
-
-function renderLitMjs() {
-  const functions = iconNames
-    .map((name) => renderLitFunction(name, iconParts(name)))
-    .join("\n");
-  return `${HEADER}import { html } from "lit";
-
-${functions}
-
-export {
-${iconNames.map((name) => `  ${cleanName(name)} as ${name}`).join(",\n")}
-};
-`;
-}
-
-function renderLitCjs() {
-  const functions = iconNames
-    .map((name) => renderLitFunction(name, iconParts(name)))
-    .join("\n");
-  return `${HEADER}"use strict";
-Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
-const { html } = require("lit");
-
-${functions}
-
-${iconNames.map((name) => `exports.${name} = ${cleanName(name)};`).join("\n")}
 `;
 }
 
@@ -5042,12 +4992,9 @@ assertSemanticGlyphContracts();
 // module would let a lazy catalogue retain its complete eager producer.
 writeFileChecked(path.join(distDir, "rc.mjs"), renderRcMjs());
 writeFileChecked(path.join(distDir, "catalog.mjs"), renderRcMjs());
-writeFileChecked(path.join(distDir, "catalog.d.ts"), renderDts("rc"));
+writeFileChecked(path.join(distDir, "catalog.d.ts"), renderDts());
 writeFileChecked(path.join(distDir, "rc.js"), renderRcCjs());
-writeFileChecked(path.join(distDir, "rc.d.ts"), renderDts("rc"));
-writeFileChecked(path.join(distDir, "lit.mjs"), renderLitMjs());
-writeFileChecked(path.join(distDir, "lit.js"), renderLitCjs());
-writeFileChecked(path.join(distDir, "lit.d.ts"), renderDts("lit"));
+writeFileChecked(path.join(distDir, "rc.d.ts"), renderDts());
 writeFileChecked(path.join(distDir, "outline.mjs"), renderIconOutlines());
 writeFileChecked(path.join(distDir, "outline.d.ts"), renderIconOutlineTypes());
 // Editor geometry uses these catalogue glyphs outside a React root.
@@ -5061,13 +5008,23 @@ const nativeEditorIcons = [
   "CheckBoxUnIcon",
   "ToggleDownIcon",
   "ToggleRightIcon",
+  "ImageIcon",
+  "EdgelessIcon",
+  "FrameIcon",
+  "GroupIcon",
+  "WorkflowIcon",
+  "TextIcon",
+  "LayoutTemplateIcon",
+  "EmbedIcon",
+  "PageIcon",
+  "ShapeIcon",
 ];
 writeFileChecked(
   path.join(distDir, "native.mjs"),
   HEADER +
     nativeEditorIcons
       .map((name) => {
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" style="user-select:none;flex-shrink:0;">${iconParts(name).map(nodeToLit).join("")}</svg>`;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" style="user-select:none;flex-shrink:0;">${iconParts(name).map(nodeToSvg).join("")}</svg>`;
         return `export const ${name} = ${JSON.stringify(svg)};\n`;
       })
       .join(""),
@@ -5082,7 +5039,7 @@ writeFileChecked(
 writeFileChecked(path.join(distDir, "keywords", "en.json"), renderKeywords());
 writeFileChecked(path.join(distDir, "keywords.d.ts"), renderKeywordsDts());
 
-// Document exports consume the same glyph geometry without React, Lit or fonts.
+// Document exports consume the same glyph geometry without React or fonts.
 const documentIconsPath = path.resolve(
   packageDir,
   "../../server/static/icons/document-icons.json",
@@ -5099,7 +5056,7 @@ writeFileChecked(
       icons: await documentIconAssets(
         iconNames.map((name) => [
           name,
-          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="96" height="96" fill="none">${iconParts(name).map(nodeToLit).join("")}</svg>`.replaceAll(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="96" height="96" fill="none">${iconParts(name).map(nodeToSvg).join("")}</svg>`.replaceAll(
             "var(--myoxus-icon-stroke-width, 2)",
             "2",
           ),

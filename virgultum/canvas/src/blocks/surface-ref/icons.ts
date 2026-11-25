@@ -1,6 +1,4 @@
-import { html } from "lit";
-
-export const LightDeletedSmallBanner = html`<svg
+export const LightDeletedSmallBanner = `<svg
   width="204"
   height="66"
   viewBox="0 0 204 66"
@@ -102,7 +100,7 @@ export const LightDeletedSmallBanner = html`<svg
   </defs>
 </svg> `;
 
-export const DarkDeletedSmallBanner = html`<svg
+export const DarkDeletedSmallBanner = `<svg
   width="204"
   height="66"
   viewBox="0 0 204 66"

@@ -1,12 +1,7 @@
-import {
-  computed,
-  effect,
-  type ReadonlySignal,
-  signal,
-} from "@preact/signals-core";
+import { computed, effect, signal, untracked } from "@preact/signals-core";
 import { SurfaceBlockModel } from "@virgultum/canvas-runtime/surface";
 import {
-  CaptionedBlockComponent,
+  NativeCaptionedBlockComponent,
   SelectedStyle,
 } from "@virgultum/content/caption";
 import {
@@ -27,12 +22,8 @@ import {
 } from "@virgultum/core/services";
 import { matchModels } from "@virgultum/core/utils";
 import { BlockSelection } from "@virgultum/core/runtime";
-import { html, nothing } from "lit";
-import { query } from "lit/decorators.js";
-import { type ClassInfo, classMap } from "lit/directives/class-map.js";
-import { ifDefined } from "lit/directives/if-defined.js";
-import { styleMap } from "lit/directives/style-map.js";
 
+import type { IframeStatusCard } from "./components/iframe-status-card.js";
 import {
   openIframeLinkEditor,
   type EmbedLinkInputPopupOptions,
@@ -47,7 +38,7 @@ import { iframeSandbox, safeGetIframeSrc } from "./utils.js";
 
 export type EmbedIframeStatus = "idle" | "loading" | "success" | "error";
 
-export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIframeBlockModel> {
+export class EmbedIframeBlockComponent extends NativeCaptionedBlockComponent<EmbedIframeBlockModel> {
   private _text(message: EditorI18nMessage) {
     return resolveEditorMessage(
       message,
@@ -55,15 +46,13 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
     );
   }
 
-  selectedStyle$: ReadonlySignal<ClassInfo> | null = computed<ClassInfo>(
-    () => ({
-      "selected-style": this.selected$.value && this.isSuccess$.value,
-    }),
-  );
+  protected override blockStyles = embedIframeBlockStyles;
+  protected override useCaptionEditor = true;
+  protected override useZeroWidth = true;
+
+  protected showEditorSelection = true;
 
   blockDraggable = true;
-
-  static override styles = embedIframeBlockStyles;
 
   readonly status$ = signal<EmbedIframeStatus>("idle");
   readonly error$ = signal<Error | null>(null);
@@ -98,6 +87,17 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
   });
 
   protected iframeOptions: IframeOptions | undefined = undefined;
+  protected _edgelessWrapper: HTMLDivElement | null = null;
+  _blockContainer: HTMLElement | null = null;
+
+  constructor() {
+    super();
+    this.selectedStyle$.value = SelectedStyle.Border;
+    this.blockContainerStyles$.value = {
+      margin: "18px 0",
+      backgroundColor: "transparent",
+    };
+  }
 
   get embedIframeService() {
     return this.std.get(EmbedIframeService);
@@ -144,11 +144,9 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
         return false;
       }
 
-      // set loading status
       this.status$.value = "loading";
       this.error$.value = null;
 
-      // get embed data
       const embedIframeService = this.embedIframeService;
       const linkPreviewService = this.linkPreviewService;
       if (!embedIframeService || !linkPreviewService) {
@@ -158,13 +156,11 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
         );
       }
 
-      // get embed data and preview data in a promise
       const [embedData, previewData] = await Promise.all([
         embedIframeService.getEmbedIframeData(url),
         linkPreviewService.query(url),
       ]);
 
-      // if the embed data is not found, and the iframeUrl is not set, throw an error
       const currentIframeUrl = this.model.props.iframeUrl;
       if (!embedData && !currentIframeUrl) {
         throw new VirgultumError(
@@ -173,7 +169,6 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
         );
       }
 
-      // update model
       const iframeUrl = this._getIframeUrl(embedData) ?? currentIframeUrl;
       this.store.updateBlock(this.model, {
         iframeUrl,
@@ -181,14 +176,10 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
         description: embedData?.description || previewData?.description,
       });
 
-      // update iframe options, to ensure the iframe is rendered with the correct options
       this._updateIframeOptions(url);
-
-      // set success status
       this.status$.value = "success";
       return true;
     } catch (err) {
-      // set error status
       this.status$.value = "error";
       this.error$.value = err instanceof Error ? err : new Error(String(err));
       console.error("Failed to refresh iframe data:", err);
@@ -221,7 +212,6 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
       return;
     }
 
-    // toggle create popup when ths block is in idle status and the url is not set
     if (!this._blockContainer || !this.isIdle$.value || this.model.props.url) {
       return;
     }
@@ -242,12 +232,6 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
     );
   };
 
-  /**
-   * Get the iframe url from the embed data, first check if iframe_url is set,
-   * if not, check if html is set and get the iframe src from html
-   * @param embedData - The embed data
-   * @returns The iframe url
-   */
   private readonly _getIframeUrl = (embedData: EmbedIframeData | null) => {
     const { iframe_url, html } = embedData ?? {};
     return iframe_url ?? (html && safeGetIframeSrc(html));
@@ -255,11 +239,7 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
 
   private readonly _updateIframeOptions = (url: string) => {
     const config = this.embedIframeService?.getConfig(url);
-    if (config) {
-      this.iframeOptions = config.options;
-    } else {
-      this.iframeOptions = undefined;
-    }
+    this.iframeOptions = config ? config.options : undefined;
   };
 
   private readonly _handleDoubleClick = () => {
@@ -275,67 +255,21 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
   };
 
   protected _handleClick = () => {
-    // when the block is in idle status and the url is not set, clear the selection
-    // and show the link input popup
     if (this.isIdle$.value && !this.model.props.url) {
-      // when the block is in the surface, clear the surface selection
-      // otherwise, clear the block selection
       this.selectionManager.clear([this.inSurface ? "surface" : "block"]);
       this.toggleLinkInputPopup();
       return;
     }
 
-    // We don't need to select the block when the block is in the surface
     if (this.inSurface) {
       return;
     }
 
-    // otherwise, select the block
     this._selectBlock();
   };
 
   private readonly _handleRetry = async () => {
     return await this.refreshData();
-  };
-
-  private readonly _renderIframe = () => {
-    const { iframeUrl } = this.model.props;
-    const {
-      widthPercent,
-      heightInNote,
-      style,
-      allow,
-      referrerpolicy,
-      scrolling,
-      allowFullscreen,
-    } = this.iframeOptions ?? {};
-    const width = `${widthPercent}%`;
-    // if the block is in the surface, use 100% as the height
-    // otherwise, use the heightInNote
-    const height = this.inSurface ? "100%" : heightInNote;
-    const sandboxValue = iframeSandbox(
-      this.embedIframeService.getConfig(this.model.props.url),
-    );
-    const sourceHost = this._getSourceHost();
-    return html`<iframe
-        width=${width ?? DEFAULT_IFRAME_WIDTH}
-        height=${height ?? DEFAULT_IFRAME_HEIGHT}
-        ?allowfullscreen=${allowFullscreen}
-        loading="lazy"
-        frameborder="0"
-        credentialless
-        sandbox=${sandboxValue}
-        src=${ifDefined(iframeUrl)}
-        allow=${ifDefined(allow)}
-        referrerpolicy=${ifDefined(referrerpolicy)}
-        scrolling=${ifDefined(scrolling)}
-        style=${ifDefined(style)}
-      ></iframe>
-      ${
-        sourceHost
-          ? html`<div class="myoxus-embed-iframe-source">${sourceHost}</div>`
-          : nothing
-      }`;
   };
 
   private readonly _getSourceHost = () => {
@@ -349,56 +283,34 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
     }
   };
 
-  private readonly _renderContent = () => {
-    if (!this.isSuccess$.value) {
-      return html`<myoxus-embed-iframe-status-card
-        .std=${this.std}
-        .model=${this.model}
-        .status=${this.status$.value}
-        .error=${this.error$.value}
-        .onRetry=${this._handleRetry}
-        .inSurface=${this.inSurface}
-        .selected=${this.selected$.value}
-      ></myoxus-embed-iframe-status-card>`;
-    }
+  protected wrapContentHost(container: HTMLElement): HTMLElement {
+    return container;
+  }
 
-    return this._renderIframe();
-  };
-
-  override connectedCallback() {
-    super.connectedCallback();
-
+  protected override mountBlock(container: HTMLElement) {
     this.contentEditable = "false";
 
-    // update the selected style when the block is in the note
     this.disposables.add(
       effect(() => {
         if (this.inSurface) {
           return;
         }
-
-        // when the block is in idle status, use the background style
-        // otherwise, use the border style
-        if (this.status$.value === "idle") {
-          this.selectedStyle = SelectedStyle.Background;
-        } else {
-          this.selectedStyle = SelectedStyle.Border;
-        }
+        this.selectedStyle =
+          this.status$.value === "idle"
+            ? SelectedStyle.Background
+            : SelectedStyle.Border;
       }),
     );
 
-    // if the iframe url is not set, refresh the data to get the iframe url
     if (!this.model.props.iframeUrl) {
       this.store.withoutTransact(() => {
         this.refreshData().catch(console.error);
       });
     } else {
-      // update iframe options, to ensure the iframe is rendered with the correct options
       this._updateIframeOptions(this.model.props.url);
       this.status$.value = "success";
     }
 
-    // refresh data when original url changes
     this.disposables.add(
       this.model.propsUpdated.subscribe(({ key }) => {
         if (key === "url") {
@@ -407,8 +319,6 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
       }),
     );
 
-    // subscribe the editor host global dragging event
-    // to show the overlay for the dragging area or other pointer events
     this.handleEvent(
       "dragStart",
       () => {
@@ -423,49 +333,136 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
       },
       { global: true },
     );
+
+    const doc = this.ownerDocument;
+    const blockContainer = doc.createElement("div");
+    blockContainer.className = "myoxus-embed-iframe-block-container";
+    blockContainer.setAttribute(
+      "draggable",
+      this.blockDraggable ? "true" : "false",
+    );
+    this._blockContainer = blockContainer;
+
+    const contentSlot = doc.createElement("div");
+    contentSlot.style.display = "contents";
+    const overlay = doc.createElement("div");
+    overlay.className = "myoxus-embed-iframe-block-overlay";
+    blockContainer.append(contentSlot, overlay);
+
+    const hostTarget = this.wrapContentHost(container);
+    hostTarget.replaceChildren(blockContainer);
+
+    this.disposables.addFromEvent(blockContainer, "click", this._handleClick);
+    this.disposables.addFromEvent(
+      blockContainer,
+      "dblclick",
+      this._handleDoubleClick,
+    );
+
+    this.disposables.add(
+      effect(() => {
+        blockContainer.classList.toggle(
+          "selected-style",
+          this.showEditorSelection &&
+            this.selected$.value &&
+            this.isSuccess$.value,
+        );
+        blockContainer.classList.toggle("in-surface", this.inSurface);
+        blockContainer.style.borderRadius = `${this.selectedBorderRadius$.value}px`;
+        overlay.classList.toggle("show", this.showOverlay$.value);
+      }),
+    );
+
+    let statusCard: IframeStatusCard | null = null;
+    this.disposables.add(
+      effect(() => {
+        const isSuccess = this.isSuccess$.value;
+        void this.revision$.value;
+        const iframeUrl = this.model.props.iframeUrl;
+        const url = this.model.props.url;
+
+        untracked(() => {
+          if (!isSuccess) {
+            if (!statusCard) {
+              statusCard = doc.createElement(
+                "myoxus-embed-iframe-status-card",
+              ) as IframeStatusCard;
+              statusCard.std = this.std;
+              statusCard.model = this.model;
+              statusCard.onRetry = this._handleRetry;
+              contentSlot.replaceChildren(statusCard);
+            }
+            return;
+          }
+
+          statusCard = null;
+          const {
+            widthPercent,
+            heightInNote,
+            style,
+            allow,
+            referrerpolicy,
+            scrolling,
+            allowFullscreen,
+          } = this.iframeOptions ?? {};
+          const width =
+            widthPercent !== undefined
+              ? `${widthPercent}%`
+              : String(DEFAULT_IFRAME_WIDTH);
+          const height = this.inSurface
+            ? "100%"
+            : String(heightInNote ?? DEFAULT_IFRAME_HEIGHT);
+          const sandboxValue = iframeSandbox(
+            this.embedIframeService.getConfig(url),
+          );
+          const sourceHost = this._getSourceHost();
+
+          const iframe = doc.createElement("iframe");
+          iframe.setAttribute("width", width);
+          iframe.setAttribute("height", height);
+          if (allowFullscreen) iframe.allowFullscreen = true;
+          iframe.loading = "lazy";
+          iframe.setAttribute("frameborder", "0");
+          iframe.setAttribute("credentialless", "");
+          iframe.setAttribute("sandbox", sandboxValue);
+          if (iframeUrl !== undefined) iframe.setAttribute("src", iframeUrl);
+          if (allow !== undefined) iframe.setAttribute("allow", allow);
+          if (referrerpolicy !== undefined)
+            iframe.setAttribute("referrerpolicy", referrerpolicy);
+          if (scrolling !== undefined)
+            iframe.setAttribute("scrolling", String(scrolling));
+          if (style !== undefined) iframe.setAttribute("style", style);
+
+          if (sourceHost) {
+            const sourceEl = doc.createElement("div");
+            sourceEl.className = "myoxus-embed-iframe-source";
+            sourceEl.textContent = sourceHost;
+            contentSlot.replaceChildren(iframe, sourceEl);
+          } else {
+            contentSlot.replaceChildren(iframe);
+          }
+        });
+      }),
+    );
+
+    this.disposables.add(
+      effect(() => {
+        if (!statusCard) return;
+        statusCard.status = this.status$.value as "idle" | "loading" | "error";
+        statusCard.error = this.error$.value;
+        statusCard.inSurface = this.inSurface;
+        statusCard.selected = this.selected$.value;
+      }),
+    );
   }
 
   override disconnectedCallback() {
-    super.disconnectedCallback();
     this._linkInputAbortController?.abort();
     this._linkInputAbortController = null;
+    this._blockContainer = null;
+    this._edgelessWrapper = null;
+    super.disconnectedCallback();
   }
-
-  override renderBlock() {
-    const containerClasses = classMap({
-      "myoxus-embed-iframe-block-container": true,
-      ...this.selectedStyle$?.value,
-      "in-surface": this.inSurface,
-    });
-    const containerStyles = styleMap({
-      borderRadius: `${this.selectedBorderRadius$.value}px`,
-    });
-
-    const overlayClasses = classMap({
-      "myoxus-embed-iframe-block-overlay": true,
-      show: this.showOverlay$.value,
-    });
-
-    return html`
-      <div
-        draggable=${this.blockDraggable ? "true" : "false"}
-        class=${containerClasses}
-        style=${containerStyles}
-        @click=${this._handleClick}
-        @dblclick=${this._handleDoubleClick}
-      >
-        ${this._renderContent()}
-
-        <!-- overlay to prevent the iframe from capturing pointer events -->
-        <div class=${overlayClasses}></div>
-      </div>
-    `;
-  }
-
-  override accessor blockContainerStyles = {
-    margin: "18px 0",
-    backgroundColor: "transparent",
-  };
 
   get readonly() {
     return this.store.readonly;
@@ -474,13 +471,4 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
   get selectionManager() {
     return this.host.selection;
   }
-
-  override accessor useCaptionEditor = true;
-
-  override accessor useZeroWidth = true;
-
-  override accessor selectedStyle = SelectedStyle.Border;
-
-  @query(".myoxus-embed-iframe-block-container")
-  accessor _blockContainer: HTMLElement | null = null;
 }

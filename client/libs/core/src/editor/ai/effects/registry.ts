@@ -1,13 +1,4 @@
-export const sharedEffectElementTags = [
-  "ai-slides-renderer",
-  "chat-content-images",
-  "chat-content-rich-text",
-  "text-renderer",
-  "doc-compose-tool",
-  "code-artifact-tool",
-  "code-highlighter",
-  "artifact-preview-panel",
-] as const;
+export const sharedEffectElementTags = ["ai-slides-renderer"] as const;
 
 export type SharedEffectElementTag = (typeof sharedEffectElementTags)[number];
 
@@ -18,7 +9,6 @@ export const storedBlockTags = [
 ] as const;
 
 export const interactiveEditorTags = [
-  "ai-scrollable-text-renderer",
   "myoxus-block-diff-playground",
   "myoxus-ai-panel-widget",
   "myoxus-edgeless-copilot-widget",
@@ -34,13 +24,6 @@ export const editorEffectElementTags = [
 
 export type EditorEffectElementTag = (typeof editorEffectElementTags)[number];
 
-export const appEffectElementTags = [
-  "ai-chat-content",
-  "ai-chat-messages",
-  "ai-chat-input",
-  "ai-chat-composer",
-  "chat-panel-chips",
-  "ai-history-clear",
-] as const;
+export const appEffectElementTags = [] as const;
 
 export type AppEffectElementTag = (typeof appEffectElementTags)[number];

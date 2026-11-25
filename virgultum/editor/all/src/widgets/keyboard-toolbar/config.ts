@@ -1,44 +1,8 @@
-import { editorMessage, TelemetryProvider } from "@virgultum/core/services";
 import {
-  AttachmentIcon,
-  BoldIcon,
-  BulletedListIcon,
-  CheckBoxCheckLinearIcon,
-  CloseIcon,
-  CodeBlockIcon,
-  CodeIcon,
-  CollapseTabIcon,
-  CopyIcon,
-  DeleteIcon,
-  DividerIcon,
-  DuplicateIcon,
-  EmbedIcon,
-  FontIcon,
-  FrameIcon,
-  GroupIcon,
-  ImageIcon,
-  ItalicIcon,
-  LinkedPageIcon,
-  LinkIcon,
-  LoomLogoIcon,
-  NewPageIcon,
-  NowIcon,
-  NumberedListIcon,
-  PlusIcon,
-  QuoteIcon,
-  RedoIcon,
-  RightTabIcon,
-  StrikeThroughIcon,
-  TableIcon,
-  TeXIcon,
-  TextIcon,
-  TodayIcon,
-  TomorrowIcon,
-  UnderLineIcon,
-  UndoIcon,
-  YesterdayIcon,
-  YoutubeDuotoneIcon,
-} from "@myoxus/icons/lit";
+  type EditorKeyboardIcon,
+  editorMessage,
+  TelemetryProvider,
+} from "@virgultum/core/services";
 import { cssVar } from "@myoxus/theme";
 import { computed } from "@preact/signals-core";
 import { addSiblingAttachmentBlocks } from "@virgultum/embeds/blocks";
@@ -109,7 +73,6 @@ import {
 } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import type { MyoxusLinkedDocWidget } from "../linked-doc/index";
-import type { TemplateResult } from "lit";
 
 import {
   FigmaDuotoneIcon,
@@ -130,7 +93,7 @@ export type KeyboardToolbarItem =
   | KeyboardToolPanelConfig;
 
 export type KeyboardIconType =
-  TemplateResult | ((ctx: KeyboardToolbarContext) => TemplateResult);
+  EditorKeyboardIcon | ((ctx: KeyboardToolbarContext) => EditorKeyboardIcon);
 
 export type KeyboardToolbarActionItem = {
   name: string;
@@ -190,7 +153,7 @@ export type DynamicKeyboardToolPanelGroup = (
 const textToolActionItems: KeyboardToolbarActionItem[] = [
   {
     name: "Text",
-    icon: TextIcon(),
+    icon: "TextIcon",
     showWhen: ({ std }) =>
       std.store.schema.flavourSchemaMap.has("myoxus:paragraph"),
     action: ({ std }) => {
@@ -215,7 +178,7 @@ const textToolActionItems: KeyboardToolbarActionItem[] = [
   {
     name: "CodeBlock",
     showWhen: ({ std }) => std.store.schema.flavourSchemaMap.has("myoxus:code"),
-    icon: CodeBlockIcon(),
+    icon: "CodeBlockIcon",
     action: ({ std }) => {
       std.command.exec(updateBlockType, {
         flavour: "myoxus:code",
@@ -226,7 +189,7 @@ const textToolActionItems: KeyboardToolbarActionItem[] = [
     name: "Quote",
     showWhen: ({ std }) =>
       std.store.schema.flavourSchemaMap.has("myoxus:paragraph"),
-    icon: QuoteIcon(),
+    icon: "QuoteIcon",
     action: ({ std }) => {
       std.command.exec(updateBlockType, {
         flavour: "myoxus:paragraph",
@@ -236,7 +199,7 @@ const textToolActionItems: KeyboardToolbarActionItem[] = [
   },
   {
     name: "Divider",
-    icon: DividerIcon(),
+    icon: "DividerIcon",
     showWhen: ({ std }) =>
       std.store.schema.flavourSchemaMap.has("myoxus:divider"),
     action: ({ std }) => {
@@ -248,7 +211,7 @@ const textToolActionItems: KeyboardToolbarActionItem[] = [
   },
   {
     name: "Inline equation",
-    icon: TeXIcon(),
+    icon: "TeXIcon",
     showWhen: ({ std }) =>
       std.store.schema.flavourSchemaMap.has("myoxus:paragraph"),
     action: ({ std }) => {
@@ -261,7 +224,7 @@ const textToolActionItems: KeyboardToolbarActionItem[] = [
   },
   {
     name: "Table",
-    icon: TableIcon(),
+    icon: "TableIcon",
     showWhen: ({ std, rootComponent: { model } }) =>
       std.store.schema.flavourSchemaMap.has("myoxus:table") &&
       !isInsideBlockByFlavour(std.store, model, "myoxus:edgeless-text"),
@@ -286,7 +249,7 @@ const textToolActionItems: KeyboardToolbarActionItem[] = [
   },
   {
     name: "Callout",
-    icon: FontIcon(),
+    icon: "FontIcon",
     showWhen: ({ rootComponent: { model } }) => {
       return !isInsideBlockByFlavour(
         model.store,
@@ -321,7 +284,7 @@ const textToolActionItems: KeyboardToolbarActionItem[] = [
 const listToolActionItems: KeyboardToolbarActionItem[] = [
   {
     name: "BulletedList",
-    icon: BulletedListIcon(),
+    icon: "BulletedListIcon",
     showWhen: ({ std }) => std.store.schema.flavourSchemaMap.has("myoxus:list"),
     action: ({ std }) => {
       std.command.exec(updateBlockType, {
@@ -334,7 +297,7 @@ const listToolActionItems: KeyboardToolbarActionItem[] = [
   },
   {
     name: "NumberedList",
-    icon: NumberedListIcon(),
+    icon: "NumberedListIcon",
     showWhen: ({ std }) => std.store.schema.flavourSchemaMap.has("myoxus:list"),
     action: ({ std }) => {
       std.command.exec(updateBlockType, {
@@ -347,7 +310,7 @@ const listToolActionItems: KeyboardToolbarActionItem[] = [
   },
   {
     name: "CheckBox",
-    icon: CheckBoxCheckLinearIcon(),
+    icon: "CheckBoxCheckLinearIcon",
     showWhen: ({ std }) => std.store.schema.flavourSchemaMap.has("myoxus:list"),
     action: ({ std }) => {
       std.command.exec(updateBlockType, {
@@ -365,7 +328,7 @@ const pageToolGroup: KeyboardToolPanelGroup = {
   items: [
     {
       name: "NewPage",
-      icon: NewPageIcon(),
+      icon: "NewPageIcon",
       showWhen: ({ std }) =>
         std.store.schema.flavourSchemaMap.has("myoxus:embed-linked-doc"),
       action: ({ std }) => {
@@ -387,7 +350,7 @@ const pageToolGroup: KeyboardToolPanelGroup = {
     },
     {
       name: "LinkedPage",
-      icon: LinkedPageIcon(),
+      icon: "LinkedPageIcon",
       showWhen: ({ std, rootComponent }) => {
         const linkedDocWidget = std.view.getWidget(
           "myoxus-linked-doc-widget",
@@ -421,7 +384,7 @@ const contentMediaToolGroup: KeyboardToolPanelGroup = {
   items: [
     {
       name: "Image",
-      icon: ImageIcon(),
+      icon: "ImageIcon",
       showWhen: ({ std }) =>
         std.store.schema.flavourSchemaMap.has("myoxus:image"),
       action: ({ std }) => {
@@ -434,7 +397,7 @@ const contentMediaToolGroup: KeyboardToolPanelGroup = {
     },
     {
       name: "Link",
-      icon: LinkIcon(),
+      icon: "LinkIcon",
       showWhen: ({ std }) =>
         std.store.schema.flavourSchemaMap.has("myoxus:bookmark"),
       action: async ({ std }) => {
@@ -467,7 +430,7 @@ const contentMediaToolGroup: KeyboardToolPanelGroup = {
     },
     {
       name: "Attachment",
-      icon: AttachmentIcon(),
+      icon: "AttachmentIcon",
       showWhen: () => false,
       action: async ({ std }) => {
         const [_, { selectedModels }] = std.command.exec(
@@ -487,7 +450,7 @@ const contentMediaToolGroup: KeyboardToolPanelGroup = {
     },
     {
       name: "Equation",
-      icon: TeXIcon(),
+      icon: "TeXIcon",
       showWhen: ({ std }) =>
         std.store.schema.flavourSchemaMap.has("myoxus:latex"),
       action: ({ std }) => {
@@ -509,7 +472,7 @@ const embedToolGroup: KeyboardToolPanelGroup = {
   items: [
     {
       name: "Embed",
-      icon: EmbedIcon({ style: `color: black` }),
+      icon: "EmbedIcon",
       showWhen: ({ std }) => {
         return std.store.schema.flavourSchemaMap.has("myoxus:embed-iframe");
       },
@@ -531,9 +494,7 @@ const embedToolGroup: KeyboardToolPanelGroup = {
     },
     {
       name: "Youtube",
-      icon: YoutubeDuotoneIcon({
-        style: `color: white`,
-      }),
+      icon: "YoutubeDuotoneIcon",
       showWhen: ({ std }) =>
         std.store.schema.flavourSchemaMap.has("myoxus:embed-youtube"),
       action: async ({ std }) => {
@@ -566,7 +527,7 @@ const embedToolGroup: KeyboardToolPanelGroup = {
     },
     {
       name: "Github",
-      icon: CodeIcon({ style: `color: black` }),
+      icon: "CodeIcon",
       showWhen: ({ std }) =>
         std.store.schema.flavourSchemaMap.has("myoxus:embed-github"),
       action: async ({ std }) => {
@@ -633,7 +594,7 @@ const embedToolGroup: KeyboardToolPanelGroup = {
     },
     {
       name: "Loom",
-      icon: LoomLogoIcon({ style: `color: #625DF5` }),
+      icon: "LoomLogoIcon",
       showWhen: ({ std }) =>
         std.store.schema.flavourSchemaMap.has("myoxus:embed-loom"),
       action: async ({ std }) => {
@@ -666,7 +627,7 @@ const embedToolGroup: KeyboardToolPanelGroup = {
     },
     {
       name: "Equation",
-      icon: TeXIcon(),
+      icon: "TeXIcon",
       showWhen: ({ std }) =>
         std.store.schema.flavourSchemaMap.has("myoxus:latex"),
       action: ({ std }) => {
@@ -695,7 +656,7 @@ const documentGroupFrameToolGroup: DynamicKeyboardToolPanelGroup = ({
   const frameItems = frameModels.map<KeyboardToolbarActionItem>(
     (frameModel) => ({
       name: "Frame: " + frameModel.props.title.toString(),
-      icon: FrameIcon(),
+      icon: "FrameIcon",
       action: ({ std }) => {
         std.command
           .chain()
@@ -718,7 +679,7 @@ const documentGroupFrameToolGroup: DynamicKeyboardToolPanelGroup = ({
 
   const groupItems = groupElements.map<KeyboardToolbarActionItem>((group) => ({
     name: "Group: " + group.title.toString(),
-    icon: GroupIcon(),
+    icon: "GroupIcon",
     action: ({ std }) => {
       std.command
         .chain()
@@ -747,7 +708,7 @@ const dateToolGroup: KeyboardToolPanelGroup = {
   items: [
     {
       name: "Today",
-      icon: TodayIcon(),
+      icon: "TodayIcon",
       action: ({ std }) => {
         const [_, { selectedModels }] = std.command.exec(
           getSelectedModelsCommand,
@@ -760,7 +721,7 @@ const dateToolGroup: KeyboardToolPanelGroup = {
     },
     {
       name: "Tomorrow",
-      icon: TomorrowIcon(),
+      icon: "TomorrowIcon",
       action: ({ std }) => {
         const [_, { selectedModels }] = std.command.exec(
           getSelectedModelsCommand,
@@ -775,7 +736,7 @@ const dateToolGroup: KeyboardToolPanelGroup = {
     },
     {
       name: "Yesterday",
-      icon: YesterdayIcon(),
+      icon: "YesterdayIcon",
       action: ({ std }) => {
         const [_, { selectedModels }] = std.command.exec(
           getSelectedModelsCommand,
@@ -790,7 +751,7 @@ const dateToolGroup: KeyboardToolPanelGroup = {
     },
     {
       name: "Now",
-      icon: NowIcon(),
+      icon: "NowIcon",
       action: ({ std }) => {
         const [_, { selectedModels }] = std.command.exec(
           getSelectedModelsCommand,
@@ -806,8 +767,8 @@ const dateToolGroup: KeyboardToolPanelGroup = {
 
 const moreToolPanel: KeyboardToolPanelConfig = {
   name: "More",
-  icon: PlusIcon(),
-  activeIcon: CloseIcon(),
+  icon: "PlusIcon",
+  activeIcon: "CloseIcon",
   groups: [
     { name: "Basic", items: textToolActionItems },
     { name: "List", items: listToolActionItems },
@@ -821,7 +782,7 @@ const moreToolPanel: KeyboardToolPanelConfig = {
 
 const textToolPanel: KeyboardToolPanelConfig = {
   name: "Text",
-  icon: TextIcon(),
+  icon: "TextIcon",
   groups: [
     {
       name: "Turn into",
@@ -833,7 +794,7 @@ const textToolPanel: KeyboardToolPanelConfig = {
 const textStyleToolItems: KeyboardToolbarItem[] = [
   {
     name: "Bold",
-    icon: BoldIcon(),
+    icon: "BoldIcon",
     active: ({ std }) => {
       const [_, { textAttributes }] = std.command.exec(getTextAttributes);
       return !!textAttributes?.bold;
@@ -844,7 +805,7 @@ const textStyleToolItems: KeyboardToolbarItem[] = [
   },
   {
     name: "Italic",
-    icon: ItalicIcon(),
+    icon: "ItalicIcon",
     active: ({ std }) => {
       const [_, { textAttributes }] = std.command.exec(getTextAttributes);
       return !!textAttributes?.italic;
@@ -855,7 +816,7 @@ const textStyleToolItems: KeyboardToolbarItem[] = [
   },
   {
     name: "UnderLine",
-    icon: UnderLineIcon(),
+    icon: "UnderLineIcon",
     active: ({ std }) => {
       const [_, { textAttributes }] = std.command.exec(getTextAttributes);
       return !!textAttributes?.underline;
@@ -866,7 +827,7 @@ const textStyleToolItems: KeyboardToolbarItem[] = [
   },
   {
     name: "StrikeThrough",
-    icon: StrikeThroughIcon(),
+    icon: "StrikeThroughIcon",
     active: ({ std }) => {
       const [_, { textAttributes }] = std.command.exec(getTextAttributes);
       return !!textAttributes?.strike;
@@ -877,7 +838,7 @@ const textStyleToolItems: KeyboardToolbarItem[] = [
   },
   {
     name: "Code",
-    icon: CodeIcon(),
+    icon: "CodeIcon",
     active: ({ std }) => {
       const [_, { textAttributes }] = std.command.exec(getTextAttributes);
       return !!textAttributes?.code;
@@ -888,7 +849,7 @@ const textStyleToolItems: KeyboardToolbarItem[] = [
   },
   {
     name: "Link",
-    icon: LinkIcon(),
+    icon: "LinkIcon",
     active: ({ std }) => {
       const [_, { textAttributes }] = std.command.exec(getTextAttributes);
       return !!textAttributes?.link;
@@ -1005,13 +966,13 @@ const highlightToolPanel: KeyboardToolPanelConfig = {
 
 const textSubToolbarConfig: KeyboardSubToolbarConfig = {
   name: "Text",
-  icon: FontIcon(),
+  icon: "FontIcon",
   items: [
     textToolPanel,
     ...textStyleToolItems,
     {
       name: "InlineTex",
-      icon: TeXIcon(),
+      icon: "TeXIcon",
       action: ({ std }) => {
         std.command
           .chain()
@@ -1040,7 +1001,7 @@ export const defaultKeyboardToolbarConfig: KeyboardToolbarConfig = {
     textSubToolbarConfig,
     {
       name: "Image",
-      icon: ImageIcon(),
+      icon: "ImageIcon",
       showWhen: ({ std }) =>
         std.store.schema.flavourSchemaMap.has("myoxus:image"),
       action: ({ std }) => {
@@ -1053,7 +1014,7 @@ export const defaultKeyboardToolbarConfig: KeyboardToolbarConfig = {
     },
     {
       name: "Attachment",
-      icon: AttachmentIcon(),
+      icon: "AttachmentIcon",
       showWhen: () => false,
       action: async ({ std }) => {
         const [_, { selectedModels }] = std.command.exec(
@@ -1073,7 +1034,7 @@ export const defaultKeyboardToolbarConfig: KeyboardToolbarConfig = {
     },
     {
       name: "Undo",
-      icon: UndoIcon(),
+      icon: "UndoIcon",
       disableWhen: ({ std }) => !std.store.canUndo,
       action: ({ std }) => {
         std.store.undo();
@@ -1081,7 +1042,7 @@ export const defaultKeyboardToolbarConfig: KeyboardToolbarConfig = {
     },
     {
       name: "Redo",
-      icon: RedoIcon(),
+      icon: "RedoIcon",
       disableWhen: ({ std }) => !std.store.canRedo,
       action: ({ std }) => {
         std.store.redo();
@@ -1089,7 +1050,7 @@ export const defaultKeyboardToolbarConfig: KeyboardToolbarConfig = {
     },
     {
       name: "RightTab",
-      icon: RightTabIcon(),
+      icon: "RightTabIcon",
       disableWhen: ({ std }) => {
         const [success] = std.command
           .chain()
@@ -1114,7 +1075,7 @@ export const defaultKeyboardToolbarConfig: KeyboardToolbarConfig = {
     ...textToolActionItems.filter(({ name }) => name === "Divider"),
     {
       name: "CollapseTab",
-      icon: CollapseTabIcon(),
+      icon: "CollapseTabIcon",
       disableWhen: ({ std }) => {
         const [success] = std.command
           .chain()
@@ -1137,7 +1098,7 @@ export const defaultKeyboardToolbarConfig: KeyboardToolbarConfig = {
     },
     {
       name: "Copy",
-      icon: CopyIcon(),
+      icon: "CopyIcon",
       action: ({ std }) => {
         std.command
           .chain()
@@ -1157,7 +1118,7 @@ export const defaultKeyboardToolbarConfig: KeyboardToolbarConfig = {
     },
     {
       name: "Duplicate",
-      icon: DuplicateIcon(),
+      icon: "DuplicateIcon",
       action: ({ std }) => {
         std.command
           .chain()
@@ -1168,7 +1129,7 @@ export const defaultKeyboardToolbarConfig: KeyboardToolbarConfig = {
     },
     {
       name: "Delete",
-      icon: DeleteIcon(),
+      icon: "DeleteIcon",
       action: ({ std }) => {
         std.command
           .chain()

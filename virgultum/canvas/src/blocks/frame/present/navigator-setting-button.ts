@@ -1,8 +1,11 @@
+import { effect, signal, type Signal } from "@preact/signals-core";
 import { EdgelessLegacySlotIdentifier } from "@virgultum/canvas-runtime/surface";
-import { WithDisposable, SignalWatcher } from "@virgultum/core/primitives/lit";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import {
   EditPropsStore,
   EditorChromeHostIdentifier,
+  type EditorCanvasMenuControls,
+  type EditorCanvasToolControls,
   editorMessage,
   EditorI18nProvider,
   resolveEditorMessage,
@@ -11,14 +14,52 @@ import {
 import { createButtonPopper } from "@virgultum/core/utils";
 import {
   type BlockComponent,
-  ShadowlessElement,
+  NativeViewElement,
 } from "@virgultum/core/runtime";
-import { css, html, nothing } from "lit";
-import { property, query, state } from "lit/decorators.js";
+import type { EdgelessFrameOrderMenu } from "./frame-order-menu.js";
 
-export class EdgelessNavigatorSettingButton extends SignalWatcher(
-  WithDisposable(ShadowlessElement),
-) {
+// The owning popper controls visibility; native chrome owns appearance and density.
+const navigatorSettingStyles = `
+  edgeless-navigator-setting-button .navigator-setting-menu {
+    display: none;
+  }
+  edgeless-navigator-setting-button .navigator-setting-menu[data-show] {
+    display: block;
+  }
+`;
+
+export class EdgelessNavigatorSettingButton extends NativeViewElement {
+  private _disposables = new DisposableGroup();
+  private readonly _revision$ = signal(0);
+  private _bound = false;
+  private _domReady = false;
+  private _blackBackground = false;
+  private _edgeless!: BlockComponent;
+  private _hideToolbar = false;
+  private _includeFrameOrder = false;
+  private _onHideToolbarChange: undefined | ((hideToolbar: boolean) => void) =
+    undefined;
+  private _popperShow = false;
+  private _setPopperShow: (show: boolean) => void = () => {};
+
+  private _navigatorSettingButton!: HTMLSpanElement;
+  private _navigatorSettingMenu!: HTMLDivElement;
+  private _embeddedFrameOrder: EdgelessFrameOrderMenu | null = null;
+  private _toolChrome?: {
+    host: HTMLSpanElement;
+    state$: Signal<EditorCanvasToolControls | null>;
+    unmount: () => void;
+  };
+  private _menuChrome?: {
+    host: HTMLSpanElement;
+    state$: Signal<EditorCanvasMenuControls | null>;
+    unmount: () => void;
+  };
+
+  private _navigatorSettingPopper?: ReturnType<
+    typeof createButtonPopper
+  > | null = null;
+
   private _text(message: EditorI18nMessage) {
     return resolveEditorMessage(
       message,
@@ -26,19 +67,83 @@ export class EdgelessNavigatorSettingButton extends SignalWatcher(
     );
   }
 
-  // The owning popper controls visibility; native chrome owns appearance and density.
-  static override styles = css`
-    edgeless-navigator-setting-button .navigator-setting-menu {
-      display: none;
-    }
-    edgeless-navigator-setting-button .navigator-setting-menu[data-show] {
-      display: block;
-    }
-  `;
+  get blackBackground() {
+    return this._blackBackground;
+  }
 
-  private _navigatorSettingPopper?: ReturnType<
-    typeof createButtonPopper
-  > | null = null;
+  set blackBackground(value: boolean) {
+    if (this._blackBackground === value) return;
+    this._blackBackground = value;
+    this._requestUpdate();
+  }
+
+  get edgeless() {
+    return this._edgeless;
+  }
+
+  set edgeless(value: BlockComponent) {
+    if (this._edgeless === value) return;
+    this._edgeless = value;
+    if (this._embeddedFrameOrder) {
+      this._embeddedFrameOrder.edgeless = value;
+    }
+    if (this.isConnected) {
+      this._ensureBound();
+      this._requestUpdate();
+    }
+  }
+
+  get hideToolbar() {
+    return this._hideToolbar;
+  }
+
+  set hideToolbar(value: boolean) {
+    if (this._hideToolbar === value) return;
+    this._hideToolbar = value;
+    this._requestUpdate();
+  }
+
+  get includeFrameOrder() {
+    return this._includeFrameOrder;
+  }
+
+  set includeFrameOrder(value: boolean) {
+    if (this._includeFrameOrder === value) return;
+    this._includeFrameOrder = value;
+    this._requestUpdate();
+  }
+
+  get onHideToolbarChange() {
+    return this._onHideToolbarChange;
+  }
+
+  set onHideToolbarChange(value: undefined | ((hideToolbar: boolean) => void)) {
+    this._onHideToolbarChange = value;
+    this._requestUpdate();
+  }
+
+  get popperShow() {
+    return this._popperShow;
+  }
+
+  set popperShow(value: boolean) {
+    if (this._popperShow === value) return;
+    this._popperShow = value;
+    this._requestUpdate();
+  }
+
+  get setPopperShow() {
+    return this._setPopperShow;
+  }
+
+  set setPopperShow(value: (show: boolean) => void) {
+    this._setPopperShow = value;
+    this._requestUpdate();
+  }
+
+  private _requestUpdate() {
+    this._revision$.value = this._revision$.peek() + 1;
+  }
 
   private readonly _onBlackBackgroundChange = (checked: boolean) => {
     this.blackBackground = checked;
@@ -58,14 +163,33 @@ export class EdgelessNavigatorSettingButton extends SignalWatcher(
     this.blackBackground = blackBackground ?? false;
   }
 
-  override disconnectedCallback(): void {
-    super.disconnectedCallback();
-    this._navigatorSettingPopper?.dispose();
-    this._navigatorSettingPopper = null;
+  private _ensureDom() {
+    if (this._domReady) return;
+    this._domReady = true;
+    const style = this.ownerDocument.createElement("style");
+    style.textContent = navigatorSettingStyles;
+    this._navigatorSettingButton = this.ownerDocument.createElement("span");
+    this._navigatorSettingButton.className = "navigator-setting-button";
+    this._navigatorSettingMenu = this.ownerDocument.createElement("div");
+    this._navigatorSettingMenu.className = "navigator-setting-menu";
+    this._navigatorSettingMenu.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+    this.append(
+      style,
+      this._navigatorSettingButton,
+      this._navigatorSettingMenu,
+    );
   }
 
-  override firstUpdated() {
-    if (this.edgeless) this._tryRestoreSettings();
+  private _ensureBound() {
+    if (this._bound || !this.isConnected || !this._edgeless) return;
+    this._bound = true;
+    if (this._disposables.disposed) {
+      this._disposables = new DisposableGroup();
+    }
+    this._ensureDom();
+    this._tryRestoreSettings();
     this._navigatorSettingPopper = createButtonPopper({
       reference: this._navigatorSettingButton,
       popperElement: this._navigatorSettingMenu,
@@ -74,138 +198,152 @@ export class EdgelessNavigatorSettingButton extends SignalWatcher(
     });
     // A remounted popper starts closed; do not retain the previous session's expanded flag.
     this.setPopperShow(false);
+
+    this._disposables.add(
+      effect(() => {
+        void this._revision$.value;
+        if (!this.isConnected || !this._edgeless) return;
+        this._paint();
+      }),
+    );
   }
 
-  override render() {
-    return html`
-      <span class="navigator-setting-button">
-        ${
-          this.edgeless.std
-            .getOptional(EditorChromeHostIdentifier)
-            ?.renderCanvasTool({
-              action: {
-                id: "presentation-settings",
+  connectedCallback(): void {
+    this._ensureBound();
+  }
+
+  disconnectedCallback(): void {
+    this._navigatorSettingPopper?.dispose();
+    this._navigatorSettingPopper = null;
+    if (this._toolChrome) {
+      this._toolChrome.unmount();
+      this._toolChrome.host.remove();
+      this._toolChrome = undefined;
+    }
+    if (this._menuChrome) {
+      this._menuChrome.unmount();
+      this._menuChrome.host.remove();
+      this._menuChrome = undefined;
+    }
+    this._disposables.dispose();
+    this._bound = false;
+  }
+
+  private _paint() {
+    const chrome = this.edgeless.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
+    const i18n = this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined;
+    void i18n?.locale$.value;
+
+    const toolControls: EditorCanvasToolControls = {
+      action: {
+        id: "presentation-settings",
+        label: this._text(
+          editorMessage("com.myoxus.sidebar.outline.settings", "Settings"),
+        ),
+        icon: "SettingsIcon",
+        disabled: false,
+        run: () => this._navigatorSettingPopper?.toggle(),
+      },
+      expanded: this.popperShow,
+    };
+
+    if (!this._toolChrome) {
+      const host = this.ownerDocument.createElement("span");
+      host.style.display = "contents";
+      this._navigatorSettingButton.append(host);
+      const state$ = signal<EditorCanvasToolControls | null>(toolControls);
+      const unmount = chrome.mountCanvasTool(host, state$);
+      this._toolChrome = { host, state$, unmount };
+    } else {
+      this._toolChrome.state$.value = toolControls;
+    }
+
+    const menuControls: EditorCanvasMenuControls = {
+      actions: [
+        {
+          id: "presentation-settings-label",
+          label: this._text(
+            editorMessage(
+              "com.myoxus.sidebar.frame.playback-settings",
+              "Playback Settings",
+            ),
+          ),
+          disabled: false,
+        },
+        {
+          id: "presentation-dark-background",
+          label: this._text(
+            editorMessage(
+              "com.myoxus.sidebar.frame.dark-background",
+              "Black background",
+            ),
+          ),
+          disabled: false,
+          control: {
+            type: "toggle",
+            checked: this.blackBackground,
+            change: this._onBlackBackgroundChange,
+          },
+        },
+        {
+          id: "presentation-hide-toolbar",
+          label: this._text(
+            editorMessage(
+              "com.myoxus.sidebar.frame.hide-toolbar",
+              "Hide toolbar",
+            ),
+          ),
+          disabled: false,
+          control: {
+            type: "toggle",
+            checked: this.hideToolbar,
+            change: (checked: boolean) => this.onHideToolbarChange?.(checked),
+          },
+        },
+        ...(this.includeFrameOrder
+          ? [
+              {
+                id: "presentation-frame-order-label",
                 label: this._text(
                   editorMessage(
-                    "com.myoxus.sidebar.outline.settings",
-                    "Settings",
+                    "com.myoxus.editor.presentation.frame-order",
+                    "Frame Order",
                   ),
                 ),
-                icon: "SettingsIcon",
                 disabled: false,
-                run: () => this._navigatorSettingPopper?.toggle(),
               },
-              expanded: this.popperShow,
-            }) ?? nothing
-        }
-      </span>
+            ]
+          : []),
+      ],
+    };
 
-      <div
-        class="navigator-setting-menu"
-        @click=${(e: MouseEvent) => {
-          e.stopPropagation();
-        }}
-      >
-        ${
-          this.edgeless.std
-            .getOptional(EditorChromeHostIdentifier)
-            ?.renderCanvasMenu({
-              actions: [
-                {
-                  id: "presentation-settings-label",
-                  label: this._text(
-                    editorMessage(
-                      "com.myoxus.sidebar.frame.playback-settings",
-                      "Playback Settings",
-                    ),
-                  ),
-                  disabled: false,
-                },
-                {
-                  id: "presentation-dark-background",
-                  label: this._text(
-                    editorMessage(
-                      "com.myoxus.sidebar.frame.dark-background",
-                      "Black background",
-                    ),
-                  ),
-                  disabled: false,
-                  control: {
-                    type: "toggle",
-                    checked: this.blackBackground,
-                    change: this._onBlackBackgroundChange,
-                  },
-                },
-                {
-                  id: "presentation-hide-toolbar",
-                  label: this._text(
-                    editorMessage(
-                      "com.myoxus.sidebar.frame.hide-toolbar",
-                      "Hide toolbar",
-                    ),
-                  ),
-                  disabled: false,
-                  control: {
-                    type: "toggle",
-                    checked: this.hideToolbar,
-                    change: (checked: boolean) =>
-                      this.onHideToolbarChange?.(checked),
-                  },
-                },
-                ...(this.includeFrameOrder
-                  ? [
-                      {
-                        id: "presentation-frame-order-label",
-                        label: this._text(
-                          editorMessage(
-                            "com.myoxus.editor.presentation.frame-order",
-                            "Frame Order",
-                          ),
-                        ),
-                        disabled: false,
-                      },
-                    ]
-                  : []),
-              ],
-            }) ?? nothing
-        }
-        ${
-          this.includeFrameOrder
-            ? html` <edgeless-frame-order-menu
-                .edgeless=${this.edgeless}
-                .embed=${true}
-              ></edgeless-frame-order-menu>`
-            : nothing
-        }
-      </div>
-    `;
+    if (!this._menuChrome) {
+      const host = this.ownerDocument.createElement("span");
+      host.style.display = "contents";
+      this._navigatorSettingMenu.insertBefore(
+        host,
+        this._navigatorSettingMenu.firstChild,
+      );
+      const state$ = signal<EditorCanvasMenuControls | null>(menuControls);
+      const unmount = chrome.mountCanvasMenu(host, state$);
+      this._menuChrome = { host, state$, unmount };
+    } else {
+      this._menuChrome.state$.value = menuControls;
+    }
+
+    if (this.includeFrameOrder) {
+      if (!this._embeddedFrameOrder) {
+        this._embeddedFrameOrder = this.ownerDocument.createElement(
+          "edgeless-frame-order-menu",
+        );
+        this._embeddedFrameOrder.embed = true;
+        this._navigatorSettingMenu.append(this._embeddedFrameOrder);
+      }
+      this._embeddedFrameOrder.edgeless = this.edgeless;
+    } else if (this._embeddedFrameOrder) {
+      this._embeddedFrameOrder.remove();
+      this._embeddedFrameOrder = null;
+    }
   }
-
-  @query(".navigator-setting-button")
-  private accessor _navigatorSettingButton!: HTMLElement;
-
-  @query(".navigator-setting-menu")
-  private accessor _navigatorSettingMenu!: HTMLElement;
-
-  @state()
-  accessor blackBackground = false;
-
-  @property({ attribute: false })
-  accessor edgeless!: BlockComponent;
-
-  @property({ attribute: false })
-  accessor hideToolbar = false;
-
-  @property({ attribute: false })
-  accessor includeFrameOrder = false;
-
-  @property({ attribute: false })
-  accessor onHideToolbarChange: undefined | ((hideToolbar: boolean) => void) =
-    undefined;
-
-  @property({ attribute: false })
-  accessor popperShow = false;
-
-  @property({ attribute: false })
-  accessor setPopperShow: (show: boolean) => void = () => {};
 }

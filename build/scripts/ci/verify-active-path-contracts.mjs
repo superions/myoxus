@@ -68,7 +68,6 @@ const negativeContractFiles = new Set([
   "build/scripts/ci/verify-server-source-provenance.mjs",
   "build/scripts/ci/verify-ui-framework-dependency-graph.mjs",
   "build/scripts/frontends/verify-prebuilt-static.sh",
-  "client/libs/lit-react/src/lit-react-package-contract.spec.ts",
 ]);
 
 const generatedContractFiles = new Set([

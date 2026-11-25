@@ -1,7 +1,6 @@
 import { unsafeCSSVar } from "@virgultum/core/theme";
-import { css } from "lit";
 
-export const styles = css`
+export const styles = `
   .myoxus-attachment-container {
     box-sizing: border-box;
     user-select: none;

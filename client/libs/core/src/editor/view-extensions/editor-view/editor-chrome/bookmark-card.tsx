@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import { useState } from "react";
+import type { ReadonlySignal } from "@preact/signals-core";
+import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
 import { useI18n } from "@myoxus/i18n";
 import { OpenInNewIcon, WebIcon } from "@myoxus/icons/react";
 import { cssVar } from "@myoxus/theme";
@@ -125,4 +127,13 @@ function BookmarkIcon({ src }: { src: string | null }) {
   ) : (
     <WebIcon />
   );
+}
+
+export function RegisteredBookmarkCard({
+  state,
+}: {
+  state: ReadonlySignal<EditorBookmarkCardControls | null>;
+}) {
+  const controls = useSignalValue(state);
+  return controls && <EditorBookmarkCard controls={controls} />;
 }

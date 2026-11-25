@@ -103,7 +103,6 @@ path = [
   "libs/core/src/components/hooks/myoxus-async-hooks.ts",
   "libs/core/src/components/hooks/myoxus/__tests__/use-sign-out.spec.ts",
   "libs/core/src/components/hooks/myoxus/use-ai-chat-config.ts",
-  "libs/core/src/components/hooks/myoxus/use-ai-specs.ts",
   "libs/core/src/components/hooks/myoxus/use-document-operations.ts",
   "libs/core/src/components/hooks/myoxus/use-enable-ai.ts",
   "libs/core/src/components/hooks/myoxus/use-enable-server.tsx",
@@ -489,34 +488,28 @@ path = [
   "libs/core/src/editor/ai/blocks/transcription-block/model.ts",
   "libs/core/src/editor/ai/chat-panel/chat-config.ts",
   "libs/core/src/editor/ai/components/ai-chat-add-context/type.ts",
-  "libs/core/src/editor/ai/components/ai-chat-chips/chat-panel-chips.ts",
+  "libs/core/src/editor/ai/components/ai-chat-chips/chat-panel-chips.tsx",
   "libs/core/src/editor/ai/components/ai-chat-chips/type.ts",
   "libs/core/src/editor/ai/components/ai-chat-chips/utils.ts",
-  "libs/core/src/editor/ai/components/ai-chat-composer/ai-chat-composer.ts",
-  "libs/core/src/editor/ai/components/ai-chat-content/ai-chat-content.ts",
+  "libs/core/src/editor/ai/components/ai-chat-composer/ai-chat-composer.tsx",
+  "libs/core/src/editor/ai/components/ai-chat-content/ai-chat-content.tsx",
   "libs/core/src/editor/ai/components/ai-chat-content/type.ts",
-  "libs/core/src/editor/ai/components/ai-chat-input/ai-chat-input.ts",
+  "libs/core/src/editor/ai/components/ai-chat-input/ai-chat-input.tsx",
   "libs/core/src/editor/ai/components/ai-chat-input/const.ts",
   "libs/core/src/editor/ai/components/ai-chat-input/type.ts",
-  "libs/core/src/editor/ai/components/ai-chat-messages/ai-chat-messages.ts",
+  "libs/core/src/editor/ai/components/ai-chat-messages/ai-chat-messages.tsx",
   "libs/core/src/editor/ai/components/ai-chat-messages/type.ts",
-  "libs/core/src/editor/ai/components/ai-history-clear/ai-history-clear.ts",
+  "libs/core/src/editor/ai/components/ai-history-clear/ai-history-clear.tsx",
   "libs/core/src/editor/ai/components/ai-item/types.ts",
-  "libs/core/src/editor/ai/components/ai-message-content/images.ts",
-  "libs/core/src/editor/ai/components/ai-message-content/rich-text.ts",
-  "libs/core/src/editor/ai/components/ai-message-content/stream-objects.ts",
+  "libs/core/src/editor/ai/components/ai-message-content/stream-objects.tsx",
   "libs/core/src/editor/ai/components/ai-message-content/stream-parts.tsx",
-  "libs/core/src/editor/ai/components/ai-scrollable-text-renderer.ts",
-  "libs/core/src/editor/ai/components/ai-tools/artifact-tool.ts",
-  "libs/core/src/editor/ai/components/ai-tools/artifacts-preview-panel.ts",
-  "libs/core/src/editor/ai/components/ai-tools/code-artifact.ts",
-  "libs/core/src/editor/ai/components/ai-tools/doc-compose.ts",
+  "libs/core/src/editor/ai/components/ai-scrollable-text-renderer.tsx",
+  "libs/core/src/editor/ai/components/ai-tools/code-artifact.tsx",
+  "libs/core/src/editor/ai/components/ai-tools/doc-compose.tsx",
   "libs/core/src/editor/ai/components/ai-tools/type.ts",
   "libs/core/src/editor/ai/components/image-preview-grid.ts",
-  "libs/core/src/editor/ai/components/page-editor-block-specs.ts",
-  "libs/core/src/editor/ai/components/playground/chat.ts",
-  "libs/core/src/editor/ai/components/playground/content.ts",
-  "libs/core/src/editor/ai/components/text-renderer.ts",
+  "libs/core/src/editor/ai/components/playground/chat.tsx",
+  "libs/core/src/editor/ai/components/playground/content.tsx",
   "libs/core/src/editor/ai/effects/editor.ts",
   "libs/core/src/editor/ai/effects/registry.ts",
   "libs/core/src/editor/ai/effects/shared.ts",
@@ -565,6 +558,7 @@ path = [
   "libs/core/src/editor/ai/utils/get-edgeless-copilot-widget.ts",
   "libs/core/src/editor/ai/utils/image.ts",
   "libs/core/src/editor/ai/utils/selection-utils.ts",
+  "libs/core/src/editor/uni-react-root.tsx",
   "libs/core/src/editor/ai/utils/stream-objects.ts",
   "libs/core/src/editor/ai/widgets/ai-panel/ai-panel.ts",
   "libs/core/src/editor/ai/widgets/ai-panel/type.ts",
@@ -1645,11 +1639,6 @@ path = [
   "libs/infra/src/utils/throw-if-aborted.ts",
   "libs/infra/src/utils/yjs-observable.ts",
   "libs/infra/tsconfig.json",
-  "libs/lit-react/src/lit-portal/index.ts",
-  "libs/lit-react/src/lit-portal/lit-portal.tsx",
-  "libs/lit-react/src/lit-portal/uni-component.tsx",
-  "libs/lit-react/src/to-react-node.ts",
-  "libs/lit-react/src/utils.ts",
   "libs/local-store/storage/src/blob.rs",
   "libs/local-store/storage/src/blob_sync.rs",
   "libs/local-store/storage/src/doc.rs",
@@ -2601,7 +2590,6 @@ path = [
   "libs/core/src/editor/ai/components/ai-chat-messages/index.ts",
   "libs/core/src/editor/ai/components/ai-chat-toolbar/index.ts",
   "libs/core/src/editor/ai/components/ai-history-clear/index.ts",
-  "libs/core/src/editor/ai/components/playground/index.ts",
   "libs/core/src/editor/ai/effects/app.ts",
   "libs/core/src/editor/ai/entries/index.ts",
   "libs/core/src/editor/ai/extensions/ai-code.ts",
@@ -3182,16 +3170,12 @@ path = [
   "libs/icons/src/assets/platform/browser-favicon.svg",
   "libs/icons/src/index.ts",
   "libs/icons/src/keywords/en.ts",
-  "libs/icons/src/lit.ts",
   "libs/icons/src/names.ts",
   "libs/icons/src/react.ts",
   "libs/icons/tsconfig.json",
   "libs/infra/src/account-preference-cache.spec.ts",
   "libs/infra/src/account-preference-cache.ts",
   "libs/infra/src/utils/__tests__/object-pool.spec.ts",
-  "libs/lit-react/package.json",
-  "libs/lit-react/src/index.ts",
-  "libs/lit-react/src/lit-react-package-contract.spec.ts",
   "libs/media-capture/Cargo.toml",
   "libs/media-capture/NOTICE.md",
   "libs/media-capture/build.rs",
@@ -3283,8 +3267,6 @@ path = [
   "libs/ui-facade/src/helpers/observe-resize.ts",
   "libs/ui-facade/src/helpers/shallow-equal.spec.ts",
   "libs/ui-facade/src/helpers/shallow-equal.ts",
-  "libs/ui-facade/src/helpers/template-to-string.spec.ts",
-  "libs/ui-facade/src/helpers/template-to-string.ts",
   "libs/ui-facade/src/helpers/ui-role.ts",
   "libs/ui-facade/src/helpers/use-disposable.ts",
   "libs/ui-facade/src/icon-picker.spec.tsx",
@@ -3571,13 +3553,6 @@ path = [
 precedence = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText  = "2018 Google LLC"
-SPDX-License-Identifier = "BSD-3-Clause"
-X-Myoxus-Origin         = "T1"
-path                    = ["libs/lit-react/src/create-component.ts"]
-precedence              = "override"
-
-[[annotations]]
 SPDX-FileCopyrightText = ["2026-present Daniel Scharf and Myoxus contributors"]
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
@@ -3638,7 +3613,9 @@ path = [
   "libs/core/src/editor/ai/components/ai-chat-input/view.tsx",
   "libs/core/src/editor/ai/components/ai-chat-toolbar/session-history.tsx",
   "libs/core/src/editor/ai/components/ai-chat-toolbar/toolbar.tsx",
+  "libs/core/src/editor/ai/components/ai-message-content/images.tsx",
   "libs/core/src/editor/ai/components/ai-message-content/reasoning.tsx",
+  "libs/core/src/editor/ai/components/ai-tools/preview-context.tsx",
   "libs/core/src/editor/ai/components/ai-tools/tool-call-card-view.tsx",
   "libs/core/src/editor/ai/components/ai-tools/tool-failed-card-view.tsx",
   "libs/core/src/editor/ai/components/ai-tools/tool-result-card-view.tsx",
@@ -6003,3 +5980,15 @@ SPDX-FileCopyrightText  = "2026-present Daniel Scharf and Myoxus contributors"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin         = "M0"
 path                    = ["libs/core/src/editor/virgultum/doc-editor/page-block-copy.ts"]
+
+[[annotations]]
+SPDX-FileCopyrightText  = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin         = "M0"
+path                    = ["libs/core/src/editor/portal.tsx"]
+
+[[annotations]]
+SPDX-FileCopyrightText  = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin         = "M0"
+path                    = ["libs/core/src/editor/virgultum/doc-editor/page-remote-presence.tsx"]

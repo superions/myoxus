@@ -1410,22 +1410,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lit-labs/ssr-dom-shim@npm:^1.2.0":
-  version: 1.3.0
-  resolution: "@lit-labs/ssr-dom-shim@npm:1.3.0"
-  checksum: 10/a15c5d145a20f367a392cff91f2091ffe54457119ac26569670bbbe32760f86d1e250f865dc1bd0604641106376776c4862a8fff9adb44f9881b510747c08680
-  languageName: node
-  linkType: hard
-
-"@lit/reactive-element@npm:^2.1.0":
-  version: 2.1.0
-  resolution: "@lit/reactive-element@npm:2.1.0"
-  dependencies:
-    "@lit-labs/ssr-dom-shim": "npm:^1.2.0"
-  checksum: 10/c13dbc370550b8f3cbdfff3524c4bf58fbda6e91689951ca376104d95c80df96182e0b1c9480786740711f67493f50166d261c79b020eb7a4a10b6794921c790
-  languageName: node
-  linkType: hard
-
 "@malept/cross-spawn-promise@npm:^2.0.0":
   version: 2.0.0
   resolution: "@malept/cross-spawn-promise@npm:2.0.0"
@@ -1785,7 +1769,6 @@ __metadata:
     "@myoxus/i18n": "workspace:*"
     "@myoxus/icons": "workspace:*"
     "@myoxus/infra": "workspace:*"
-    "@myoxus/lit-react": "workspace:*"
     "@myoxus/reader": "workspace:*"
     "@myoxus/storage": "workspace:*"
     "@myoxus/theme": "workspace:*"
@@ -1820,7 +1803,6 @@ __metadata:
     idb: "npm:^8.0.0"
     jotai: "npm:^2.10.3"
     katex: "npm:0.18.2"
-    lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
     mediabunny: "npm:1.50.9"
     nanoid: "npm:6.0.1"
@@ -2007,11 +1989,8 @@ __metadata:
   dependencies:
     "@virgultum/icons": "workspace:*"
   peerDependencies:
-    lit: ^3.1.1
     react: ^18.2.0 || ^19.0.0
   peerDependenciesMeta:
-    lit:
-      optional: true
     react:
       optional: true
   languageName: unknown
@@ -2075,20 +2054,6 @@ __metadata:
     react-router: "npm:7.18.4"
     typescript: "npm:7.0.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-  languageName: unknown
-  linkType: soft
-
-"@myoxus/lit-react@workspace:*, @myoxus/lit-react@workspace:client/libs/lit-react":
-  version: 0.0.0-use.local
-  resolution: "@myoxus/lit-react@workspace:client/libs/lit-react"
-  dependencies:
-    "@virgultum/core": "workspace:*"
-    lit: "npm:^3.3.3"
-    nanoid: "npm:6.0.1"
-    react: "npm:19.3.0"
-    react-dom: "npm:19.3.0"
-    typescript: "npm:7.0.2"
-    vitest: "npm:4.1.12"
   languageName: unknown
   linkType: soft
 
@@ -5114,7 +5079,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/trusted-types@npm:^2.0.2, @types/trusted-types@npm:^2.0.7":
+"@types/trusted-types@npm:^2.0.7":
   version: 2.0.7
   resolution: "@types/trusted-types@npm:2.0.7"
   checksum: 10/8e4202766a65877efcf5d5a41b7dd458480b36195e580a3b1085ad21e948bc417d55d6f8af1fd2a7ad008015d4117d5fdfe432731157da3c68678487174e4ba3
@@ -5380,7 +5345,6 @@ __metadata:
     "@virgultum/core": "workspace:*"
     "@virgultum/embeds": "workspace:*"
     fractional-indexing: "npm:^3.2.0"
-    lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.12"
@@ -5408,7 +5372,6 @@ __metadata:
     "@virgultum/core": "workspace:*"
     collapse-white-space: "npm:^2.1.0"
     katex: "npm:0.18.2"
-    lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
     prettier: "npm:3.9.9"
     remark-math: "npm:^6.0.0"
@@ -5441,7 +5404,6 @@ __metadata:
     fractional-indexing: "npm:^3.2.0"
     idb: "npm:^8.0.0"
     lib0: "npm:^0.2.119"
-    lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
     lz-string: "npm:^1.5.0"
     mdast-util-from-markdown: "npm:^2.0.3"
@@ -5495,7 +5457,6 @@ __metadata:
     "@zip.js/zip.js": "npm:2.24.0"
     dompurify: "npm:3.4.17"
     html2canvas: "npm:^1.4.1"
-    lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     vite: "npm:8.3.6"
@@ -5520,7 +5481,6 @@ __metadata:
     "@virgultum/content": "workspace:*"
     "@virgultum/core": "workspace:*"
     file-type: "npm:22.1.1"
-    lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.12"
@@ -5538,11 +5498,8 @@ __metadata:
     react: "npm:19.3.0"
     react-dom: "npm:19.3.0"
   peerDependencies:
-    lit: ^3.1.1
     react: ^18.2.0 || ^19.0.0
   peerDependenciesMeta:
-    lit:
-      optional: true
     react:
       optional: true
   languageName: unknown
@@ -5558,7 +5515,6 @@ __metadata:
     "@myoxus/env": "workspace:*"
     "@myoxus/i18n": "workspace:*"
     "@myoxus/icons": "workspace:*"
-    "@myoxus/lit-react": "workspace:*"
     "@myoxus/theme": "workspace:*"
     "@myoxus/ui-facade": "workspace:*"
     "@preact/signals-core": "npm:^1.14.5"
@@ -8111,37 +8067,6 @@ __metadata:
   bin:
     lint-staged: bin/lint-staged.js
   checksum: 10/e959c4af383f26db7dc567e4454313f1f94e5450fdd560586b9345331b16916bf8c8176c1f2fd9eec071e6882e37ec9ab76fcb67df7d71c62ad856ea6bcc040e
-  languageName: node
-  linkType: hard
-
-"lit-element@npm:^4.2.0":
-  version: 4.2.0
-  resolution: "lit-element@npm:4.2.0"
-  dependencies:
-    "@lit-labs/ssr-dom-shim": "npm:^1.2.0"
-    "@lit/reactive-element": "npm:^2.1.0"
-    lit-html: "npm:^3.3.0"
-  checksum: 10/0760140f9cf7eb71e327f04d51a41e3ae4c3fca2ddccca05fa3458d67124a2008044ef3d3812d021e2297ba8b3af7c06fa56b03860877bc09567c334b9d390ad
-  languageName: node
-  linkType: hard
-
-"lit-html@npm:^3.3.0":
-  version: 3.3.3
-  resolution: "lit-html@npm:3.3.3"
-  dependencies:
-    "@types/trusted-types": "npm:^2.0.2"
-  checksum: 10/d8fc4ccd983ad5c32e5efa98687e6be90dbfb29863ecda124d18452545854fdd97c8b06679182d8fbb2324e5db9ba1e210724e1d3e279545357b031e94ec9139
-  languageName: node
-  linkType: hard
-
-"lit@npm:^3.3.3":
-  version: 3.3.3
-  resolution: "lit@npm:3.3.3"
-  dependencies:
-    "@lit/reactive-element": "npm:^2.1.0"
-    lit-element: "npm:^4.2.0"
-    lit-html: "npm:^3.3.0"
-  checksum: 10/238a6574447f6499b7a4c6e30a4da89907b095ea48d6291fb1de570e937745b84550ced459f9c51632c3010c964403e2d6ebe65caf1500f03779b6049f229f12
   languageName: node
   linkType: hard
 

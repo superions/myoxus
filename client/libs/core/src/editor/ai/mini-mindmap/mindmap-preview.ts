@@ -1,103 +1,218 @@
 // SPDX-License-Identifier: MIT
-import { WithDisposable } from "@virgultum/editor/global/lit";
-import type { EditorHost } from "@virgultum/editor/std";
-import { html, LitElement, nothing, type PropertyValues } from "lit";
-import { property, state } from "lit/decorators.js";
+import { signal } from "@preact/signals-core";
 import {
   MermaidFamilyReactHostIdentifier,
+  type MermaidViewBinding,
+  mermaidMessages as m,
   mermaidMindmapRendererToken,
   MindmapDesign,
+  type PreparedMindmapTree,
   prepareMindmapTree,
   readMermaidSourceLimit,
-  mermaidMessages as m,
-  type PreparedMindmapTree,
 } from "@virgultum/block-mermaid";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import { NativeViewElement } from "@virgultum/core/primitives/env";
+import type { EditorHost } from "@virgultum/editor/std";
+import type { ReactNode } from "react";
+
 import { markdownToMindmap } from "./markdown.js";
 export { markdownToMindmap } from "./markdown.js";
 
 /** AI state remains a local candidate. Confirmed document writes belong to the
  * existing response/insert consumers, never to rendering or streaming. */
-export class MiniMindmapPreview extends WithDisposable(LitElement) {
-  @property({ attribute: false }) accessor answer = "";
-  @property({ attribute: false }) accessor ctx!: {
+export class MiniMindmapPreview extends NativeViewElement {
+  disposables = new DisposableGroup();
+
+  private _answer = "";
+  private _ctx!: {
     get(): Record<string, unknown>;
     set(data: Record<string, unknown>): void;
   };
-  @property({ attribute: false }) accessor height = 400;
-  @property({ attribute: false }) accessor host!: EditorHost;
-  @property({ attribute: false }) accessor mindmapStyle:
-    MindmapDesign | undefined;
-  @property({ attribute: false }) accessor templateShow = true;
-  @state() private accessor _limit: number | null = null;
-  @state() private accessor _design = MindmapDesign.FOUR;
+  private _height = 400;
+  private _host!: EditorHost;
+  private _mindmapStyle: MindmapDesign | undefined;
+  private _templateShow = true;
+  private _limit: number | null = null;
+  private _design = MindmapDesign.FOUR;
   private _candidate: PreparedMindmapTree | null = null;
   private _error: string | null = null;
-  override connectedCallback() {
-    super.connectedCallback();
+
+  private _mountHost: HTMLDivElement | null = null;
+  private _unmount: (() => void) | null = null;
+  private _mountedHost: EditorHost | null = null;
+  private readonly _view$ = signal<ReactNode>(null);
+
+  get answer(): string {
+    return this._answer;
+  }
+  set answer(value: string) {
+    if (this._answer === value) return;
+    this._answer = value;
+    this._recompute();
+  }
+
+  get ctx() {
+    return this._ctx;
+  }
+  set ctx(value: {
+    get(): Record<string, unknown>;
+    set(data: Record<string, unknown>): void;
+  }) {
+    this._ctx = value;
+  }
+
+  get height(): number {
+    return this._height;
+  }
+  set height(value: number) {
+    if (this._height === value) return;
+    this._height = value;
+    this._renderView();
+  }
+
+  get host(): EditorHost {
+    return this._host;
+  }
+  set host(value: EditorHost) {
+    const changed = this._host !== value;
+    this._host = value;
+    if (changed && this.isConnected) {
+      this._bindHost();
+      this._recompute();
+    }
+  }
+
+  get mindmapStyle(): MindmapDesign | undefined {
+    return this._mindmapStyle;
+  }
+  set mindmapStyle(value: MindmapDesign | undefined) {
+    if (this._mindmapStyle === value) return;
+    this._mindmapStyle = value;
+    if (value !== undefined) {
+      this._design = value;
+    }
+    this._recompute();
+  }
+
+  get templateShow(): boolean {
+    return this._templateShow;
+  }
+  set templateShow(value: boolean) {
+    if (this._templateShow === value) return;
+    this._templateShow = value;
+    this._renderView();
+  }
+
+  private _recompute() {
+    if (!this._host || this._limit === null) {
+      this._renderView();
+      return;
+    }
+    this._candidate = null;
+    this._error = null;
+    try {
+      if (this._answer.length > this._limit) throw new Error("source-limit");
+      const node = markdownToMindmap(
+        this._answer,
+        this._host.store,
+        this._host.std.store.provider,
+      );
+      if (!node) throw new Error("mindmap-tree");
+      this._candidate = prepareMindmapTree(node, this._limit, this._design);
+      this._ctx?.set({ node, style: this._design });
+    } catch {
+      this._ctx?.set({ node: null });
+      this._error = m.visualMutationSourceRejected("mindmap");
+    }
+    this._renderView();
+  }
+
+  private _renderView() {
+    const mermaidHost = this._host?.std.getOptional(
+      MermaidFamilyReactHostIdentifier,
+    );
+    if (!mermaidHost) {
+      this._view$.value = null;
+      return;
+    }
+    if (this._error) {
+      this._view$.value = mermaidHost.renderShellNotice({
+        title: m.errorTitle(),
+        message: this._error,
+        tone: "error",
+      });
+      return;
+    }
+    if (!this._candidate) {
+      this._view$.value = m.loading();
+      return;
+    }
+    this._view$.value = mermaidHost.renderFamilyEditor(
+      mermaidMindmapRendererToken,
+      {
+        surface: "preview",
+        host: this._host,
+        model: this._candidate.model,
+        design: this._design,
+        height: this._height,
+        showDesigns: this._templateShow,
+        onDesignChange: (design) => {
+          this._design = design;
+          this._recompute();
+        },
+      },
+    );
+  }
+
+  private _bindHost() {
+    if (!this._host || !this._mountHost) return;
+    if (this._mountedHost === this._host) return;
+    this._unmount?.();
+    this._unmount = null;
+    this._mountedHost = this._host;
+    const mermaidHost = this._host.std.getOptional(
+      MermaidFamilyReactHostIdentifier,
+    );
+    if (mermaidHost) {
+      const binding: MermaidViewBinding = {
+        subscribe: (notify) => this._view$.subscribe(notify),
+        getSnapshot: () => this._view$.value,
+      };
+      this._unmount = mermaidHost.mount(this._mountHost, binding);
+    }
+  }
+
+  connectedCallback() {
+    if (this.disposables.disposed) {
+      this.disposables = new DisposableGroup();
+    }
+    if (!this._mountHost) {
+      this._mountHost = this.ownerDocument.createElement("div");
+      this._mountHost.style.display = "contents";
+      this.replaceChildren(this._mountHost);
+    }
+    this._bindHost();
+    this._renderView();
+
     readMermaidSourceLimit()
       .then((limit) => {
-        if (this.isConnected) this._limit = limit;
+        if (this.isConnected) {
+          this._limit = limit;
+          this._recompute();
+        }
       })
       .catch(() => {
         if (this.isConnected) {
           this._error = m.errorTitle();
-          this.requestUpdate();
+          this._renderView();
         }
       });
   }
-  protected override willUpdate(changed: PropertyValues) {
-    if (changed.has("mindmapStyle") && this.mindmapStyle !== undefined)
-      this._design = this.mindmapStyle;
-    if (!this.host || this._limit === null) return;
-    if (
-      changed.has("answer") ||
-      changed.has("host") ||
-      changed.has("_limit") ||
-      changed.has("_design") ||
-      changed.has("mindmapStyle")
-    ) {
-      this._candidate = null;
-      this._error = null;
-      try {
-        if (this.answer.length > this._limit) throw new Error("source-limit");
-        const node = markdownToMindmap(
-          this.answer,
-          this.host.store,
-          this.host.std.store.provider,
-        );
-        if (!node) throw new Error("mindmap-tree");
-        this._candidate = prepareMindmapTree(node, this._limit, this._design);
-        this.ctx?.set({ node, style: this._design });
-      } catch {
-        this.ctx?.set({ node: null });
-        this._error = m.visualMutationSourceRejected("mindmap");
-      }
-    }
-  }
-  override render() {
-    if (this._error)
-      return (
-        this.host?.std
-          .getOptional(MermaidFamilyReactHostIdentifier)
-          ?.renderShellNotice({
-            title: m.errorTitle(),
-            message: this._error,
-            tone: "error",
-          }) ?? nothing
-      );
-    if (!this._candidate) return html`${m.loading()}`;
-    return this.host.std
-      .get(MermaidFamilyReactHostIdentifier)
-      .renderFamilyEditor(mermaidMindmapRendererToken, {
-        surface: "preview",
-        host: this.host,
-        model: this._candidate.model,
-        design: this._design,
-        height: this.height,
-        showDesigns: this.templateShow,
-        onDesignChange: (design) => {
-          this._design = design;
-        },
-      });
+
+  disconnectedCallback() {
+    this._unmount?.();
+    this._unmount = null;
+    this._mountedHost = null;
+    this.disposables.dispose();
   }
 }

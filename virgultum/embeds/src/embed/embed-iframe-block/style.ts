@@ -1,6 +1,4 @@
-import { css } from "lit";
-
-export const embedIframeBlockStyles = css`
+export const embedIframeBlockStyles = `
   .myoxus-embed-iframe-block-container {
     display: flex;
     width: 100%;

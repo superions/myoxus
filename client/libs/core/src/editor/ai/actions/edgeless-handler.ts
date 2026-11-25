@@ -21,8 +21,8 @@ import {
   GfxControllerIdentifier,
   type GfxModel,
 } from "@virgultum/editor/std/gfx";
+import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import { type BlockModel, Slice } from "@virgultum/editor/store";
-import type { TemplateResult } from "lit";
 
 import { getContentFromSlice } from "../../utils";
 import { AIChatBlockModel } from "../blocks";
@@ -317,7 +317,7 @@ function updateEdgelessAIPanelConfig<
   aiPanel: MyoxusAIPanelWidget,
   edgelessCopilot: EdgelessCopilotWidget,
   id: T,
-  generatingIcon: TemplateResult<1>,
+  generatingIcon: MyoxusIconExportName,
   ctx: AIContext,
   variants?: Omit<
     Parameters<VirgultumPresets.AIActions[T]>[0],
@@ -379,7 +379,7 @@ function updateEdgelessAIPanelConfig<
 
 export function actionToHandler<T extends keyof VirgultumPresets.AIActions>(
   id: T,
-  generatingIcon: TemplateResult<1>,
+  generatingIcon: MyoxusIconExportName,
   variants?: Omit<
     Parameters<VirgultumPresets.AIActions[T]>[0],
     keyof VirgultumPresets.AITextActionOptions

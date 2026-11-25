@@ -21,7 +21,7 @@ const sourceRoots = [
   "virgultum/editor",
 ];
 
-const iconModules = new Set(["@myoxus/icons/react", "@myoxus/icons/lit"]);
+const iconModules = new Set(["@myoxus/icons/react", "@myoxus/icons/native"]);
 
 const ignoredDirectoryNames = new Set([
   ".git",
@@ -127,7 +127,7 @@ export function runIconUsageSelfTest() {
     "fixture.tsx",
     [
       'import { IconA as A, type IconType } from "@myoxus/icons/react";',
-      'import * as Icons from "@myoxus/icons/lit";',
+      'import * as Icons from "@myoxus/icons/native";',
       "const first = <A />;",
       "const second = A;",
       "const third = <Icons.IconB />;",
@@ -182,7 +182,7 @@ export function analyzeIconUsage({ limit } = {}) {
   return {
     methodology: {
       description:
-        "Static TypeScript/JavaScript identifier references to named or namespace imports from @myoxus/icons/react and @myoxus/icons/lit.",
+        "Static TypeScript/JavaScript identifier references to named or namespace imports from @myoxus/icons/react and @myoxus/icons/native.",
       sourceRoots,
       excluded:
         "Generated output, dist/out/output, node_modules, fixtures, tests, specs, stories and test directories.",

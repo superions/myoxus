@@ -6,7 +6,7 @@ import { patchMermaidFamilyReactHost } from "@myoxus/core/editor/view-extensions
 import { patchEditorChromeHost } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome";
 import { setupGlobal } from "@myoxus/env/global";
 import { getOrCreateI18n, I18nextProvider } from "@myoxus/i18n";
-import { useLitPortalFactory } from "@myoxus/lit-react";
+import { usePortalFactory } from "@myoxus/core/editor/portal";
 import { MyoxusEmbeddedUIProvider } from "@myoxus/ui-facade/provider";
 import type { ExtensionType } from "@virgultum/editor/store";
 import { MermaidFamilyReactHostIdentifier } from "@virgultum/editor/blocks/mermaid";
@@ -21,9 +21,9 @@ function ChromeHost({
   root: HTMLElement;
   bind: (extension: ExtensionType) => void;
 }) {
-  const [reactToLit, portals, mountPortal] = useLitPortalFactory();
+  const [portals, mountPortal] = usePortalFactory();
   const extension = useMemo(() => {
-    const chrome = patchEditorChromeHost(reactToLit, mountPortal);
+    const chrome = patchEditorChromeHost(mountPortal);
     const mermaid = patchMermaidFamilyReactHost(mountPortal);
     return {
       setup(di) {
@@ -33,7 +33,7 @@ function ChromeHost({
         if (!di.getFactory(MermaidFamilyReactHostIdentifier)) mermaid.setup(di);
       },
     } satisfies ExtensionType;
-  }, [reactToLit, mountPortal]);
+  }, [mountPortal]);
   useLayoutEffect(() => bind(extension), [extension, bind]);
   return (
     <I18nextProvider i18n={getOrCreateI18n()}>

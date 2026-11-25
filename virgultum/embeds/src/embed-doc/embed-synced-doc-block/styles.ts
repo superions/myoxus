@@ -1,9 +1,7 @@
 import { embedNoteContentStyles } from "../../embed/index";
 import { EMBED_CARD_HEIGHT } from "@virgultum/core/consts";
-import { unsafeCSSVar } from "@virgultum/core/theme";
-import { css } from "lit";
 
-export const blockStyles = css`
+export const blockStyles = `
   myoxus-embed-synced-doc-block {
     --embed-padding: 24px;
   }
@@ -55,7 +53,7 @@ export const blockStyles = css`
     overflow: hidden;
   }
   .myoxus-embed-synced-doc-container.comment-highlighted {
-    outline: 2px solid ${unsafeCSSVar("primaryColor")};
+    outline: 2px solid var(--myoxus-primary-color);
   }
   .myoxus-embed-synced-doc-container.show-hover-border:hover {
     border-color: var(--myoxus-border-color);
@@ -111,7 +109,7 @@ export const blockStyles = css`
   }
   .myoxus-embed-synced-doc-icon {
     line-height: 0;
-    color: ${unsafeCSSVar("iconColor")};
+    color: var(--myoxus-icon-color);
   }
   .myoxus-embed-synced-doc-title {
     font-size: 14px;
@@ -161,8 +159,8 @@ export const blockStyles = css`
   }
 
   .myoxus-embed-synced-doc-container.surface {
-    border-color: ${unsafeCSSVar("borderColor")};
-    background: ${unsafeCSSVar("backgroundPrimaryColor")};
+    border-color: var(--myoxus-border-color);
+    background: var(--myoxus-background-primary-color);
 
     myoxus-preview-root {
       padding: 0 24px;
@@ -198,7 +196,7 @@ export const blockStyles = css`
 `;
 
 // Nested preview clipping and image geometry remain renderer-owned.
-export const cardStyles = css`
+export const cardStyles = `
   .myoxus-embed-synced-doc-card {
     height: 100%;
     user-select: none;

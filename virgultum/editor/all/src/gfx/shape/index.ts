@@ -11,7 +11,6 @@ export {
   EdgelessToolbarShapeDraggable,
   EdgelessShapeMenu,
   EdgelessShapeToolButton,
-  EdgelessShapeToolElement,
   shape,
   ShapeElementRendererExtension,
   type Colors,

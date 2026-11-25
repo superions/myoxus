@@ -11,7 +11,6 @@ import { createIdentifier } from "../primitives/di/index";
 import type { ExtensionType } from "../store/index";
 import type { MyoxusHostService } from "./host/myoxus-host-service";
 import type { ReferenceIconName } from "./doc-display-meta-service";
-import type { TemplateResult } from "lit";
 
 export type EditorZoomState = Readonly<{
   zoom: number;
@@ -288,11 +287,14 @@ export type EditorFrameTitleControls = {
   edit: (event: MouseEvent) => void;
 };
 
+export type EditorKeyboardIcon =
+  MyoxusIconExportName | Readonly<{ svg: string }>;
+
 /** Commands and artwork are resolved in the editor; native controls own their visual state. */
 export type EditorKeyboardAction = Readonly<{
   id: string;
   label: string;
-  icon: TemplateResult;
+  icon: EditorKeyboardIcon;
   active?: boolean;
   disabled?: boolean;
   run: () => void;
@@ -347,7 +349,10 @@ export type EditorCanvasToolControls = {
   };
   expanded?: boolean;
   separatorBefore?: boolean;
-  artwork?: TemplateResult;
+  /** Static SVG markup for retained canvas tool artwork. */
+  artworkSvg?: string;
+  /** Mounts a live native DOM artwork element into the tool button slot. */
+  mountArtwork?: (host: HTMLElement) => (() => void) | void;
   nativeArtwork?: unknown;
   /** Retained artwork and drag hit boxes, not theme spacing. */
   artworkBounds?: Readonly<{ width: number; height: number }>;
@@ -358,6 +363,11 @@ export type EditorCanvasMenuControls = {
   tools?: readonly EditorCanvasToolControls[];
   actions: readonly SelectionAction[];
 };
+
+export type EditorCanvasTemplatePreview =
+  | Readonly<{ kind: "svg"; markup: string }>
+  | Readonly<{ kind: "image"; src: string }>
+  | Readonly<{ kind: "fallback" }>;
 
 /** Snapshot of the existing catalog; template jobs and placement stay in Virgultum. */
 export type EditorCanvasTemplateControls = {
@@ -371,7 +381,7 @@ export type EditorCanvasTemplateControls = {
   items: readonly {
     id: string;
     label: string;
-    preview: TemplateResult;
+    preview: EditorCanvasTemplatePreview;
     loading: boolean;
     dragging: boolean;
     mouseDown: (element: HTMLElement, event: MouseEvent) => void;
@@ -384,8 +394,6 @@ export type EditorCanvasTemplateControls = {
 export type EditorAutoCompleteTriggerControls = {
   label: string;
   icon?: MyoxusIconExportName;
-  /** Existing family-owned renderer artwork is not normal button chrome. */
-  artwork?: TemplateResult;
   preview: (active: boolean) => void;
   pointerDown: (event: PointerEvent) => void;
   activate: () => void;
@@ -422,65 +430,120 @@ export type EditorTableControl = {
 };
 
 export type EditorChromeHost = {
-  renderTableControl: (controls: EditorTableControl) => TemplateResult;
-  renderAutoCompleteTrigger: (
-    controls: EditorAutoCompleteTriggerControls,
-  ) => TemplateResult;
-  renderAutoCompletePanel: (
-    controls: EditorAutoCompletePanelControls,
-  ) => TemplateResult;
-  renderAutoConnectLabel: (
-    controls: EditorAutoConnectLabelControls,
-  ) => TemplateResult;
-  renderAutoConnectNavigator: (
-    controls: EditorAutoConnectNavigatorControls,
-  ) => TemplateResult;
-  renderCanvasTemplates: (
-    controls: EditorCanvasTemplateControls,
-  ) => TemplateResult;
-  renderCanvasMenu: (controls: EditorCanvasMenuControls) => TemplateResult;
+  mountTableControl: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorTableControl | null>,
+  ) => () => void;
+  mountAutoCompleteTrigger: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorAutoCompleteTriggerControls | null>,
+  ) => () => void;
+  mountAutoCompletePanel: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorAutoCompletePanelControls | null>,
+  ) => () => void;
+  mountAutoConnectLabel: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorAutoConnectLabelControls | null>,
+  ) => () => void;
+  mountAutoConnectNavigator: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorAutoConnectNavigatorControls | null>,
+  ) => () => void;
+  mountCanvasTemplates: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorCanvasTemplateControls | null>,
+  ) => () => void;
+  mountCanvasMenu: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorCanvasMenuControls | null>,
+  ) => () => void;
   mountCanvasToolbar: (
     anchor: HTMLElement,
     state: ReadonlySignal<EditorCanvasToolbarControls | null>,
   ) => () => void;
-  renderCanvasTool: (controls: EditorCanvasToolControls) => TemplateResult;
-  renderKeyboardToolbar: (
-    controls: EditorKeyboardToolbarControls,
-  ) => TemplateResult;
-  renderKeyboardPanel: (
-    controls: EditorKeyboardPanelControls,
-  ) => TemplateResult;
-  renderFrameOrder: (controls: EditorFrameOrderControls) => TemplateResult;
-  renderFrameNavigator: (
-    controls: EditorFrameNavigatorControls,
-  ) => TemplateResult;
-  renderFrameCard: (controls: EditorFrameCardControls) => TemplateResult;
-  renderFrameTitle: (controls: EditorFrameTitleControls) => TemplateResult;
+  mountCanvasTool: (
+    anchor: HTMLElement,
+    state:
+      | EditorCanvasToolControls
+      | ReadonlySignal<EditorCanvasToolControls | null>,
+  ) => () => void;
+  mountKeyboardToolbar: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorKeyboardToolbarControls | null>,
+  ) => () => void;
+  mountKeyboardPanel: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorKeyboardPanelControls | null>,
+  ) => () => void;
+  mountFrameOrder: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorFrameOrderControls | null>,
+  ) => () => void;
+  mountFrameNavigator: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorFrameNavigatorControls | null>,
+  ) => () => void;
+  mountFrameCard: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorFrameCardControls | null>,
+  ) => () => void;
+  mountFrameTitle: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorFrameTitleControls | null>,
+  ) => () => void;
   mountCodePreview: (
     anchor: HTMLElement,
     controls: EditorCodePreviewControls,
   ) => () => void;
-  renderImageFallback: (
-    controls: EditorImageFallbackControls,
-  ) => TemplateResult;
-  renderDocumentCard: (controls: EditorDocumentCardControls) => TemplateResult;
-  renderAttachmentCard: (
-    controls: EditorAttachmentCardControls,
-  ) => TemplateResult;
-  renderBookmarkCard: (controls: EditorBookmarkCardControls) => TemplateResult;
-  renderGithubCard: (controls: EditorGithubCardControls) => TemplateResult;
+  mountImageFallback: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorImageFallbackControls | null>,
+  ) => () => void;
+  mountDocumentCard: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorDocumentCardControls | null>,
+  ) => () => void;
+  mountAttachmentCard: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorAttachmentCardControls | null>,
+  ) => () => void;
+  mountBookmarkCard: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorBookmarkCardControls | null>,
+  ) => () => void;
+  mountGithubCard: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorGithubCardControls | null>,
+  ) => () => void;
   mountEventReference: (
     anchor: HTMLElement,
     controls: EditorEventReference,
   ) => () => void;
-  renderHtmlFullscreenToolbar: (
-    controls: EditorHtmlFullscreenControls,
-  ) => TemplateResult;
-  renderYoutubeCard: (controls: EditorYoutubeCardControls) => TemplateResult;
-  renderFigmaCard: (controls: EditorFigmaCardControls) => TemplateResult;
-  renderLoomCard: (controls: EditorLoomCardControls) => TemplateResult;
-  renderDocumentOutline: (controls: EditorOutlineControls) => TemplateResult;
-  renderOutlineEntry: (controls: EditorOutlineEntryControls) => TemplateResult;
+  mountHtmlFullscreenToolbar: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorHtmlFullscreenControls | null>,
+  ) => () => void;
+  mountYoutubeCard: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorYoutubeCardControls | null>,
+  ) => () => void;
+  mountFigmaCard: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorFigmaCardControls | null>,
+  ) => () => void;
+  mountLoomCard: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorLoomCardControls | null>,
+  ) => () => void;
+  mountDocumentOutline: (
+    anchor: HTMLElement,
+    controls: EditorOutlineControls,
+  ) => () => void;
+  mountOutlineEntry: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorOutlineEntryControls | null>,
+  ) => () => void;
   mountCitationPreview: (
     anchor: HTMLElement,
     controls: EditorCitationControls,
@@ -521,9 +584,10 @@ export type EditorChromeHost = {
     anchor: HTMLElement,
     controls: EditorDocumentPickerControls,
   ) => () => void;
-  renderIframeStatusCard: (
-    controls: EditorIframeStatusCardControls,
-  ) => TemplateResult;
+  mountIframeStatusCard: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorIframeStatusCardControls | null>,
+  ) => () => void;
   mountIframeLinkEditor: (
     anchor: HTMLElement,
     controls: EditorIframeLinkEditorControls,
@@ -543,10 +607,6 @@ export type EditorChromeHost = {
   mountSlash: (
     anchor: HTMLElement,
     controls: EditorSlashControls,
-  ) => () => void;
-  mountCanvasTool: (
-    anchor: HTMLElement,
-    controls: EditorCanvasToolControls,
   ) => () => void;
   mountZoom?: (anchor: HTMLElement, controls: EditorZoomControls) => () => void;
 };

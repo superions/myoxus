@@ -1,4 +1,4 @@
-import type { TemplateResult } from "lit";
+import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import type { ReactNode } from "react";
 
 import type { StreamObject } from "../../components/ai-chat-messages";
@@ -24,7 +24,7 @@ export interface AIPanelErrorConfig {
 }
 
 export interface AIPanelGeneratingConfig {
-  generatingIcon: TemplateResult<1>;
+  generatingIcon: MyoxusIconExportName;
   height?: number;
   stages?: string[];
 }

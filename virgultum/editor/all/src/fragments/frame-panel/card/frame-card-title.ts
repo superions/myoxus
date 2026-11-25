@@ -1,17 +1,72 @@
-import { DisposableGroup } from "@virgultum/core/primitives/disposable";
-import { WithDisposable } from "@virgultum/core/primitives/lit";
+import { computed, signal } from "@preact/signals-core";
 import type { FrameBlockModel } from "@virgultum/core/models";
-import { EditorChromeHostIdentifier } from "@virgultum/core/services";
-import { type BlockStdScope, ShadowlessElement } from "@virgultum/core/runtime";
-import { nothing, type PropertyValues } from "lit";
-import { property } from "lit/decorators.js";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import { NativeViewElement } from "@virgultum/core/primitives/env";
+import type { BlockStdScope } from "@virgultum/core/runtime";
+import {
+  type EditorChromeHost,
+  EditorChromeHostIdentifier,
+  type EditorFrameTitleControls,
+} from "@virgultum/core/services";
 import type * as Y from "yjs";
 
 import { FrameCardTitleEditor } from "./frame-card-title-editor.js";
 
 export const MYOXUS_FRAME_CARD_TITLE = "myoxus-frame-card-title";
 
-export class FrameCardTitle extends WithDisposable(ShadowlessElement) {
+export class FrameCardTitle extends NativeViewElement {
+  disposables = new DisposableGroup();
+
+  private readonly _revision$ = signal(0);
+
+  private _cardIndex!: number;
+  private _frame!: FrameBlockModel;
+  private _std!: BlockStdScope;
+
+  private _mountHost: HTMLDivElement | null = null;
+  private _chromeUnmount: (() => void) | null = null;
+  private _mountedChrome: EditorChromeHost | null = null;
+  private _titleDisposables: DisposableGroup | null = null;
+
+  private titleContainer!: HTMLElement;
+  private titleContentElement!: HTMLElement;
+
+  get cardIndex(): number {
+    return this._cardIndex;
+  }
+  set cardIndex(value: number) {
+    this._cardIndex = value;
+    this._bump();
+  }
+
+  get frame(): FrameBlockModel {
+    return this._frame;
+  }
+  set frame(value: FrameBlockModel) {
+    const changed = this._frame !== value;
+    this._frame = value;
+    if (changed && this.isConnected && value) {
+      this._setFrameDisposables(value.props.title.yText);
+    }
+    this._bump();
+  }
+
+  get std(): BlockStdScope {
+    return this._std;
+  }
+  set std(value: BlockStdScope) {
+    const changed = this._std !== value;
+    this._std = value;
+    if (changed && this.isConnected) {
+      this._bindStd();
+    }
+    this._bump();
+  }
+
+  private _bump() {
+    this._revision$.value = this._revision$.peek() + 1;
+  }
+
   private readonly _clearTitleDisposables = () => {
     this._titleDisposables?.dispose();
     this._titleDisposables = null;
@@ -29,10 +84,8 @@ export class FrameCardTitle extends WithDisposable(ShadowlessElement) {
     this.titleContainer.append(titleEditor);
   };
 
-  private _titleDisposables: DisposableGroup | null = null;
-
   private readonly _updateElement = () => {
-    this.requestUpdate();
+    this._bump();
   };
 
   private _setFrameDisposables(title: Y.Text) {
@@ -46,20 +99,13 @@ export class FrameCardTitle extends WithDisposable(ShadowlessElement) {
     });
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-  }
-
-  override disconnectedCallback() {
-    super.disconnectedCallback();
-    this._clearTitleDisposables();
-  }
-
-  override render() {
-    return (
-      this.std.getOptional(EditorChromeHostIdentifier)?.renderFrameTitle({
-        index: this.cardIndex,
-        title: this.frame.props.title.toString(),
+  private readonly _controls$ = computed<EditorFrameTitleControls | null>(
+    () => {
+      void this._revision$.value;
+      if (!this._std || !this._frame) return null;
+      return {
+        index: this._cardIndex,
+        title: this._frame.props.title.toString(),
         setContainer: (element) => {
           if (element) this.titleContainer = element;
         },
@@ -67,27 +113,49 @@ export class FrameCardTitle extends WithDisposable(ShadowlessElement) {
           if (element) this.titleContentElement = element;
         },
         edit: this._mountTitleEditor,
-      }) ?? nothing
-    );
-  }
+      };
+    },
+  );
 
-  override updated(_changedProperties: PropertyValues) {
-    if (_changedProperties.has("frame")) {
-      this._setFrameDisposables(this.frame.props.title.yText);
+  private _bindStd() {
+    if (!this._std || !this._mountHost) return;
+    const chrome = this._std.getOptional(EditorChromeHostIdentifier) ?? null;
+    if (this._mountedChrome !== chrome) {
+      this._chromeUnmount?.();
+      this._chromeUnmount = null;
+      this._mountedChrome = chrome;
+      if (chrome) {
+        this._chromeUnmount = chrome.mountFrameTitle(
+          this._mountHost,
+          this._controls$,
+        );
+      }
     }
   }
 
-  @property({ attribute: false })
-  accessor cardIndex!: number;
+  connectedCallback() {
+    if (this.disposables.disposed) {
+      this.disposables = new DisposableGroup();
+    }
+    if (!this._mountHost) {
+      this._mountHost = this.ownerDocument.createElement("div");
+      this._mountHost.style.display = "contents";
+      this.replaceChildren(this._mountHost);
+    }
+    if (this._frame) {
+      this._setFrameDisposables(this._frame.props.title.yText);
+    }
+    this._bindStd();
+    this._bump();
+  }
 
-  @property({ attribute: false })
-  accessor frame!: FrameBlockModel;
-
-  @property({ attribute: false })
-  accessor std!: BlockStdScope;
-
-  private titleContainer!: HTMLElement;
-  private titleContentElement!: HTMLElement;
+  disconnectedCallback() {
+    this._chromeUnmount?.();
+    this._chromeUnmount = null;
+    this._mountedChrome = null;
+    this._clearTitleDisposables();
+    this.disposables.dispose();
+  }
 }
 
 declare global {

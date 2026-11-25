@@ -4,8 +4,8 @@ import {
   editorMessage,
   resolveEditorMessage,
 } from "@virgultum/core/services";
+import { NativeViewElement } from "@virgultum/core/runtime";
 import { QuickToolMixin } from "../../../widgets/edgeless-toolbar/index";
-import { LitElement } from "lit";
 
 import { FrameTool } from "../frame-tool";
 
@@ -13,30 +13,33 @@ type EdgelessFrameMenuElement = HTMLElement & {
   edgeless: EdgelessFrameToolButton["edgeless"];
 };
 
-export class EdgelessFrameToolButton extends QuickToolMixin(LitElement) {
-  override createRenderRoot() {
-    return this;
-  }
-
+export class EdgelessFrameToolButton extends QuickToolMixin(NativeViewElement) {
   override type = FrameTool;
 
   private _toggleFrameMenu() {
     if (this.tryDisposePopper()) return;
 
-    const menu = this.createPopper("edgeless-frame-menu" as never, this);
-    (menu.element as EdgelessFrameMenuElement).edgeless = this.edgeless;
+    this.createPopper("edgeless-frame-menu" as never, this, {
+      setProps: (ele) => {
+        (ele as EdgelessFrameMenuElement).edgeless = this.edgeless;
+      },
+    });
   }
 
-  override render() {
+  protected override paint() {
+    const i18n = this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined;
+    void i18n?.locale$.value;
+    const chrome = this.edgeless.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
     const type = this.edgelessTool?.toolType?.toolName;
-    return this.edgeless.std.get(EditorChromeHostIdentifier).renderCanvasTool({
+    this.mountSlot("tool", this, chrome.mountCanvasTool, {
       expanded: this.popper !== null,
       action: {
         id: "canvas-frame",
         icon: "FrameIcon",
         label: resolveEditorMessage(
           editorMessage("com.myoxus.editor.slash.frame", "Frame"),
-          this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined,
+          i18n,
         ),
         shortcut: "F",
         active: type === "frame",

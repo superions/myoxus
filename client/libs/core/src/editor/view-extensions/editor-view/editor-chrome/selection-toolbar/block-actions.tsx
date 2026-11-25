@@ -113,7 +113,11 @@ type ActionsProps = {
   actions: SelectionAction[];
   menu?: boolean;
   afterAction?: () => void;
-  renderControl: (action: SelectionAction, menu: boolean) => ReactNode;
+  renderControl: (
+    action: SelectionAction,
+    menu: boolean,
+    afterAction?: () => void,
+  ) => ReactNode;
 };
 export function SelectionActions({
   actions,
@@ -214,7 +218,9 @@ export function SelectionActions({
         }
         if (c)
           return (
-            <Fragment key={action.id}>{renderControl(action, menu)}</Fragment>
+            <Fragment key={action.id}>
+              {renderControl(action, menu, afterAction)}
+            </Fragment>
           );
         return menu ? (
           <MenuItem

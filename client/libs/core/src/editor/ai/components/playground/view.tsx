@@ -3,11 +3,6 @@
 
 import { useI18n } from "@myoxus/i18n";
 import {
-  type ReactToLit,
-  toReactNode,
-  useLitPortalFactory,
-} from "@myoxus/lit-react";
-import {
   Card,
   Group,
   Modal,
@@ -15,28 +10,22 @@ import {
   PageContentRail,
   Stack,
 } from "@myoxus/ui-facade";
-import { Fragment, useMemo, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 export function PlaygroundDialog({
   open,
   onOpenChange,
   title,
-  renderContent,
+  children,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  renderContent: (render: ReactToLit) => ReturnType<ReactToLit> | null;
+  children: ReactNode;
 }) {
-  // Modal descendants own these portals, including native popup focus and layering.
-  const [render, portals] = useLitPortalFactory();
-  const content = useMemo(() => renderContent(render), [renderContent, render]);
   return (
     <Modal open={open} onOpenChange={onOpenChange} title={title} fullScreen>
-      {portals.map(({ id, portal }) => (
-        <Fragment key={id}>{portal}</Fragment>
-      ))}
-      {content ? toReactNode(content) : null}
+      {children}
     </Modal>
   );
 }

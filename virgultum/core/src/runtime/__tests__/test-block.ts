@@ -1,7 +1,19 @@
-import { html } from "lit";
-import { customElement } from "lit/decorators.js";
+import { effect, signal } from "@preact/signals-core";
 
-import { BlockComponent, GfxBlockComponent } from "../view/index.js";
+import { GfxControllerIdentifier } from "../gfx/identifiers.js";
+import type {
+  BoxSelectionContext,
+  DragMoveContext,
+} from "../gfx/interactivity/index.js";
+import {
+  bindGfxBlockView,
+  type GfxBlockComponent,
+  GfxElementSymbol,
+  gfxBlockRenderingRect,
+  gfxBlockTransform,
+  moveGfxBlock,
+  NativeContainerBlock,
+} from "../view/index.js";
 import type {
   HeadingBlockModel,
   NoteBlockModel,
@@ -10,52 +22,132 @@ import type {
   TestGfxBlockModel,
 } from "./test-schema.js";
 
-@customElement("test-root-block")
-export class RootBlockComponent extends BlockComponent<RootBlockModel> {
-  override renderBlock() {
-    return html`
-      <div class="test-root-block">${this.renderChildren(this.model)}</div>
-    `;
+function defineTestElement(tag: string, ctor: CustomElementConstructor) {
+  if (!customElements.get(tag)) {
+    customElements.define(tag, ctor);
   }
 }
 
-@customElement("test-note-block")
-export class NoteBlockComponent extends BlockComponent<NoteBlockModel> {
-  override renderBlock() {
-    return html`
-      <div class="test-note-block">${this.renderChildren(this.model)}</div>
-    `;
+export class RootBlockComponent extends NativeContainerBlock<RootBlockModel> {
+  protected readonly blockStyles = "";
+  protected mountBody() {
+    const div = this.ownerDocument.createElement("div");
+    div.className = "test-root-block";
+    this.replaceChildren(div);
+    return div;
   }
 }
+defineTestElement("test-root-block", RootBlockComponent);
 
-@customElement("test-h1-block")
-export class HeadingH1BlockComponent extends BlockComponent<HeadingBlockModel> {
-  override renderBlock() {
-    return html` <div class="test-heading-block h1">${this.model.text}</div> `;
+export class NoteBlockComponent extends NativeContainerBlock<NoteBlockModel> {
+  protected readonly blockStyles = "";
+  protected mountBody() {
+    const div = this.ownerDocument.createElement("div");
+    div.className = "test-note-block";
+    this.replaceChildren(div);
+    return div;
   }
 }
+defineTestElement("test-note-block", NoteBlockComponent);
 
-@customElement("test-h2-block")
-export class HeadingH2BlockComponent extends BlockComponent<HeadingBlockModel> {
-  override renderBlock() {
-    return html` <div class="test-heading-block h2">${this.model.text}</div> `;
+export class HeadingH1BlockComponent extends NativeContainerBlock<HeadingBlockModel> {
+  protected readonly blockStyles = "";
+  protected mountBody() {
+    const div = this.ownerDocument.createElement("div");
+    div.className = "test-heading-block h1";
+    this.disposables.add(
+      effect(() => {
+        div.textContent = String(this.model.props.text ?? "");
+      }),
+    );
+    this.replaceChildren(div);
+    return null;
   }
 }
+defineTestElement("test-h1-block", HeadingH1BlockComponent);
 
-@customElement("test-surface-block")
-export class SurfaceBlockComponent extends BlockComponent<SurfaceBlockModel> {
-  override renderBlock() {
-    return html`
-      <div class="test-surface-block">${this.renderChildren(this.model)}</div>
-    `;
+export class HeadingH2BlockComponent extends NativeContainerBlock<HeadingBlockModel> {
+  protected readonly blockStyles = "";
+  protected mountBody() {
+    const div = this.ownerDocument.createElement("div");
+    div.className = "test-heading-block h2";
+    this.disposables.add(
+      effect(() => {
+        div.textContent = String(this.model.props.text ?? "");
+      }),
+    );
+    this.replaceChildren(div);
+    return null;
   }
 }
+defineTestElement("test-h2-block", HeadingH2BlockComponent);
 
-@customElement("test-gfx-block")
-export class TestGfxBlockComponent extends GfxBlockComponent<TestGfxBlockModel> {
-  override renderGfxBlock() {
-    return html`
-      <div class="test-gfx-block">${this.renderChildren(this.model)}</div>
-    `;
+export class SurfaceBlockComponent extends NativeContainerBlock<SurfaceBlockModel> {
+  protected readonly blockStyles = "";
+  protected mountBody() {
+    const div = this.ownerDocument.createElement("div");
+    div.className = "test-surface-block";
+    this.replaceChildren(div);
+    return div;
   }
 }
+defineTestElement("test-surface-block", SurfaceBlockComponent);
+
+export class TestGfxBlockComponent
+  extends NativeContainerBlock<TestGfxBlockModel>
+  implements GfxBlockComponent<TestGfxBlockModel>
+{
+  [GfxElementSymbol] = true;
+  readonly transformState$ = signal<"idle" | "active">("active");
+  protected readonly blockStyles = "";
+
+  get gfx() {
+    return this.std.get(GfxControllerIdentifier);
+  }
+
+  onDragMove = (context: DragMoveContext) => moveGfxBlock(this.model, context);
+  onDragStart() {
+    this.model.stash("xywh");
+  }
+  onDragEnd() {
+    this.model.pop("xywh");
+  }
+  onBoxSelected(_: BoxSelectionContext) {}
+  getCSSTransform() {
+    return gfxBlockTransform(this);
+  }
+  getRenderingRect() {
+    return gfxBlockRenderingRect(this);
+  }
+  toZIndex() {
+    return this.gfx.layer.getZIndex(this.model).toString() ?? "0";
+  }
+  updateZIndex() {
+    this.style.zIndex = this.toZIndex();
+  }
+
+  override connectedCallback() {
+    super.connectedCallback();
+    if (this.std) {
+      bindGfxBlockView(this);
+      this.disposables.add(
+        effect(() => {
+          const { x, y, w, h, zIndex } = this.getRenderingRect();
+          this.style.left = `${x}px`;
+          this.style.top = `${y}px`;
+          this.style.width = `${w}px`;
+          this.style.height = `${h}px`;
+          this.style.zIndex = zIndex;
+        }),
+      );
+    }
+  }
+
+  protected mountBody() {
+    const div = this.ownerDocument.createElement("div");
+    div.className = "test-gfx-block";
+    this.replaceChildren(div);
+    return div;
+  }
+}
+defineTestElement("test-gfx-block", TestGfxBlockComponent);

@@ -11,7 +11,7 @@ import { QuotaCheck, QuotaUploadWatcher } from "@myoxus/core/modules/quota";
 import { WorkbenchService } from "@myoxus/core/modules/workbench";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { LiveData, useLiveData, useService } from "@myoxus/infra";
-import { uniReactRoot } from "@myoxus/lit-react/uni-component";
+import { uniReactRoot } from "@myoxus/core/editor/uni-react-root";
 import type { PropsWithChildren } from "react";
 
 /**

@@ -1,23 +1,14 @@
-import type { ElementOrFactory } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import {
   type ViewExtensionContext,
   ViewExtensionProvider,
 } from "@virgultum/editor/ext-loader";
-import type { TemplateResult } from "lit";
 import { z } from "zod";
 
 import { patchForPDFEmbedView } from "./pdf-view";
 
 const optionsSchema = z.object({
-  reactToLit: z.optional(
-    z
-      .function()
-      .input(
-        [z.custom<ElementOrFactory>(), z.boolean().optional()],
-        z.unknown(),
-      )
-      .output(z.custom<TemplateResult>()),
-  ),
+  mountPortal: z.optional(z.custom<MountReactPortal>()),
 });
 
 type PdfViewOptions = z.infer<typeof optionsSchema>;
@@ -29,11 +20,11 @@ export class PdfViewExtension extends ViewExtensionProvider<PdfViewOptions> {
 
   override setup(context: ViewExtensionContext, options?: PdfViewOptions) {
     super.setup(context, options);
-    const reactToLit = options?.reactToLit;
-    if (!reactToLit) {
+    const mountPortal = options?.mountPortal;
+    if (!mountPortal) {
       return;
     }
 
-    context.register(patchForPDFEmbedView(reactToLit));
+    context.register(patchForPDFEmbedView(mountPortal));
   }
 }

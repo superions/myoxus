@@ -1,22 +1,16 @@
-import { effect, type Signal, signal } from "@preact/signals-core";
-import { SignalWatcher, WithDisposable } from "@virgultum/core/primitives/lit";
+import { computed, effect, type Signal, signal } from "@preact/signals-core";
 import { getSelectedModelsCommand } from "@virgultum/core/commands";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import { NativeViewElement } from "@virgultum/core/primitives/env";
+import type { BlockComponent } from "@virgultum/core/runtime";
 import {
   EditorChromeHostIdentifier,
   EditorI18nProvider,
-  resolveLegacyEditorText,
   type EditorKeyboardAction,
+  type EditorKeyboardToolbarControls,
+  resolveLegacyEditorText,
   type VirtualKeyboardProviderWithAction,
 } from "@virgultum/core/services";
-import {
-  BlockComponent,
-  PropTypes,
-  requiredProperties,
-  ShadowlessElement,
-} from "@virgultum/core/runtime";
-import { html, nothing } from "lit";
-import { property } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
 
 import type {
   KeyboardIconType,
@@ -25,6 +19,7 @@ import type {
   KeyboardToolbarItem,
   KeyboardToolPanelConfig,
 } from "./config";
+import type { MyoxusKeyboardToolPanel } from "./keyboard-tool-panel.js";
 import {
   isKeyboardSubToolBarConfig,
   isKeyboardToolBarActionItem,
@@ -33,14 +28,51 @@ import {
 
 export const MYOXUS_KEYBOARD_TOOLBAR = "myoxus-keyboard-toolbar";
 
-@requiredProperties({
-  config: PropTypes.object,
-  rootComponent: PropTypes.instanceOf(BlockComponent),
-})
-export class MyoxusKeyboardToolbar extends SignalWatcher(
-  WithDisposable(ShadowlessElement),
-) {
+export class MyoxusKeyboardToolbar extends NativeViewElement {
+  disposables = new DisposableGroup();
+
   private readonly _expanded$ = signal(false);
+  private readonly _currentPanelIndex$ = signal(-1);
+  private readonly _lastActiveItem$ = signal<KeyboardToolbarItem | null>(null);
+  private readonly _path$ = signal<number[]>([]);
+  private readonly _revision$ = signal(0);
+
+  private _keyboard!: VirtualKeyboardProviderWithAction;
+  private _config!: KeyboardToolbarConfig;
+  private _rootComponent!: BlockComponent;
+
+  private _toolbarHost: HTMLDivElement | null = null;
+  private _toolPanelEl: MyoxusKeyboardToolPanel | null = null;
+  private _chromeUnmount: (() => void) | null = null;
+  private _mountedRoot: BlockComponent | null = null;
+
+  get keyboard(): VirtualKeyboardProviderWithAction {
+    return this._keyboard;
+  }
+  set keyboard(value: VirtualKeyboardProviderWithAction) {
+    this._keyboard = value;
+    this._bump();
+  }
+
+  get config(): KeyboardToolbarConfig {
+    return this._config;
+  }
+  set config(value: KeyboardToolbarConfig) {
+    this._config = value;
+    this._bump();
+  }
+
+  get rootComponent(): BlockComponent {
+    return this._rootComponent;
+  }
+  set rootComponent(value: BlockComponent) {
+    const changed = this._rootComponent !== value;
+    this._rootComponent = value;
+    if (changed && this.isConnected) {
+      this._bindRoot();
+    }
+    this._bump();
+  }
 
   get std() {
     return this.rootComponent.std;
@@ -60,6 +92,10 @@ export class MyoxusKeyboardToolbar extends SignalWatcher(
       : this.keyboard.appTabSafeArea$.value;
   }
 
+  private _bump() {
+    this._revision$.value = this._revision$.peek() + 1;
+  }
+
   /**
    * Prevent flickering during keyboard opening
    */
@@ -76,8 +112,6 @@ export class MyoxusKeyboardToolbar extends SignalWatcher(
       this._currentPanelIndex$.value = -1;
     }, 100);
   };
-
-  private readonly _currentPanelIndex$ = signal(-1);
 
   private readonly _goPrevToolbar = () => {
     if (!this._isSubToolbarOpened) return;
@@ -113,11 +147,8 @@ export class MyoxusKeyboardToolbar extends SignalWatcher(
     this._lastActiveItem$.value = item;
   };
 
-  private readonly _lastActiveItem$ = signal<KeyboardToolbarItem | null>(null);
-
-  private readonly _path$ = signal<number[]>([]);
-
   private readonly _scrollCurrentBlockIntoView = () => {
+    if (!this._rootComponent) return;
     this.std.command
       .chain()
       .pipe(getSelectedModelsCommand)
@@ -198,13 +229,11 @@ export class MyoxusKeyboardToolbar extends SignalWatcher(
     const icon =
       panel && active && item.activeIcon ? item.activeIcon : item.icon;
     const label = item.name ?? "More";
+    const i18n = this.std.getOptional(EditorI18nProvider) ?? undefined;
+    void i18n?.locale$.value;
     return {
       id: `${this._path$.value.join(".")}:${index}`,
-      label:
-        resolveLegacyEditorText(
-          label,
-          this.std.getOptional(EditorI18nProvider) ?? undefined,
-        ) ?? label,
+      label: resolveLegacyEditorText(label, i18n) ?? label,
       icon: this._renderIcon(icon),
       active,
       disabled:
@@ -223,8 +252,45 @@ export class MyoxusKeyboardToolbar extends SignalWatcher(
     }
   };
 
-  override connectedCallback() {
-    super.connectedCallback();
+  private readonly _controls$ = computed<EditorKeyboardToolbarControls | null>(
+    () => {
+      void this._revision$.value;
+      if (!this._rootComponent || !this._config || !this._keyboard) return null;
+      const active = this.std.event.active$.value;
+      return {
+        actions: active
+          ? this._currentToolbarItems.map((item, index) =>
+              this._presentItem(item, index),
+            )
+          : [],
+        back:
+          active && this._isSubToolbarOpened ? this._goPrevToolbar : undefined,
+        keyboardVisible: this.keyboard.visible$.value,
+        toggleKeyboard: this._toggleKeyboard,
+      };
+    },
+  );
+
+  private _bindRoot() {
+    if (!this._rootComponent || !this._toolbarHost) return;
+    if (this._mountedRoot !== this._rootComponent) {
+      this._chromeUnmount?.();
+      this._chromeUnmount = null;
+      this._mountedRoot = this._rootComponent;
+      const chrome = this.std.getOptional(EditorChromeHostIdentifier);
+      if (chrome) {
+        this._chromeUnmount = chrome.mountKeyboardToolbar(
+          this._toolbarHost,
+          this._controls$,
+        );
+      }
+    }
+  }
+
+  connectedCallback() {
+    if (this.disposables.disposed) {
+      this.disposables = new DisposableGroup();
+    }
     // The keyboard's inset/panel owns viewport geometry; native controls own all chrome.
     Object.assign(this.style, {
       position: "fixed",
@@ -233,6 +299,21 @@ export class MyoxusKeyboardToolbar extends SignalWatcher(
       bottom: "0",
     });
 
+    if (!this._toolbarHost) {
+      this._toolbarHost = this.ownerDocument.createElement("div");
+      this._toolbarHost.style.display = "contents";
+    }
+    if (!this._toolPanelEl) {
+      this._toolPanelEl = this.ownerDocument.createElement(
+        "myoxus-keyboard-tool-panel",
+      ) as MyoxusKeyboardToolPanel;
+    }
+    if (this._toolbarHost.parentElement !== this) {
+      this.replaceChildren(this._toolbarHost, this._toolPanelEl);
+    }
+
+    this._bindRoot();
+
     // There are two cases that `_expanded$` will be true:
     // 1. when virtual keyboard is opened, the panel need to be expanded and overlapped by the keyboard,
     // so that the toolbar will be on the top of the keyboard.
@@ -240,13 +321,34 @@ export class MyoxusKeyboardToolbar extends SignalWatcher(
     //
     // There is one case that `_expanded$` will be false:
     // 1. the panel is closed, and the keyboard is closed, the toolbar will be rendered at the bottom of the viewport
-    this._disposables.add(
+    this.disposables.add(
       effect(() => {
-        if (this.keyboard.visible$.value || this.panelOpened) {
+        if (!this._keyboard) return;
+        if (this._keyboard.visible$.value || this.panelOpened) {
           this._expanded$.value = true;
         } else {
           this._expanded$.value = false;
         }
+      }),
+    );
+
+    // Sync child tool panel props & height
+    this.disposables.add(
+      effect(() => {
+        void this._revision$.value;
+        if (
+          !this._toolPanelEl ||
+          !this._rootComponent ||
+          !this._config ||
+          !this._keyboard
+        ) {
+          return;
+        }
+        this._toolPanelEl.config = this._currentPanelConfig;
+        this._toolPanelEl.context = this._context;
+        this._toolPanelEl.style.height = this.panelHeight;
+        this._toolPanelEl.style.paddingBottom =
+          this._keyboard.appTabSafeArea$.value;
       }),
     );
 
@@ -257,7 +359,8 @@ export class MyoxusKeyboardToolbar extends SignalWatcher(
 
     this.disposables.add(
       effect(() => {
-        const std = this.rootComponent.std;
+        if (!this._rootComponent) return;
+        const std = this._rootComponent.std;
         void std.selection.value;
         // wait cursor updated
         requestAnimationFrame(() => {
@@ -268,15 +371,26 @@ export class MyoxusKeyboardToolbar extends SignalWatcher(
 
     this.disposables.add(
       effect(() => {
+        if (!this._keyboard) return;
         // sometime the keyboard will auto show when user click into different paragraph in Android,
         // so we need to close the tool panel explicitly when the keyboard is visible
-        if (this.keyboard.visible$.value) {
+        if (this._keyboard.visible$.value) {
           this._closeToolPanel();
         }
       }),
     );
 
-    this._watchAutoShow();
+    if (this._config && this._rootComponent) {
+      this._watchAutoShow();
+    }
+
+    // workaround for the virtual keyboard showing transition animation
+    const timeoutId = setTimeout(() => {
+      this._scrollCurrentBlockIntoView();
+    }, 700);
+    this.disposables.add(() => {
+      clearTimeout(timeoutId);
+    });
 
     this.disposables.add(() => {
       if (this._resetPanelIndexTimeoutId) {
@@ -284,6 +398,13 @@ export class MyoxusKeyboardToolbar extends SignalWatcher(
         this._resetPanelIndexTimeoutId = null;
       }
     });
+  }
+
+  disconnectedCallback() {
+    this._chromeUnmount?.();
+    this._chromeUnmount = null;
+    this._mountedRoot = null;
+    this.disposables.dispose();
   }
 
   private _watchAutoShow() {
@@ -325,51 +446,10 @@ export class MyoxusKeyboardToolbar extends SignalWatcher(
       }),
     );
   }
+}
 
-  override firstUpdated() {
-    // workaround for the virtual keyboard showing transition animation
-    const timeoutId = setTimeout(() => {
-      this._scrollCurrentBlockIntoView();
-    }, 700);
-    this.disposables.add(() => {
-      clearTimeout(timeoutId);
-    });
+declare global {
+  interface HTMLElementTagNameMap {
+    [MYOXUS_KEYBOARD_TOOLBAR]: MyoxusKeyboardToolbar;
   }
-
-  override render() {
-    const chrome = this.std.getOptional(EditorChromeHostIdentifier);
-    if (!chrome) return nothing;
-    return html`
-      ${chrome.renderKeyboardToolbar({
-        actions: this.std.event.active$.value
-          ? this._currentToolbarItems.map((item, index) =>
-              this._presentItem(item, index),
-            )
-          : [],
-        back:
-          this.std.event.active$.value && this._isSubToolbarOpened
-            ? this._goPrevToolbar
-            : undefined,
-        keyboardVisible: this.keyboard.visible$.value,
-        toggleKeyboard: this._toggleKeyboard,
-      })}
-      <myoxus-keyboard-tool-panel
-        .config=${this._currentPanelConfig}
-        .context=${this._context}
-        style=${styleMap({
-          height: this.panelHeight,
-          paddingBottom: this.keyboard.appTabSafeArea$.value,
-        })}
-      ></myoxus-keyboard-tool-panel>
-    `;
-  }
-
-  @property({ attribute: false })
-  accessor keyboard!: VirtualKeyboardProviderWithAction;
-
-  @property({ attribute: false })
-  accessor config!: KeyboardToolbarConfig;
-
-  @property({ attribute: false })
-  accessor rootComponent!: BlockComponent;
 }

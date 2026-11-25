@@ -1,4 +1,4 @@
-import { effect } from "@preact/signals-core";
+import { effect, signal, type Signal } from "@preact/signals-core";
 import {
   EdgelessCRUDIdentifier,
   EdgelessLegacySlotIdentifier,
@@ -13,6 +13,8 @@ import {
 } from "@virgultum/core/models";
 import {
   EditorChromeHostIdentifier,
+  type EditorAutoConnectLabelControls,
+  type EditorAutoConnectNavigatorControls,
   FeatureFlagService,
 } from "@virgultum/core/services";
 import { matchModels } from "@virgultum/core/utils";
@@ -21,7 +23,6 @@ import {
   type GfxController,
   GfxControllerIdentifier,
 } from "@virgultum/core/runtime/gfx";
-import { nothing, render } from "lit";
 import { NativeCanvasWidget } from "../native-canvas-widget";
 
 const PAGE_VISIBLE_INDEX_LABEL_HEIGHT = 24;
@@ -43,15 +44,33 @@ function isAutoConnectElement(element: unknown): element is AutoConnectElement {
   );
 }
 
+type MountedLabelItem = {
+  el: HTMLDivElement;
+  state$: Signal<EditorAutoConnectLabelControls | null>;
+  unmount: () => void;
+};
+
+type MountedLabelEntry = {
+  anchor: HTMLDivElement;
+  items: MountedLabelItem[];
+  hidden?: {
+    host: HTMLDivElement;
+    state$: Signal<EditorAutoConnectLabelControls | null>;
+    unmount: () => void;
+  };
+};
+
 export const MYOXUS_EDGELESS_AUTO_CONNECT_WIDGET =
   "myoxus-edgeless-auto-connect-widget";
 
 export class EdgelessAutoConnectWidget extends NativeCanvasWidget {
-  private readonly labels = new Map<
-    string,
-    { anchor: HTMLDivElement; items: HTMLDivElement[] }
-  >();
-  private navigator?: HTMLDivElement;
+  private readonly labels = new Map<string, MountedLabelEntry>();
+  private navigator?: {
+    anchor: HTMLDivElement;
+    host: HTMLDivElement;
+    state$: Signal<EditorAutoConnectNavigatorControls | null>;
+    unmount: () => void;
+  };
 
   private get _gfx(): GfxController {
     return this.std.get(GfxControllerIdentifier);
@@ -183,6 +202,7 @@ export class EdgelessAutoConnectWidget extends NativeCanvasWidget {
   }
 
   private label(key: string, count: number) {
+    const chrome = this.std.get(EditorChromeHostIdentifier);
     let entry = this.labels.get(key);
     if (!entry) {
       const anchor = this.ownerDocument.createElement("div");
@@ -194,32 +214,41 @@ export class EdgelessAutoConnectWidget extends NativeCanvasWidget {
     const { anchor, items } = entry;
     while (items.length > count) {
       const item = items.pop()!;
-      render(nothing, item);
-      item.remove();
+      item.unmount();
+      item.el.remove();
     }
     while (items.length < count) {
-      const item = this.ownerDocument.createElement("div");
-      item.style.position = "absolute";
-      items.push(item);
-      anchor.append(item);
+      const el = this.ownerDocument.createElement("div");
+      el.style.position = "absolute";
+      const state$ = signal<EditorAutoConnectLabelControls | null>(null);
+      const unmount = chrome.mountAutoConnectLabel(el, state$);
+      items.push({ el, state$, unmount });
+      anchor.append(el);
     }
     return entry;
   }
 
   private removeLabelsExcept(required: Set<string>) {
-    for (const [key, { anchor, items }] of this.labels) {
+    for (const [key, entry] of this.labels) {
       if (required.has(key)) continue;
-      for (const item of items) render(nothing, item);
-      if (key.startsWith("hidden:")) render(nothing, anchor);
-      anchor.remove();
+      for (const item of entry.items) {
+        item.unmount();
+        item.el.remove();
+      }
+      if (entry.hidden) {
+        entry.hidden.unmount();
+        entry.hidden.host.remove();
+      }
+      entry.anchor.remove();
       this.labels.delete(key);
     }
   }
 
   private hideNavigator() {
     if (!this.navigator) return;
-    render(nothing, this.navigator);
-    this.navigator.remove();
+    this.navigator.unmount();
+    this.navigator.host.remove();
+    this.navigator.anchor.remove();
     this.navigator = undefined;
   }
 
@@ -306,40 +335,42 @@ export class EdgelessAutoConnectWidget extends NativeCanvasWidget {
         PAGE_VISIBLE_INDEX_LABEL_HEIGHT,
       );
       items.forEach((item, j) => {
-        item.style.transform = `translate(${positions[j][1] - 10}px, ${positions[j][0]}px) translateX(-50%)`;
-        render(
-          chrome.renderAutoConnectLabel({
-            index: ++number,
-            active: this._index === i,
-            toggle: () => {
-              if (!this._enabled) return;
-              this._updateLabels();
-              const selected = [
-                ...this._pageVisibleElementsMap.keys(),
-              ].findIndex((entry) => entry.id === element.id);
-              this._index = this._index === selected ? -1 : selected;
-              this.requestUpdate();
-            },
-          }),
-          item,
-        );
+        item.el.style.transform = `translate(${positions[j][1] - 10}px, ${positions[j][0]}px) translateX(-50%)`;
+        item.state$.value = {
+          index: ++number,
+          active: this._index === i,
+          toggle: () => {
+            if (!this._enabled) return;
+            this._updateLabels();
+            const selected = [...this._pageVisibleElementsMap.keys()].findIndex(
+              (entry) => entry.id === element.id,
+            );
+            this._index = this._index === selected ? -1 : selected;
+            this.requestUpdate();
+          },
+        };
       });
     });
 
     for (const note of this._edgelessOnlyNotesSet) {
       const key = `hidden:${note.id}`;
       required.add(key);
-      const { anchor } = this.label(key, 0);
+      const entry = this.label(key, 0);
       const bound = Bound.deserialize(note.xywh);
       const [left, top] = this._viewport.toViewCoord(
         bound.center[0],
         bound.maxY,
       );
-      anchor.style.transform = `translate(${left}px, ${top + INDEX_LABEL_OFFSET}px) translateX(-50%)`;
-      render(
-        chrome.renderAutoConnectLabel({ active: false, toggle: () => {} }),
-        anchor,
-      );
+      entry.anchor.style.transform = `translate(${left}px, ${top + INDEX_LABEL_OFFSET}px) translateX(-50%)`;
+      if (!entry.hidden) {
+        const host = this.ownerDocument.createElement("div");
+        host.style.display = "contents";
+        entry.anchor.append(host);
+        const state$ = signal<EditorAutoConnectLabelControls | null>(null);
+        const unmount = chrome.mountAutoConnectLabel(host, state$);
+        entry.hidden = { host, state$, unmount };
+      }
+      entry.hidden.state$.value = { active: false, toggle: () => {} };
     }
     this.removeLabelsExcept(required);
 
@@ -348,22 +379,25 @@ export class EdgelessAutoConnectWidget extends NativeCanvasWidget {
       this.hideNavigator();
       return;
     }
-    const anchor = (this.navigator ??= this.ownerDocument.createElement("div"));
+    if (!this.navigator) {
+      const anchor = this.ownerDocument.createElement("div");
+      anchor.style.position = "absolute";
+      const host = this.ownerDocument.createElement("div");
+      host.style.display = "contents";
+      anchor.append(host);
+      this.append(anchor);
+      const state$ = signal<EditorAutoConnectNavigatorControls | null>(null);
+      const unmount = chrome.mountAutoConnectNavigator(host, state$);
+      this.navigator = { anchor, host, state$, unmount };
+    }
     const bound = Bound.deserialize(current.xywh);
     const [left, top] = this._viewport.toViewCoord(bound.center[0], bound.maxY);
-    Object.assign(anchor.style, {
-      position: "absolute",
-      transform: `translate(${left}px, ${top + INDEX_LABEL_OFFSET}px) translateX(-50%)`,
-    });
-    if (!anchor.parentElement) this.append(anchor);
-    render(
-      chrome.renderAutoConnectNavigator({
-        previous: this._index > 0,
-        next: this._index < elements.length - 1,
-        navigate: (direction) => this._navigate(direction),
-      }),
-      anchor,
-    );
+    this.navigator.anchor.style.transform = `translate(${left}px, ${top + INDEX_LABEL_OFFSET}px) translateX(-50%)`;
+    this.navigator.state$.value = {
+      previous: this._index > 0,
+      next: this._index < elements.length - 1,
+      navigate: (direction) => this._navigate(direction),
+    };
   }
 
   private _dragging = false;

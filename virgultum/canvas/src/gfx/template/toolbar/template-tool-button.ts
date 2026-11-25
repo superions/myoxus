@@ -13,33 +13,30 @@ import {
   editorMessage,
 } from "@virgultum/core/services";
 import { once } from "@virgultum/core/utils";
+import { NativeViewElement } from "@virgultum/core/runtime";
 import type { ToolOptionWithType } from "@virgultum/core/runtime/gfx";
 import { EdgelessToolbarToolMixin } from "../../../widgets/edgeless-toolbar/index";
-import { LitElement } from "lit";
-import { state } from "lit/decorators.js";
 
 import { TemplateTool } from "../template-tool";
 import type { EdgelessTemplatePanel } from "./template-panel.js";
 
 export class EdgelessTemplateButton extends EdgelessToolbarToolMixin(
-  LitElement,
+  NativeViewElement,
 ) {
   private _cleanup: (() => void) | null = null;
   private _autoUpdateCleanup: (() => void) | null = null;
-
+  private _openedPanel: EdgelessTemplatePanel | null = null;
   private _prevTool: ToolOptionWithType | null = null;
 
   override enableActiveBackground = false;
 
-  override createRenderRoot() {
-    return this;
-  }
-
   override type = TemplateTool;
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.disposables.add(() => this._autoUpdateCleanup?.());
+  protected override onConnected() {
+    this.disposables.add(() => {
+      this._autoUpdateCleanup?.();
+      this._autoUpdateCleanup = null;
+    });
   }
 
   private _closePanel() {
@@ -86,11 +83,13 @@ export class EdgelessTemplateButton extends EdgelessToolbarToolMixin(
       this._closePanel();
     });
     this._openedPanel = panel;
+    this.requestUpdate();
 
-    this.renderRoot.append(panel);
+    this.append(panel);
 
     requestAnimationFrame(() => {
-      const arrowEl = panel.renderRoot.querySelector(".arrow") as HTMLElement;
+      const arrowEl = panel.querySelector(".arrow") as HTMLElement | null;
+      if (!arrowEl) return;
       this._autoUpdateCleanup?.();
       this._autoUpdateCleanup = autoUpdate(this, panel, () => {
         computePosition(this, panel, {
@@ -112,15 +111,19 @@ export class EdgelessTemplateButton extends EdgelessToolbarToolMixin(
     });
   }
 
-  override render() {
-    return this.edgeless.std.get(EditorChromeHostIdentifier).renderCanvasTool({
+  protected override paint() {
+    const chrome = this.edgeless.std.getOptional(EditorChromeHostIdentifier);
+    if (!chrome) return;
+    const i18n = this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined;
+    void i18n?.locale$.value;
+    this.mountSlot("tool", this, chrome.mountCanvasTool, {
       expanded: this._openedPanel !== null,
       action: {
         id: "canvas-template",
         icon: "LayoutTemplateIcon",
         label: resolveEditorMessage(
           editorMessage("Template", "Template"),
-          this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined,
+          i18n,
         ),
         disabled: false,
         active: this._openedPanel !== null,
@@ -128,7 +131,4 @@ export class EdgelessTemplateButton extends EdgelessToolbarToolMixin(
       },
     });
   }
-
-  @state()
-  private accessor _openedPanel: EdgelessTemplatePanel | null = null;
 }

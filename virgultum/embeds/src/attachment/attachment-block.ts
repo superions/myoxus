@@ -4,18 +4,24 @@ import {
   BlockElementCommentManager,
   CitationProvider,
   EditorChromeHostIdentifier,
+  type EditorAttachmentCardControls,
   DocModeProvider,
   FileSizeLimitProvider,
   TelemetryProvider,
   EditorI18nProvider,
 } from "@virgultum/core/services";
-import { AttachmentIcon, WarningIcon } from "@myoxus/icons/lit";
-import { batch, computed, signal } from "@preact/signals-core";
 import {
-  CaptionedBlockComponent,
+  batch,
+  computed,
+  effect,
+  signal,
+  untracked,
+} from "@preact/signals-core";
+import {
+  NativeCaptionedBlockComponent,
   SelectedStyle,
+  type BlockStyleMap,
 } from "@virgultum/content/caption";
-import { LoadingIcon } from "@virgultum/core/view/icons";
 import { Peekable } from "@virgultum/core/view/peek";
 import { ResourceController } from "@virgultum/core/resource";
 import {
@@ -31,11 +37,6 @@ import {
 
 import { BlockSelection, isGfxBlockComponent } from "@virgultum/core/runtime";
 import { nanoid, Slice } from "@virgultum/core/store";
-import { html } from "lit";
-import { classMap } from "lit/directives/class-map.js";
-import { guard } from "lit/directives/guard.js";
-import { styleMap } from "lit/directives/style-map.js";
-import { when } from "lit/directives/when.js";
 import { filter } from "rxjs/operators";
 
 import { AttachmentEmbedProvider } from "./embed";
@@ -47,8 +48,9 @@ import { downloadAttachmentBlob, getFileType, refreshData } from "./utils";
     return !model.store.readonly && model.props.type.endsWith("pdf");
   },
 })
-export class AttachmentBlockComponent extends CaptionedBlockComponent<AttachmentBlockModel> {
-  static override styles = styles;
+export class AttachmentBlockComponent extends NativeCaptionedBlockComponent<AttachmentBlockModel> {
+  protected override blockStyles = styles;
+  protected override useCaptionEditor = true;
 
   blockDraggable = true;
 
@@ -65,7 +67,7 @@ export class AttachmentBlockComponent extends CaptionedBlockComponent<Attachment
     return name.split(".").pop() ?? "";
   }
 
-  protected containerStyleMap = styleMap({
+  protected readonly containerStyle$ = signal<BlockStyleMap>({
     position: "relative",
     width: "100%",
     margin: "18px 0px",
@@ -190,7 +192,7 @@ export class AttachmentBlockComponent extends CaptionedBlockComponent<Attachment
 
   private readonly _trackCitationDeleteEvent = () => {
     // Check citation delete event
-    this._disposables.add(
+    this.disposables.add(
       this.std.store.slots.blockUpdated
         .pipe(
           filter((payload) => {
@@ -216,36 +218,9 @@ export class AttachmentBlockComponent extends CaptionedBlockComponent<Attachment
     );
   };
 
-  override connectedCallback() {
-    super.connectedCallback();
-
-    this.contentEditable = "false";
-
-    this.resourceController.setEngine(this.std.store.blobSync);
-
-    this.disposables.add(this.resourceController.subscribe());
-    this.disposables.add(this.resourceController);
-
-    this.disposables.add(
-      this.model.props.sourceId$.subscribe(() => {
-        this.refreshData();
-      }),
-    );
-
-    if (!this.model.props.style && !this.store.readonly) {
-      this.store.withoutTransact(() => {
-        this.store.updateBlock(this.model, {
-          style: AttachmentBlockStyles[1],
-        });
-      });
-    }
-
-    this._trackCitationDeleteEvent();
-  }
-
-  override firstUpdated() {
-    // lazy bindings
-    this.disposables.addFromEvent(this, "click", this.onClick);
+  constructor() {
+    super();
+    this.selectedStyle$.value = SelectedStyle.Border;
   }
 
   protected onClick(event: MouseEvent) {
@@ -262,18 +237,14 @@ export class AttachmentBlockComponent extends CaptionedBlockComponent<Attachment
   protected resolvedState$ = computed(() => {
     const size = this.model.props.size;
     const name = this.model.props.name$.value;
-    const resolvedState = this.resourceController.resolveStateWith({
-      loadingIcon: LoadingIcon(),
-      errorIcon: WarningIcon(),
-      icon: AttachmentIcon(),
+    return this.resourceController.resolveStateWith({
       title: name,
       description: formatSize(size),
     });
-
-    return resolvedState;
   });
 
-  protected renderCardView = () => {
+  private buildCardControls(): EditorAttachmentCardControls {
+    void this.revision$.value;
     const resolvedState = this.resolvedState$.value;
     const cardStyle = this.model.props.style$.value ?? AttachmentBlockStyles[1];
 
@@ -309,7 +280,7 @@ export class AttachmentBlockComponent extends CaptionedBlockComponent<Attachment
               },
             }
           : undefined;
-    return this.std.get(EditorChromeHostIdentifier).renderAttachmentCard({
+    return {
       inSurface: isGfxBlockComponent(this),
       selected: this.selected$.value,
       title: title ?? "",
@@ -319,73 +290,13 @@ export class AttachmentBlockComponent extends CaptionedBlockComponent<Attachment
       error,
       vertical: cardStyle === "cubeThick",
       action,
-    });
-  };
+    };
+  }
 
-  protected renderEmbedView = () => {
-    const { model, blobUrl } = this;
-    if (!model.props.embed$.value || !blobUrl) return null;
-
-    const { std, _maxFileSize } = this;
-    const provider = std.get(AttachmentEmbedProvider);
-
-    const render = provider.getRender(model, _maxFileSize);
-    if (!render) return null;
-
-    const enabled = provider.shouldShowStatus(model);
-
-    return html`
-      <div class="myoxus-attachment-embed-container">
-        ${guard([this._refreshKey$.value], () => render(model, blobUrl))}
-      </div>
-      ${when(enabled, () => {
-        const resolvedState = this.resolvedState$.value;
-        if (resolvedState.state !== "error") return null;
-        // It should be an error messge.
-        const message = resolvedState.description;
-        if (!message) return null;
-
-        const needUpload = resolvedState.needUpload;
-        const action = () =>
-          needUpload ? this.resourceController.upload() : this.reload();
-
-        return html`
-          <span class="myoxus-attachment-embed-status">
-            ${this.std.get(EditorChromeHostIdentifier).renderAttachmentCard({
-              inSurface: isGfxBlockComponent(this),
-              selected: this.selected$.value,
-              title: resolveEditorMessage(
-                needUpload
-                  ? editorMessage(
-                      "com.myoxus.editor.resource.upload-failed",
-                      "Upload failed",
-                    )
-                  : editorMessage(
-                      "com.myoxus.editor.resource.download-failed",
-                      "Download failed",
-                    ),
-                this.std.getOptional(EditorI18nProvider) ?? undefined,
-              ),
-              description: message,
-              fileType: this.filetype,
-              loading: false,
-              error: true,
-              vertical: false,
-              statusPopover: true,
-              action: {
-                kind: needUpload ? "retry" : "reload",
-                run: action,
-              },
-            })}
-          </span>
-        `;
-      })}
-    `;
-  };
-
-  private readonly _renderCitation = () => {
+  private buildCitationControls(): EditorAttachmentCardControls {
+    void this.revision$.value;
     const { name, footnoteIdentifier } = this.model.props;
-    return this.std.get(EditorChromeHostIdentifier).renderAttachmentCard({
+    return {
       inSurface: isGfxBlockComponent(this),
       selected: this.selected$.value,
       title: name,
@@ -395,30 +306,182 @@ export class AttachmentBlockComponent extends CaptionedBlockComponent<Attachment
       error: false,
       vertical: false,
       citationIdentifier: footnoteIdentifier ?? undefined,
-    });
-  };
-
-  override renderBlock() {
-    return html`
-      <div
-        class=${classMap({
-          "myoxus-attachment-container": true,
-          "comment-highlighted": this.isCommentHighlighted,
-        })}
-        style=${this.containerStyleMap}
-      >
-        ${when(
-          this.isCitation,
-          () => this._renderCitation(),
-          () => this.renderEmbedView() ?? this.renderCardView(),
-        )}
-      </div>
-    `;
+    };
   }
 
-  override accessor selectedStyle = SelectedStyle.Border;
+  private buildStatusControls(): EditorAttachmentCardControls | null {
+    void this.revision$.value;
+    const resolvedState = this.resolvedState$.value;
+    if (resolvedState.state !== "error") return null;
+    const message = resolvedState.description;
+    if (!message) return null;
+    const needUpload = resolvedState.needUpload;
+    return {
+      inSurface: isGfxBlockComponent(this),
+      selected: this.selected$.value,
+      title: resolveEditorMessage(
+        needUpload
+          ? editorMessage(
+              "com.myoxus.editor.resource.upload-failed",
+              "Upload failed",
+            )
+          : editorMessage(
+              "com.myoxus.editor.resource.download-failed",
+              "Download failed",
+            ),
+        this.std.getOptional(EditorI18nProvider) ?? undefined,
+      ),
+      description: message,
+      fileType: this.filetype,
+      loading: false,
+      error: true,
+      vertical: false,
+      statusPopover: true,
+      action: {
+        kind: needUpload ? "retry" : "reload",
+        run: () =>
+          needUpload ? this.resourceController.upload() : this.reload(),
+      },
+    };
+  }
 
-  override accessor useCaptionEditor = true;
+  protected override mountBlock(container: HTMLElement) {
+    this.contentEditable = "false";
+
+    this.resourceController.setEngine(this.std.store.blobSync);
+    this.disposables.add(this.resourceController.subscribe());
+    this.disposables.add(this.resourceController);
+    this.disposables.add(
+      this.model.props.sourceId$.subscribe(() => {
+        this.refreshData();
+      }),
+    );
+
+    if (!this.model.props.style && !this.store.readonly) {
+      this.store.withoutTransact(() => {
+        this.store.updateBlock(this.model, {
+          style: AttachmentBlockStyles[1],
+        });
+      });
+    }
+
+    this._trackCitationDeleteEvent();
+    this.disposables.addFromEvent(this, "click", (event: MouseEvent) =>
+      this.onClick(event),
+    );
+
+    const doc = this.ownerDocument;
+    const wrapper = doc.createElement("div");
+    wrapper.className = "myoxus-attachment-container";
+    container.replaceChildren(wrapper);
+
+    let appliedKeys: string[] = [];
+    this.disposables.add(
+      effect(() => {
+        void this.revision$.value;
+        wrapper.classList.toggle(
+          "comment-highlighted",
+          this.isCommentHighlighted,
+        );
+        const style = this.containerStyle$.value;
+        for (const key of appliedKeys) {
+          if (style[key] === undefined) {
+            wrapper.style.setProperty(
+              key.replace(/[A-Z]/g, (ch) => `-${ch.toLowerCase()}`),
+              "",
+            );
+          }
+        }
+        appliedKeys = [];
+        for (const [key, value] of Object.entries(style)) {
+          if (value !== undefined) {
+            (wrapper.style as unknown as Record<string, string>)[key] = value;
+            appliedKeys.push(key);
+          }
+        }
+      }),
+    );
+
+    const chrome = this.std.getOptional(EditorChromeHostIdentifier);
+
+    this.disposables.add(
+      effect(() => {
+        const isCitation = this.isCitation;
+        const embed = Boolean(this.model.props.embed$.value);
+        const blobUrl = this.blobUrl;
+        const refreshKey = this._refreshKey$.value;
+        const provider = this.std.get(AttachmentEmbedProvider);
+        const mountFn =
+          !isCitation && embed && blobUrl
+            ? provider.getMount(this.model, this._maxFileSize)
+            : null;
+        void refreshKey;
+
+        return untracked(() => {
+          if (isCitation) {
+            if (!chrome) return;
+            const host = doc.createElement("div");
+            host.style.display = "contents";
+            wrapper.replaceChildren(host);
+            const state = computed(() => this.buildCitationControls());
+            const unmount = chrome.mountAttachmentCard(host, state);
+            return () => {
+              unmount();
+              host.remove();
+            };
+          }
+
+          if (mountFn && blobUrl) {
+            const embedContainer = doc.createElement("div");
+            embedContainer.className = "myoxus-attachment-embed-container";
+            wrapper.replaceChildren(embedContainer);
+            const releaseEmbed = mountFn(embedContainer, this.model, blobUrl);
+
+            let releaseStatus: (() => void) | undefined;
+            if (
+              provider.shouldShowStatus(this.model, this._maxFileSize) &&
+              chrome
+            ) {
+              const statusEl = doc.createElement("span");
+              statusEl.className = "myoxus-attachment-embed-status";
+              const statusState = computed(() => this.buildStatusControls());
+              const stopStatus = effect(() => {
+                const active = Boolean(statusState.value);
+                if (active && !statusEl.parentNode) wrapper.append(statusEl);
+                else if (!active && statusEl.parentNode) statusEl.remove();
+              });
+              const unmountStatus = chrome.mountAttachmentCard(
+                statusEl,
+                statusState,
+              );
+              releaseStatus = () => {
+                stopStatus();
+                unmountStatus();
+                statusEl.remove();
+              };
+            }
+
+            return () => {
+              releaseStatus?.();
+              releaseEmbed();
+              embedContainer.remove();
+            };
+          }
+
+          if (!chrome) return;
+          const host = doc.createElement("div");
+          host.style.display = "contents";
+          wrapper.replaceChildren(host);
+          const state = computed(() => this.buildCardControls());
+          const unmount = chrome.mountAttachmentCard(host, state);
+          return () => {
+            unmount();
+            host.remove();
+          };
+        });
+      }),
+    );
+  }
 }
 
 declare global {

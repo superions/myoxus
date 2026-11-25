@@ -1,29 +1,14 @@
+import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import {
   editorMessage,
   type EditorI18nMessage,
 } from "@virgultum/core/services";
-import {
-  BulletedListIcon,
-  CheckBoxIcon,
-  CodeBlockIcon,
-  DividerIcon,
-  Heading1Icon,
-  Heading2Icon,
-  Heading3Icon,
-  Heading4Icon,
-  Heading5Icon,
-  Heading6Icon,
-  NumberedListIcon,
-  QuoteIcon,
-  TextIcon,
-} from "@virgultum/core/view/icons";
 import type { NoteChildrenFlavour } from "@virgultum/core/types";
-import type { TemplateResult } from "lit";
 
 export const BUTTON_GROUP_LENGTH = 10;
 
 export type NoteMenuItem = {
-  icon: TemplateResult<1>;
+  icon: MyoxusIconExportName;
   tooltip: EditorI18nMessage;
   childFlavour: NoteChildrenFlavour;
   childType: string | null;
@@ -35,7 +20,7 @@ const LIST_ITEMS = [
     type: "bulleted",
     name: "Bulleted List",
     description: "A simple bulleted list.",
-    icon: BulletedListIcon,
+    icon: "BulletedListIcon" as MyoxusIconExportName,
     tooltip: editorMessage(
       "com.myoxus.editor.slash.bulleted-list",
       "Bulleted List",
@@ -46,7 +31,7 @@ const LIST_ITEMS = [
     type: "numbered",
     name: "Numbered List",
     description: "A list with numbering.",
-    icon: NumberedListIcon,
+    icon: "NumberedListIcon" as MyoxusIconExportName,
     tooltip: editorMessage(
       "com.myoxus.editor.slash.numbered-list",
       "Numbered List",
@@ -57,7 +42,7 @@ const LIST_ITEMS = [
     type: "todo",
     name: "To-do List",
     description: "Track tasks with a to-do list.",
-    icon: CheckBoxIcon,
+    icon: "CheckBoxIcon" as MyoxusIconExportName,
     tooltip: editorMessage("com.myoxus.editor.slash.todo-list", "To-do List"),
   },
 ];
@@ -68,7 +53,7 @@ const TEXT_ITEMS = [
     type: "text",
     name: "Text",
     description: "Start typing with plain text.",
-    icon: TextIcon,
+    icon: "TextIcon" as MyoxusIconExportName,
     tooltip: editorMessage("Text", "Text"),
   },
   {
@@ -76,7 +61,7 @@ const TEXT_ITEMS = [
     type: "h1",
     name: "Heading 1",
     description: "Headings in the largest font.",
-    icon: Heading1Icon,
+    icon: "Heading1Icon" as MyoxusIconExportName,
     tooltip: editorMessage("Heading", "Heading {{number}}", { number: 1 }),
   },
   {
@@ -84,7 +69,7 @@ const TEXT_ITEMS = [
     type: "h2",
     name: "Heading 2",
     description: "Headings in the 2nd font size.",
-    icon: Heading2Icon,
+    icon: "Heading2Icon" as MyoxusIconExportName,
     tooltip: editorMessage("Heading", "Heading {{number}}", { number: 2 }),
   },
   {
@@ -92,7 +77,7 @@ const TEXT_ITEMS = [
     type: "h3",
     name: "Heading 3",
     description: "Headings in the 3rd font size.",
-    icon: Heading3Icon,
+    icon: "Heading3Icon" as MyoxusIconExportName,
     tooltip: editorMessage("Heading", "Heading {{number}}", { number: 3 }),
   },
   {
@@ -100,7 +85,7 @@ const TEXT_ITEMS = [
     type: "h4",
     name: "Heading 4",
     description: "Heading in the 4th font size.",
-    icon: Heading4Icon,
+    icon: "Heading4Icon" as MyoxusIconExportName,
     tooltip: editorMessage("Heading", "Heading {{number}}", { number: 4 }),
   },
   {
@@ -108,7 +93,7 @@ const TEXT_ITEMS = [
     type: "h5",
     name: "Heading 5",
     description: "Heading in the 5th font size.",
-    icon: Heading5Icon,
+    icon: "Heading5Icon" as MyoxusIconExportName,
     tooltip: editorMessage("Heading", "Heading {{number}}", { number: 5 }),
   },
   {
@@ -116,7 +101,7 @@ const TEXT_ITEMS = [
     type: "h6",
     name: "Heading 6",
     description: "Heading in the 6th font size.",
-    icon: Heading6Icon,
+    icon: "Heading6Icon" as MyoxusIconExportName,
     tooltip: editorMessage("Heading", "Heading {{number}}", { number: 6 }),
   },
   {
@@ -124,7 +109,7 @@ const TEXT_ITEMS = [
     type: "code",
     name: "Code Block",
     description: "Capture a code snippet.",
-    icon: CodeBlockIcon,
+    icon: "CodeBlockIcon" as MyoxusIconExportName,
     tooltip: editorMessage("com.myoxus.editor.slash.code-block", "Code Block"),
   },
   {
@@ -132,7 +117,7 @@ const TEXT_ITEMS = [
     type: "quote",
     name: "Quote",
     description: "Capture a quote.",
-    icon: QuoteIcon,
+    icon: "QuoteIcon" as MyoxusIconExportName,
     tooltip: editorMessage("com.myoxus.editor.keyboard.quote", "Quote"),
   },
   {
@@ -140,7 +125,7 @@ const TEXT_ITEMS = [
     type: null,
     name: "Divider",
     description: "A visual divider.",
-    icon: DividerIcon,
+    icon: "DividerIcon" as MyoxusIconExportName,
     tooltip: editorMessage("Divider", "Divider"),
   },
 ];

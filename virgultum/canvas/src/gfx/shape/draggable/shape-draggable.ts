@@ -3,7 +3,6 @@ import {
   DefaultTool,
   EdgelessCRUDIdentifier,
 } from "@virgultum/canvas-runtime/surface";
-import { SignalWatcher } from "@virgultum/core/primitives/lit";
 import {
   getShapeRadius,
   getShapeType,
@@ -15,15 +14,11 @@ import {
   ThemeProvider,
   ViewportElementProvider,
 } from "@virgultum/core/services";
+import { NativeViewElement } from "@virgultum/core/runtime";
 import {
   EdgelessDraggableElementController,
   EdgelessToolbarToolMixin,
 } from "../../../widgets/edgeless-toolbar/index";
-import { css, html, LitElement, nothing } from "lit";
-import { property, query, state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { repeat } from "lit/directives/repeat.js";
-import { styleMap } from "lit/directives/style-map.js";
 
 import { ShapeTool } from "../shape-tool.js";
 import { ellipseSvg, roundedSvg, triangleSvg } from "../toolbar/icons.js";
@@ -67,77 +62,127 @@ shapes.forEach((s) => {
   });
 });
 
+const shapeDraggableStyles = `
+  :host {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+  }
+  .edgeless-shape-draggable {
+    /* avoid shadow clipping */
+    --shadow-safe-area: 10px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    width: calc(100% + 2 * var(--shadow-safe-area));
+    height: calc(100% + var(--shadow-safe-area));
+    padding-top: var(--shadow-safe-area);
+    padding-left: var(--shadow-safe-area);
+    padding-right: var(--shadow-safe-area);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    pointer-events: none;
+  }
+
+  .shape {
+    width: fit-content;
+    height: fit-content;
+    position: absolute;
+    transition:
+      transform 0.3s,
+      z-index 0.1s;
+    transform: translateX(var(--default-x, 0)) translateY(var(--default-y, 0))
+      scale(var(--default-s, 1));
+    z-index: var(--default-z, 0);
+    pointer-events: none;
+  }
+  .shape svg {
+    display: block;
+  }
+  .shape svg path,
+  .shape svg circle,
+  .shape svg rect {
+    pointer-events: auto;
+    cursor: grab;
+  }
+  .shape:hover,
+  .shape.cancel {
+    transform: translateX(var(--hover-x, 0)) translateY(var(--hover-y, 0))
+      scale(var(--hover-s, 1));
+    z-index: var(--hover-z, 0);
+  }
+  .shape.next {
+    transition: all 0.5s cubic-bezier(0.39, 0.28, 0.09, 0.95);
+    pointer-events: none;
+    transform: translateX(var(--next-x, 0)) translateY(var(--next-y, 0))
+      scale(var(--next-s, 1));
+  }
+  .shape.next.coming {
+    transform: translateX(var(--default-x, 0)) translateY(var(--default-y, 0))
+      scale(var(--default-s, 1));
+  }
+`;
+
 export class EdgelessToolbarShapeDraggable extends EdgelessToolbarToolMixin(
-  SignalWatcher(LitElement),
+  NativeViewElement,
 ) {
-  static override styles = css`
-    :host {
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-    }
-    .edgeless-shape-draggable {
-      /* avoid shadow clipping */
-      --shadow-safe-area: 10px;
-      box-sizing: border-box;
-      flex-shrink: 0;
-      width: calc(100% + 2 * var(--shadow-safe-area));
-      height: calc(100% + var(--shadow-safe-area));
-      padding-top: var(--shadow-safe-area);
-      padding-left: var(--shadow-safe-area);
-      padding-right: var(--shadow-safe-area);
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      pointer-events: none;
-    }
-
-    .shape {
-      width: fit-content;
-      height: fit-content;
-      position: absolute;
-      transition:
-        transform 0.3s,
-        z-index 0.1s;
-      transform: translateX(var(--default-x, 0)) translateY(var(--default-y, 0))
-        scale(var(--default-s, 1));
-      z-index: var(--default-z, 0);
-      pointer-events: none;
-    }
-    .shape svg {
-      display: block;
-    }
-    .shape svg path,
-    .shape svg circle,
-    .shape svg rect {
-      pointer-events: auto;
-      cursor: grab;
-    }
-    .shape:hover,
-    .shape.cancel {
-      transform: translateX(var(--hover-x, 0)) translateY(var(--hover-y, 0))
-        scale(var(--hover-s, 1));
-      z-index: var(--hover-z, 0);
-    }
-    .shape.next {
-      transition: all 0.5s cubic-bezier(0.39, 0.28, 0.09, 0.95);
-      pointer-events: none;
-      transform: translateX(var(--next-x, 0)) translateY(var(--next-y, 0))
-        scale(var(--next-s, 1));
-    }
-    .shape.next.coming {
-      transform: translateX(var(--default-x, 0)) translateY(var(--default-y, 0))
-        scale(var(--default-s, 1));
-    }
-  `;
-
   draggableController!: EdgelessDraggableElementController<DraggableShape>;
 
   draggingShape: DraggableShape["name"] = "roundedRect";
 
   override type = ShapeTool;
+
+  onShapeClick: (shape: DraggableShape) => void = () => {};
+
+  readyToDrop = false;
+
+  readonly shapeContainer: HTMLDivElement;
+
+  private readonly _shapeNodes = new Map<
+    DraggableShape["name"],
+    { curr: HTMLDivElement; next: HTMLDivElement }
+  >();
+
+  constructor() {
+    super();
+    const shadow = this.attachShadow({ mode: "open" });
+    const style = this.ownerDocument.createElement("style");
+    style.textContent = shapeDraggableStyles;
+    this.shapeContainer = this.ownerDocument.createElement("div");
+    this.shapeContainer.className = "edgeless-shape-draggable";
+    for (const shape of shapes) {
+      const next = this.ownerDocument.createElement("div");
+      next.className = "shape next";
+      next.innerHTML = shape.svg;
+      next.style.display = "none";
+
+      const curr = this.ownerDocument.createElement("div");
+      curr.className = `shape ${shape.name}`;
+      curr.innerHTML = shape.svg;
+      // Keep the outer toolbar button's pointerdown preventDefault from suppressing
+      // compatibility mousedown/drag on the shape artwork itself.
+      curr.addEventListener("pointerdown", (e) => e.stopPropagation());
+      curr.addEventListener("mousedown", (e) => {
+        this.draggableController?.onMouseDown(e, {
+          data: shape,
+          preview: shape.svg,
+        });
+      });
+      curr.addEventListener("touchstart", (e) => {
+        this.draggableController?.onTouchStart(e, {
+          data: shape,
+          preview: shape.svg,
+        });
+      });
+      curr.addEventListener("click", (e) => e.stopPropagation());
+
+      this.shapeContainer.append(next, curr);
+      this._shapeNodes.set(shape.name, { curr, next });
+    }
+    shadow.append(style, this.shapeContainer);
+  }
 
   get crud() {
     return this.edgeless.std.get(EdgelessCRUDIdentifier);
@@ -224,8 +269,10 @@ export class EdgelessToolbarShapeDraggable extends EdgelessToolbarToolMixin(
           : `drop-shadow(${this.shapeShadow})`;
       },
     });
+  }
 
-    // Facade artwork can remount; retired instances must release their keymap.
+  protected override onConnected() {
+    // Facade artwork can remount; each connection must bind and release its keymap.
     this._disposables.add(
       this.edgeless.bindHotKey(
         {
@@ -281,93 +328,42 @@ export class EdgelessToolbarShapeDraggable extends EdgelessToolbarToolMixin(
     );
   }
 
-  override render() {
+  protected override paint() {
+    if (!this.draggableController && this.edgeless && this.toolbarContainer) {
+      this.initDragController();
+    }
     const { cancelled, dragOut, draggingElement } =
       this.draggableController?.states || {};
     const draggingShape = draggingElement?.data;
-    return html`<div class="edgeless-shape-draggable">
-      ${repeat(
-        shapes,
-        (s) => s.name,
-        (shape) => {
-          const isBeingDragged = draggingShape?.name === shape.name;
-          const { fillColor, strokeColor } =
-            this.edgeless.std.get(EditPropsStore).lastProps$.value[
-              `shape:${shape.name}`
-            ] || {};
-          const color = this.edgeless.std
-            .get(ThemeProvider)
-            .generateColorProperty(fillColor);
-          const stroke = this.edgeless.std
-            .get(ThemeProvider)
-            .generateColorProperty(strokeColor);
-          const baseStyle = {
-            ...buildVariablesObject(shape.style),
-            filter: `drop-shadow(${this.shapeShadow})`,
-            color,
-            stroke,
-          };
-          const currStyle = styleMap({
-            ...baseStyle,
-            opacity: isBeingDragged ? 0 : 1,
-          });
-          const nextStyle = styleMap(baseStyle);
-          return html`${
-              isBeingDragged
-                ? html`<div
-                    style=${nextStyle}
-                    class=${classMap({
-                      shape: true,
-                      next: true,
-                      coming: !!dragOut && !cancelled,
-                    })}
-                  >
-                    ${shape.svg}
-                  </div>`
-                : nothing
-            }
-            <div
-              style=${currStyle}
-              class=${classMap({
-                shape: true,
-                [shape.name]: true,
-                cancel: isBeingDragged && !dragOut,
-              })}
-              @mousedown=${(e: MouseEvent) =>
-                this.draggableController.onMouseDown(e, {
-                  data: shape,
-                  preview: shape.svg,
-                })}
-              @touchstart=${(e: TouchEvent) =>
-                this.draggableController.onTouchStart(e, {
-                  data: shape,
-                  preview: shape.svg,
-                })}
-              @click=${(e: MouseEvent) => e.stopPropagation()}
-            >
-              ${shape.svg}
-            </div>`;
-        },
-      )}
-    </div>`;
-  }
+    const shadow = this.shapeShadow;
+    const lastProps = this.edgeless.std.get(EditPropsStore).lastProps$.value;
+    const theme = this.edgeless.std.get(ThemeProvider);
 
-  override updated(_changedProperties: Map<PropertyKey, unknown>) {
-    const controllerRequiredProps = ["edgeless", "toolbarContainer"] as const;
-    if (
-      controllerRequiredProps.some((p) => _changedProperties.has(p)) &&
-      !this.draggableController
-    ) {
-      this.initDragController();
+    for (const shape of shapes) {
+      const nodes = this._shapeNodes.get(shape.name);
+      if (!nodes) continue;
+      const isBeingDragged = draggingShape?.name === shape.name;
+      const { fillColor, strokeColor } = lastProps[`shape:${shape.name}`] || {};
+      const color = theme.generateColorProperty(fillColor);
+      const stroke = theme.generateColorProperty(strokeColor);
+      const vars = buildVariablesObject(shape.style);
+
+      const applyStyle = (el: HTMLDivElement, opacity?: string) => {
+        for (const [k, v] of Object.entries(vars)) {
+          el.style.setProperty(k, String(v));
+        }
+        el.style.filter = `drop-shadow(${shadow})`;
+        el.style.color = color;
+        el.style.setProperty("stroke", stroke);
+        if (opacity !== undefined) el.style.opacity = opacity;
+      };
+
+      nodes.next.style.display = isBeingDragged ? "" : "none";
+      nodes.next.classList.toggle("coming", Boolean(dragOut) && !cancelled);
+      applyStyle(nodes.next);
+
+      nodes.curr.classList.toggle("cancel", isBeingDragged && !dragOut);
+      applyStyle(nodes.curr, isBeingDragged ? "0" : "1");
     }
   }
-
-  @property({ attribute: false })
-  accessor onShapeClick: (shape: DraggableShape) => void = () => {};
-
-  @state()
-  accessor readyToDrop = false;
-
-  @query(".edgeless-shape-draggable")
-  accessor shapeContainer!: HTMLDivElement;
 }

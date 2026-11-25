@@ -8,13 +8,12 @@ import { EditorService } from "@myoxus/core/modules/editor";
 import { toDocSearchParams } from "@myoxus/core/modules/navigation";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { FrameworkProvider } from "@myoxus/infra";
-import type { ElementOrFactory, MountReactPortal } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import type { ConfirmModalProps } from "@myoxus/ui-facade";
 import {
   type ViewExtensionContext,
   ViewExtensionProvider,
 } from "@virgultum/editor/ext-loader";
-import type { TemplateResult } from "lit";
 import { z } from "zod";
 
 import { patchForAudioEmbedView } from "./audio/audio-view";
@@ -46,10 +45,6 @@ const optionsSchema = z.object({
   framework: z.instanceof(FrameworkProvider),
 
   // react renderer
-  reactToLit: z
-    .function()
-    .input([z.custom<ElementOrFactory>(), z.boolean().optional()], z.unknown())
-    .output(z.custom<TemplateResult>()),
   mountPortal: z.custom<MountReactPortal>(),
   confirmModal: z.object({
     openConfirmModal: z
@@ -120,7 +115,7 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
     if (!options) {
       return;
     }
-    const { framework, reactToLit, confirmModal, scope = "doc" } = options;
+    const { framework, confirmModal, scope = "doc" } = options;
 
     const referenceRenderer = this._getCustomReferenceRenderer(framework);
 
@@ -136,8 +131,8 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
         patchDocumentFieldOutput(framework),
         patchDocumentIndex(framework, options.mountPortal),
         patchDocumentFieldHost(options.mountPortal),
-        patchForAudioEmbedView(reactToLit),
-        patchTextAttachmentPreview(reactToLit),
+        patchForAudioEmbedView(options.mountPortal),
+        patchTextAttachmentPreview(options.mountPortal),
         ...(options.mountPortal
           ? [
               patchMermaidFamilyReactHost(options.mountPortal),
@@ -153,7 +148,7 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
         ),
         patchCalloutTitleHost(options.mountPortal),
         patchFootnoteHost(options.mountPortal),
-        patchEditorChromeHost(reactToLit, options.mountPortal),
+        patchEditorChromeHost(options.mountPortal),
       ])
       .register(patchDocUrlExtensions(framework))
       .register(patchQuickSearchService(framework));

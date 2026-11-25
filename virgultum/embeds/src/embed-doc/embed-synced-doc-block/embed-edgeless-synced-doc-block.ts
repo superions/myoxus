@@ -1,10 +1,11 @@
+import { effect, untracked } from "@preact/signals-core";
 import { toEdgelessEmbedBlock } from "../../embed/index";
 import {
   EdgelessCRUDIdentifier,
   reassociateConnectorsCommand,
 } from "@virgultum/canvas-runtime/surface";
 import { Bound } from "@virgultum/core/primitives/gfx";
-import { type AliasInfo } from "@virgultum/core/models";
+import { type AliasInfo, type DocMode } from "@virgultum/core/models";
 import { EMBED_CARD_HEIGHT, EMBED_CARD_WIDTH } from "@virgultum/core/consts";
 import {
   ThemeExtensionIdentifier,
@@ -12,12 +13,7 @@ import {
   editorMessage,
 } from "@virgultum/core/services";
 import { type BlockComponent, BlockStdScope } from "@virgultum/core/runtime";
-import { html, nothing } from "lit";
-import { query } from "lit/decorators.js";
-import { choose } from "lit/directives/choose.js";
-import { classMap } from "lit/directives/class-map.js";
-import { guard } from "lit/directives/guard.js";
-import { styleMap } from "lit/directives/style-map.js";
+import type { Store } from "@virgultum/core/store";
 
 import { HeightInitializationExtension } from "./init-height-extension";
 import { EmbedSyncedDocConfigExtension } from "./configs";
@@ -26,127 +22,158 @@ import { EmbedSyncedDocBlockComponent } from "./embed-synced-doc-block";
 export class EmbedEdgelessSyncedDocBlockComponent extends toEdgelessEmbedBlock(
   EmbedSyncedDocBlockComponent,
 ) {
-  @query(".myoxus-embed-synced-doc-edgeless-header-wrapper")
-  accessor headerWrapper: HTMLDivElement | null = null;
+  protected override useCaptionEditor = true;
 
-  @query("myoxus-preview-root")
-  accessor contentElement: BlockComponent | null = null;
+  get headerWrapper(): HTMLDivElement | null {
+    return this.querySelector<HTMLDivElement>(
+      ".myoxus-embed-synced-doc-edgeless-header-wrapper",
+    );
+  }
 
-  protected override _renderSyncedView = () => {
-    const { syncedDoc, editorMode } = this;
+  get contentElement(): BlockComponent | null {
+    return this.querySelector<BlockComponent>("myoxus-preview-root");
+  }
 
-    if (!syncedDoc) {
-      console.error("Synced doc is not found");
-      return html`${nothing}`;
-    }
+  protected override mountSyncedView(container: HTMLElement): () => void {
+    const doc = this.ownerDocument;
+    const outer = doc.createElement("div");
+    const onClick = (e: MouseEvent) => this._handleClick(e);
+    outer.addEventListener("click", onClick);
 
-    let containerStyleMap = styleMap({
-      position: "relative",
-      width: "100%",
-    });
-    const modelScale = this.model.props.scale ?? 1;
-    const bound = Bound.deserialize(this.model.xywh);
-    const width = bound.w / modelScale;
-    const height = bound.h / modelScale;
-    containerStyleMap = styleMap({
-      width: `${width}px`,
-      height: `${height}px`,
-      minHeight: `${height}px`,
-      transform: `scale(${modelScale})`,
-      transformOrigin: "0 0",
-    });
+    const headerWrapper = doc.createElement("div");
+    headerWrapper.className = "myoxus-embed-synced-doc-edgeless-header-wrapper";
+    const headerPortalHost = doc.createElement("div");
+    headerPortalHost.style.display = "contents";
+    headerWrapper.append(headerPortalHost);
 
-    const themeService = this.std.get(ThemeProvider);
-    const themeExtension = this.std.getOptional(ThemeExtensionIdentifier);
-    const appTheme = themeService.app$.value;
-    let edgelessTheme = themeService.edgeless$.value;
-    if (themeExtension?.getEdgelessTheme && this.syncedDoc?.id) {
-      edgelessTheme = themeExtension.getEdgelessTheme(this.syncedDoc.id).value;
-    }
-    const theme = this.isPageMode ? appTheme : edgelessTheme;
+    const editorEl = doc.createElement("div");
+    editorEl.className = "myoxus-embed-synced-doc-editor";
 
-    const scale = this.model.props.scale ?? 1;
+    const overlay = doc.createElement("div");
+    overlay.className = "myoxus-embed-synced-doc-editor-overlay";
 
-    this.dataset.nestedEditor = "";
+    outer.append(headerWrapper, editorEl, overlay);
+    container.replaceChildren(outer);
 
-    const renderEditor = () => {
-      return choose(editorMode, [
-        [
-          "page",
-          () => {
-            const preview = new BlockStdScope({
-              store: syncedDoc,
-              extensions: this._buildPreviewSpec("preview-page"),
-            }).render();
+    const unmountHeader = this.std
+      .getOptional(EmbedSyncedDocConfigExtension.identifier)
+      ?.mountEdgelessHeader(headerPortalHost, {
+        model: this.model,
+        std: this.std,
+      });
+
+    let mountedEditorKey: {
+      mode: DocMode;
+      doc: Store;
+      viewport: HTMLDivElement;
+    } | null = null;
+
+    const stopEffect = effect(() => {
+      void this.revision$.value;
+      const syncedDoc = this.syncedDoc;
+      const editorMode = this.editorMode;
+      if (!syncedDoc) {
+        console.error("Synced doc is not found");
+        return;
+      }
+
+      const modelScale = this.model.props.scale$.value ?? 1;
+      const bound = Bound.deserialize(this.model.props.xywh$.value);
+      const width = bound.w / modelScale;
+      const height = bound.h / modelScale;
+
+      const themeService = this.std.get(ThemeProvider);
+      const themeExtension = this.std.getOptional(ThemeExtensionIdentifier);
+      const appTheme = themeService.app$.value;
+      let edgelessTheme = themeService.edgeless$.value;
+      if (themeExtension?.getEdgelessTheme && syncedDoc.id) {
+        edgelessTheme = themeExtension.getEdgelessTheme(syncedDoc.id).value;
+      }
+      const theme = this.isPageMode ? appTheme : edgelessTheme;
+      const selected = this.selected$.value;
+      const isEmpty = this.isPageMode && this._isEmptySyncedDoc$.value;
+
+      untracked(() => {
+        this.dataset.nestedEditor = "";
+        outer.className = [
+          "myoxus-embed-synced-doc-container",
+          editorMode,
+          theme,
+          "surface",
+          selected ? "selected" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        Object.assign(outer.style, {
+          width: `${width}px`,
+          height: `${height}px`,
+          minHeight: `${height}px`,
+          transform: `scale(${modelScale})`,
+          transformOrigin: "0 0",
+        });
+
+        if (modelScale) {
+          outer.setAttribute("data-scale", "");
+        } else {
+          outer.removeAttribute("data-scale");
+        }
+
+        if (isEmpty) {
+          mountedEditorKey = null;
+          const empty = doc.createElement("div");
+          empty.className = "myoxus-embed-synced-doc-editor-empty";
+          const span = doc.createElement("span");
+          span.textContent = this._text(
+            editorMessage(
+              "com.myoxus.editor.embed.synced-empty-hint",
+              "This is a linked doc, you can add content here.",
+            ),
+          );
+          empty.append(span);
+          editorEl.replaceChildren(empty);
+        } else if (
+          !mountedEditorKey ||
+          mountedEditorKey.mode !== editorMode ||
+          mountedEditorKey.doc !== syncedDoc
+        ) {
+          const viewport = doc.createElement("div");
+          viewport.className =
+            editorMode === "page"
+              ? "myoxus-page-viewport"
+              : "myoxus-edgeless-viewport";
+          viewport.dataset.theme =
+            editorMode === "page" ? appTheme : edgelessTheme;
+          const preview = new BlockStdScope({
+            store: syncedDoc,
+            extensions: this._buildPreviewSpec(
+              editorMode === "page" ? "preview-page" : "preview-edgeless",
+            ),
+          }).render();
+          if (editorMode === "page") {
             void this.std
               .getOptional(HeightInitializationExtension)
               ?.fitPreview(this, preview)
               .catch(console.error);
-            return html`<div
-              class="myoxus-page-viewport"
-              data-theme=${appTheme}
-            >
-              ${preview}
-            </div>`;
-          },
-        ],
-        [
-          "edgeless",
-          () => html`
-            <div class="myoxus-edgeless-viewport" data-theme=${edgelessTheme}>
-              ${new BlockStdScope({
-                store: syncedDoc,
-                extensions: this._buildPreviewSpec("preview-edgeless"),
-              }).render()}
-            </div>
-          `,
-        ],
-      ]);
+          }
+          viewport.append(preview);
+          mountedEditorKey = { mode: editorMode, doc: syncedDoc, viewport };
+          editorEl.replaceChildren(viewport);
+        } else {
+          mountedEditorKey.viewport.dataset.theme =
+            editorMode === "page" ? appTheme : edgelessTheme;
+        }
+      });
+    });
+
+    return () => {
+      stopEffect();
+      outer.removeEventListener("click", onClick);
+      unmountHeader?.();
+      headerPortalHost.remove();
+      outer.remove();
     };
-
-    const header =
-      this.std
-        .getOptional(EmbedSyncedDocConfigExtension.identifier)
-        ?.edgelessHeader({
-          model: this.model,
-          std: this.std,
-        }) ?? nothing;
-
-    return this.renderEmbed(
-      () => html`
-        <div
-          class=${classMap({
-            "myoxus-embed-synced-doc-container": true,
-            [editorMode]: true,
-            [theme]: true,
-            surface: true,
-            selected: this.selected$.value,
-          })}
-          @click=${this._handleClick}
-          style=${containerStyleMap}
-          ?data-scale=${scale}
-        >
-          <div class="myoxus-embed-synced-doc-edgeless-header-wrapper">
-            ${header}
-          </div>
-          <div class="myoxus-embed-synced-doc-editor">
-            ${
-              this.isPageMode && this._isEmptySyncedDoc
-                ? html`
-                    <div class="myoxus-embed-synced-doc-editor-empty">
-                      <span
-                        >${this._text(editorMessage("com.myoxus.editor.embed.synced-empty-hint", "This is a linked doc, you can add content here."))}</span
-                      >
-                    </div>
-                  `
-                : guard([editorMode, syncedDoc], renderEditor)
-            }
-          </div>
-          <div class="myoxus-embed-synced-doc-editor-overlay"></div>
-        </div>
-      `,
-    );
-  };
+  }
 
   override convertToCard = (aliasInfo?: AliasInfo) => {
     const { id, store, xywh } = this.model;
@@ -183,23 +210,24 @@ export class EmbedEdgelessSyncedDocBlockComponent extends toEdgelessEmbedBlock(
     store.deleteBlock(this.model);
   };
 
-  override renderGfxBlock() {
+  override syncGfxLayout() {
     const { style, xywh$ } = this.model.props;
     const bound = Bound.deserialize(xywh$.value);
 
-    this.embedContainerStyle.width = `${bound.w}px`;
-    this.embedContainerStyle.height = `${bound.h}px`;
-
-    this.cardStyleMap = {
+    this.embedContainerStyle$.value = {
+      ...this.embedContainerStyle$.peek(),
+      width: `${bound.w}px`,
+      height: `${bound.h}px`,
+    };
+    this.blockContainerStyles$.value = {
+      width: `${bound.w}px`,
+    };
+    this.cardStyleMap$.value = {
       display: "block",
       width: `${EMBED_CARD_WIDTH[style]}px`,
       height: `${EMBED_CARD_HEIGHT[style]}px`,
       transform: `scale(${bound.w / EMBED_CARD_WIDTH[style]}, ${bound.h / EMBED_CARD_HEIGHT[style]})`,
       transformOrigin: "0 0",
     };
-
-    return this.renderPageContent();
   }
-
-  override accessor useCaptionEditor = true;
 }

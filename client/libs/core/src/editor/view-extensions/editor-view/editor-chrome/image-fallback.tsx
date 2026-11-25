@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import type { ReadonlySignal } from "@preact/signals-core";
+import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
 import { useI18n } from "@myoxus/i18n";
 import { BrokenImageIcon, ImageIcon } from "@myoxus/icons/react";
 import { Loading, ReferenceCard } from "@myoxus/ui-facade";
@@ -27,4 +29,13 @@ export function EditorImageFallback({
       aria-busy={c.loading}
     />
   );
+}
+
+export function RegisteredImageFallback({
+  state,
+}: {
+  state: ReadonlySignal<EditorImageFallbackControls | null>;
+}) {
+  const controls = useSignalValue(state);
+  return controls && <EditorImageFallback controls={controls} />;
 }

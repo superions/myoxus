@@ -501,10 +501,12 @@ test("linked doc should show markdown preview in the backlink section", async ({
 
   await page.getByRole("button", { name: "source page" }).click();
 
-  await expect(page.locator("text-renderer")).toContainText(
-    "some inline content",
-  );
-  await expect(page.locator("text-renderer")).toContainText("Test Page");
+  await expect(
+    page.locator('[data-myoxus-ui-role="document-links-backlink-preview"]'),
+  ).toContainText("some inline content");
+  await expect(
+    page.locator('[data-myoxus-ui-role="document-links-backlink-preview"]'),
+  ).toContainText("Test Page");
 });
 
 test("the viewport should be fit when the linked document is with edgeless mode", async ({

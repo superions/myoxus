@@ -1,6 +1,4 @@
-import { css } from "lit";
-
-export const embedNoteContentStyles = css`
+export const embedNoteContentStyles = `
   .myoxus-embed-doc-content-note-blocks myoxus-divider,
   .myoxus-embed-doc-content-note-blocks myoxus-divider > * {
     margin-top: 0px !important;

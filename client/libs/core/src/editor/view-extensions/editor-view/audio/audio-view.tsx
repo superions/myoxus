@@ -1,9 +1,11 @@
 import { AttachmentEmbedPreview } from "@myoxus/core/editor/attachment-viewer/attachment-embed-preview";
-import type { ReactToLit } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import { AttachmentEmbedConfigIdentifier } from "@virgultum/editor/blocks/attachment";
 import type { ExtensionType } from "@virgultum/core/store";
 
-export function patchForAudioEmbedView(reactToLit: ReactToLit): ExtensionType {
+export function patchForAudioEmbedView(
+  mountPortal: MountReactPortal,
+): ExtensionType {
   return {
     setup: (di) => {
       // do not show audio block on mobile
@@ -15,8 +17,8 @@ export function patchForAudioEmbedView(reactToLit: ReactToLit): ExtensionType {
         check: (model, maxFileSize) =>
           model.props.type.startsWith("audio/") &&
           model.props.size <= maxFileSize,
-        render: (model, _) =>
-          reactToLit(<AttachmentEmbedPreview model={model} />, false),
+        mount: (anchor, model) =>
+          mountPortal(anchor, <AttachmentEmbedPreview model={model} />),
       }));
     },
   };

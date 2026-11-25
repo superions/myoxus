@@ -1,17 +1,23 @@
+import { signal } from "@preact/signals-core";
+import { toNativeGfxBlockComponent } from "@virgultum/canvas-runtime/surface";
 import { BookmarkBlockSchema } from "@virgultum/core/models";
 import { EMBED_CARD_HEIGHT, EMBED_CARD_WIDTH } from "@virgultum/core/consts";
-import { toGfxBlockComponent } from "@virgultum/core/runtime";
 import { GfxViewInteractionExtension } from "@virgultum/core/runtime/gfx";
-import { type StyleInfo, styleMap } from "lit/directives/style-map.js";
 
 import { BookmarkBlockComponent } from "./bookmark-block.js";
 
-export class BookmarkEdgelessBlockComponent extends toGfxBlockComponent(
+export class BookmarkEdgelessBlockComponent extends toNativeGfxBlockComponent(
   BookmarkBlockComponent,
 ) {
-  override selectedStyle$ = null;
-
+  override showEditorSelection = false;
   override blockDraggable = false;
+
+  private readonly _gfxSelectionTick$ = signal(0);
+
+  constructor() {
+    super();
+    this.blockContainerStyles$.value = { height: "100%" };
+  }
 
   override getRenderingRect() {
     const elementBound = this.model.elementBound;
@@ -28,14 +34,16 @@ export class BookmarkEdgelessBlockComponent extends toGfxBlockComponent(
 
   override connectedCallback(): void {
     super.connectedCallback();
+    if (!this.model) return;
     this.disposables.add(
       this.gfx.selection.slots.updated.subscribe(() => {
-        this.requestUpdate();
+        this._gfxSelectionTick$.value++;
       }),
     );
   }
 
-  override renderGfxBlock() {
+  override syncGfxLayout() {
+    void this._gfxSelectionTick$.value;
     const style = this.model.props.style$.value;
     const width = EMBED_CARD_WIDTH[style];
     const height = EMBED_CARD_HEIGHT[style];
@@ -44,20 +52,14 @@ export class BookmarkEdgelessBlockComponent extends toGfxBlockComponent(
     const scaleY = bound.h / height;
     const isSelected = this.gfx.selection.has(this.model.id);
 
-    this.containerStyleMap = styleMap({
-      width: `100%`,
-      height: `100%`,
+    this.containerStyle$.value = {
+      width: "100%",
+      height: "100%",
       transform: `scale(${scaleX}, ${scaleY})`,
       transformOrigin: "0 0",
       pointerEvents: isSelected ? "auto" : "none",
-    });
-
-    return this.renderPageContent();
+    };
   }
-
-  protected override accessor blockContainerStyles: StyleInfo = {
-    height: "100%",
-  };
 }
 
 export const BookmarkBlockInteraction = GfxViewInteractionExtension(

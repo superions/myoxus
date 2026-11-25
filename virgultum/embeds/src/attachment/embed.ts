@@ -17,8 +17,6 @@ import {
 } from "@virgultum/core/utils";
 import { type BlockStdScope, StdIdentifier } from "@virgultum/core/runtime";
 import { Extension, type ExtensionType } from "@virgultum/core/store";
-import { html, type TemplateResult } from "lit";
-import { styleMap } from "lit/directives/style-map.js";
 
 import { getAttachmentBlob } from "./utils";
 
@@ -36,12 +34,13 @@ export type AttachmentEmbedConfig = {
     std: BlockStdScope,
   ) => Promise<void> | void;
   /**
-   * Renders the embed view.
+   * Mounts the embed view into an editor-owned anchor and returns its cleanup.
    */
-  render?: (
+  mount?: (
+    anchor: HTMLElement,
     model: AttachmentBlockModel,
     blobUrl: string,
-  ) => TemplateResult | null;
+  ) => () => void;
 
   /**
    * Should show status when turned on.
@@ -127,9 +126,9 @@ export class AttachmentEmbedService extends Extension {
     return this.values.some((config) => config.check(model, maxFileSize));
   }
 
-  getRender(model: AttachmentBlockModel, maxFileSize = this._maxFileSize) {
+  getMount(model: AttachmentBlockModel, maxFileSize = this._maxFileSize) {
     return (
-      this.values.find((config) => config.check(model, maxFileSize))?.render ??
+      this.values.find((config) => config.check(model, maxFileSize))?.mount ??
       null
     );
   }
@@ -184,28 +183,24 @@ const embedConfig: AttachmentEmbedConfig[] = [
         xywh: bound.serialize(),
       });
     },
-    render: (_, blobUrl) => {
-      // More options: https://tinytip.co/tips/html-pdf-params/
-      // https://chromium.googlesource.com/chromium/src/+/refs/tags/121.0.6153.1/chrome/browser/resources/pdf/open_pdf_params_parser.ts
-      const parameters = "#toolbar=0";
-      return html`
-        <iframe
-          style=${styleMap({
-            width: "100%",
-            minHeight: "480px",
-            colorScheme: "auto",
-          })}
-          src=${blobUrl + parameters}
-          loading="lazy"
-          scrolling="no"
-          frameborder="no"
-          allowTransparency
-          allowfullscreen
-          type="application/pdf"
-          credentialless
-        ></iframe>
-        <div class="myoxus-attachment-embed-event-mask"></div>
-      `;
+    mount: (anchor, _, blobUrl) => {
+      const doc = anchor.ownerDocument;
+      const iframe = doc.createElement("iframe");
+      iframe.style.width = "100%";
+      iframe.style.minHeight = "480px";
+      iframe.style.colorScheme = "auto";
+      iframe.src = `${blobUrl}#toolbar=0`;
+      iframe.loading = "lazy";
+      iframe.setAttribute("scrolling", "no");
+      iframe.setAttribute("frameborder", "no");
+      iframe.setAttribute("allowTransparency", "");
+      iframe.allowFullscreen = true;
+      iframe.setAttribute("type", "application/pdf");
+      iframe.setAttribute("credentialless", "");
+      const mask = doc.createElement("div");
+      mask.className = "myoxus-attachment-embed-event-mask";
+      anchor.replaceChildren(iframe, mask);
+      return () => anchor.replaceChildren();
     },
   },
   {
@@ -223,31 +218,33 @@ const embedConfig: AttachmentEmbedConfig[] = [
         xywh: bound.serialize(),
       });
     },
-    render: (_, blobUrl) =>
-      html`<video
-        style=${styleMap({
-          display: "flex",
-          objectFit: "cover",
-          backgroundSize: "cover",
-          width: "100%",
-          height: "100%",
-        })}
-        src=${blobUrl}
-        width="100%"
-        height="100%"
-        controls
-      ></video>`,
+    mount: (anchor, _, blobUrl) => {
+      const video = anchor.ownerDocument.createElement("video");
+      video.style.display = "flex";
+      video.style.objectFit = "cover";
+      video.style.backgroundSize = "cover";
+      video.style.width = "100%";
+      video.style.height = "100%";
+      video.src = blobUrl;
+      video.setAttribute("width", "100%");
+      video.setAttribute("height", "100%");
+      video.controls = true;
+      anchor.replaceChildren(video);
+      return () => anchor.replaceChildren();
+    },
   },
   {
     name: "audio",
     check: (model, maxFileSize) =>
       model.props.type.startsWith("audio/") && model.props.size <= maxFileSize,
-    render: (_, blobUrl) =>
-      html`<audio
-        style=${styleMap({ margin: "4px" })}
-        src=${blobUrl}
-        controls
-      ></audio>`,
+    mount: (anchor, _, blobUrl) => {
+      const audio = anchor.ownerDocument.createElement("audio");
+      audio.style.margin = "4px";
+      audio.src = blobUrl;
+      audio.controls = true;
+      anchor.replaceChildren(audio);
+      return () => anchor.replaceChildren();
+    },
   },
 ];
 

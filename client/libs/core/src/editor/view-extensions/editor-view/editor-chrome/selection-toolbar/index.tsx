@@ -21,12 +21,20 @@ import { SelectionActions } from "./block-actions";
 import { TextFormatControl } from "./text-format";
 import { SurfacePropertyControl } from "./surface-property";
 
-export function renderControl(action: SelectionAction, menu: boolean) {
+export function renderControl(
+  action: SelectionAction,
+  menu: boolean,
+  afterAction?: () => void,
+) {
   return action.control?.type === "choice" ||
     action.control?.type === "toggle" ? (
     <TextFormatControl action={action} labelled={menu} />
   ) : (
-    <SurfacePropertyControl action={action} compact={!menu} />
+    <SurfacePropertyControl
+      action={action}
+      compact={!menu}
+      afterAction={afterAction}
+    />
   );
 }
 /** One portal under the owning editor tree; selection geometry stays in Virgultum. */

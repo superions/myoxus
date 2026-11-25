@@ -1,17 +1,14 @@
 import { useGuard } from "@myoxus/core/components/guard";
-import { useEditorCopilot } from "@myoxus/core/components/hooks/myoxus/use-enable-ai";
 import {
   MyoxusPageReference,
   MyoxusSharedPageReference,
 } from "@myoxus/core/components/myoxus/reference-link";
-import { LitTextRenderer } from "@myoxus/core/editor/ai/components/text-renderer";
-import { getViewManager } from "@myoxus/core/editor/manager/view";
-import {
-  patchReferenceRenderer,
-  type ReferenceReactRenderer,
-} from "@myoxus/core/editor/view-extensions/editor-view/reference-renderer";
+import { StoredAnswerText } from "@myoxus/core/editor/ai/components/ai-message-content/stored-answer-text";
 import { type Backlink, DocLinksService } from "@myoxus/core/modules/doc-link";
-import { toDocSearchParams } from "@myoxus/core/modules/navigation/utils";
+import {
+  resolveLinkToDoc,
+  toDocSearchParams,
+} from "@myoxus/core/modules/navigation/utils";
 import { WorkbenchLink } from "@myoxus/core/modules/workbench";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import {
@@ -20,8 +17,7 @@ import {
   DocumentGraphTargetState,
 } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
-import { useFramework, useLiveData, useServices } from "@myoxus/infra";
-import { useLitPortalFactory } from "@myoxus/lit-react";
+import { useLiveData, useServices } from "@myoxus/infra";
 import track from "@myoxus/track";
 import {
   Badge,
@@ -32,21 +28,11 @@ import {
   SurfaceListItem,
   SurfaceListItemFrame,
 } from "@myoxus/ui-facade";
-import type {
-  ExtensionType,
-  TransformerMiddleware,
-} from "@virgultum/editor/store";
-import { Fragment, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 type BacklinkGroup = {
   docId: string;
   links: Backlink[];
-};
-
-type TextRendererOptions = {
-  customHeading: boolean;
-  extensions: ExtensionType[];
-  additionalMiddlewares: TransformerMiddleware[];
 };
 
 export { useDocumentLinkCounts } from "./use-document-link-counts";
@@ -122,57 +108,6 @@ export function DatabaseBacklinkReferences({
   );
 }
 
-const usePreviewExtensions = () => {
-  const [reactToLit, portals, mountPortal] = useLitPortalFactory();
-  const framework = useFramework();
-  const enableAI = useEditorCopilot();
-
-  const { workspaceService } = useServices({
-    WorkspaceService,
-  });
-
-  const referenceRenderer: ReferenceReactRenderer = useMemo(() => {
-    return function customReference(reference) {
-      const data = reference.delta.attributes?.reference;
-      if (!data) return <span />;
-
-      const pageId = data.pageId;
-      if (!pageId) return <span />;
-
-      const params = toDocSearchParams(data.params);
-
-      if (workspaceService.workspace.openOptions.isSharedMode) {
-        return (
-          <MyoxusSharedPageReference
-            docCollection={workspaceService.workspace.docCollection}
-            pageId={pageId}
-            params={params}
-          />
-        );
-      }
-
-      return <MyoxusPageReference pageId={pageId} params={params} />;
-    };
-  }, [workspaceService]);
-
-  const extensions = useMemo(() => {
-    const manager = getViewManager()
-      .config.init()
-      .foundation(framework)
-      .ai(enableAI, framework, reactToLit, mountPortal)
-      .theme(framework)
-      .database(framework)
-      .linkedDoc(framework)
-      .paragraph(enableAI)
-      .linkPreview(framework)
-      .codeBlockPreview(framework).value;
-    const specs = manager.get("preview-page");
-    return [...specs, patchReferenceRenderer(mountPortal, referenceRenderer)];
-  }, [reactToLit, mountPortal, referenceRenderer, framework, enableAI]);
-
-  return [extensions, portals] as const;
-};
-
 function groupBacklinks(backlinks: Backlink[]): BacklinkGroup[] {
   const groupedLinks = backlinks.reduce(
     (acc, link) => {
@@ -190,10 +125,10 @@ function groupBacklinks(backlinks: Backlink[]): BacklinkGroup[] {
 
 function BacklinkPreview({
   linkGroup,
-  textRendererOptions,
+  renderDocLink,
 }: {
   linkGroup: BacklinkGroup;
-  textRendererOptions: TextRendererOptions;
+  renderDocLink: (url: string) => React.ReactNode;
 }) {
   const canAccess = useGuard("Doc_Read", linkGroup.docId);
   const t = useI18n();
@@ -264,9 +199,9 @@ function BacklinkPreview({
                   />
                 </MyoxusText>
               ) : (
-                <LitTextRenderer
-                  answer={link.markdownPreview}
-                  options={textRendererOptions}
+                <StoredAnswerText
+                  text={link.markdownPreview}
+                  documentLink={renderDocLink}
                 />
               )}
             </SurfaceListItem>
@@ -278,7 +213,6 @@ function BacklinkPreview({
 }
 
 export function DocumentBacklinksList() {
-  const [extensions, portals] = usePreviewExtensions();
   const { workspaceService, docLinksService } = useServices({
     WorkspaceService,
     DocLinksService,
@@ -296,22 +230,48 @@ export function DocumentBacklinksList() {
 
   const backlinkGroups = useMemo(() => groupBacklinks(backlinks), [backlinks]);
 
-  const textRendererOptions = useMemo(() => {
-    const docLinkBaseURLMiddleware: TransformerMiddleware = ({
-      adapterConfigs,
-    }) => {
-      adapterConfigs.set(
-        "docLinkBaseUrl",
-        `/workspace/${workspaceService.workspace.id}`,
+  const renderDocLink = useCallback(
+    (url: string) => {
+      const workspaceId = workspaceService.workspace.id;
+      const normalized =
+        url.startsWith("/") && !url.startsWith("/workspace/")
+          ? `/workspace/${workspaceId}${url}`
+          : url;
+      const resolved = resolveLinkToDoc(normalized);
+      if (!resolved?.docId) return null;
+      const params = toDocSearchParams({
+        mode: resolved.mode,
+        blockIds: resolved.blockIds,
+        blockSelection: resolved.blockSelection,
+        elementIds: resolved.elementIds,
+        databaseId: resolved.databaseId,
+        databaseRowId: resolved.databaseRowId,
+        refreshKey: resolved.refreshKey,
+        commentId: resolved.commentId,
+      });
+      if (workspaceService.workspace.openOptions.isSharedMode) {
+        return (
+          <MyoxusSharedPageReference
+            docCollection={workspaceService.workspace.docCollection}
+            pageId={resolved.docId}
+            params={params}
+          />
+        );
+      }
+      return (
+        <MyoxusPageReference
+          pageId={resolved.docId}
+          workspaceId={
+            resolved.workspaceId !== workspaceId
+              ? resolved.workspaceId
+              : undefined
+          }
+          params={params}
+        />
       );
-    };
-
-    return {
-      customHeading: true,
-      extensions,
-      additionalMiddlewares: [docLinkBaseURLMiddleware],
-    };
-  }, [extensions, workspaceService.workspace.id]);
+    },
+    [workspaceService],
+  );
 
   if (backlinkGroups.length === 0 && databaseReferences.length === 0) {
     return (
@@ -341,13 +301,10 @@ export function DocumentBacklinksList() {
             />
           </Group>
           <BacklinkPreview
-            textRendererOptions={textRendererOptions}
+            renderDocLink={renderDocLink}
             linkGroup={linkGroup}
           />
         </Stack>
-      ))}
-      {portals.map((p) => (
-        <Fragment key={p.id}>{p.portal}</Fragment>
       ))}
     </Stack>
   );

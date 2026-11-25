@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { LitPortalDecorator } from "@myoxus/lit-react";
 import { MyoxusEmbeddedUIProvider } from "@myoxus/ui-facade/provider";
 import {
   type PropsWithChildren,
@@ -72,11 +71,3 @@ export function EditorEmbeddedUIRoot({
     </MyoxusEmbeddedUIProvider>
   );
 }
-
-/** Reuse the renderer-local theme for native chrome mounted by the existing Lit bridge. */
-export const decorateEditorEmbeddedUI: LitPortalDecorator = (
-  element,
-  portalRoot,
-) => (
-  <EditorEmbeddedUIRoot portalRoot={portalRoot}>{element}</EditorEmbeddedUIRoot>
-);

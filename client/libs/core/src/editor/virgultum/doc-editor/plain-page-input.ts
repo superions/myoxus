@@ -149,52 +149,56 @@ export function resolveBookmark(
     focus = to(s.focus);
   return anchor && focus ? { anchor, focus } : null;
 }
-export function restorePageRange(root: HTMLElement, s: PageRange) {
-  const to = (p: Point): [Node, number] | null => {
-    const field = root.querySelector<HTMLElement>(
-      `[data-page-text="${CSS.escape(p.id)}"]`,
-    );
-    if (!field) return null;
-    let left = p.offset;
-    const it = document.createTreeWalker(
-      field,
-      NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
-      {
-        acceptNode(node) {
-          const el = node instanceof Element ? node : node.parentElement;
-          if (
-            el?.parentElement?.closest("[data-page-inline-length]") ||
-            (node.nodeType === Node.TEXT_NODE &&
-              el?.closest("[data-page-inline-length]"))
-          )
-            return NodeFilter.FILTER_REJECT;
-          return node.nodeType === Node.TEXT_NODE ||
-            el?.hasAttribute("data-page-inline-length")
-            ? NodeFilter.FILTER_ACCEPT
-            : NodeFilter.FILTER_SKIP;
-        },
+export function resolveDomPoint(
+  root: HTMLElement,
+  p: Point,
+): [Node, number] | null {
+  const field = root.querySelector<HTMLElement>(
+    `[data-page-text="${CSS.escape(p.id)}"]`,
+  );
+  if (!field) return null;
+  let left = Math.max(0, p.offset);
+  const it = document.createTreeWalker(
+    field,
+    NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+    {
+      acceptNode(node) {
+        const el = node instanceof Element ? node : node.parentElement;
+        if (
+          el?.parentElement?.closest("[data-page-inline-length]") ||
+          (node.nodeType === Node.TEXT_NODE &&
+            el?.closest("[data-page-inline-length]"))
+        )
+          return NodeFilter.FILTER_REJECT;
+        return node.nodeType === Node.TEXT_NODE ||
+          el?.hasAttribute("data-page-inline-length")
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_SKIP;
       },
-    );
-    for (let node = it.nextNode(); node; node = it.nextNode()) {
-      if (node instanceof HTMLElement) {
-        const n = Number(node.dataset.pageInlineLength);
-        if (left <= n)
-          return [
-            node.parentNode!,
-            Array.prototype.indexOf.call(node.parentNode!.childNodes, node) +
-              (left ? 1 : 0),
-          ];
-        left -= n;
-        continue;
-      }
-      const n = node.textContent!.length;
-      if (left <= n) return [node, left];
+    },
+  );
+  for (let node = it.nextNode(); node; node = it.nextNode()) {
+    if (node instanceof HTMLElement) {
+      const n = Number(node.dataset.pageInlineLength);
+      if (left <= n)
+        return [
+          node.parentNode!,
+          Array.prototype.indexOf.call(node.parentNode!.childNodes, node) +
+            (left ? 1 : 0),
+        ];
       left -= n;
+      continue;
     }
-    return [field, field.childNodes.length];
-  };
-  const a = to(s.anchor),
-    b = to(s.focus);
+    const n = node.textContent!.length;
+    if (left <= n) return [node, left];
+    left -= n;
+  }
+  return [field, field.childNodes.length];
+}
+
+export function restorePageRange(root: HTMLElement, s: PageRange) {
+  const a = resolveDomPoint(root, s.anchor),
+    b = resolveDomPoint(root, s.focus);
   const selection = root.ownerDocument.getSelection();
   if (
     a &&

@@ -1,7 +1,8 @@
-import { computed, type ReadonlySignal, signal } from "@preact/signals-core";
+import { computed, effect, signal } from "@preact/signals-core";
 import {
-  CaptionedBlockComponent,
+  NativeCaptionedBlockComponent,
   SelectedStyle,
+  type BlockStyleMap,
 } from "@virgultum/content/caption";
 import type {
   BookmarkBlockModel,
@@ -13,32 +14,48 @@ import {
   CitationProvider,
   DocModeProvider,
   EditorChromeHostIdentifier,
+  type EditorBookmarkCardControls,
   LinkPreviewServiceIdentifier,
 } from "@virgultum/core/services";
 import { normalizeUrl } from "@virgultum/core/utils";
 import { BlockSelection, isGfxBlockComponent } from "@virgultum/core/runtime";
-import { html } from "lit";
-import { property } from "lit/decorators.js";
-import { type ClassInfo, classMap } from "lit/directives/class-map.js";
-import { type StyleInfo, styleMap } from "lit/directives/style-map.js";
 import { filter } from "rxjs/operators";
 
 import { refreshBookmarkUrlData } from "./utils.js";
 
 export const BOOKMARK_MIN_WIDTH = 450;
 
-export class BookmarkBlockComponent extends CaptionedBlockComponent<BookmarkBlockModel> {
-  selectedStyle$: ReadonlySignal<ClassInfo> | null = computed<ClassInfo>(
-    () => ({
-      "selected-style": this.selected$.value,
-    }),
-  );
+export class BookmarkBlockComponent extends NativeCaptionedBlockComponent<BookmarkBlockModel> {
+  protected override useCaptionEditor = true;
+  protected override useZeroWidth = true;
+
+  protected showEditorSelection = true;
 
   private _fetchAbortController?: AbortController;
 
   blockDraggable = true;
 
-  protected containerStyleMap!: ReturnType<typeof styleMap>;
+  protected readonly containerStyle$ = signal<BlockStyleMap>({
+    position: "relative",
+    width: "100%",
+  });
+
+  private readonly _error$ = signal(false);
+  private readonly _loading$ = signal(false);
+
+  get error() {
+    return this._error$.value;
+  }
+  set error(value: boolean) {
+    this._error$.value = value;
+  }
+
+  get loading() {
+    return this._loading$.value;
+  }
+  set loading(value: boolean) {
+    this._loading$.value = value;
+  }
 
   /**
    * @description Local link preview data
@@ -156,14 +173,19 @@ export class BookmarkBlockComponent extends CaptionedBlockComponent<BookmarkBloc
     this.open();
   };
 
-  private readonly _renderCardView = () => {
-    // Read every signal here so the block re-renders (and re-projects the
-    // plain snapshot) on preview, selection and style changes.
+  constructor() {
+    super();
+    this.selectedStyle$.value = SelectedStyle.Border;
+    this.blockContainerStyles$.value = { margin: "18px 0" };
+  }
+
+  private buildCardControls(): EditorBookmarkCardControls {
+    void this.revision$.value;
     const preview = this.linkPreview$.value;
     const style = this.model.props.style$.value;
     const { url, footnoteIdentifier } = this.model.props;
     const citation = this.isCitation;
-    return this.std.get(EditorChromeHostIdentifier).renderBookmarkCard({
+    return {
       citationIdentifier: citation
         ? (footnoteIdentifier ?? undefined)
         : undefined,
@@ -194,12 +216,11 @@ export class BookmarkBlockComponent extends CaptionedBlockComponent<BookmarkBloc
           this.selectBlock();
         }
       },
-    });
-  };
+    };
+  }
 
   private readonly _trackCitationDeleteEvent = () => {
-    // Check citation delete event
-    this._disposables.add(
+    this.disposables.add(
       this.std.store.slots.blockUpdated
         .pipe(
           filter((payload) => {
@@ -222,33 +243,72 @@ export class BookmarkBlockComponent extends CaptionedBlockComponent<BookmarkBloc
     );
   };
 
-  override connectedCallback() {
-    super.connectedCallback();
-
+  protected override mountBlock(container: HTMLElement) {
     const mode = this.std.get(DocModeProvider).getEditorMode();
-    const miniWidth = `${BOOKMARK_MIN_WIDTH}px`;
-
-    this.containerStyleMap = styleMap({
+    this.containerStyle$.value = {
       position: "relative",
       width: "100%",
-      ...(mode === "edgeless" ? { miniWidth } : {}),
-    });
+      ...(mode === "edgeless" ? { minWidth: `${BOOKMARK_MIN_WIDTH}px` } : {}),
+    };
 
     this._fetchAbortController = new AbortController();
-
     this.contentEditable = "false";
+
+    const doc = this.ownerDocument;
+    const wrapper = doc.createElement("div");
+    wrapper.className = "myoxus-bookmark-container";
+    wrapper.setAttribute("draggable", this.blockDraggable ? "true" : "false");
+    container.replaceChildren(wrapper);
+
+    if (this.isCitation) {
+      this.disposables.addFromEvent(wrapper, "click", this.handleClick);
+      this.disposables.addFromEvent(
+        wrapper,
+        "dblclick",
+        this.handleDoubleClick,
+      );
+    }
+
+    let appliedKeys: string[] = [];
+    this.disposables.add(
+      effect(() => {
+        wrapper.classList.toggle(
+          "selected-style",
+          this.showEditorSelection && this.selected$.value,
+        );
+        const style = this.containerStyle$.value;
+        for (const key of appliedKeys) {
+          if (style[key] === undefined) {
+            wrapper.style.setProperty(
+              key.replace(/[A-Z]/g, (ch) => `-${ch.toLowerCase()}`),
+              "",
+            );
+          }
+        }
+        appliedKeys = [];
+        for (const [key, value] of Object.entries(style)) {
+          if (value !== undefined) {
+            (wrapper.style as unknown as Record<string, string>)[key] = value;
+            appliedKeys.push(key);
+          }
+        }
+      }),
+    );
+
+    const chrome = this.std.getOptional(EditorChromeHostIdentifier);
+    if (chrome) {
+      const state = computed(() => this.buildCardControls());
+      this.disposables.add(chrome.mountBookmarkCard(wrapper, state));
+    }
 
     if (
       (!this.model.props.description && !this.model.props.title) ||
       (!this.model.props.image && this.model.props.style === "vertical")
     ) {
-      // When the doc is readonly, and the preview data not provided
-      // We should fetch the preview data and update the local link preview data
       if (this.store.readonly) {
         this._updateLocalLinkPreview();
         return;
       }
-      // Otherwise, we should refresh the data to the model props
       this.refreshData();
     }
 
@@ -264,42 +324,9 @@ export class BookmarkBlockComponent extends CaptionedBlockComponent<BookmarkBloc
   }
 
   override disconnectedCallback(): void {
-    super.disconnectedCallback();
     this._fetchAbortController?.abort();
+    super.disconnectedCallback();
   }
-
-  override renderBlock() {
-    return html`
-      <div
-        draggable="${this.blockDraggable ? "true" : "false"}"
-        class=${classMap({
-          "myoxus-bookmark-container": true,
-          ...this.selectedStyle$?.value,
-        })}
-        style=${this.containerStyleMap}
-        @click=${this.isCitation ? this.handleClick : undefined}
-        @dblclick=${this.isCitation ? this.handleDoubleClick : undefined}
-      >
-        ${this._renderCardView()}
-      </div>
-    `;
-  }
-
-  protected override accessor blockContainerStyles: StyleInfo = {
-    margin: "18px 0",
-  };
-
-  @property({ attribute: false })
-  accessor error = false;
-
-  @property({ attribute: false })
-  accessor loading = false;
-
-  override accessor selectedStyle = SelectedStyle.Border;
-
-  override accessor useCaptionEditor = true;
-
-  override accessor useZeroWidth = true;
 }
 
 declare global {

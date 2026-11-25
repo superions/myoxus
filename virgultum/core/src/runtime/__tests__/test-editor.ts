@@ -1,38 +1,44 @@
-import { SignalWatcher, WithDisposable } from "../../primitives/lit/index";
+import { DisposableGroup } from "../../primitives/disposable/index.js";
+import { NativeViewElement } from "../../primitives/env/index.js";
 import type { ExtensionType, Store } from "../../store/index";
-import { html } from "lit";
-import { customElement, property } from "lit/decorators.js";
 
 import { BlockStdScope } from "../scope/index.js";
-import { ShadowlessElement } from "../view/index.js";
 
-@customElement("test-editor-container")
-export class TestEditorContainer extends SignalWatcher(
-  WithDisposable(ShadowlessElement),
-) {
+export class TestEditorContainer extends NativeViewElement {
+  disposables = new DisposableGroup();
   private _std!: BlockStdScope;
+
+  doc!: Store;
+  specs: ExtensionType[] = [];
 
   get std() {
     return this._std;
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
+  get updateComplete() {
+    return Promise.resolve();
+  }
+
+  connectedCallback() {
+    if (this.disposables.disposed) {
+      this.disposables = new DisposableGroup();
+    }
     this._std = new BlockStdScope({
       store: this.doc,
       extensions: this.specs,
     });
+    const wrapper = this.ownerDocument.createElement("div");
+    wrapper.className = "test-editor-container";
+    wrapper.append(this._std.render());
+    this.replaceChildren(wrapper);
   }
 
-  protected override render() {
-    return html` <div class="test-editor-container">
-      ${this._std.render()}
-    </div>`;
+  disconnectedCallback() {
+    this.disposables.dispose();
+    this.replaceChildren();
   }
+}
 
-  @property({ attribute: false })
-  accessor doc!: Store;
-
-  @property({ attribute: false })
-  accessor specs: ExtensionType[] = [];
+if (!customElements.get("test-editor-container")) {
+  customElements.define("test-editor-container", TestEditorContainer);
 }

@@ -9,7 +9,7 @@ import {
 } from "@myoxus/core/modules/server";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import type { FrameworkProvider } from "@myoxus/infra";
-import type { MountReactPortal } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import {
   DocumentIndexHost,
   DocumentIndexOutputProvider,

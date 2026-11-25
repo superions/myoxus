@@ -3,13 +3,13 @@
 
 import { useI18n } from "@myoxus/i18n";
 import {
+  AiIcon,
   ArrowUpBigIcon,
   StopIcon,
   CopyIcon,
   DoneIcon,
   ArrowRightSmallIcon,
 } from "@myoxus/icons/react";
-import { toReactNode } from "@myoxus/lit-react";
 import {
   Box,
   Stack,
@@ -31,10 +31,8 @@ import {
   type MenuPanelProps,
 } from "@myoxus/ui-facade";
 import { editorGlyph } from "../../../view-extensions/editor-view/editor-chrome/glyphs";
-import { AIStarIcon } from "@virgultum/editor/components/icons";
 import { NotificationProvider } from "@virgultum/editor/shared/services";
 import type { EditorHost } from "@virgultum/editor/std";
-import { html } from "lit";
 import {
   useState,
   useEffect,
@@ -64,10 +62,12 @@ export function AIActionGroups({
   const renderItems = (group: AIItemGroupConfig) =>
     group.items.map((item) => {
       const icon =
-        editorGlyph(item.iconName) ??
-        toReactNode(
-          typeof item.icon === "function" ? html`${item.icon()}` : item.icon,
-        );
+        editorGlyph(
+          item.iconName ??
+            (typeof item.icon === "string"
+              ? (item.icon as Parameters<typeof editorGlyph>[0])
+              : undefined),
+        ) ?? (typeof item.icon !== "string" ? item.icon : null);
       const label = item.beta ? `${item.name} (Beta)` : item.name;
       const choose = () => {
         onChoose?.();
@@ -251,7 +251,7 @@ export function AIPanelView({
       <Stack gap="xs" mih={0}>
         {state === "input" ? (
           <Group wrap="nowrap" align="center">
-            {toReactNode(AIStarIcon)}
+            <AiIcon />
             <Textarea
               variant="unstyled"
               ref={setInput}
@@ -312,7 +312,7 @@ export function AIPanelView({
                         : undefined
                     }
                   >
-                    {toReactNode(
+                    {editorGlyph(
                       config.generatingStateConfig.generatingIcon,
                     ) || <MyoxusLoader />}
                     <Stack gap={0} flex={1}>

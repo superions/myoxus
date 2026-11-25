@@ -1,7 +1,4 @@
-import { html } from "lit";
-import { when } from "lit/directives/when.js";
-
-const styles = html`<style>
+export const imageSelectedRectStyles = `
   .myoxus-page-selected-embed-rects-container {
     position: absolute;
     border: 2px solid var(--myoxus-primary-color);
@@ -55,29 +52,86 @@ const styles = html`<style>
     transform: translate(50%, 50%);
     cursor: nwse-resize;
   }
-</style>`;
 
-export function ImageSelectedRect(readonly: boolean) {
-  return html`
-    ${styles}
-    <div class="myoxus-page-selected-embed-rects-container resizable resizes">
-      ${when(
-        !readonly,
-        () => html`
-          <div class="resize top-left">
-            <div class="resize-inner"></div>
-          </div>
-          <div class="resize top-right">
-            <div class="resize-inner"></div>
-          </div>
-          <div class="resize bottom-left">
-            <div class="resize-inner"></div>
-          </div>
-          <div class="resize bottom-right">
-            <div class="resize-inner"></div>
-          </div>
-        `,
-      )}
-    </div>
-  `;
+  @keyframes myoxus-image-spinner-rotate {
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .myoxus-image-loading-spinner {
+    transform-origin: center;
+    animation: myoxus-image-spinner-rotate 0.75s infinite linear;
+  }
+`;
+
+const RESIZE_CORNERS = [
+  "top-left",
+  "top-right",
+  "bottom-left",
+  "bottom-right",
+] as const;
+
+export function createImageSelectedRect(doc: Document, readonly: boolean) {
+  const container = doc.createElement("div");
+  container.className =
+    "myoxus-page-selected-embed-rects-container resizable resizes";
+  if (!readonly) {
+    for (const corner of RESIZE_CORNERS) {
+      const handle = doc.createElement("div");
+      handle.className = `resize ${corner}`;
+      const inner = doc.createElement("div");
+      inner.className = "resize-inner";
+      handle.append(inner);
+      container.append(handle);
+    }
+  }
+  return container;
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+export function createImageLoadingSpinner(
+  doc: Document,
+  {
+    size = "1em",
+    progress = 0.2,
+    ringColor = "var(--myoxus-white-60)",
+    strokeColor = "var(--myoxus-pure-white)",
+  }: {
+    size?: string;
+    progress?: number;
+    ringColor?: string;
+    strokeColor?: string;
+  } = {},
+) {
+  const svg = doc.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("width", size);
+  svg.setAttribute("height", size);
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.style.fill = "none";
+
+  const ring = doc.createElementNS(SVG_NS, "circle");
+  ring.setAttribute("cx", "12");
+  ring.setAttribute("cy", "12");
+  ring.setAttribute("r", "8");
+  ring.setAttribute("stroke", ringColor);
+  ring.setAttribute("stroke-width", "4");
+
+  const spinner = doc.createElementNS(SVG_NS, "circle");
+  spinner.setAttribute("class", "myoxus-image-loading-spinner");
+  spinner.setAttribute("cx", "12");
+  spinner.setAttribute("cy", "12");
+  spinner.setAttribute("r", "8");
+  spinner.setAttribute("stroke", strokeColor);
+  spinner.setAttribute("stroke-width", "4");
+  spinner.setAttribute("stroke-linecap", "round");
+  spinner.setAttribute(
+    "stroke-dasharray",
+    `${2 * Math.PI * 8 * progress} ${2 * Math.PI * 8 * (1 - progress)}`,
+  );
+
+  svg.append(ring, spinner);
+  return svg;
 }

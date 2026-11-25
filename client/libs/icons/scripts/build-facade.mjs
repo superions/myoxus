@@ -63,13 +63,6 @@ const reactSource = renderReactFacade("@virgultum/icons/rc");
 // Only generated glyph producers are duplicated; the adapter remains shared.
 const catalogSource = renderReactFacade("@virgultum/icons/catalog");
 
-const litSource = `${header}export * from "@virgultum/icons/lit";
-import { EdgelessIcon as SourceEdgelessIcon } from "@virgultum/icons/lit";
-
-export const NewXxxEdgelessIcon = SourceEdgelessIcon;
-export const NewXxxEdgeless = NewXxxEdgelessIcon;
-`;
-
 const namesSource = `${header}export const iconNames = ${JSON.stringify(
   exportIconNames,
   null,
@@ -86,7 +79,6 @@ const outputs = await Promise.all(
   [
     [path.join(packageDir, "src/react.ts"), reactSource],
     [path.join(packageDir, "src/catalog.ts"), catalogSource],
-    [path.join(packageDir, "src/lit.ts"), litSource],
     [path.join(packageDir, "src/names.ts"), namesSource],
   ].map(async ([file, source]) => [
     file,

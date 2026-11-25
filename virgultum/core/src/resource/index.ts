@@ -6,7 +6,6 @@ import {
 } from "@preact/signals-core";
 import type { Disposable } from "@virgultum/core/primitives/disposable";
 import type { BlobEngine, BlobState } from "@virgultum/core/sync";
-import type { TemplateResult } from "lit-html";
 
 export type ResourceKind = "Blob" | "File" | "Image";
 
@@ -14,7 +13,7 @@ export type StateKind =
   "loading" | "uploading" | "error" | "error:oversize" | "none";
 
 export type StateInfo = {
-  icon: TemplateResult;
+  icon?: unknown;
   title?: string;
   description?: string | null;
 };
@@ -102,8 +101,8 @@ export class ResourceController implements Disposable {
 
   resolveStateWith(
     info: {
-      loadingIcon: TemplateResult;
-      errorIcon?: TemplateResult;
+      loadingIcon?: unknown;
+      errorIcon?: unknown;
     } & StateInfo,
   ): ResolvedStateInfo {
     const { error, loading, state, url, needUpload } =

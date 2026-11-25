@@ -3,9 +3,12 @@
 
 import {
   Alert,
+  Box,
+  Group,
   MediaPreviewImage,
   MyoxusText,
   MyoxusTitle,
+  Scrollable,
   Typography,
 } from "@myoxus/ui-facade";
 import {
@@ -53,12 +56,14 @@ function Equation({ source, display }: { source: string; display: boolean }) {
   return <span ref={ref} />;
 }
 
-function Code({
+export function HighlightedCode({
   source,
   language,
+  showLineNumbers = false,
 }: {
   source: string;
   language?: string | null;
+  showLineNumbers?: boolean;
 }) {
   const { resolvedTheme } = useMyoxusTheme();
   const [result, setResult] = useState<{
@@ -96,23 +101,64 @@ function Code({
     result.theme === resolvedTheme
       ? result.tokens
       : undefined;
+
+  const codeContent = (
+    <code>
+      {tokens
+        ? tokens.map((row, i) => (
+            <Fragment key={i}>
+              {i > 0 && "\n"}
+              {row.map((t, j) => (
+                // Shiki returns per-token color data. This inline style is renderer
+                // content, not product chrome, and cannot be represented as static theme CSS.
+                <span key={j} style={{ color: t.color }}>
+                  {t.content}
+                </span>
+              ))}
+            </Fragment>
+          ))
+        : source}
+    </code>
+  );
+
+  if (!showLineNumbers) {
+    return <pre style={{ whiteSpace: "pre-wrap" }}>{codeContent}</pre>;
+  }
+
+  const lineCount = tokens ? tokens.length : source.split("\n").length;
   return (
-    <pre style={{ whiteSpace: "pre-wrap" }}>
-      <code>
-        {tokens
-          ? tokens.map((row, i) => (
-              <Fragment key={i}>
-                {i > 0 && "\n"}
-                {row.map((t, j) => (
-                  <span key={j} style={{ color: t.color }}>
-                    {t.content}
-                  </span>
-                ))}
-              </Fragment>
-            ))
-          : source}
-      </code>
-    </pre>
+    <Scrollable.Root
+      display="flex"
+      flexDirection="column"
+      flex={1}
+      minHeight={0}
+    >
+      <Scrollable.Viewport fill>
+        <Group align="flex-start" wrap="nowrap" gap="md" p="md">
+          <Box
+            aria-hidden="true"
+            style={{ userSelect: "none", textAlign: "right", flexShrink: 0 }}
+          >
+            <MyoxusText
+              component="div"
+              tone="secondary"
+              typographySlot="code"
+              preserveWhitespace
+            >
+              {Array.from({ length: lineCount }, (_, i) => i + 1).join("\n")}
+            </MyoxusText>
+          </Box>
+          <MyoxusText
+            component="div"
+            typographySlot="code"
+            preserveWhitespace
+            flex={1}
+          >
+            {codeContent}
+          </MyoxusText>
+        </Group>
+      </Scrollable.Viewport>
+    </Scrollable.Root>
   );
 }
 
@@ -158,10 +204,14 @@ export function StoredAnswerText({
   host,
   text,
   annotation = false,
+  documentLink,
+  testId = "ai-text-renderer",
 }: {
-  host: EditorHost;
+  host?: EditorHost | null;
   text: string;
   annotation?: boolean;
+  documentLink?: MarkdownPreviewPresentation["documentLink"];
+  testId?: string;
 }) {
   const presentation = useMemo<MarkdownPreviewPresentation>(
     () => ({
@@ -178,7 +228,9 @@ export function StoredAnswerText({
           {children}
         </MyoxusTitle>
       ),
-      code: (source, language) => <Code source={source} language={language} />,
+      code: (source, language) => (
+        <HighlightedCode source={source} language={language} />
+      ),
       callout: (data, children) => (
         <Callout
           key={JSON.stringify([
@@ -191,11 +243,11 @@ export function StoredAnswerText({
           {children}
         </Callout>
       ),
-      citation: (footnote) => (
-        <CitationMarker store={host.store} footnote={footnote} />
-      ),
+      citation: (footnote) =>
+        host ? <CitationMarker store={host.store} footnote={footnote} /> : null,
       annotation: (body) =>
-        host.std.getOptional(AnnotationReactHostIdentifier)?.showAnnotations ? (
+        host?.std.getOptional(AnnotationReactHostIdentifier)
+          ?.showAnnotations ? (
           <AnnotationInline
             id={body}
             body={body}
@@ -206,6 +258,7 @@ export function StoredAnswerText({
           />
         ) : null,
       inlineHtml: (children, start) => {
+        if (!host) return null;
         using job = host.store.getTransformer();
         const group = new MarkdownAdapter(
           job,
@@ -236,6 +289,11 @@ export function StoredAnswerText({
         };
       },
       documentLink: (url, children) => {
+        if (documentLink) {
+          const custom = documentLink(url, children);
+          if (custom) return custom;
+        }
+        if (!host) return null;
         const target = host.std
           .getOptional(ParseDocUrlProvider)
           ?.parseDocUrl(url);
@@ -260,7 +318,7 @@ export function StoredAnswerText({
         const source = new URL(raw);
         if (!["http:", "https:"].includes(source.protocol)) return alt || raw;
         const endpoint = new URL(
-          host.std.clipboard.configs.get("imageProxy") ??
+          host?.std.clipboard.configs.get("imageProxy") ??
             BUILD_CONFIG.imageProxyUrl,
           location.href,
         );
@@ -275,12 +333,12 @@ export function StoredAnswerText({
         <Equation source={source} display={display} />
       ),
     }),
-    [host],
+    [host, documentLink],
   );
   return (
     <MyoxusText
       component="div"
-      data-testid="ai-text-renderer"
+      data-testid={testId}
       typographySlot={annotation ? "body-small" : "body"}
       tone={annotation ? "secondary" : "primary"}
       italic={annotation}

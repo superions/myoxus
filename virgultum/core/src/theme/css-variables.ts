@@ -7,7 +7,6 @@ import {
 } from "@myoxus/theme";
 import { LINE_COLORS } from "../models/index";
 export { cssVar } from "@myoxus/theme";
-import { unsafeCSS } from "lit";
 export const ColorVariables = [
   "--myoxus-brand-color",
   "--myoxus-primary-color",
@@ -124,13 +123,13 @@ export type CssVariablesMap = Record<CssVariableName, string>;
 export const unsafeCSSVar = (
   key: keyof MyoxusCssVariables | keyof MyoxusTheme,
   fallback?: string,
-) => unsafeCSS(cssVar(key, fallback));
+) => cssVar(key, fallback);
 
 /**
- * Marks a complete, caller-owned CSS value as static Lit CSS.
+ * Returns a complete, caller-owned CSS value string.
  *
  * This is a renderer adapter, not a design-token lookup. Product chrome should
  * source its values from Mantine variables or the server-owned theme before
  * crossing this boundary.
  */
-export const unsafeCSSValue = (value: string) => unsafeCSS(value);
+export const unsafeCSSValue = (value: string) => value;

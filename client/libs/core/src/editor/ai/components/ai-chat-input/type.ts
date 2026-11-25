@@ -22,12 +22,14 @@ export type AIChatInputContext = {
   markdown?: string;
   images: File[];
   abortController: AbortController | null;
-} & Pick<
-  ChatContextValue,
-  | "snapshot"
-  | "combinedElementsMarkdown"
-  | "attachments"
-  | "docs"
-  | "html"
-  | "retrievalAvailable"
+} & Partial<
+  Pick<
+    ChatContextValue,
+    | "snapshot"
+    | "combinedElementsMarkdown"
+    | "attachments"
+    | "docs"
+    | "html"
+    | "retrievalAvailable"
+  >
 >;

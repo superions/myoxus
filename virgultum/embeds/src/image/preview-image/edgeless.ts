@@ -1,21 +1,21 @@
-import { unsafeCSSVar } from "@virgultum/core/theme";
-import { toGfxBlockComponent } from "@virgultum/core/runtime";
-import { css } from "lit";
+import { toNativeGfxBlockComponent } from "@virgultum/canvas-runtime/surface";
+import { installEditorStyles } from "@virgultum/core/runtime";
 
 import { ImagePlaceholderBlockComponent } from "./page.js";
 
-export class ImageEdgelessPlaceholderBlockComponent extends toGfxBlockComponent(
+const edgelessImagePlaceholderStyles = `
+  myoxus-edgeless-placeholder-preview-image
+    .myoxus-placeholder-preview-container {
+    border: 1px solid var(--myoxus-background-tertiary-color);
+  }
+`;
+
+export class ImageEdgelessPlaceholderBlockComponent extends toNativeGfxBlockComponent(
   ImagePlaceholderBlockComponent,
 ) {
-  static override styles = css`
-    myoxus-edgeless-placeholder-preview-image
-      .myoxus-placeholder-preview-container {
-      border: 1px solid ${unsafeCSSVar("backgroundTertiaryColor")};
-    }
-  `;
-
-  override renderGfxBlock(): unknown {
-    return super.renderGfxBlock();
+  override connectedCallback() {
+    super.connectedCallback();
+    installEditorStyles(this, edgelessImagePlaceholderStyles);
   }
 }
 

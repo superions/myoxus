@@ -1,12 +1,13 @@
 import {
   EditorI18nProvider,
   EditorChromeHostIdentifier,
+  type EditorAttachmentCardControls,
   editorMessage,
   resolveEditorMessage,
 } from "@virgultum/core/services";
-import { computed } from "@preact/signals-core";
+import { computed, effect, signal, untracked } from "@preact/signals-core";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import type { ResolvedStateInfo } from "@virgultum/core/resource";
-import { SignalWatcher, WithDisposable } from "@virgultum/core/primitives/lit";
 import {
   focusBlockEnd,
   focusBlockStart,
@@ -14,97 +15,126 @@ import {
   getPrevBlockCommand,
 } from "@virgultum/core/commands";
 import { ImageSelection } from "@virgultum/core/selection";
-import { unsafeCSSVar } from "@virgultum/core/theme";
+import { cssVar } from "@virgultum/core/theme";
 import {
   type BlockComponent,
   BlockSelection,
-  ShadowlessElement,
+  installEditorStyles,
+  NativeViewElement,
   TextSelection,
   type UIEventStateContext,
 } from "@virgultum/core/runtime";
 import type { BaseSelection } from "@virgultum/core/store";
-import { css, html, type PropertyValues } from "lit";
-import { property, query, state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { styleMap } from "lit/directives/style-map.js";
-import { when } from "lit/directives/when.js";
 
 import type { ImageBlockComponent } from "../image-block";
 import { ImageResizeManager } from "../image-resize-manager";
 import { shouldResizeImage } from "../utils";
-import { ImageSelectedRect } from "./image-selected-rect";
+import {
+  createImageLoadingSpinner,
+  createImageSelectedRect,
+  imageSelectedRectStyles,
+} from "./image-selected-rect";
 
-export class ImageBlockPageComponent extends SignalWatcher(
-  WithDisposable(ShadowlessElement),
-) {
-  static override styles = css`
-    myoxus-page-image {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      line-height: 0;
-      cursor: pointer;
-    }
+const pageImageStyles = `
+  myoxus-page-image {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    cursor: pointer;
+  }
 
-    myoxus-page-image .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: absolute;
-      top: 4px;
-      left: 4px;
-      width: 36px;
-      height: 36px;
-      padding: 5px;
-      border-radius: 8px;
-      background: ${unsafeCSSVar("black10")};
+  myoxus-page-image .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 36px;
+    height: 36px;
+    padding: 5px;
+    border-radius: 8px;
+    background: var(--myoxus-black-10);
+  }
 
-      & > svg {
-        font-size: 25.71px;
-      }
-    }
+  myoxus-page-image .loading > svg {
+    font-size: 25.71px;
+  }
 
-    myoxus-page-image .myoxus-image-status {
-      position: absolute;
-      left: 18px;
-      bottom: 18px;
-    }
+  myoxus-page-image .myoxus-image-status {
+    position: absolute;
+    left: 18px;
+    bottom: 18px;
+  }
 
-    myoxus-page-image .resizable-img {
-      position: relative;
-      max-width: 100%;
-    }
+  myoxus-page-image .resizable-img {
+    position: relative;
+    max-width: 100%;
+  }
 
-    myoxus-page-image .resizable-img img {
-      display: block;
-      max-width: 100%;
-      height: auto;
-    }
+  myoxus-page-image .resizable-img img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
 
-    myoxus-page-image .resizable-img[data-myoxus-sized="true"] img {
-      width: 100%;
-      height: 100%;
-    }
+  myoxus-page-image .resizable-img[data-myoxus-sized="true"] img {
+    width: 100%;
+    height: 100%;
+  }
 
-    myoxus-page-image .comment-highlighted {
-      outline: 2px solid ${unsafeCSSVar("primaryColor")};
-    }
-  `;
+  myoxus-page-image .comment-highlighted {
+    outline: 2px solid var(--myoxus-primary-color);
+  }
+`;
 
-  resizeable$ = computed(() => this.block.resizeable$.value);
-
+export class ImageBlockPageComponent extends NativeViewElement {
+  private readonly _block$ = signal<ImageBlockComponent | null>(null);
+  private readonly _state$ = signal<ResolvedStateInfo | null>(null);
+  private readonly _intrinsicWidth$ = signal(0);
+  private readonly _revision$ = signal(0);
+  private _disposables = new DisposableGroup();
   private _isDragging = false;
+  private _resizeImgEl: HTMLDivElement | null = null;
 
-  @state()
-  private accessor _intrinsicWidth = 0;
+  resizeable$ = computed(() => this._block$.value?.resizeable$.value ?? false);
 
-  private _handleLoad(event: Event) {
-    this._intrinsicWidth = (
+  get block() {
+    return this._block$.value!;
+  }
+  set block(value: ImageBlockComponent) {
+    this._block$.value = value;
+  }
+
+  get state() {
+    return this._state$.value!;
+  }
+  set state(value: ResolvedStateInfo) {
+    this._state$.value = value;
+  }
+
+  get resizeImg(): HTMLElement {
+    return (
+      this._resizeImgEl ?? this.querySelector<HTMLElement>(".resizable-img")!
+    );
+  }
+
+  get updateComplete() {
+    return Promise.resolve(this.isConnected);
+  }
+
+  requestUpdate() {
+    this._revision$.value++;
+  }
+
+  private readonly _handleLoad = (event: Event) => {
+    this._intrinsicWidth$.value = (
       event.currentTarget as HTMLImageElement
     ).naturalWidth;
-  }
+  };
 
   private get _doc() {
     return this.block.store;
@@ -217,7 +247,6 @@ export class ImageBlockPageComponent extends SignalWatcher(
         const std = this._host.std;
 
         // If the selection is not image selection, we should not handle it.
-
         if (!std.selection.find(ImageSelection)) {
           return false;
         }
@@ -241,33 +270,29 @@ export class ImageBlockPageComponent extends SignalWatcher(
     });
   }
 
-  private _handleError() {
-    this.block.resourceController.updateState({
+  private readonly _handleError = () => {
+    this.block.resourceController?.updateState({
       errorMessage: "Failed to download image!",
     });
-  }
+  };
 
-  private _handleSelection() {
+  private _handleSelection(resizeImg: HTMLElement) {
     const selection = this._host.selection;
 
-    this._disposables.addFromEvent(
-      this.resizeImg,
-      "click",
-      (event: MouseEvent) => {
-        // the peek view need handle shift + click
-        if (event.shiftKey) return;
+    this._disposables.addFromEvent(resizeImg, "click", (event: MouseEvent) => {
+      // the peek view need handle shift + click
+      if (event.shiftKey) return;
 
-        event.stopPropagation();
-        selection.update((selList) => {
-          return selList
-            .filter((sel) => !["block", "image", "text"].includes(sel.type))
-            .concat(
-              selection.create(ImageSelection, { blockId: this.block.blockId }),
-            );
-        });
-        return true;
-      },
-    );
+      event.stopPropagation();
+      selection.update((selList) => {
+        return selList
+          .filter((sel) => !["block", "image", "text"].includes(sel.type))
+          .concat(
+            selection.create(ImageSelection, { blockId: this.block.blockId }),
+          );
+      });
+      return true;
+    });
 
     this.block.handleEvent(
       "click",
@@ -289,10 +314,8 @@ export class ImageBlockPageComponent extends SignalWatcher(
 
   private _normalizeImageSize() {
     // If is dragging, we should use the real size of the image
-    if (this._isDragging && this.resizeImg) {
-      return {
-        width: this.resizeImg.style.width,
-      };
+    if (this._isDragging && this._resizeImgEl) {
+      return this._resizeImgEl.style.width;
     }
 
     const { width, height } = this._model.props;
@@ -300,12 +323,11 @@ export class ImageBlockPageComponent extends SignalWatcher(
       // Imported images have no authored dimensions. An unsized SVG inside
       // the flex/percentage container can otherwise collapse to zero width.
       // Use decoded geometry only for rendering; loading must not edit Yjs.
-      return this._intrinsicWidth ? { width: `${this._intrinsicWidth}px` } : {};
+      const intrinsicWidth = this._intrinsicWidth$.value;
+      return intrinsicWidth ? `${intrinsicWidth}px` : "";
     }
 
-    return {
-      width: `${width}px`,
-    };
+    return `${width}px`;
   }
 
   private _hasStoredImageSize() {
@@ -352,18 +374,79 @@ export class ImageBlockPageComponent extends SignalWatcher(
     );
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-
-    this._bindKeyMap();
-
-    this._observeDrag();
+  private _buildStatusControls(): EditorAttachmentCardControls | null {
+    const state = this._state$.value;
+    const block = this._block$.value;
+    if (!state || !block || !state.error || !state.description) return null;
+    const { description, needUpload } = state;
+    return {
+      inSurface: false,
+      selected: false,
+      title: resolveEditorMessage(
+        needUpload
+          ? editorMessage(
+              "com.myoxus.editor.resource.upload-failed",
+              "Upload failed",
+            )
+          : editorMessage(
+              "com.myoxus.editor.resource.download-failed",
+              "Download failed",
+            ),
+        block.std.getOptional(EditorI18nProvider) ?? undefined,
+      ),
+      description,
+      fileType: "image",
+      loading: false,
+      error: true,
+      vertical: false,
+      statusPopover: true,
+      action: {
+        kind: needUpload ? "retry" : "reload",
+        run: () =>
+          needUpload ? block.resourceController.upload() : block.refreshData(),
+      },
+    };
   }
 
-  override firstUpdated(changedProperties: PropertyValues) {
-    super.firstUpdated(changedProperties);
+  connectedCallback() {
+    installEditorStyles(this, pageImageStyles);
+    installEditorStyles(this, imageSelectedRectStyles);
 
-    this._handleSelection();
+    this._disposables.dispose();
+    this._disposables = new DisposableGroup();
+
+    const doc = this.ownerDocument;
+    const resizeImg = doc.createElement("div");
+    resizeImg.className = "resizable-img";
+    this._resizeImgEl = resizeImg;
+
+    const img = doc.createElement("img");
+    img.className = "drag-target";
+    img.draggable = false;
+    img.loading = "lazy";
+    this._disposables.addFromEvent(img, "load", this._handleLoad);
+    this._disposables.addFromEvent(img, "error", this._handleError);
+    resizeImg.append(img);
+
+    const loadingEl = doc.createElement("div");
+    loadingEl.className = "loading";
+    loadingEl.append(
+      createImageLoadingSpinner(doc, {
+        strokeColor: cssVar("pureWhite"),
+        ringColor: cssVar("white60"),
+      }),
+    );
+
+    const statusEl = doc.createElement("span");
+    statusEl.className = "myoxus-image-status";
+
+    this.replaceChildren(resizeImg);
+
+    if (this._block$.peek()?.host) {
+      this._bindKeyMap();
+      this._observeDrag();
+      this._handleSelection(resizeImg);
+    }
 
     // The embed block can not be focused,
     // so the active element will be the last activated element.
@@ -371,7 +454,7 @@ export class ImageBlockPageComponent extends SignalWatcher(
     // any event will dispatch from it and be ignored. (Most events will ignore title)
     // so we need to blur it.
     // See also https://developer.mozilla.org/en-US/docs/Web/API/Document/activeElement
-    this.addEventListener("click", () => {
+    this._disposables.addFromEvent(this, "click", () => {
       if (
         document.activeElement &&
         document.activeElement instanceof HTMLElement
@@ -379,90 +462,97 @@ export class ImageBlockPageComponent extends SignalWatcher(
         document.activeElement.blur();
       }
     });
+
+    if (this._block$.peek()?.model?.propsUpdated) {
+      this._disposables.add(
+        this._block$.peek()!.model.propsUpdated.subscribe(() => {
+          this.requestUpdate();
+        }),
+      );
+    }
+
+    let selectedRectEl: HTMLDivElement | null = null;
+    let lastSelectedReadonly: boolean | null = null;
+
+    this._disposables.add(
+      effect(() => {
+        void this._revision$.value;
+        const block = this._block$.value;
+        const state = this._state$.value;
+        if (!block || !state) return;
+
+        resizeImg.classList.toggle(
+          "comment-highlighted",
+          block.isCommentHighlighted,
+        );
+        resizeImg.dataset.myoxusSized = this._hasStoredImageSize()
+          ? "true"
+          : "false";
+        resizeImg.style.width = this._normalizeImageSize();
+
+        const blobUrl = block.blobUrl ?? "";
+        if (img.getAttribute("src") !== blobUrl) {
+          img.setAttribute("src", blobUrl);
+        }
+        const caption = block.model.props.caption$.value ?? "Image";
+        if (img.alt !== caption) {
+          img.alt = caption;
+        }
+
+        const showSelectedRect = this.resizeable$.value;
+        const readonly = block.store?.readonly ?? false;
+        if (showSelectedRect) {
+          if (!selectedRectEl || lastSelectedReadonly !== readonly) {
+            selectedRectEl?.remove();
+            selectedRectEl = createImageSelectedRect(doc, readonly);
+            lastSelectedReadonly = readonly;
+            resizeImg.append(selectedRectEl);
+          }
+        } else if (selectedRectEl) {
+          selectedRectEl.remove();
+          selectedRectEl = null;
+          lastSelectedReadonly = null;
+        }
+
+        if (state.loading) {
+          if (!loadingEl.parentNode) {
+            this.append(loadingEl);
+          }
+        } else if (loadingEl.parentNode) {
+          loadingEl.remove();
+        }
+      }),
+    );
+
+    const statusControls$ = computed(() => this._buildStatusControls());
+    this._disposables.add(
+      effect(() => {
+        const block = this._block$.value;
+        const chrome = block?.std?.getOptional(EditorChromeHostIdentifier);
+        const active = Boolean(statusControls$.value);
+        if (!chrome || !active) {
+          statusEl.remove();
+          return;
+        }
+        if (!statusEl.parentNode) {
+          this.append(statusEl);
+        }
+        return untracked(() => {
+          const unmount = chrome.mountAttachmentCard(statusEl, statusControls$);
+          return () => {
+            unmount();
+            statusEl.remove();
+          };
+        });
+      }),
+    );
   }
 
-  override render() {
-    const imageSize = this._normalizeImageSize();
-
-    const imageSelectedRect = this.resizeable$.value
-      ? ImageSelectedRect(this._doc.readonly)
-      : null;
-
-    const blobUrl = this.block.blobUrl;
-    const caption = this.block.model.props.caption$.value ?? "Image";
-    const { loading, error, icon, description, needUpload } = this.state;
-
-    return html`
-      <div
-        class=${classMap({
-          "resizable-img": true,
-          "comment-highlighted": this.block.isCommentHighlighted,
-        })}
-        data-myoxus-sized=${this._hasStoredImageSize() ? "true" : "false"}
-        style=${styleMap(imageSize)}
-      >
-        <img
-          class="drag-target"
-          draggable="false"
-          loading="lazy"
-          src=${blobUrl}
-          alt=${caption}
-          @load=${this._handleLoad}
-          @error=${this._handleError}
-        />
-
-        ${imageSelectedRect}
-      </div>
-
-      ${when(loading, () => html`<div class="loading">${icon}</div>`)}
-      ${when(
-        Boolean(error && description),
-        () =>
-          html`<span class="myoxus-image-status">
-            ${this.block.std
-              .get(EditorChromeHostIdentifier)
-              .renderAttachmentCard({
-                inSurface: false,
-                selected: false,
-                title: resolveEditorMessage(
-                  needUpload
-                    ? editorMessage(
-                        "com.myoxus.editor.resource.upload-failed",
-                        "Upload failed",
-                      )
-                    : editorMessage(
-                        "com.myoxus.editor.resource.download-failed",
-                        "Download failed",
-                      ),
-                  this.block.std.getOptional(EditorI18nProvider) ?? undefined,
-                ),
-                description: description ?? "",
-                fileType: "image",
-                loading: false,
-                error: true,
-                vertical: false,
-                statusPopover: true,
-                action: {
-                  kind: needUpload ? "retry" : "reload",
-                  run: () =>
-                    needUpload
-                      ? this.block.resourceController.upload()
-                      : this.block.refreshData(),
-                },
-              })}
-          </span>`,
-      )}
-    `;
+  disconnectedCallback() {
+    this._disposables.dispose();
+    this._resizeImgEl = null;
+    this.replaceChildren();
   }
-
-  @property({ attribute: false })
-  accessor block!: ImageBlockComponent;
-
-  @property({ attribute: false })
-  accessor state!: ResolvedStateInfo;
-
-  @query(".resizable-img")
-  accessor resizeImg!: HTMLElement;
 }
 
 declare global {

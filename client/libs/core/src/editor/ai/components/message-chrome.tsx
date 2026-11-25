@@ -15,7 +15,8 @@ import {
   Splitter,
   ThemeIcon,
 } from "@myoxus/ui-facade";
-import { createElement, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { ChatContentImages } from "./ai-message-content/images";
 
 export function ChatAssistantIdentity({
   withDocs = false,
@@ -146,7 +147,7 @@ export function ChatUserMessage({
       assistant={false}
       identity={<ChatUserIdentity avatarUrl={avatarUrl} name={name} />}
     >
-      {images?.length ? createElement("chat-content-images", { images }) : null}
+      {images?.length ? <ChatContentImages images={images} /> : null}
       {text ? (
         <Box
           data-testid="chat-content-pure-text"

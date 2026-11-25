@@ -43,41 +43,49 @@ export class NativeBlockProjection {
 
   /** Keep each child element tied to its materialized model across ordering changes. */
   sync(models: readonly BlockModel[], container: HTMLElement) {
-    const remaining = new Set(this.views.keys());
-    const ordered: HTMLElement[] = [];
-    for (const model of models) {
-      const view = resolveBlockView(this.host.std, model);
-      const viewType = view?.viewType;
-      let entry = this.views.get(model.id);
-      if (
-        entry &&
-        (entry.model !== model ||
-          entry.viewType !== viewType ||
-          entry.element.localName !== view?.tag)
-      ) {
-        entry.element.remove();
-        this.views.delete(model.id);
-        entry = undefined;
-      }
-      if (!entry && view && viewType) {
-        const element = createRetainedBlockView(this.host, model, view);
-        if (element) {
-          entry = { model, element, viewType };
-          this.views.set(model.id, entry);
+    // Evaluate dynamic BlockViewExtension predicates inside the caller's signal
+    // tracking scope so tag-switching signals re-trigger projection, while
+    // keeping DOM creation and child connectedCallback untracked.
+    const resolved = models.map((model) => ({
+      model,
+      view: resolveBlockView(this.host.std, model),
+    }));
+    untracked(() => {
+      const remaining = new Set(this.views.keys());
+      const ordered: HTMLElement[] = [];
+      for (const { model, view } of resolved) {
+        const viewType = view?.viewType;
+        let entry = this.views.get(model.id);
+        if (
+          entry &&
+          (entry.model !== model ||
+            entry.viewType !== viewType ||
+            entry.element.localName !== view?.tag)
+        ) {
+          entry.element.remove();
+          this.views.delete(model.id);
+          entry = undefined;
+        }
+        if (!entry && view && viewType) {
+          const element = createRetainedBlockView(this.host, model, view);
+          if (element) {
+            entry = { model, element, viewType };
+            this.views.set(model.id, entry);
+          }
+        }
+        if (entry) {
+          ordered.push(entry.element);
+          remaining.delete(model.id);
         }
       }
-      if (entry) {
-        ordered.push(entry.element);
-        remaining.delete(model.id);
+      for (const id of remaining) {
+        this.views.get(id)?.element.remove();
+        this.views.delete(id);
       }
-    }
-    for (const id of remaining) {
-      this.views.get(id)?.element.remove();
-      this.views.delete(id);
-    }
-    ordered.forEach((element, index) => {
-      const current = container.children.item(index);
-      if (element !== current) container.insertBefore(element, current);
+      ordered.forEach((element, index) => {
+        const current = container.children.item(index);
+        if (element !== current) container.insertBefore(element, current);
+      });
     });
   }
 }
@@ -265,7 +273,7 @@ export abstract class NativeContainerBlock<
       effect(() => {
         void this.revision.value;
         const models = display ? this.projectedModels() : this.model.children;
-        untracked(() => children.sync(models, body));
+        children.sync(models, body);
       }),
     );
     this.disposables.add(() => children.dispose());

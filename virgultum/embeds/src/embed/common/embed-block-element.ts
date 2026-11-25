@@ -1,7 +1,8 @@
-import { computed, type ReadonlySignal, signal } from "@preact/signals-core";
+import { computed, effect, signal } from "@preact/signals-core";
 import {
-  CaptionedBlockComponent,
+  NativeCaptionedBlockComponent,
   SelectedStyle,
+  type BlockStyleMap,
 } from "@virgultum/content/caption";
 import type { EmbedCardStyle, EmbedProps } from "@virgultum/core/models";
 import {
@@ -13,7 +14,6 @@ import {
   BlockElementCommentManager,
   DocModeProvider,
 } from "@virgultum/core/services";
-import { unsafeCSSVar } from "@virgultum/core/theme";
 import { findAncestorModel } from "@virgultum/core/utils";
 import type { BlockService } from "@virgultum/core/runtime";
 import {
@@ -21,21 +21,17 @@ import {
   type ResizeConstraint,
 } from "@virgultum/core/runtime/gfx";
 import type { BlockModel } from "@virgultum/core/store";
-import { html, type TemplateResult } from "lit";
-import { query } from "lit/decorators.js";
-import { type ClassInfo, classMap } from "lit/directives/class-map.js";
-import { type StyleInfo, styleMap } from "lit/directives/style-map.js";
 
-export class EmbedBlockComponent<
+export abstract class EmbedBlockComponent<
   Model extends BlockModel<EmbedProps> = BlockModel<EmbedProps>,
   Service extends BlockService = BlockService,
-  WidgetName extends string = string,
-> extends CaptionedBlockComponent<Model, Service, WidgetName> {
-  selectedStyle$: ReadonlySignal<ClassInfo> | null = computed<ClassInfo>(
-    () => ({
-      "selected-style": this.selected$.value,
-    }),
-  );
+  _WidgetName extends string = string,
+> extends NativeCaptionedBlockComponent<Model, Service> {
+  protected override useCaptionEditor = true;
+  protected override useZeroWidth = true;
+
+  protected showEditorSelection = true;
+  protected embedSelectionMode: "editor" | "native" = "editor";
 
   readonly isDraggingOnHost$ = signal(false);
   readonly isResizing$ = signal(false);
@@ -50,16 +46,33 @@ export class EmbedBlockComponent<
 
   private _fetchAbortController = new AbortController();
 
-  _cardStyle: EmbedCardStyle = "horizontal";
+  protected readonly _cardStyle$ = signal<EmbedCardStyle>("horizontal");
+  protected readonly embedContainerStyle$ = signal<BlockStyleMap>({});
 
   blockDraggable = true;
+  protected embedBlock!: HTMLDivElement;
 
-  /**
-   * The style of the embed card.
-   * You can use this to change the height and width of the card.
-   * By default, the height and width are set to `_cardHeight` and `_cardWidth` respectively.
-   */
-  protected embedContainerStyle: StyleInfo = {};
+  constructor() {
+    super();
+    this.selectedStyle$.value = SelectedStyle.Border;
+    this.blockContainerStyles$.value = {
+      margin: "18px 0",
+    };
+  }
+
+  get _cardStyle(): EmbedCardStyle {
+    return this._cardStyle$.value;
+  }
+  set _cardStyle(value: EmbedCardStyle) {
+    this._cardStyle$.value = value;
+  }
+
+  get embedContainerStyle(): BlockStyleMap {
+    return this.embedContainerStyle$.value;
+  }
+  set embedContainerStyle(value: BlockStyleMap) {
+    this.embedContainerStyle$.value = value;
+  }
 
   get isCommentHighlighted() {
     return (
@@ -69,75 +82,27 @@ export class EmbedBlockComponent<
     );
   }
 
-  // Native host cards paint selection themselves; keep the outer renderer box unpainted.
-  renderEmbed = (
-    content: () => TemplateResult,
-    selection: "editor" | "native" = "editor",
-  ) => {
-    if (
-      this._cardStyle === "horizontal" ||
-      this._cardStyle === "horizontalThin" ||
-      this._cardStyle === "list"
-    ) {
-      this.style.display = "block";
-
-      const insideNote = findAncestorModel(
-        this.model,
-        (m) => m.flavour === "myoxus:note",
-      );
-
-      if (
-        !insideNote &&
-        this.std.get(DocModeProvider).getEditorMode() === "edgeless"
-      ) {
-        this.style.minWidth = `${EMBED_CARD_MIN_WIDTH}px`;
-      }
-    }
-
-    return html`
-      <div
-        draggable="${this.blockDraggable ? "true" : "false"}"
-        class=${classMap({
-          "embed-block-container": true,
-          ...(selection === "editor" ? this.selectedStyle$?.value : {}),
-        })}
-        style=${styleMap({
-          height: `${this._cardHeight}px`,
-          width: "100%",
-          ...(this.isCommentHighlighted
-            ? {
-                border: `2px solid ${unsafeCSSVar("primaryColor")}`,
-              }
-            : {}),
-          ...this.embedContainerStyle,
-        })}
-      >
-        ${content()}
-      </div>
-    `;
-  };
-
   /**
    * The height of the current embed card. Changes based on the card style.
    */
   get _cardHeight() {
-    return EMBED_CARD_HEIGHT[this._cardStyle];
+    return EMBED_CARD_HEIGHT[this._cardStyle$.value];
   }
 
   /**
    * The width of the current embed card. Changes based on the card style.
    */
   get _cardWidth() {
-    return EMBED_CARD_WIDTH[this._cardStyle];
+    return EMBED_CARD_WIDTH[this._cardStyle$.value];
   }
 
   get fetchAbortController() {
     return this._fetchAbortController;
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
+  protected abstract mountEmbedContent(container: HTMLElement): void;
 
+  protected override mountBlock(container: HTMLElement) {
     if (this._fetchAbortController.signal.aborted)
       this._fetchAbortController = new AbortController();
 
@@ -160,25 +125,82 @@ export class EmbedBlockComponent<
       },
       { global: true },
     );
+
+    const doc = this.ownerDocument;
+    const embedContainer = doc.createElement("div");
+    embedContainer.className = "embed-block-container";
+    embedContainer.setAttribute(
+      "draggable",
+      this.blockDraggable ? "true" : "false",
+    );
+    this.embedBlock = embedContainer;
+    container.replaceChildren(embedContainer);
+
+    let appliedKeys: string[] = [];
+    this.disposables.add(
+      effect(() => {
+        void this.revision$.value;
+        const cardStyle = this._cardStyle$.value;
+        if (
+          cardStyle === "horizontal" ||
+          cardStyle === "horizontalThin" ||
+          cardStyle === "list"
+        ) {
+          this.style.display = "block";
+          const insideNote = findAncestorModel(
+            this.model,
+            (m) => m.flavour === "myoxus:note",
+          );
+          if (
+            !insideNote &&
+            this.std.get(DocModeProvider).getEditorMode() === "edgeless"
+          ) {
+            this.style.minWidth = `${EMBED_CARD_MIN_WIDTH}px`;
+          }
+        }
+
+        embedContainer.classList.toggle(
+          "selected-style",
+          this.embedSelectionMode === "editor" &&
+            this.showEditorSelection &&
+            this.selected$.value,
+        );
+
+        const nextStyle: BlockStyleMap = {
+          height: `${EMBED_CARD_HEIGHT[cardStyle]}px`,
+          width: "100%",
+          ...(this.isCommentHighlighted
+            ? { border: "2px solid var(--myoxus-primary-color)" }
+            : {}),
+          ...this.embedContainerStyle$.value,
+        };
+
+        for (const key of appliedKeys) {
+          if (nextStyle[key] === undefined) {
+            embedContainer.style.setProperty(
+              key.replace(/[A-Z]/g, (ch) => `-${ch.toLowerCase()}`),
+              "",
+            );
+          }
+        }
+        appliedKeys = [];
+        for (const [key, value] of Object.entries(nextStyle)) {
+          if (value !== undefined) {
+            (embedContainer.style as unknown as Record<string, string>)[key] =
+              value;
+            appliedKeys.push(key);
+          }
+        }
+      }),
+    );
+
+    this.mountEmbedContent(embedContainer);
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
     this._fetchAbortController.abort();
   }
-
-  protected override accessor blockContainerStyles: StyleInfo | undefined = {
-    margin: "18px 0",
-  };
-
-  @query(".embed-block-container")
-  protected accessor embedBlock!: HTMLDivElement;
-
-  override accessor selectedStyle = SelectedStyle.Border;
-
-  override accessor useCaptionEditor = true;
-
-  override accessor useZeroWidth = true;
 }
 
 export const createEmbedEdgelessBlockInteraction = (

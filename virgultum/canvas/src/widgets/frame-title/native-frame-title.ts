@@ -30,7 +30,7 @@ export class MyoxusFrameTitle extends NativeViewElement {
     super();
     const root = this.attachShadow({ mode: "open" });
     const style = this.ownerDocument.createElement("style");
-    style.textContent = frameTitleStyle.cssText;
+    style.textContent = frameTitleStyle;
     root.append(style, this.label);
   }
 
