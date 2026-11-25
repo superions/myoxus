@@ -122,10 +122,13 @@ function documentWrite(
   });
 }
 
+import type { PageAiBridge } from "../../../virgultum/doc-editor/page-ai-bridge";
+
 /** Render the serialized result. Only explicit editor actions may write or contact a provider. */
 export function StoredToolView({
   data,
   host,
+  pageBridge,
   readOnly,
   generating,
   docDisplayService,
@@ -137,6 +140,7 @@ export function StoredToolView({
 }: {
   data: Tool;
   host?: EditorHost | null;
+  pageBridge?: PageAiBridge | null;
   independentMode?: boolean;
   onOpenDoc?: (docId: string) => void;
   notificationService?: NotificationService;
@@ -261,6 +265,7 @@ export function StoredToolView({
       return (
         <StoredSectionEdit
           host={host}
+          pageBridge={pageBridge}
           notificationService={notifications}
           readOnly={independentMode || readOnly}
           content={result.content}
@@ -282,6 +287,7 @@ export function StoredToolView({
         <StoredDocumentEdit
           notificationService={notifications}
           host={host}
+          pageBridge={pageBridge}
           readOnly={readOnly}
           docId={text(data.args.doc_id)}
           instruction={text(data.args.instructions)}

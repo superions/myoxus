@@ -1,4 +1,5 @@
 import { useI18n } from "@myoxus/i18n";
+import { CopyIcon, DoneIcon } from "@myoxus/icons/react";
 import {
   Accordion,
   AccordionItem,
@@ -195,9 +196,11 @@ export function createPdfExportSupportDetails(
 }
 
 export function PdfExportErrorDisplay({
+  copied = false,
   error,
   onCopyDetails,
 }: {
+  copied?: boolean;
   error: PdfExportRenderError;
   onCopyDetails?: (details: string) => void;
 }): ReactElement {
@@ -247,10 +250,19 @@ export function PdfExportErrorDisplay({
         <Button
           data-myoxus-ui-role="button:compact"
           type="button"
+          prefix={
+            copied ? (
+              <DoneIcon aria-hidden="true" />
+            ) : (
+              <CopyIcon aria-hidden="true" />
+            )
+          }
           onClick={() => onCopyDetails(details)}
           variant="secondary"
         >
-          {t.t("com.myoxus.pdf-export.error.copy-details")}
+          {copied
+            ? t["Copied to clipboard"]()
+            : t.t("com.myoxus.pdf-export.error.copy-details")}
         </Button>
       ) : null}
     </section>

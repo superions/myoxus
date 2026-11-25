@@ -65,7 +65,6 @@ export class Editor extends Entity {
   readonly editorContainer$ = new LiveData<MyoxusEditorContainer | null>(null);
   readonly nativeOrigin$ = new LiveData<HTMLElement | null>(null);
   pageSelection: PageBookmark | null = null;
-  private nativeCommandOwner?: () => void;
   private canvasPresentationOwner?: () => void;
   private pageBlockSelection?: () => string[];
   private commentRef?: ReturnType<DocCommentManagerService["get"]>;
@@ -86,22 +85,13 @@ export class Editor extends Entity {
   selectedPageBlocks() {
     return this.pageBlockSelection?.() ?? [];
   }
-  requireEditorHost() {
-    this.nativeCommandOwner?.();
-  }
 
-  bindCanvasOrigin(
-    origin: HTMLElement,
-    requireHost: () => void,
-    present: () => void,
-  ) {
+  bindCanvasOrigin(origin: HTMLElement, present: () => void) {
     this.nativeOrigin$.next(origin);
-    this.nativeCommandOwner = requireHost;
     this.canvasPresentationOwner = present;
     return () => {
       if (this.nativeOrigin$.value === origin) {
         this.nativeOrigin$.next(null);
-        this.nativeCommandOwner = undefined;
         this.canvasPresentationOwner = undefined;
       }
     };
@@ -112,11 +102,9 @@ export class Editor extends Entity {
   bindPageOrigin(
     origin: HTMLElement,
     viewport: HTMLElement | null,
-    requireHost: () => void,
     selectedBlocks: () => string[],
   ) {
     this.nativeOrigin$.next(origin);
-    this.nativeCommandOwner = requireHost;
     this.pageBlockSelection = selectedBlocks;
     const pending = this.pendingWorkbenchMode;
     if (pending) {
@@ -132,11 +120,49 @@ export class Editor extends Entity {
       }
     };
     viewport?.addEventListener("scroll", scroll);
+    const cleanups: (() => void)[] = [
+      () => viewport?.removeEventListener("scroll", scroll),
+    ];
+    const checks = this.framework.getOptional(TemplateCheckService);
+    if (checks) {
+      const subscription = checks.location$.subscribe((request) => {
+        if (!request || request.result.sourceDocId !== this.doc.id) return;
+        if (!request.result.isCurrent() || !origin.isConnected) {
+          checks.location$.setValue(null);
+          return;
+        }
+        const { diagnostic } = request;
+        const target =
+          diagnostic.kind === "title"
+            ? origin.querySelector<HTMLElement>("[data-page-title]")
+            : diagnostic.kind === "cell"
+              ? Array.from(
+                  origin
+                    .querySelector<HTMLElement>(
+                      `[data-block-id="${CSS.escape(diagnostic.blockId)}"]`,
+                    )
+                    ?.querySelectorAll<HTMLElement>(
+                      "[data-row-id][data-column-id]",
+                    ) ?? [],
+                ).find(
+                  (cell) =>
+                    cell.dataset.rowId === diagnostic.rowId &&
+                    cell.dataset.columnId === diagnostic.columnId,
+                )
+              : origin.querySelector<HTMLElement>(
+                  `[data-block-id="${CSS.escape(diagnostic.blockId)}"]`,
+                );
+        target?.scrollIntoView({ block: "center" });
+        if (checks.location$.value === request) {
+          checks.location$.setValue(null);
+        }
+      });
+      cleanups.push(() => subscription.unsubscribe());
+    }
     return () => {
-      viewport?.removeEventListener("scroll", scroll);
+      for (const cleanup of cleanups) cleanup();
       if (this.nativeOrigin$.value === origin) {
         this.nativeOrigin$.next(null);
-        this.nativeCommandOwner = undefined;
         this.pageBlockSelection = undefined;
       }
     };

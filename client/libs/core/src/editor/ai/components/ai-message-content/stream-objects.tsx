@@ -5,6 +5,7 @@ import type { NotificationService } from "@virgultum/core/services";
 import type { BlockStdScope, EditorHost } from "@virgultum/editor/std";
 import type { ReactNode } from "react";
 
+import type { PageAiBridge } from "../../../virgultum/doc-editor/page-ai-bridge";
 import type { MyoxusAIPanelState } from "../../widgets/ai-panel/type";
 import type { DocDisplayConfig } from "../ai-chat-chips";
 import type { StreamObject } from "../ai-chat-messages/type";
@@ -26,6 +27,7 @@ type StreamObjectsPresentation = {
   answer: readonly StreamObject[];
   reasoningIdentity?: ReactNode;
   host?: EditorHost | null;
+  pageBridge?: PageAiBridge | null;
   std?: BlockStdScope | null;
   state: MyoxusAIPanelState;
   independentMode?: boolean;
@@ -38,7 +40,12 @@ type StreamObjectsPresentation = {
 
 export function StreamObjectsView(p: StreamObjectsPresentation) {
   const richText = (text: string, annotation = false) => (
-    <StoredAnswerText host={p.host} text={text} annotation={annotation} />
+    <StoredAnswerText
+      host={p.host}
+      pageBridge={p.pageBridge}
+      text={text}
+      annotation={annotation}
+    />
   );
 
   const tool = (
@@ -49,6 +56,7 @@ export function StreamObjectsView(p: StreamObjectsPresentation) {
         <DocComposeTool
           data={data as DocComposeToolCall | DocComposeToolResult}
           std={p.std ?? p.host?.std}
+          pageBridge={p.pageBridge}
           readOnly={p.readOnly}
           notificationService={p.notificationService}
         />
@@ -68,6 +76,7 @@ export function StreamObjectsView(p: StreamObjectsPresentation) {
       <StoredToolView
         data={data}
         host={p.host}
+        pageBridge={p.pageBridge}
         readOnly={p.readOnly}
         independentMode={p.independentMode}
         generating={p.state === "generating"}

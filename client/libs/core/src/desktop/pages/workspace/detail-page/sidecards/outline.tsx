@@ -1,10 +1,14 @@
 import { useI18n } from "@myoxus/i18n";
 import { EditorDocumentOutline } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome/document-outline";
+import { createPageOutlineController } from "@myoxus/core/editor/virgultum/doc-editor/page-outline-controller";
+import { DocDisplayMetaService } from "@myoxus/core/modules/doc-display-meta";
+import { EditorService } from "@myoxus/core/modules/editor";
+import { GuardService } from "@myoxus/core/modules/permissions";
+import { WorkspaceService } from "@myoxus/core/modules/workspace";
+import { useService, useServiceOptional } from "@myoxus/infra";
 import { DocumentOutlineController } from "@virgultum/editor/fragments/outline";
 import type { EditorHost } from "@virgultum/editor/std";
-import { useMemo, useEffect } from "react";
-import { useService } from "@myoxus/infra";
-import { EditorService } from "@myoxus/core/modules/editor";
+import { useCallback, useMemo } from "react";
 
 /** Shares the editor-owned outline controller without a second sidebar title. */
 export const EditorOutlinePanel = ({
@@ -14,9 +18,11 @@ export const EditorOutlinePanel = ({
 }) => {
   const t = useI18n();
   const owner = useService(EditorService).editor;
-  useEffect(() => {
-    if (!editor) owner.requireEditorHost();
-  }, [editor, owner]);
+  const displayMeta = useServiceOptional(DocDisplayMetaService);
+  const guard = useServiceOptional(GuardService);
+  const workspaceService = useServiceOptional(WorkspaceService);
+  const store = owner.doc.virgultumDoc;
+
   const labels = useMemo(
     () => ({
       title: t["com.myoxus.sidebar.outline.title"](),
@@ -41,6 +47,38 @@ export const EditorOutlinePanel = ({
     [t],
   );
 
+  const resolveMessage = useCallback(
+    (key: string, fallback: string) => {
+      const fn = (t as unknown as Record<string, (() => string) | undefined>)[
+        key
+      ];
+      return typeof fn === "function" ? fn() : fallback;
+    },
+    [t],
+  );
+
+  const resolveReference = useCallback(
+    (pageId: string, workspaceId?: string) => {
+      const currentWorkspaceId =
+        workspaceService?.workspace.id ?? store.workspace.id;
+      const meta = store.workspace.meta.docMetas.find((d) => d.id === pageId);
+      const readable =
+        meta &&
+        (!workspaceId || workspaceId === currentWorkspaceId) &&
+        (guard ? guard.can$("Doc_Read", pageId).value !== false : true);
+      if (!readable) {
+        return {
+          text: t["com.myoxus.reference.target-unavailable"](),
+          unavailable: true,
+        };
+      }
+      const title =
+        displayMeta?.title$(pageId).value || meta?.title || t["Untitled"]();
+      return { text: title, docId: pageId };
+    },
+    [displayMeta, guard, store, t, workspaceService],
+  );
+
   const controller = useMemo(
     () =>
       editor
@@ -49,8 +87,23 @@ export const EditorOutlinePanel = ({
             compactWindowRadius: 4,
             hideHeader: true,
           })
-        : null,
-    [editor, labels],
+        : createPageOutlineController({
+            store,
+            origin$: owner.nativeOrigin$,
+            labels,
+            resolveReference,
+            resolveMessage,
+            compactWindowRadius: 4,
+            hideHeader: true,
+          }),
+    [
+      editor,
+      labels,
+      owner.nativeOrigin$,
+      resolveMessage,
+      resolveReference,
+      store,
+    ],
   );
-  return controller ? <EditorDocumentOutline controls={controller} /> : null;
+  return <EditorDocumentOutline controls={controller} />;
 };

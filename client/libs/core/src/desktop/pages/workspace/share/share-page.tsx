@@ -32,7 +32,7 @@ import { useNavigateHelper } from "@myoxus/core/components/hooks/use-navigate-he
 import { useActiveVirgultumEditor } from "@myoxus/core/components/hooks/use-virgultum-editor";
 import { PageDetailEditor } from "@myoxus/core/components/page-detail-editor";
 import { AppContainer } from "@myoxus/core/desktop/components/app-container";
-import { EditorOutlineViewer } from "@myoxus/core/editor/outline-viewer";
+import { EditorOutlineViewer } from "@myoxus/core/editor/outline-viewer/editor-outline-viewer";
 import type { MyoxusEditorContainer } from "@myoxus/core/editor/virgultum/doc-editor";
 import { type Doc, DocsService } from "@myoxus/core/modules/doc";
 import {
@@ -343,6 +343,7 @@ const SharePageInner = ({
                 <Scrollable.Scrollbar />
               </Scrollable.Root>
               <EditorOutlineViewer
+                doc={page.virgultumDoc}
                 editor={editorContainer?.host ?? null}
                 show={publishMode === "page"}
               />

@@ -12,6 +12,7 @@
     { "path": "../../libs/debug" },
     { "path": "../../libs/desktop-api-contract" },
     { "path": "../../libs/i18n" },
+    { "path": "../../libs/icons" },
     { "path": "../../libs/infra" },
     { "path": "../../libs/storage" },
     { "path": "../../libs/track" },

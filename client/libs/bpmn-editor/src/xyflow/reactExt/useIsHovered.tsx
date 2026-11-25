@@ -19,32 +19,18 @@
 // SPDX-License-Identifier: Apache-2.0
 // Modified by Myoxus: React 19/XYFlow 12 and direct Facade integration; see provenance.json.
 
+import { useHover } from "@myoxus/ui-facade";
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export function useIsHovered(
   ref: React.RefObject<HTMLElement | SVGElement | null>,
 ) {
-  const [isHovered, setHovered] = useState(false);
+  const { hovered, ref: attachHover } = useHover();
 
   useEffect(() => {
-    function onEnter() {
-      setHovered(true);
-    }
+    return attachHover(ref.current as HTMLElement | null);
+  }, [attachHover, ref]);
 
-    function onLeave() {
-      setHovered(false);
-    }
-
-    const r = ref.current;
-
-    r?.addEventListener("mouseenter", onEnter);
-    r?.addEventListener("mouseleave", onLeave);
-    return () => {
-      r?.removeEventListener("mouseleave", onLeave);
-      r?.removeEventListener("mouseenter", onEnter);
-    };
-  }, [ref]);
-
-  return isHovered;
+  return hovered;
 }

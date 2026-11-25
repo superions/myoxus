@@ -33,7 +33,6 @@ import {
   Tooltip,
   Text,
   Button,
-  ConfirmModal,
   Drawer,
   EmptyState,
   Group,
@@ -62,6 +61,7 @@ import {
 } from "@myoxus/ui-facade";
 import { useCallback, useEffect, useState } from "react";
 
+import { AdminConfirmModal } from "../../components/shared/admin-confirm-modal";
 import { AdminPageFrame, AdminPageScroll, AdminSubnav } from "../admin-shell";
 import { useUrlSyncedAdminTab } from "../admin-tabs";
 import { useAdminContext, useRevalidateServerConfig } from "../common";
@@ -951,7 +951,7 @@ export function QueuePage() {
       </Drawer>
 
       {/* Confirm dialog for emptying a queue */}
-      <ConfirmModal
+      <AdminConfirmModal
         open={emptyTarget !== null}
         onOpenChange={(open) => {
           if (!open) setEmptyTarget(null);
@@ -960,9 +960,9 @@ export function QueuePage() {
         description={i18n.t("admin.queue.empty-queue-confirm", {
           name: emptyTarget?.displayName ?? "",
         })}
-        cancelText={i18n.t("admin.common.cancel")}
         confirmText={i18n.t("admin.queue.empty-button")}
-        confirmButtonOptions={{ variant: "error" }}
+        danger
+        closeOnConfirm
         onConfirm={handleEmpty}
       />
     </AdminPageFrame>

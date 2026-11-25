@@ -100,14 +100,16 @@ function TimedCopyActionButton({
 }) {
   const t = useI18n();
   const [copied, setCopied] = useState(false);
+  const mountedRef = useRef(true);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-    },
-    [],
-  );
+    };
+  }, []);
 
   const label = copied ? t["Copied to clipboard"]() : t["Copy"]();
   return (
@@ -116,10 +118,11 @@ function TimedCopyActionButton({
       tooltip={label}
       onClick={() => {
         void Promise.resolve(onCopy()).then((result) => {
-          if (result === false) return;
+          if (!mountedRef.current || result === false) return;
           if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
           setCopied(true);
           resetTimerRef.current = setTimeout(() => {
+            if (!mountedRef.current) return;
             setCopied(false);
             resetTimerRef.current = null;
           }, 2000);

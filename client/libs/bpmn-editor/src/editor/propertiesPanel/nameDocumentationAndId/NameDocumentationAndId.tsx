@@ -20,14 +20,14 @@
 // Modified by Myoxus; see provenance.json for retained source and patches.
 
 import {
+  CopyButton,
   IconButton,
   MyoxusTextInput,
   MyoxusTextarea,
   Stack,
-  notify,
 } from "@myoxus/ui-facade";
 import { FlowCategories } from "../categories/FlowCategories";
-import { CopyIcon } from "@myoxus/icons/react";
+import { CopyIcon, DoneIcon } from "@myoxus/icons/react";
 import { useI18n } from "@myoxus/i18n";
 import { updateFlowElement, updateLane } from "../../mutations/renameNode";
 import { type Normalized } from "../../normalization/normalize";
@@ -185,18 +185,20 @@ export function NameDocumentationAndId({
             readOnly
             value={element["@_id"]}
             endFix={
-              <IconButton
-                tooltip={i18n.propertiesPanel.copy}
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(element["@_id"]);
-                  } catch {
-                    notify.error(t["com.myoxus.common.operation-failed"]());
-                  }
-                }}
-              >
-                <CopyIcon />
-              </IconButton>
+              <CopyButton value={element["@_id"]} timeout={2000}>
+                {({ copied, copy }) => (
+                  <IconButton
+                    tooltip={
+                      copied
+                        ? t["Copied to clipboard"]()
+                        : i18n.propertiesPanel.copy
+                    }
+                    onClick={copy}
+                  >
+                    {copied ? <DoneIcon /> : <CopyIcon />}
+                  </IconButton>
+                )}
+              </CopyButton>
             }
           />
           <FlowCategories id={element["@_id"]} />

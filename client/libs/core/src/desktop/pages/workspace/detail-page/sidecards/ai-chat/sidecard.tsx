@@ -10,30 +10,17 @@ import type { MyoxusEditorContainer } from "@myoxus/core/editor/virgultum/doc-ed
 import {
   ViewContextSurface,
   ViewService,
-  WorkbenchService,
 } from "@myoxus/core/modules/workbench";
 import { useI18n } from "@myoxus/i18n";
 import { AiIcon } from "@myoxus/icons/react";
-import { useLiveData, useService } from "@myoxus/infra";
+import { useService } from "@myoxus/infra";
 import { lazy, Suspense, useEffect } from "react";
-import { EditorService } from "@myoxus/core/modules/editor";
 import type { Subscription } from "rxjs";
 
 const EditorChatPanel = lazy(async () => ({
   default: (await import("./panel")).EditorChatPanel,
 }));
 function ChatBody({ editor }: { editor: MyoxusEditorContainer | null }) {
-  const owner = useService(EditorService).editor;
-  const open = useLiveData(
-    useService(WorkbenchService).workbench.contextPanelOpen$,
-  );
-  const layout = useLiveData(useService(ViewService).view.toolLayout$);
-  const expanded = open && !layout.collapsedToolIds.includes("chat");
-  useEffect(() => {
-    // Retain a mounted chat for streaming, but a collapsed chat must never
-    // replace the document renderer when another tool opens the sidebar.
-    if (expanded && !editor) owner.requireEditorHost();
-  }, [expanded, editor, owner]);
   return (
     <Suspense>
       <EditorChatPanel editor={editor} />

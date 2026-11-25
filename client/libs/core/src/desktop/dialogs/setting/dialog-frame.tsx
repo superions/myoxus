@@ -33,7 +33,6 @@ import {
   type SettingsSubPageEntry,
   SubPageContext,
   type SubPageContextType,
-  SubPageView,
 } from "./sub-page";
 
 type SettingsDialogState<T extends SettingTab> = {
@@ -78,6 +77,7 @@ const SettingsDialogBody = <T extends SettingTab>({
     useCurrentServerService() ?? defaultServerService.server;
   const modalContentRef = useRef<HTMLDivElement>(null);
   const modalContentWrapperRef = useRef<HTMLDivElement>(null);
+  const [subPageSlot, setSubPageSlot] = useState<HTMLDivElement | null>(null);
 
   const onTabChange = useCallback((activeTab: T) => {
     setDialogState({ activeTab });
@@ -88,6 +88,9 @@ const SettingsDialogBody = <T extends SettingTab>({
       const index = previous.findIndex((item) => item.id === entry.id);
       if (index === -1) {
         return [...previous, entry];
+      }
+      if (previous[index].backText === entry.backText) {
+        return previous;
       }
       const next = [...previous];
       next[index] = entry;
@@ -103,17 +106,46 @@ const SettingsDialogBody = <T extends SettingTab>({
     );
   }, []);
 
+  const activeSubPage = subPages.at(-1) ?? null;
+  const activeSubPageId = activeSubPage?.id ?? null;
+
   const contextValue = useMemo(
     () =>
       ({
         subPages,
+        activeSubPageId,
+        portalTarget: subPageSlot,
         upsertSubPage,
         removeSubPage,
       }) satisfies SubPageContextType,
-    [removeSubPage, subPages, upsertSubPage],
+    [activeSubPageId, removeSubPage, subPageSlot, subPages, upsertSubPage],
   );
-  const activeSubPage = subPages.at(-1) ?? null;
-  const activeSubPageId = activeSubPage?.id ?? null;
+
+  useEffect(() => {
+    if (!activeSubPage) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      const openDialogs = document.querySelectorAll('[role="dialog"]');
+      const settingsDialog =
+        modalContentWrapperRef.current?.closest('[role="dialog"]');
+      if (
+        openDialogs.length > 1 &&
+        openDialogs[openDialogs.length - 1] !== settingsDialog
+      ) {
+        return;
+      }
+      if (document.querySelector('[role="menu"], [role="listbox"]')) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      activeSubPage.onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [activeSubPage]);
 
   const renderProps: SettingsDialogRenderProps<T> = {
     activeTab: dialogState.activeTab,
@@ -158,7 +190,7 @@ const SettingsDialogBody = <T extends SettingTab>({
                       {renderContent(renderProps)}
                     </Suspense>
                   </Box>
-                  {activeSubPage ? <SubPageView entry={activeSubPage} /> : null}
+                  <Box ref={setSubPageSlot} />
                 </SettingsDialogContentPanel>
               </SettingsDialogContentCenter>
               <Scrollable.Scrollbar />

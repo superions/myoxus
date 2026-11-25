@@ -1,6 +1,7 @@
 import { Container, type ServiceProvider } from "../../primitives/di/index";
 import { ErrorCode, VirgultumError } from "../../primitives/exceptions/index";
 import {
+  type BlockModel,
   type ExtensionType,
   resolveFlavour,
   type Store,
@@ -163,7 +164,21 @@ export class BlockStdScope {
 
   /** Use one scope per mounted shell. Scope resources cannot be remounted after disposal. */
   mountCanvas(container: HTMLElement) {
-    const host = createCanvasHost(this, container.ownerDocument);
+    return this.mountHost(
+      container,
+      createCanvasHost(this, container.ownerDocument),
+    );
+  }
+
+  /** Mount one retained block view in a dedicated host shell without projecting the full page root. */
+  mountBlock(container: HTMLElement, model: BlockModel) {
+    return this.mountHost(
+      container,
+      createCanvasHost(this, container.ownerDocument, model),
+    );
+  }
+
+  private mountHost(container: HTMLElement, host: EditorHost) {
     let mounted = false;
     const dispose = () => {
       if (!mounted) return;

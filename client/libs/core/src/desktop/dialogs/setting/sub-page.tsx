@@ -5,34 +5,53 @@ import { ArrowLeftBigIcon } from "@myoxus/icons/react";
 import {
   createContext,
   type ReactNode,
+  Suspense,
   useContext,
   useEffect,
   useId,
   useRef,
 } from "react";
+import { createPortal } from "react-dom";
 
-import { Divider, NavLink, Stack } from "./primitives";
+import {
+  Box,
+  Divider,
+  NavLink,
+  Stack,
+  WorkspaceDetailSkeleton,
+} from "./primitives";
 
 export interface SettingsSubPageEntry {
   id: string;
   backText: string;
   onClose: () => void;
-  content: ReactNode;
 }
 
 export interface SubPageContextType {
   subPages: SettingsSubPageEntry[];
+  activeSubPageId: string | null;
+  portalTarget: HTMLDivElement | null;
   upsertSubPage: (entry: SettingsSubPageEntry) => void;
   removeSubPage: (id: string) => void;
 }
 
 export const SubPageContext = createContext<SubPageContextType>({
   subPages: [],
+  activeSubPageId: null,
+  portalTarget: null,
   upsertSubPage: () => {},
   removeSubPage: () => {},
 });
 
-export const SubPageView = ({ entry }: { entry: SettingsSubPageEntry }) => {
+export const SubPageView = ({
+  backText,
+  onClose,
+  children,
+}: {
+  backText: string;
+  onClose: () => void;
+  children: ReactNode;
+}) => {
   return (
     <Stack gap="md" data-myoxus-ui-role="settings-subpage">
       <NavLink
@@ -40,11 +59,11 @@ export const SubPageView = ({ entry }: { entry: SettingsSubPageEntry }) => {
         type="button"
         data-testid="setting-subpage-back"
         leftSection={<ArrowLeftBigIcon />}
-        label={entry.backText}
-        onClick={entry.onClose}
+        label={backText}
+        onClick={onClose}
       />
       <Divider />
-      {entry.content}
+      <Suspense fallback={<WorkspaceDetailSkeleton />}>{children}</Suspense>
     </Stack>
   );
 };
@@ -61,7 +80,8 @@ export const SubPageProvider = ({
   backText?: string;
 }) => {
   const id = useId();
-  const { upsertSubPage, removeSubPage } = useContext(SubPageContext);
+  const { activeSubPageId, portalTarget, upsertSubPage, removeSubPage } =
+    useContext(SubPageContext);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -74,9 +94,8 @@ export const SubPageProvider = ({
       id,
       backText,
       onClose: () => onCloseRef.current(),
-      content: children,
     });
-  }, [backText, children, id, open, removeSubPage, upsertSubPage]);
+  }, [backText, id, open, removeSubPage, upsertSubPage]);
 
   useEffect(() => {
     return () => {
@@ -84,5 +103,16 @@ export const SubPageProvider = ({
     };
   }, [id, removeSubPage]);
 
-  return null;
+  if (!open || !portalTarget) {
+    return null;
+  }
+
+  return createPortal(
+    <Box hidden={activeSubPageId !== id}>
+      <SubPageView backText={backText} onClose={() => onCloseRef.current()}>
+        {children}
+      </SubPageView>
+    </Box>,
+    portalTarget,
+  );
 };

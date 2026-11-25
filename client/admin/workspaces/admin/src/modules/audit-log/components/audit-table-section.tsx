@@ -48,8 +48,9 @@ export function AuditPaginatedTable({
   "data-testid"?: string;
 }) {
   const i18n = useI18n();
-  const rangeStart = totalCount === 0 ? 0 : offset + 1;
-  const rangeEnd = Math.min(offset + entryCount, totalCount);
+  const rangeStart = entryCount === 0 || totalCount === 0 ? 0 : offset + 1;
+  const rangeEnd =
+    entryCount === 0 ? 0 : Math.min(offset + entryCount, totalCount);
   const pageNum = Math.floor(offset / pageSize);
 
   return (

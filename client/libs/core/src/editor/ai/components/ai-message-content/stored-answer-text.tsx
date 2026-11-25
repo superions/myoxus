@@ -25,7 +25,10 @@ import { useMyoxusTheme } from "@myoxus/ui-facade/provider";
 import { buildImageProxyURL, MarkdownAdapter } from "@virgultum/core/adapters";
 import { calloutPresentation } from "@virgultum/core/models";
 import { myoxusTextStyles } from "@virgultum/core/styles/text";
-import type { BundledLanguageInfo } from "@virgultum/content/syntax-highlighter";
+import {
+  bundledLanguagesInfo,
+  type BundledLanguageInfo,
+} from "@virgultum/content/syntax-highlighter";
 import { AnnotationReactHostIdentifier } from "@virgultum/editor/blocks/annotation";
 import { AnnotationInline } from "../../../view-extensions/editor-view/annotation";
 import { CalloutTitle } from "../../../view-extensions/editor-view/callout";
@@ -36,14 +39,12 @@ import {
   type MarkdownPreviewPresentation,
 } from "../../../attachment-viewer/text/markdown-preview";
 
-let cachedBundledLanguages: BundledLanguageInfo[] = [];
-
 function resolveBundledLanguage(
   language?: string | null,
 ): BundledLanguageInfo | undefined {
   const normalized = language?.trim().toLowerCase();
   if (!normalized) return undefined;
-  return cachedBundledLanguages.find(
+  return bundledLanguagesInfo.find(
     (entry) =>
       entry.id === normalized ||
       entry.name.toLowerCase() === normalized ||
@@ -51,19 +52,32 @@ function resolveBundledLanguage(
   );
 }
 
+let aiShikiCorePromise: Promise<unknown> | null = null;
+
 const aiShikiAdapter = createShikiAdapter(
   async () => {
-    const {
-      bundledLanguagesInfo,
-      CODE_BLOCK_DEFAULT_DARK_THEME,
-      CODE_BLOCK_DEFAULT_LIGHT_THEME,
-      createEditorHighlighterCore,
-    } = await import("@virgultum/content/syntax-highlighter");
-    cachedBundledLanguages = bundledLanguagesInfo;
-    return createEditorHighlighterCore({
-      themes: [CODE_BLOCK_DEFAULT_DARK_THEME, CODE_BLOCK_DEFAULT_LIGHT_THEME],
-      langs: [],
-    });
+    if (!aiShikiCorePromise) {
+      aiShikiCorePromise = import("@virgultum/content/syntax-highlighter")
+        .then(
+          ({
+            CODE_BLOCK_DEFAULT_DARK_THEME,
+            CODE_BLOCK_DEFAULT_LIGHT_THEME,
+            createEditorHighlighterCore,
+          }) =>
+            createEditorHighlighterCore({
+              themes: [
+                CODE_BLOCK_DEFAULT_DARK_THEME,
+                CODE_BLOCK_DEFAULT_LIGHT_THEME,
+              ],
+              langs: [],
+            }),
+        )
+        .catch((error) => {
+          aiShikiCorePromise = null;
+          throw error;
+        });
+    }
+    return aiShikiCorePromise;
   },
   {
     resolveLanguage: (language) => resolveBundledLanguage(language)?.import,
@@ -175,19 +189,27 @@ function Callout({
   );
 }
 
+import type { PageAiBridge } from "../../../virgultum/doc-editor/page-ai-bridge";
+import type { Store } from "@virgultum/core/store";
+
 export function StoredAnswerText({
   host,
+  store,
+  pageBridge,
   text,
   annotation = false,
   documentLink,
   testId = "ai-text-renderer",
 }: {
   host?: EditorHost | null;
+  store?: Store | null;
+  pageBridge?: PageAiBridge | null;
   text: string;
   annotation?: boolean;
   documentLink?: MarkdownPreviewPresentation["documentLink"];
   testId?: string;
 }) {
+  const activeStore = store ?? host?.store ?? pageBridge?.store ?? null;
   const presentation = useMemo<MarkdownPreviewPresentation>(
     () => ({
       heading: (depth, children, followed) => (
@@ -219,7 +241,9 @@ export function StoredAnswerText({
         </Callout>
       ),
       citation: (footnote) =>
-        host ? <CitationMarker store={host.store} footnote={footnote} /> : null,
+        activeStore ? (
+          <CitationMarker store={activeStore} footnote={footnote} />
+        ) : null,
       annotation: (body) =>
         host?.std.getOptional(AnnotationReactHostIdentifier)
           ?.showAnnotations ? (
@@ -233,11 +257,11 @@ export function StoredAnswerText({
           />
         ) : null,
       inlineHtml: (children, start) => {
-        if (!host) return null;
-        using job = host.store.getTransformer();
+        if (!activeStore) return null;
+        using job = activeStore.getTransformer();
         const group = new MarkdownAdapter(
           job,
-          host.store.provider,
+          activeStore.provider,
         ).deltaConverter.readInlineHtmlGroup(children, start);
         if (!group) return null;
         return {
@@ -268,23 +292,39 @@ export function StoredAnswerText({
           const custom = documentLink(url, children);
           if (custom) return custom;
         }
-        if (!host) return null;
-        const target = host.std
-          .getOptional(ParseDocUrlProvider)
-          ?.parseDocUrl(url);
-        const peek = host.std.getOptional(PeekViewProvider);
-        if (!target || !peek) return null;
-        return (
-          <a
-            href={url}
-            onClick={(event) => {
-              event.preventDefault();
-              void peek.peek(target).catch(console.error);
-            }}
-          >
-            {children}
-          </a>
-        );
+        if (host) {
+          const target = host.std
+            .getOptional(ParseDocUrlProvider)
+            ?.parseDocUrl(url);
+          const peek = host.std.getOptional(PeekViewProvider);
+          if (!target || !peek) return null;
+          return (
+            <a
+              href={url}
+              onClick={(event) => {
+                event.preventDefault();
+                void peek.peek(target).catch(console.error);
+              }}
+            >
+              {children}
+            </a>
+          );
+        }
+        if (pageBridge) {
+          return (
+            <a
+              href={url}
+              onClick={(event) => {
+                if (pageBridge.openDocLink(url)) {
+                  event.preventDefault();
+                }
+              }}
+            >
+              {children}
+            </a>
+          );
+        }
+        return null;
       },
       image: (raw, alt) => {
         // Keep the origin of every fetch under the configured image proxy, including
@@ -308,7 +348,7 @@ export function StoredAnswerText({
         <Equation source={source} display={display} />
       ),
     }),
-    [host, documentLink],
+    [activeStore, documentLink, host, pageBridge],
   );
   return (
     <MyoxusText

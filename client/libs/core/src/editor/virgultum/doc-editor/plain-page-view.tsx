@@ -32,15 +32,23 @@ import {
   DocumentEditorBlankGap,
   PageContentRail,
   IconButton,
+  notify,
 } from "@myoxus/ui-facade";
 import { useI18n } from "@myoxus/i18n";
-import { useLiveData, useService } from "@myoxus/infra";
+import {
+  useFramework,
+  useLiveData,
+  useService,
+  useServiceOptional,
+} from "@myoxus/infra";
 import {
   lazy,
   Suspense,
   useRef,
   useLayoutEffect,
   useEffect,
+  useId,
+  useMemo,
   useState,
   useReducer,
   useCallback,
@@ -48,8 +56,16 @@ import {
 import { FeatureFlagService } from "../../../modules/feature-flag";
 import { EditorSettingService } from "../../../modules/editor-setting";
 import { type Editor, EditorService } from "../../../modules/editor";
-import { useWorkbenchSurfaceScrollViewport } from "../../../modules/workbench/view/workbench-surface-scroll";
+import { useWorkbenchSurfaceScrollViewportOptional } from "../../../modules/workbench/view/workbench-surface-scroll";
+import { ViewService } from "../../../modules/workbench";
 import { DocsService } from "../../../modules/doc";
+import { DocCommentManagerService } from "../../../modules/comment/services/doc-comment-manager";
+import { BpmnEditorService } from "../../../modules/bpmn-editor/session";
+import {
+  MermaidDiagramsService,
+  hasInitializedDiagramContent,
+} from "../../../modules/mermaid-diagrams/services/mermaid-diagrams";
+import { TemplateDocService } from "../../../modules/template-doc";
 import {
   shouldShowDocumentMetadata,
   DocumentMetadataProvider,
@@ -58,20 +74,35 @@ import {
 import { WorkspaceDialogService } from "../../../modules/dialogs";
 import { ServerService, UserFeatureService } from "../../../modules/server";
 import { useGuard } from "../../../components/guard";
+import { DefaultEditorI18nService } from "@virgultum/core/services";
+import { BlockSelection, TextSelection } from "@virgultum/core/runtime";
+import { configureEditorI18n } from "../editor-i18n";
 import { DocIconPicker } from "./doc-icon-picker";
-import type { PageContent, PageLine } from "./plain-page-model";
+import {
+  readPageContent,
+  type PageContent,
+  type PageLine,
+} from "./plain-page-model";
 import { PageInteraction, type PickerStart } from "./page-interaction";
 import {
-  type PageBookmark,
-  type PageIntent,
   readPageRange,
   resolveBookmark,
   restorePageRange,
 } from "./plain-page-input";
-import { bindDocumentTitleSync } from "./document-title-sync";
+import {
+  bindDiagramDocumentTitleSync,
+  bindDocumentTitleSync,
+} from "./document-title-sync";
 import { StarterBar } from "./starter-bar";
 import { PageFormatting } from "./plain-page-formatting";
 import { PageRemotePresence } from "./page-remote-presence";
+import {
+  PageBlockCommentIndicator,
+  PageLineAttributesBar,
+} from "./page-block-chrome";
+import { useTemplateVariablePicker } from "./template-variable-picker";
+import { useBuildingBlockPicker } from "../../../modules/template-doc/view/building-block-picker";
+import { resolveInsertParent } from "./page-slash-registry";
 import "./plain-page.css";
 
 const Directory = lazy(async () => ({
@@ -101,6 +132,8 @@ const Iframe = lazy(async () => ({
   default: (await import("./page-provider-player")).PageIframe,
 }));
 const Table = lazy(() => import("./page-table"));
+const Mermaid = lazy(() => import("./page-mermaid"));
+const Bpmn = lazy(() => import("./page-bpmn"));
 const InlineObject = lazy(() => import("./page-inline-object"));
 const LinkMenu = lazy(() => import("./page-link"));
 const Picker = lazy(() => import("./page-picker"));
@@ -153,15 +186,21 @@ function TextField({
   const [objects, setObjects] = useState<
     { el: HTMLElement; object: PageInlineObject; key: string }[]
   >([]);
+  const objectsRef = useRef(objects);
+  objectsRef.current = objects;
+  const callbacksRef = useRef({ composing, linkMenu, comment });
+  callbacksRef.current = { composing, linkMenu, comment };
+  const hasComment = Boolean(comment);
+  const hasLinkMenu = Boolean(linkMenu);
   useLayoutEffect(() => {
     const field = ref.current!;
     const paint = () => {
-      if (composing()) return;
+      if (callbacksRef.current.composing()) return;
       const runs = line.text.toDelta() as {
         insert: string;
         attributes?: MyoxusTextAttributes;
       }[];
-      const key = JSON.stringify([!!comment, runs]);
+      const key = JSON.stringify([hasComment, hasLinkMenu, runs]);
       if (previous.current === key) return;
       previous.current = key;
       const fragment = document.createDocumentFragment();
@@ -186,7 +225,7 @@ function TextField({
           );
           const key = JSON.stringify(position);
           const el =
-            objects.find((o) => o.key === key)?.el ??
+            objectsRef.current.find((o) => o.key === key)?.el ??
             document.createElement("span");
           let object: PageInlineObject;
           if (a.documentField)
@@ -280,19 +319,21 @@ function TextField({
               url: a.link,
               range,
             };
-            anchor.onpointerenter = () => linkMenu?.(info);
-            anchor.onfocus = () => linkMenu?.(info);
+            anchor.onpointerenter = () => callbacksRef.current.linkMenu?.(info);
+            anchor.onfocus = () => callbacksRef.current.linkMenu?.(info);
             anchor.onclick = anchor.onauxclick = (e) => {
               if (!document.getSelection()?.isCollapsed || e.button > 1) return;
+              const openLinkMenu = callbacksRef.current.linkMenu;
+              if (!openLinkMenu) return;
               e.preventDefault();
-              linkMenu?.(info, e.button);
+              openLinkMenu(info, e.button);
             };
           }
         }
         const thread = Object.entries(a).find(
           ([key, value]) => key.startsWith("comment-") && value === true,
         )?.[0];
-        if (thread && comment) {
+        if (thread && hasComment) {
           const el = document.createElement("span"),
             id = thread.slice(8),
             point = createRelativePositionFromTypeIndex(line.text, start, 0);
@@ -311,7 +352,7 @@ function TextField({
                 thread
               ] === true
             )
-              comment(id);
+              callbacksRef.current.comment?.(id);
           };
           el.append(node);
           node = el;
@@ -320,16 +361,20 @@ function TextField({
       }
       if (!runs.length && !title) fragment.append(document.createElement("br"));
       field.replaceChildren(fragment);
-      if (next.length || objects.length) setObjects(next);
+      if (next.length || objectsRef.current.length) setObjects(next);
     };
     const force = () => {
       previous.current = undefined;
       paint();
     };
     paint();
+    line.text.observe(paint);
     field.addEventListener("page-refresh-text", force);
-    return () => field.removeEventListener("page-refresh-text", force);
-  });
+    return () => {
+      line.text.unobserve(paint);
+      field.removeEventListener("page-refresh-text", force);
+    };
+  }, [line.text, line.model, title, hasComment, hasLinkMenu]);
   return (
     <>
       <span
@@ -368,76 +413,421 @@ type PageViewProps = {
   readonly: boolean;
   refresh: () => void;
   controller: { current: PageInteraction | null };
-  handoff: (range: PageBookmark | null, intent?: PageIntent) => void;
   enableAI: boolean;
+  shared?: boolean;
   className?: string;
   fullWidth?: string;
   contentOnly?: boolean;
   journalDate?: string;
+  onEditorError?: (error: unknown) => void;
 };
 
-export function PlainPageView(props: PageViewProps) {
-  const editor = useService(EditorService).editor;
-  const viewport = useWorkbenchSurfaceScrollViewport();
-  const { page, readonly } = props;
+export function VirgultumPageEditor(props: PageViewProps) {
+  const editor = useServiceOptional(EditorService)?.editor;
+  const viewport = useWorkbenchSurfaceScrollViewportOptional();
+  const { page, readonly, shared, onEditorError } = props;
   const title = props.content.lines[0];
   const docs = useService(DocsService);
   const workspace = useService(WorkspaceService).workspace;
-  const dialogs = useService(WorkspaceDialogService),
-    server = useService(ServerService).server;
+  const workspaceDialogService = useServiceOptional(WorkspaceDialogService);
+  const server = useService(ServerService).server;
+  const userFeatureService = useServiceOptional(UserFeatureService);
+  const mermaidDiagramsService = useServiceOptional(MermaidDiagramsService);
+  const bpmnEditorService = useServiceOptional(BpmnEditorService);
+  const docCommentManager = useServiceOptional(DocCommentManagerService);
+  const destinationView = useServiceOptional(ViewService)?.view;
+  const t = useI18n();
+  const [initializationEpoch, retryInitialization] = useState(0);
+  const initializationNoticeId = useId();
   const openCommentThread = useCallback(
-    (id: string) => editor.openCommentThread(id),
+    (id: string) => editor?.openCommentThread(id),
     [editor],
   );
   const serverConfig = useLiveData(server.config$);
   const canComment =
+    !shared &&
     workspace.flavour !== "local" &&
     serverConfig.features.includes(ServerFeature.Comment);
-  const admin = useLiveData(
-      useService(UserFeatureService).userFeature.isAdmin$,
-    ),
-    configure = useGuard("Workspace_Settings_Update");
+  const isMyoxusAdmin = useLiveData(userFeatureService?.userFeature.isAdmin$);
+  const canConfigureWorkspaceDocumentSettings = useGuard(
+    "Workspace_Settings_Update",
+  );
+  const onConfigureWorkspaceDocumentSettings = useCallback(() => {
+    if (!workspaceDialogService) return;
+    workspaceDialogService.open("workspace-settings", {
+      activeTab: "workspace:documents",
+    });
+  }, [workspaceDialogService]);
+  const onOpenGlobalDocumentPolicy = useCallback(() => {
+    window.open(
+      new URL(
+        "/adminfrontend/documents?tab=metadata",
+        server.baseUrl,
+      ).toString(),
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }, [server.baseUrl]);
+  const rtl = useLiveData(
+    useService(FeatureFlagService).flags.enable_editor_rtl.$,
+  );
+
+  useEffect(() => {
+    userFeatureService?.userFeature.revalidate();
+  }, [userFeatureService]);
+
   useEffect(
     () =>
-      readonly
+      readonly || shared
         ? undefined
         : bindDocumentTitleSync(page.id, title.text, docs, (e) =>
             console.error("Title update failed", e),
           ),
-    [page, readonly, title.text, docs],
+    [page, readonly, shared, title.text, docs],
   );
+
+  // Preserve dedicated Mermaid/BPMN initial diagram bootstrap and editBpmn=1
+  // catalog navigation intent directly on Store without a Lit EditorHost.
+  useEffect(() => {
+    if (readonly || shared || !mermaidDiagramsService) return;
+    let canceled = false;
+    let initialClaim: symbol | undefined;
+    let initializationNotice: string | undefined;
+    const abort = new AbortController();
+
+    void (async () => {
+      try {
+        await workspace.engine.doc.waitForDocLoaded(page.id, abort.signal);
+        if (canceled || page.readonly) return;
+        const initialDiagram =
+          mermaidDiagramsService.getInitialDiagramForEditor(page.id, page);
+        if (!initialDiagram) return;
+        initialClaim = initialDiagram.claim;
+        try {
+          if (initialDiagram.format === "bpmn") {
+            const result = mermaidDiagramsService.initializeBpmnForEditor(
+              page.id,
+              page,
+            );
+            if (result.status !== "initialized") {
+              initializationNotice = notify.error(
+                {
+                  title: t["com.myoxus.common.operation-failed"](),
+                  message:
+                    result.status === "collision"
+                      ? t["com.myoxus.diagrams.initialization.collision"]()
+                      : t[
+                          "com.myoxus.diagrams.initialization.source-missing"
+                        ](),
+                  actions: [
+                    {
+                      label: t.Retry(),
+                      onClick: () => retryInitialization((epoch) => epoch + 1),
+                      autoClose: false,
+                    },
+                  ],
+                },
+                { id: initializationNoticeId, duration: 0 },
+              );
+              onEditorError?.(result);
+              return;
+            }
+            mermaidDiagramsService.completeInitialDiagramForEditor(
+              page.id,
+              initialDiagram.claim,
+            );
+          } else {
+            const { prepareMermaidFamilySource } =
+              await import("@virgultum/block-mermaid");
+            await prepareMermaidFamilySource(initialDiagram.source ?? "");
+            if (
+              canceled ||
+              page.readonly ||
+              !mermaidDiagramsService.isInitialDiagramClaimCurrent(
+                page.id,
+                initialDiagram.claim,
+              )
+            ) {
+              return;
+            }
+            if (hasInitializedDiagramContent(page)) {
+              mermaidDiagramsService.completeInitialDiagramForEditor(
+                page.id,
+                initialDiagram.claim,
+              );
+            } else {
+              const firstParagraph =
+                page.getBlocksByFlavour("myoxus:paragraph")[0]?.model ?? null;
+              const target = firstParagraph
+                ? resolveInsertParent(page, firstParagraph, "myoxus:mermaid")
+                : null;
+              const fallbackNote =
+                page.getBlocksByFlavour("myoxus:note")[0]?.model ?? null;
+              const parent = target?.parent ?? fallbackNote;
+              if (parent) {
+                let insertedId: string | undefined;
+                page.captureSync();
+                page.transact(() => {
+                  insertedId = page.addBlock(
+                    "myoxus:mermaid",
+                    {
+                      source: initialDiagram.source ?? "",
+                      title: initialDiagram.title ?? "",
+                    },
+                    parent,
+                    target ? target.index + 1 : parent.children.length,
+                  );
+                  if (
+                    firstParagraph &&
+                    target?.anchor === firstParagraph &&
+                    firstParagraph.text?.length === 0 &&
+                    firstParagraph.children.length === 0
+                  ) {
+                    page.deleteBlock(firstParagraph);
+                  }
+                });
+                page.captureSync();
+                if (insertedId) {
+                  mermaidDiagramsService.completeInitialDiagramForEditor(
+                    page.id,
+                    initialDiagram.claim,
+                  );
+                }
+              }
+            }
+          }
+        } finally {
+          mermaidDiagramsService.releaseInitialDiagramForEditor(
+            page.id,
+            initialDiagram.claim,
+          );
+          initialClaim = undefined;
+        }
+      } catch (error) {
+        if (!canceled && !abort.signal.aborted) {
+          console.error("Failed to initialize Page diagram", error);
+          onEditorError?.(error);
+        }
+      }
+    })();
+
+    return () => {
+      canceled = true;
+      abort.abort();
+      if (initialClaim) {
+        mermaidDiagramsService.releaseInitialDiagramForEditor(
+          page.id,
+          initialClaim,
+        );
+      }
+      if (initializationNotice) notify.dismiss(initializationNotice);
+    };
+  }, [
+    initializationEpoch,
+    initializationNoticeId,
+    mermaidDiagramsService,
+    onEditorError,
+    page,
+    readonly,
+    shared,
+    t,
+    workspace,
+  ]);
+
+  // Honor one-use catalog `editBpmn=1` intent directly via BpmnEditorService.
+  useEffect(() => {
+    if (readonly || shared || !destinationView || !bpmnEditorService) return;
+    let canceled = false;
+    const sub = destinationView
+      .queryString$<{ editBpmn?: string }>((search) => ({
+        editBpmn: new URLSearchParams(search).get("editBpmn") ?? undefined,
+      }))
+      .subscribe(({ editBpmn }) => {
+        if (
+          canceled ||
+          editBpmn !== "1" ||
+          !destinationView.location$.value.pathname.endsWith(`/${page.id}`)
+        )
+          return;
+        const blocks = page.getBlocksByFlavour("myoxus:bpmn" as never);
+        if (blocks.length !== 1) return;
+        const block = blocks[0]
+          .model as import("@virgultum/core/models").BpmnBlockModel;
+        destinationView.updateQueryString(
+          { editBpmn: undefined },
+          { replace: true },
+        );
+        const openSession = () => {
+          void bpmnEditorService
+            .open(
+              {
+                workspaceId: workspace.id,
+                docId: page.id,
+                blockId: block.id,
+                editorHostId: `page-${page.id}`,
+              },
+              page.readonly,
+              destinationView,
+            )
+            .catch(() => {
+              if (!canceled)
+                notify.error({
+                  title: t["com.myoxus.common.operation-failed"](),
+                  actions: [
+                    {
+                      label: t.Retry(),
+                      onClick: openSession,
+                    },
+                  ],
+                });
+            });
+        };
+        openSession();
+      });
+    return () => {
+      canceled = true;
+      sub.unsubscribe();
+    };
+  }, [
+    bpmnEditorService,
+    destinationView,
+    page,
+    readonly,
+    shared,
+    t,
+    workspace.id,
+  ]);
+
+  // Store-backed comment thread lifecycle (add/resolve/delete marks on Y.Text & blocks).
+  useEffect(() => {
+    if (!canComment || !docCommentManager) return;
+    const ref = docCommentManager.get(page);
+    const entity = ref.obj;
+    const stopAdded = entity.onCommentAdded((id, selections) => {
+      if (page.readonly) return;
+      const attrKey = `comment-${id}`;
+      page.captureSync();
+      page.transact(() => {
+        for (const selection of selections) {
+          if (selection instanceof TextSelection) {
+            const firstModel = page.getModelById(selection.from.blockId);
+            if (!firstModel?.text) continue;
+            if (!selection.to) {
+              firstModel.text.yText.format(
+                selection.from.index,
+                selection.from.length,
+                { [attrKey]: true },
+              );
+            } else {
+              firstModel.text.yText.format(
+                selection.from.index,
+                selection.from.length,
+                { [attrKey]: true },
+              );
+              const pageLines = readPageContent(page)?.lines ?? [];
+              const fromIdx = pageLines.findIndex(
+                (l) => l.model.id === selection.from.blockId,
+              );
+              const toIdx = pageLines.findIndex(
+                (l) => l.model.id === selection.to!.blockId,
+              );
+              if (fromIdx >= 0 && toIdx >= 0 && Math.abs(toIdx - fromIdx) > 1) {
+                const start = Math.min(fromIdx, toIdx) + 1;
+                const end = Math.max(fromIdx, toIdx);
+                for (let idx = start; idx < end; idx++) {
+                  const mid = pageLines[idx];
+                  if (mid.kind !== "title" && mid.text.length > 0) {
+                    mid.text.format(0, mid.text.length, { [attrKey]: true });
+                  }
+                }
+              }
+              const lastModel = page.getModelById(selection.to.blockId);
+              if (lastModel?.text && selection.to.length > 0) {
+                lastModel.text.yText.format(
+                  selection.to.index,
+                  selection.to.length,
+                  { [attrKey]: true },
+                );
+              }
+            }
+          } else if (selection instanceof BlockSelection) {
+            const model = page.getModelById(selection.blockId);
+            if (model && "comments" in model.props) {
+              const existing =
+                (model.props as { comments?: Record<string, boolean> })
+                  .comments ?? {};
+              page.updateBlock(model, {
+                comments: { ...existing, [id]: true },
+              });
+            }
+          }
+        }
+      });
+      page.captureSync();
+    });
+    const clearComment = (id: string) => {
+      if (page.readonly) return;
+      const attrKey = `comment-${id}`;
+      page.transact(() => {
+        for (const block of Object.values(page.blocks.peek())) {
+          const model = block.model;
+          if (model.text) {
+            let pos = 0;
+            for (const op of model.text.toDelta()) {
+              const len = typeof op.insert === "string" ? op.insert.length : 1;
+              if (op.attributes && attrKey in op.attributes) {
+                model.text.yText.format(pos, len, { [attrKey]: null });
+              }
+              pos += len;
+            }
+          }
+          if (
+            "comments" in model.props &&
+            model.props.comments &&
+            typeof model.props.comments === "object" &&
+            id in (model.props.comments as Record<string, boolean>)
+          ) {
+            const next = {
+              ...(model.props.comments as Record<string, boolean>),
+            };
+            delete next[id];
+            page.updateBlock(model, { comments: next });
+          }
+        }
+      });
+    };
+    const stopDeleted = entity.onCommentDeleted(clearComment);
+    const stopResolved = entity.onCommentResolved(clearComment);
+    return () => {
+      stopAdded();
+      stopDeleted();
+      stopResolved();
+      ref.release();
+    };
+  }, [canComment, docCommentManager, page]);
 
   return (
     <PageView
       {...props}
       editor={editor}
       viewport={viewport}
+      dir={rtl ? "rtl" : "ltr"}
       openThread={canComment ? openCommentThread : undefined}
       metadata={
         shouldShowDocumentMetadata({
+          shared,
           isJournal: !!props.journalDate,
           workspaceFlavour: workspace.flavour,
         }) && (
           <DocumentMetadataProvider
             docId={page.id}
             readonly={readonly}
-            canOpenGlobalPolicy={Boolean(admin)}
-            canConfigureWorkspaceDefaults={configure}
-            onConfigureWorkspaceDefaults={() =>
-              dialogs.open("workspace-settings", {
-                activeTab: "workspace:documents",
-              })
+            canOpenGlobalPolicy={Boolean(isMyoxusAdmin)}
+            canConfigureWorkspaceDefaults={
+              canConfigureWorkspaceDocumentSettings
             }
-            onOpenGlobalPolicy={() =>
-              window.open(
-                new URL(
-                  "/adminfrontend/documents?tab=metadata",
-                  server.baseUrl,
-                ),
-                "_blank",
-                "noopener,noreferrer",
-              )
-            }
+            onConfigureWorkspaceDefaults={onConfigureWorkspaceDocumentSettings}
+            onOpenGlobalPolicy={onOpenGlobalDocumentPolicy}
           >
             <DocumentMetadataSummary />
           </DocumentMetadataProvider>
@@ -446,6 +836,8 @@ export function PlainPageView(props: PageViewProps) {
     />
   );
 }
+
+export const PlainPageView = VirgultumPageEditor;
 
 const notComposing = () => false;
 // The detached text reader has no writable commands and does not bind PageInteraction.
@@ -479,10 +871,13 @@ export function PageSnapshot({
   className,
   fullWidth,
   contentOnly,
+  embedded,
 }: Pick<
   PageViewProps,
   "page" | "content" | "className" | "fullWidth" | "contentOnly"
->) {
+> & {
+  embedded?: boolean;
+}) {
   const rtl = useLiveData(
     useService(FeatureFlagService).flags.enable_editor_rtl.$,
   );
@@ -493,13 +888,13 @@ export function PageSnapshot({
       content={content}
       className={className}
       fullWidth={fullWidth}
-      contentOnly={contentOnly}
+      contentOnly={contentOnly || embedded}
+      embedded={embedded}
       controller={controller}
       dir={rtl ? "rtl" : "ltr"}
       readonly
       enableAI={false}
       refresh={noSnapshotCommand}
-      handoff={noSnapshotCommand}
     />
   );
 }
@@ -510,11 +905,11 @@ function PageView({
   readonly,
   refresh,
   controller,
-  handoff,
   enableAI,
   className,
   fullWidth,
   contentOnly,
+  embedded,
   journalDate,
   editor,
   viewport,
@@ -522,11 +917,12 @@ function PageView({
   metadata,
   dir,
 }: PageViewProps & {
+  embedded?: boolean;
   openThread?: (id: string) => void;
   metadata?: import("react").ReactNode;
   dir?: "ltr" | "rtl";
   editor?: Editor;
-  viewport?: ReturnType<typeof useWorkbenchSurfaceScrollViewport>;
+  viewport?: ReturnType<typeof useWorkbenchSurfaceScrollViewportOptional>;
 }) {
   const { lines, body } = content;
   const [localFolds, setLocalFolds] = useState(
@@ -573,11 +969,10 @@ function PageView({
   const bodyRef = useRef<HTMLDivElement>(null);
   const selector = useLiveData(editor?.selector$);
   useLayoutEffect(() => {
-    if (!editor || !viewport) return;
+    if (!editor) return;
     return editor.bindPageOrigin(
       root.current!,
-      viewport.current,
-      () => controller.current?.relinquish(),
+      viewport?.current ?? null,
       () => controller.current?.selectedBlocks() ?? [],
     );
   }, [editor, controller, viewport]);
@@ -585,14 +980,28 @@ function PageView({
   useLayoutEffect(() => {
     props.current = { lines: visibleLines, readonly };
   });
+  const framework = useFramework();
+  const templateList = useServiceOptional(TemplateDocService)?.list;
+  const { openTemplateVariablePicker, templateVariablePicker } =
+    useTemplateVariablePicker();
+  const {
+    openBuildingBlockPicker,
+    insertNamedBuildingBlock,
+    buildingBlockPicker,
+  } = useBuildingBlockPicker();
+  const editorI18n = useMemo(
+    () => new DefaultEditorI18nService(configureEditorI18n()),
+    [],
+  );
   const [selection, setSelection] = useState<DOMRect | null>(null);
+  const [selectionLinkOpen, setSelectionLinkOpen] = useState(false);
   const [picker, setPicker] = useState<PickerStart | null>(null);
   const dismissPicker = useCallback(() => setPicker(null), []);
   const [slash, setSlash] = useState<PickerStart | null>(null);
   const dismissSlash = useCallback(() => setSlash(null), []);
   const [epoch, repaint] = useReducer((n) => n + 1, 0);
   useLayoutEffect(() => {
-    if (!editor) return;
+    if (!editor && (readonly || contentOnly || embedded)) return;
     const el = root.current!;
     const owner = new PageInteraction(
       page,
@@ -607,25 +1016,62 @@ function PageView({
       },
       () => !props.current.readonly,
       refresh,
-      handoff,
       setPicker,
-      editor.framework,
+      editor?.framework ?? framework,
       setSlash,
+      {
+        openInlineLink: () => {
+          const sel = document.getSelection();
+          const rect = sel?.rangeCount
+            ? sel.getRangeAt(0).getBoundingClientRect()
+            : el.getBoundingClientRect();
+          setSelection(rect);
+          setSelectionLinkOpen(true);
+        },
+        openTemplateVariable: (anchor) => {
+          const isTemplate = Boolean(templateList?.isTemplate$(page.id).value);
+          openTemplateVariablePicker({
+            i18n: editorI18n,
+            templateSource: isTemplate,
+            canWrite: () => !props.current.readonly && !page.readonly,
+            insert: (token) => {
+              controller.current?.insertTemplateToken(token, anchor);
+              repaint();
+            },
+            insertField: (field) => {
+              controller.current?.insertDocumentField(field, anchor);
+              repaint();
+            },
+            onClose: () => controller.current?.restore(),
+          });
+        },
+      },
     );
     controller.current = owner;
-    if (editor.pageSelection) {
+    if (editor?.pageSelection) {
       const saved = resolveBookmark(page, editor.pageSelection);
       if (saved) restorePageRange(el, saved);
       editor.pageSelection = null;
     } else if (
-      !journalDate &&
       !props.current.readonly &&
-      !editor.selector$.value?.blockIds?.length &&
-      editor.scrollPosition.page === null
+      !editor?.selector$.value?.blockIds?.length &&
+      (editor?.scrollPosition.page ?? null) === null
     ) {
-      const title = props.current.lines[0];
-      const end = { id: title.model.id, offset: title.text.length };
-      restorePageRange(el, { anchor: end, focus: end });
+      if (journalDate) {
+        const bodyLines = props.current.lines.slice(1);
+        const lastLine = bodyLines.at(-1);
+        if (lastLine) {
+          const end = { id: lastLine.model.id, offset: lastLine.text.length };
+          el.querySelector<HTMLElement>("[data-page-body]")?.focus({
+            preventScroll: true,
+          });
+          restorePageRange(el, { anchor: end, focus: end });
+        }
+      } else {
+        const title = props.current.lines[0];
+        const end = { id: title.model.id, offset: title.text.length };
+        restorePageRange(el, { anchor: end, focus: end });
+      }
     }
     const onSelection = () => {
       const range = readPageRange(el),
@@ -636,20 +1082,38 @@ function PageView({
         !sel.isCollapsed &&
         !props.current.readonly
       ) {
+        setSelectionLinkOpen(false);
         setSelection(sel.getRangeAt(0).getBoundingClientRect());
       } else if (
-        !document.activeElement?.closest('[role="toolbar"],[role="menu"]')
-      )
+        !document.activeElement?.closest(
+          '[role="toolbar"],[role="menu"],[role="dialog"]',
+        )
+      ) {
+        setSelectionLinkOpen(false);
         setSelection(null);
+      }
     };
     document.addEventListener("selectionchange", onSelection);
     return () => {
-      editor.pageSelection = owner.selection ?? null;
+      if (editor) editor.pageSelection = owner.selection ?? null;
       controller.current = null;
       owner.dispose();
       document.removeEventListener("selectionchange", onSelection);
     };
-  }, [page, editor, controller, handoff, refresh, journalDate]);
+  }, [
+    page,
+    editor,
+    controller,
+    refresh,
+    journalDate,
+    readonly,
+    contentOnly,
+    embedded,
+    framework,
+    templateList,
+    openTemplateVariablePicker,
+    editorI18n,
+  ]);
   useLayoutEffect(
     () => controller.current?.afterRender(),
     [controller, lines, epoch],
@@ -665,9 +1129,7 @@ function PageView({
         openThread(selector.commentId);
         return;
       }
-    }
-    if (selector?.commentId || selector?.elementIds?.length) {
-      controller.current?.relinquish();
+      openThread(selector.commentId);
       return;
     }
     const id = selector?.blockIds?.[0];
@@ -676,9 +1138,13 @@ function PageView({
         ?.querySelector(`[data-block-id="${CSS.escape(id)}"]`)
         ?.scrollIntoView({ block: "center" });
     }
-  }, [selector, controller, openThread]);
+  }, [selector, openThread]);
   const composing = () => !!controller.current?.isComposing;
   const docs = useService(DocsService);
+  useEffect(() => {
+    if (!editor || readonly) return;
+    return bindDiagramDocumentTitleSync(page, docs);
+  }, [docs, editor, page, readonly]);
   const guard = useService(GuardService);
   const workspace = useService(WorkspaceService).workspace;
   const server = useService(ServerService).server;
@@ -716,6 +1182,339 @@ function PageView({
     if (!openDocLink(url, button))
       window.open(url, "_blank", "noopener,noreferrer");
   };
+  const bodyStage = (
+    <div data-page-body-stage="">
+      <div
+        ref={bodyRef}
+        data-page-body=""
+        contentEditable={!readonly}
+        suppressContentEditableWarning
+      >
+        {body.map(function renderItem(line): import("react").ReactNode {
+          if (hiddenIds.has(line.model.id)) return null;
+          const blockComments =
+            "comments" in line.model.props
+              ? (line.model.props.comments as
+                  Record<string, boolean> | undefined)
+              : undefined;
+          const withBlockComment = (node: import("react").ReactNode) =>
+            blockComments &&
+            Object.values(blockComments).some((active) => active === true) ? (
+              <div key={line.model.id} data-page-block-comment-host="">
+                {node}
+                <PageBlockCommentIndicator
+                  comments={blockComments}
+                  openThread={openThread}
+                />
+              </div>
+            ) : (
+              node
+            );
+          return line.kind === "callout" ? (
+            <Suspense key={line.model.id} fallback={null}>
+              <Callout model={line.model} readonly={readonly || page.readonly}>
+                {line.children.map(renderItem)}
+              </Callout>
+            </Suspense>
+          ) : line.kind === "code" ? (
+            withBlockComment(
+              <Suspense key={line.model.id} fallback={null}>
+                <Code
+                  enableComment={!!openThread}
+                  enableAI={enableAI}
+                  model={line.model}
+                  readonly={readonly || page.readonly}
+                />
+              </Suspense>,
+            )
+          ) : line.kind === "footnote" ? (
+            <Suspense key={line.model.id} fallback={null}>
+              <Footnote
+                model={line.model}
+                readonly={readonly || page.readonly}
+              />
+            </Suspense>
+          ) : line.kind === "iframe" ? (
+            <Suspense key={line.model.id} fallback={null}>
+              <Iframe model={line.model} readonly={readonly || page.readonly} />
+            </Suspense>
+          ) : line.kind === "document" ? (
+            <Suspense key={line.model.id} fallback={null}>
+              <DocumentCard
+                model={line.model}
+                readonly={readonly || page.readonly}
+              />
+            </Suspense>
+          ) : line.kind === "forge" ? (
+            <Suspense key={line.model.id} fallback={null}>
+              <Forge model={line.model} readonly={readonly || page.readonly} />
+            </Suspense>
+          ) : line.kind === "html" ? (
+            <Suspense key={line.model.id} fallback={null}>
+              <Html model={line.model} readonly={readonly || page.readonly} />
+            </Suspense>
+          ) : line.kind === "player" ? (
+            <Suspense key={line.model.id} fallback={null}>
+              <Player model={line.model} readonly={readonly || page.readonly} />
+            </Suspense>
+          ) : line.kind === "image" ? (
+            withBlockComment(
+              <Suspense key={line.model.id} fallback={null}>
+                <PageImage
+                  model={line.model}
+                  readonly={readonly || page.readonly}
+                />
+              </Suspense>,
+            )
+          ) : line.kind === "bookmark" ? (
+            withBlockComment(
+              <Suspense key={line.model.id} fallback={null}>
+                <Bookmark
+                  model={line.model}
+                  readonly={readonly || page.readonly}
+                />
+              </Suspense>,
+            )
+          ) : line.kind === "annotation" ? (
+            <div
+              key={line.model.id}
+              data-page-annotation={line.model.id}
+              data-block-id={line.model.id}
+              contentEditable={false}
+              tabIndex={-1}
+            >
+              <Suspense fallback={null}>
+                <Annotation
+                  body={line.model.props.text.toString()}
+                  readonly={readonly || page.readonly}
+                  editRequest={0}
+                  apply={(value, expected) =>
+                    !readonly && line.model.applyBody(value, expected)
+                  }
+                />
+              </Suspense>
+            </div>
+          ) : line.kind === "table" ? (
+            withBlockComment(
+              <Suspense key={line.model.id} fallback={null}>
+                <Table
+                  detached={!editor}
+                  readCell={!editor ? readTableCell : undefined}
+                  model={line.model}
+                  readonly={readonly || page.readonly}
+                  onOpenLink={openDocLink}
+                />
+              </Suspense>,
+            )
+          ) : line.kind === "mermaid" ? (
+            withBlockComment(
+              <Suspense key={line.model.id} fallback={null}>
+                <Mermaid
+                  model={line.model}
+                  readonly={readonly || page.readonly}
+                />
+              </Suspense>,
+            )
+          ) : line.kind === "bpmn" ? (
+            withBlockComment(
+              <Suspense key={line.model.id} fallback={null}>
+                <Bpmn model={line.model} readonly={readonly || page.readonly} />
+              </Suspense>,
+            )
+          ) : line.kind === "attachment" ? (
+            withBlockComment(
+              <Suspense key={line.model.id} fallback={null}>
+                <Attachment
+                  model={line.model}
+                  readonly={readonly || page.readonly}
+                />
+              </Suspense>,
+            )
+          ) : line.kind === "event" ? (
+            <Suspense key={line.model.id} fallback={null}>
+              <EventCard
+                model={line.model}
+                readonly={readonly || page.readonly}
+              />
+            </Suspense>
+          ) : line.kind === "database" ? (
+            line.model.props.serverDatabaseId?.trim() ? (
+              <div
+                key={line.model.id}
+                data-server-database-reference={
+                  line.model.props.serverDatabaseId
+                }
+                data-block-id={line.model.id}
+                tabIndex={-1}
+                contentEditable={false}
+              >
+                <Suspense fallback={null}>
+                  <DatabaseReference
+                    model={line.model}
+                    readonly={readonly || page.readonly}
+                  />
+                </Suspense>
+              </div>
+            ) : null
+          ) : line.kind === "equation" ? (
+            withBlockComment(
+              <Suspense key={line.model.id} fallback={null}>
+                <Equation
+                  model={line.model}
+                  readonly={readonly || page.readonly}
+                />
+              </Suspense>,
+            )
+          ) : line.kind === "directory" ? (
+            <div
+              key={line.model.id}
+              data-page-directory={line.model.id}
+              data-block-id={line.model.id}
+              tabIndex={-1}
+              contentEditable={false}
+            >
+              <Suspense fallback={null}>
+                <Directory
+                  model={line.model}
+                  readonly={readonly || page.readonly}
+                />
+              </Suspense>
+            </div>
+          ) : line.kind === "divider" ? (
+            <div
+              key={line.model.id}
+              data-page-divider={line.model.id}
+              data-block-id={line.model.id}
+              contentEditable={false}
+              tabIndex={-1}
+              style={{
+                paddingInlineStart: `calc(${line.depth} * var(--mantine-spacing-xl) + var(--mantine-spacing-xs))`,
+              }}
+              onClick={(e) => e.currentTarget.focus()}
+            >
+              <hr />
+            </div>
+          ) : (
+            <div
+              className="plain-page-line"
+              data-callout-text={
+                line.model.flavour === "myoxus:callout" || undefined
+              }
+              role={line.heading ? "heading" : undefined}
+              aria-level={line.heading ? Number(line.heading[1]) : undefined}
+              data-heading={line.heading}
+              data-paragraph-role={
+                line.eyebrow
+                  ? "eyebrow"
+                  : line.kind === "quote"
+                    ? "quote"
+                    : undefined
+              }
+              key={line.model.id}
+              style={{
+                textAlign: line.alignment,
+                ...(line.heading ? headingStyle(line.heading) : {}),
+                paddingInlineStart: `calc(${line.depth} * var(--mantine-spacing-xl))`,
+              }}
+            >
+              {expandable.has(line.model.id) && (
+                <span data-disclosure="" contentEditable={false}>
+                  <IconButton
+                    aria-expanded={!isFolded(line)}
+                    aria-label={isFolded(line) ? t.Expand() : t.Collapse()}
+                    icon={
+                      isFolded(line) ? (
+                        <ChevronRightIcon />
+                      ) : (
+                        <ChevronDownIcon />
+                      )
+                    }
+                    onClick={() => {
+                      const model = line.model as ParagraphBlockModel,
+                        base = !!model.props.collapsed;
+                      if (page.getModelById(model.id) !== model) return;
+                      if (readonly || page.readonly)
+                        setLocalFolds((prev) =>
+                          new Map(prev).set(model.id, {
+                            base,
+                            closed: !isFolded(line),
+                          }),
+                        );
+                      else {
+                        page.captureSync();
+                        page.updateBlock(model, { collapsed: !base });
+                        page.captureSync();
+                      }
+                    }}
+                  />
+                </span>
+              )}
+              {["bulleted", "numbered", "todo"].includes(line.kind) && (
+                <span contentEditable={false}>
+                  {line.kind === "numbered" ? (
+                    `${line.ordinal}.`
+                  ) : line.kind === "todo" ? (
+                    <Checkbox
+                      size="sm"
+                      checked={Boolean(line.checked)}
+                      disabled={readonly}
+                      aria-label={t["com.myoxus.editor.slash.todo-list"]()}
+                      onChange={(_event, checked) => {
+                        if (!readonly && !page.readonly) {
+                          page.captureSync();
+                          page.updateBlock(line.model, { checked });
+                          page.captureSync();
+                        }
+                      }}
+                    />
+                  ) : (
+                    "•"
+                  )}{" "}
+                </span>
+              )}
+              <TextField
+                linkMenu={openLink}
+                comment={openThread}
+                line={line}
+                readonly={readonly || line.textProtection === "fixed"}
+                composing={composing}
+              />
+              <PageLineAttributesBar
+                model={line.model}
+                textProtection={line.textProtection}
+                repeat={line.repeat}
+                comments={line.comments}
+                readonly={readonly || page.readonly}
+                openThread={openThread}
+              />
+            </div>
+          );
+        })}
+      </div>
+      {editor && (
+        <PageRemotePresence
+          page={page}
+          bodyRef={bodyRef}
+          readonly={readonly || page.readonly}
+          lines={lines}
+          epoch={epoch}
+        />
+      )}
+    </div>
+  );
+  if (embedded) {
+    return (
+      <div
+        ref={root}
+        dir={dir}
+        data-document-id={page.id}
+        data-page-embedded-preview={page.id}
+        data-page-renderer="snapshot"
+      >
+        {bodyStage}
+      </div>
+    );
+  }
   const Viewport = contentOnly
     ? DetailPageEditorViewport
     : DocumentEditorPageViewport;
@@ -751,297 +1550,7 @@ function PageView({
           </DocumentTitleRow>
         )}
         {metadata}
-        <PageContentRail width="editor">
-          <div data-page-body-stage="">
-            <div
-              ref={bodyRef}
-              data-page-body=""
-              contentEditable={!readonly}
-              suppressContentEditableWarning
-            >
-              {body.map(function renderItem(line): import("react").ReactNode {
-                if (hiddenIds.has(line.model.id)) return null;
-                return line.kind === "callout" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <Callout
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                    >
-                      {line.children.map(renderItem)}
-                    </Callout>
-                  </Suspense>
-                ) : line.kind === "code" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <Code
-                      enableComment={!!openThread}
-                      enableAI={enableAI}
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                    />
-                  </Suspense>
-                ) : line.kind === "footnote" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <Footnote
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                    />
-                  </Suspense>
-                ) : line.kind === "iframe" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <Iframe
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                    />
-                  </Suspense>
-                ) : line.kind === "document" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <DocumentCard
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                      handoff={handoff}
-                    />
-                  </Suspense>
-                ) : line.kind === "forge" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <Forge
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                    />
-                  </Suspense>
-                ) : line.kind === "html" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <Html
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                    />
-                  </Suspense>
-                ) : line.kind === "player" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <Player
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                    />
-                  </Suspense>
-                ) : line.kind === "image" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <PageImage
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                    />
-                  </Suspense>
-                ) : line.kind === "bookmark" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <Bookmark
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                    />
-                  </Suspense>
-                ) : line.kind === "annotation" ? (
-                  <div
-                    key={line.model.id}
-                    data-page-annotation={line.model.id}
-                    data-block-id={line.model.id}
-                    contentEditable={false}
-                    tabIndex={-1}
-                  >
-                    <Suspense fallback={null}>
-                      <Annotation
-                        body={line.model.props.text.toString()}
-                        readonly={readonly || page.readonly}
-                        editRequest={0}
-                        apply={(value, expected) =>
-                          !readonly && line.model.applyBody(value, expected)
-                        }
-                      />
-                    </Suspense>
-                  </div>
-                ) : line.kind === "table" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <Table
-                      detached={!editor}
-                      readCell={!editor ? readTableCell : undefined}
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                      handoff={(intent) => handoff(null, intent)}
-                    />
-                  </Suspense>
-                ) : line.kind === "attachment" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <Attachment
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                    />
-                  </Suspense>
-                ) : line.kind === "event" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <EventCard
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                    />
-                  </Suspense>
-                ) : line.kind === "database" ? (
-                  <div
-                    key={line.model.id}
-                    data-server-database-reference={
-                      line.model.props.serverDatabaseId
-                    }
-                    data-block-id={line.model.id}
-                    tabIndex={-1}
-                    contentEditable={false}
-                  >
-                    <Suspense fallback={null}>
-                      <DatabaseReference
-                        model={line.model}
-                        readonly={readonly || page.readonly}
-                      />
-                    </Suspense>
-                  </div>
-                ) : line.kind === "equation" ? (
-                  <Suspense key={line.model.id} fallback={null}>
-                    <Equation
-                      model={line.model}
-                      readonly={readonly || page.readonly}
-                    />
-                  </Suspense>
-                ) : line.kind === "directory" ? (
-                  <div
-                    key={line.model.id}
-                    data-page-directory={line.model.id}
-                    data-block-id={line.model.id}
-                    tabIndex={-1}
-                    contentEditable={false}
-                  >
-                    <Suspense fallback={null}>
-                      <Directory
-                        model={line.model}
-                        readonly={readonly || page.readonly}
-                      />
-                    </Suspense>
-                  </div>
-                ) : line.kind === "divider" ? (
-                  <div
-                    key={line.model.id}
-                    data-page-divider={line.model.id}
-                    data-block-id={line.model.id}
-                    contentEditable={false}
-                    tabIndex={-1}
-                    style={{
-                      paddingInlineStart: `calc(${line.depth} * var(--mantine-spacing-xl) + var(--mantine-spacing-xs))`,
-                    }}
-                    onClick={(e) => e.currentTarget.focus()}
-                  >
-                    <hr />
-                  </div>
-                ) : (
-                  <div
-                    className="plain-page-line"
-                    data-callout-text={
-                      line.model.flavour === "myoxus:callout" || undefined
-                    }
-                    role={line.heading ? "heading" : undefined}
-                    aria-level={
-                      line.heading ? Number(line.heading[1]) : undefined
-                    }
-                    data-heading={line.heading}
-                    data-paragraph-role={
-                      line.eyebrow
-                        ? "eyebrow"
-                        : line.kind === "quote"
-                          ? "quote"
-                          : undefined
-                    }
-                    key={line.model.id}
-                    style={{
-                      textAlign: line.alignment,
-                      ...(line.heading ? headingStyle(line.heading) : {}),
-                      paddingInlineStart: `calc(${line.depth} * var(--mantine-spacing-xl))`,
-                    }}
-                  >
-                    {expandable.has(line.model.id) && (
-                      <span
-                        data-disclosure=""
-                        data-block-id={line.model.id}
-                        contentEditable={false}
-                      >
-                        <IconButton
-                          aria-expanded={!isFolded(line)}
-                          aria-label={
-                            isFolded(line) ? t.Expand() : t.Collapse()
-                          }
-                          icon={
-                            isFolded(line) ? (
-                              <ChevronRightIcon />
-                            ) : (
-                              <ChevronDownIcon />
-                            )
-                          }
-                          onClick={() => {
-                            const model = line.model as ParagraphBlockModel,
-                              base = !!model.props.collapsed;
-                            if (page.getModelById(model.id) !== model) return;
-                            if (readonly || page.readonly)
-                              setLocalFolds((prev) =>
-                                new Map(prev).set(model.id, {
-                                  base,
-                                  closed: !isFolded(line),
-                                }),
-                              );
-                            else {
-                              page.captureSync();
-                              page.updateBlock(model, { collapsed: !base });
-                              page.captureSync();
-                            }
-                          }}
-                        />
-                      </span>
-                    )}
-                    {["bulleted", "numbered", "todo"].includes(line.kind) && (
-                      <span contentEditable={false}>
-                        {line.kind === "numbered" ? (
-                          `${line.ordinal}.`
-                        ) : line.kind === "todo" ? (
-                          <Checkbox
-                            size="sm"
-                            checked={Boolean(line.checked)}
-                            disabled={readonly}
-                            aria-label={t[
-                              "com.myoxus.editor.slash.todo-list"
-                            ]()}
-                            onChange={(_event, checked) => {
-                              if (!readonly && !page.readonly) {
-                                page.captureSync();
-                                page.updateBlock(line.model, { checked });
-                                page.captureSync();
-                              }
-                            }}
-                          />
-                        ) : (
-                          "•"
-                        )}{" "}
-                      </span>
-                    )}
-                    <TextField
-                      linkMenu={openLink}
-                      comment={openThread}
-                      line={line}
-                      readonly={readonly}
-                      composing={composing}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-            {editor && (
-              <PageRemotePresence
-                page={page}
-                bodyRef={bodyRef}
-                readonly={readonly || page.readonly}
-                lines={lines}
-                epoch={epoch}
-              />
-            )}
-          </div>
-        </PageContentRail>
+        <PageContentRail width="editor">{bodyStage}</PageContentRail>
         {!contentOnly && (
           <DocumentEditorBlankGap
             data-testid="page-editor-blank"
@@ -1077,19 +1586,30 @@ function PageView({
               start={slash}
               root={root.current}
               enableAI={enableAI}
+              openBuildingBlockPicker={openBuildingBlockPicker}
+              insertNamedBuildingBlock={insertNamedBuildingBlock}
               close={dismissSlash}
             />
           </Suspense>
         )}
         {!readonly && selection && controller.current && (
           <PageFormatting
+            key={selectionLinkOpen ? "link" : "bar"}
+            page={page}
             controller={controller.current}
             rect={selection}
-            dismiss={() => setSelection(null)}
+            dismiss={() => {
+              setSelectionLinkOpen(false);
+              setSelection(null);
+            }}
             changed={repaint}
             enableAI={enableAI}
+            canComment={Boolean(openThread)}
+            initialLinkOpen={selectionLinkOpen}
           />
         )}
+        {templateVariablePicker}
+        {buildingBlockPicker}
       </Viewport>
     </DocumentEditorRoot>
   );

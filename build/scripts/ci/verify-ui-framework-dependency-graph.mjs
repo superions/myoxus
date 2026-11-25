@@ -30,8 +30,6 @@ const scanRoots = [
   "yarn.lock",
   "client/libs/ui-facade/package.json",
   "client/libs/ui-facade/src",
-  "client/libs/dialogs/package.json",
-  "client/libs/dialogs/src",
   "client/libs/core/package.json",
   "client/libs/core/src",
   "client/libs/theme/package.json",

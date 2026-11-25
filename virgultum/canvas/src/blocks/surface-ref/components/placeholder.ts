@@ -32,10 +32,18 @@ export class SurfaceRefPlaceHolder extends NativeViewElement {
   private readonly _i18n$ = signal<EditorI18nService | undefined>(undefined);
   private readonly _chromeState$ =
     signal<EditorSurfaceRefPlaceholderControls | null>(null);
+  private readonly _chromeHost$ = signal<EditorChromeHost | undefined>(
+    undefined,
+  );
   private _chromeUnmount?: () => void;
   private _mountedChrome?: EditorChromeHost;
 
-  chromeHost?: EditorChromeHost;
+  get chromeHost(): EditorChromeHost | undefined {
+    return this._chromeHost$.value;
+  }
+  set chromeHost(value: EditorChromeHost | undefined) {
+    this._chromeHost$.value = value;
+  }
 
   get referenceModel() {
     return this._referenceModel$.value;
@@ -97,6 +105,7 @@ export class SurfaceRefPlaceHolder extends NativeViewElement {
         const refFlavour = this._refFlavour$.value;
         const inEdgeless = this._inEdgeless$.value;
         void this._theme$.value;
+        const chrome = this._chromeHost$.value;
         const i18n = this._i18n$.value;
         void i18n?.locale$.value;
 
@@ -145,7 +154,6 @@ export class SurfaceRefPlaceHolder extends NativeViewElement {
             description,
           };
 
-          const chrome = this.chromeHost;
           if (chrome?.mountSurfaceRefPlaceholder) {
             this._chromeState$.value = controls;
             if (this._mountedChrome !== chrome) {

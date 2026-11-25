@@ -40,8 +40,8 @@
         "client/apps/electron",
         "client/apps/electron-renderer"
       ],
-      "pathCount": 5511,
-      "pathSha256": "fc0c4cb432b58947536ee31fea5eb6aa53deb35cc9c4da14f4c90b9bfe251ac9"
+      "pathCount": 5514,
+      "pathSha256": "4576b3f9fc28a2bdf433f3986c4beb51fe5eea906be631b7b787e0accf0ab04e"
     },
     "bundledAssets": {
       "extensions": [
@@ -70,7 +70,6 @@
       "client/libs/crypto/package.json": "AGPL-3.0-or-later",
       "client/libs/debug/package.json": "AGPL-3.0-or-later",
       "client/libs/desktop-api-contract/package.json": "AGPL-3.0-or-later",
-      "client/libs/dialogs/package.json": "AGPL-3.0-or-later",
       "client/libs/env/package.json": "AGPL-3.0-or-later",
       "client/libs/error/package.json": "AGPL-3.0-or-later",
       "client/libs/global-loading/package.json": "AGPL-3.0-or-later",
@@ -148,7 +147,6 @@
         "client/libs/core/**",
         "client/libs/debug/**",
         "client/libs/desktop-api-contract/**",
-        "client/libs/dialogs/**",
         "client/libs/env/**",
         "client/libs/error/**",
         "client/libs/global-loading/**",

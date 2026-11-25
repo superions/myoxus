@@ -30,8 +30,6 @@ import {
   customImageProxyMiddleware,
   ImageProxyService,
 } from "@virgultum/editor/shared/adapters";
-import { focusBlockEnd } from "@virgultum/editor/shared/commands";
-import { getLastNoteBlock } from "@virgultum/editor/shared/utils";
 import {
   BlockSelection,
   type BlockStdScope,
@@ -50,7 +48,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import { VirgultumDocEditor, VirgultumEdgelessEditor } from "./lit-adaper";
+import { VirgultumEdgelessEditor } from "./lit-adaper";
 import {
   DocumentFieldPresentationProvider,
   DocumentFieldSourcePreviewProvider,
@@ -79,7 +77,6 @@ export interface MyoxusEditorContainer extends HTMLElement {
 
 export interface EditorProps extends HTMLAttributes<HTMLDivElement> {
   "data-full-width-layout"?: string;
-  plainPage?: boolean;
   journalDate?: string;
   page: Store;
   mode: DocMode;
@@ -178,7 +175,6 @@ async function activateCatalogMermaidNote(
 }
 
 const VirgultumEditorImpl = ({
-  plainPage: _plainPage,
   journalDate: _journalDate,
   mode,
   page,
@@ -283,32 +279,6 @@ const VirgultumEditorImpl = ({
     });
     return adapter;
   }, [mode, page]);
-
-  const handleClickPageModeBlank = useCallback(() => {
-    if (shared || readonly || page.readonly) return;
-    const std = myoxusEditorContainer.host?.std;
-    if (!std) {
-      return;
-    }
-    const note = getLastNoteBlock(page);
-    if (note) {
-      const lastBlock = note.lastChild();
-      if (
-        lastBlock &&
-        lastBlock.flavour === "myoxus:paragraph" &&
-        lastBlock.text?.length === 0
-      ) {
-        const focusBlock = std.view.getBlock(lastBlock.id) ?? undefined;
-        std.command.exec(focusBlockEnd, {
-          focusBlock,
-          force: true,
-        });
-        return;
-      }
-    }
-
-    std.command.exec(appendParagraphCommand);
-  }, [myoxusEditorContainer.host?.std, page, readonly, shared]);
 
   useEffect(() => {
     const editorContainer = rootRef.current;
@@ -631,26 +601,13 @@ const VirgultumEditorImpl = ({
       readingSize={readingSize}
       ref={rootRef}
     >
-      {mode === "page" ? (
-        <VirgultumDocEditor
-          shared={shared}
-          page={page}
-          ref={hostRef}
-          readonly={readonly}
-          snapshot={snapshot}
-          contentOnly={contentOnly}
-          titleRef={docTitleRef}
-          onClickBlank={handleClickPageModeBlank}
-        />
-      ) : (
-        <VirgultumEdgelessEditor
-          shared={shared}
-          readonly={readonly}
-          snapshot={snapshot}
-          page={page}
-          ref={hostRef}
-        />
-      )}
+      <VirgultumEdgelessEditor
+        shared={shared}
+        readonly={readonly}
+        snapshot={snapshot}
+        page={page}
+        ref={hostRef}
+      />
     </DocumentEditorRoot>
   );
   // Historical views render captured runs directly and never initialize a

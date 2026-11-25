@@ -9,7 +9,7 @@ import {
   type AIChatParams,
   AIProvider,
 } from "@myoxus/core/editor/ai/provider/ai-provider";
-import { EditorOutlineViewer } from "@myoxus/core/editor/outline-viewer";
+import { EditorOutlineViewer } from "@myoxus/core/editor/outline-viewer/editor-outline-viewer";
 import type { MyoxusEditorContainer } from "@myoxus/core/editor/virgultum/doc-editor";
 import { EditorService } from "@myoxus/core/modules/editor";
 import { DebugLogger } from "@myoxus/debug";
@@ -171,10 +171,24 @@ function DocPeekPreviewEditor({
 
   const openOutlinePanel = useCallback(() => {
     jumpToPageBlock(workspace.id, doc.id, mode);
-    // Reuse the owning sidebar host; navigation alone does not reveal its outline tool.
-    editorElement?.std.getOptional(SidebarExtensionIdentifier)?.open("outline");
+    // Reuse the owning sidebar host when mounted (Canvas) or open the
+    // workbench outline tool directly in Page mode.
+    const sidebar = editorElement?.std.getOptional(SidebarExtensionIdentifier);
+    if (sidebar) {
+      sidebar.open("outline");
+    } else {
+      workbench.activeView$.value?.showTool("outline");
+    }
     peekView.close();
-  }, [doc, peekView, jumpToPageBlock, workspace.id, mode, editorElement]);
+  }, [
+    doc,
+    peekView,
+    jumpToPageBlock,
+    workspace.id,
+    mode,
+    editorElement,
+    workbench,
+  ]);
 
   const canEdit = useGuard("Doc_Update", doc.id);
 
@@ -201,6 +215,7 @@ function DocPeekPreviewEditor({
       </Scrollable.Root>
       {!BUILD_CONFIG.isMobileEdition && !BUILD_CONFIG.isMobileWeb ? (
         <EditorOutlineViewer
+          doc={doc.virgultumDoc}
           editor={editorElement?.host ?? null}
           show={mode === "page"}
           openOutlinePanel={openOutlinePanel}

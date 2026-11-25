@@ -548,7 +548,15 @@ export class SurfaceRefBlockComponent extends NativeBlockComponent<SurfaceRefBlo
               placeholderEl = doc.createElement(
                 "surface-ref-placeholder",
               ) as SurfaceRefPlaceHolder;
+              placeholderEl.chromeHost =
+                this.std.getOptional(EditorChromeHostIdentifier) ?? undefined;
+              placeholderEl.i18n =
+                this.std.getOptional(EditorI18nProvider) ?? undefined;
+              placeholderEl.referenceModel = referencedModel;
+              placeholderEl.refFlavour = refFlavour;
+              placeholderEl.theme = theme;
               refBox.replaceChildren(placeholderEl);
+              return;
             }
             placeholderEl.chromeHost =
               this.std.getOptional(EditorChromeHostIdentifier) ?? undefined;

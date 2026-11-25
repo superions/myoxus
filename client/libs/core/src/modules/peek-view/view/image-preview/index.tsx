@@ -1,4 +1,5 @@
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
+import { useI18n } from "@myoxus/i18n";
 import {
   ArrowLeftSmallIcon,
   ArrowRightSmallIcon,
@@ -11,6 +12,7 @@ import {
 } from "@myoxus/icons/react";
 import { useService } from "@myoxus/infra";
 import {
+  Box,
   Button,
   Divider,
   IconButton,
@@ -93,6 +95,7 @@ export const GenericImagePreviewModal = ({
   onClose,
   blobId,
 }: ImagePreviewProps): ReactElement => {
+  const t = useI18n();
   const zoomRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const {
@@ -146,10 +149,15 @@ export const GenericImagePreviewModal = ({
   }, [copyHandler, image]);
 
   return (
-    <div data-testid="image-preview-modal" data-myoxus-ui-role="media-lightbox">
-      <div
+    <Box data-testid="image-preview-modal" data-myoxus-ui-role="media-lightbox">
+      <Box
+        component="button"
+        type="button"
+        tabIndex={-1}
+        aria-label={t["com.myoxus.peek-view-controls.close"]()}
         data-myoxus-ui-role="media-lightbox-dismiss-layer"
         onClick={onClose}
+        style={{ border: 0, background: "transparent", padding: 0 }}
       />
       <div data-myoxus-ui-role="media-lightbox-stage">
         <div
@@ -280,7 +288,7 @@ export const GenericImagePreviewModal = ({
           )}
         </ToolbarSurface>
       </Stack>
-    </div>
+    </Box>
   );
 };
 

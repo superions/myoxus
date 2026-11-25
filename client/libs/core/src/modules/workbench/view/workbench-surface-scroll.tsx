@@ -26,6 +26,15 @@ export function WorkbenchSurfaceScrollProvider({
 }
 
 /**
+ * Returns the actual Mantine ScrollArea viewport owned by RouteContainer,
+ * or null when rendered outside RouteContainer (e.g. SharePage, Center Peek,
+ * Database RowContent, or MobileDetailPage).
+ */
+export function useWorkbenchSurfaceScrollViewportOptional() {
+  return useContext(WorkbenchSurfaceScrollContext);
+}
+
+/**
  * Returns the actual Mantine ScrollArea viewport owned by RouteContainer.
  * Editors bind selection and scroll-sensitive behavior to this node rather
  * than creating a second page scroller inside the Workbench surface.

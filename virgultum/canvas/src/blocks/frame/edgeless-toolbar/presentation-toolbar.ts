@@ -46,6 +46,7 @@ export class PresentationToolbar extends EdgelessToolbarToolMixin(
   private _appliedFrameIndexVersion = -1;
   private _appliedToolOption: ToolOptionWithType | null = null;
   private _fullScreenMode = true;
+  private _moveTimer?: ReturnType<typeof setTimeout>;
   private _navigatorMode: NavigatorMode = "fit";
   private _blackBackground = false;
   private _frameMenuShow = false;
@@ -399,7 +400,8 @@ export class PresentationToolbar extends EdgelessToolbarToolMixin(
         }
       }
 
-      setTimeout(() => this._moveToCurrentFrame(true), 400);
+      clearTimeout(this._moveTimer);
+      this._moveTimer = setTimeout(() => this._moveToCurrentFrame(true), 400);
       this.slots.fullScreenToggled.next();
       this.requestUpdate();
     });
@@ -413,6 +415,7 @@ export class PresentationToolbar extends EdgelessToolbarToolMixin(
 
   override disconnectedCallback() {
     clearTimeout(this._timer);
+    clearTimeout(this._moveTimer);
     this._appliedFrameIndexVersion = -1;
     this._appliedToolOption = null;
     super.disconnectedCallback();

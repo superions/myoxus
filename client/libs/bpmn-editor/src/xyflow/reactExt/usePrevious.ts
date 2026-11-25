@@ -19,16 +19,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // Modified by Myoxus: React 19/XYFlow 12 and direct Facade integration; see provenance.json.
 
-import { useState } from "react";
+import { usePrevious as useMantinePrevious } from "@myoxus/ui-facade";
 
-export function usePrevious<T>(value: T) {
-  const [current, setCurrent] = useState<T>(value);
-  const [previous, setPrevious] = useState<T>(value);
-
-  if (value !== current) {
-    setPrevious(current);
-    setCurrent(value);
-  }
-
-  return previous;
+export function usePrevious<T>(value: T): T {
+  const previous = useMantinePrevious(value);
+  return previous === undefined ? value : previous;
 }

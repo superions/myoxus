@@ -11,6 +11,7 @@ import {
 } from "@myoxus/core/modules/server";
 import { ViewService, WorkbenchService } from "@myoxus/core/modules/workbench";
 import { useLiveData, useService, useServiceOptional } from "@myoxus/infra";
+import { useLocalStorage } from "@myoxus/ui-facade";
 import dayjs, { type Dayjs } from "dayjs";
 import {
   createContext,
@@ -37,22 +38,9 @@ function browserLocation() {
   };
 }
 
-function readStoredView(): CalendarView {
-  try {
-    const raw = localStorage.getItem(VIEW_STORAGE_KEY);
-    if (raw === "month" || raw === "week" || raw === "day") return raw;
-  } catch {
-    // Storage is optional; the default view remains usable without it.
-  }
+function deserializeCalendarView(raw: string | undefined): CalendarView {
+  if (raw === "month" || raw === "week" || raw === "day") return raw;
   return "month";
-}
-
-function writeStoredView(value: CalendarView): void {
-  try {
-    localStorage.setItem(VIEW_STORAGE_KEY, value);
-  } catch {
-    // Storage is optional; the current session still keeps the selected view.
-  }
 }
 
 export interface JournalToolState {
@@ -115,7 +103,13 @@ export function JournalToolStateProvider({
     () => journalDate ?? routeDate ?? dayjs(),
   );
   const [calendarCursor, setCalendarCursor] = useState(selectedDate);
-  const [view, setView] = useState<CalendarView>(() => readStoredView());
+  const [view, setView] = useLocalStorage<CalendarView>({
+    key: VIEW_STORAGE_KEY,
+    defaultValue: "month",
+    getInitialValueInEffect: false,
+    serialize: (value) => value,
+    deserialize: deserializeCalendarView,
+  });
   const [calendarLoading, setCalendarLoading] = useState(true);
   const [calendarError, setCalendarError] = useState<unknown>(null);
   const calendarMonthKey = calendarCursor.format("YYYY-MM");
@@ -212,10 +206,12 @@ export function JournalToolStateProvider({
     workspaceCalendarId,
   ]);
 
-  const onViewChange = useCallback((nextView: CalendarView) => {
-    setView(nextView);
-    writeStoredView(nextView);
-  }, []);
+  const onViewChange = useCallback(
+    (nextView: CalendarView) => {
+      setView(nextView);
+    },
+    [setView],
+  );
   const eventCountForDate = useCallback(
     (date: string) => eventCountByDate.get(date)?.length ?? 0,
     [eventCountByDate],

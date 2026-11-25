@@ -582,7 +582,6 @@ path = [
   "libs/core/src/editor/initialization/index.ts",
   "libs/core/src/editor/manager/store.ts",
   "libs/core/src/editor/manager/view.ts",
-  "libs/core/src/editor/outline-viewer/index.tsx",
   "libs/core/src/editor/store-extensions/ai/index.ts",
   "libs/core/src/editor/store-extensions/feature-flag/feature-flag-syncer.ts",
   "libs/core/src/editor/store-extensions/feature-flag/index.ts",
@@ -621,7 +620,6 @@ path = [
   "libs/core/src/editor/view-extensions/link-preview-service/index.ts",
   "libs/core/src/editor/view-extensions/link-preview-service/link-preview-service.ts",
   "libs/core/src/editor/view-extensions/mobile/index.ts",
-  "libs/core/src/editor/view-extensions/mobile/keyboard-toolbar-extension.ts",
   "libs/core/src/editor/view-extensions/pdf/index.ts",
   "libs/core/src/editor/view-extensions/pdf/pdf-view.tsx",
   "libs/core/src/editor/view-extensions/theme/index.ts",
@@ -1317,7 +1315,6 @@ path = [
   "libs/debug/tsconfig.json",
   "libs/desktop-api-contract/src/index.ts",
   "libs/desktop-api-contract/tsconfig.json",
-  "libs/dialogs/tsconfig.json",
   "libs/env/src/__tests__/is-valid-ip-address.spec.ts",
   "libs/env/src/automation.ts",
   "libs/env/src/constant.ts",
@@ -1866,7 +1863,6 @@ path = [
   "libs/core/src/modules/workspace-content-operation/index.ts",
   "libs/debug/package.json",
   "libs/desktop-api-contract/package.json",
-  "libs/dialogs/package.json",
   "libs/env/package.json",
   "libs/error/package.json",
   "libs/global-loading/package.json",
@@ -2946,8 +2942,6 @@ path = [
   "libs/desktop-api-contract/test/bridge.spec.ts",
   "libs/desktop-api-contract/test/contract.types.ts",
   "libs/desktop-api-contract/test/tsconfig.json",
-  "libs/dialogs/src/index.spec.ts",
-  "libs/dialogs/src/index.ts",
   "libs/doc-indexer/Cargo.toml",
   "libs/doc-indexer/src/lib.rs",
   "libs/doc-indexer/src/parser.rs",
@@ -5862,14 +5856,6 @@ SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [
-  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/keyboard-toolbar.tsx",
-]
-
-[[annotations]]
-SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
-SPDX-License-Identifier = "AGPL-3.0-or-later"
-X-Myoxus-Origin = "M0"
-path = [
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/import-dialog.tsx",
 ]
 
@@ -5888,7 +5874,6 @@ SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [
   "libs/core/src/components/document-links/use-document-link-counts.ts",
-  "libs/core/src/editor/virgultum/doc-editor/page-handoff.ts",
   "libs/core/src/editor/virgultum/doc-editor/page-equation.tsx",
   "libs/core/src/editor/virgultum/doc-editor/page-event.tsx",
   "libs/core/src/editor/virgultum/doc-editor/page-attachment.tsx",
@@ -5910,7 +5895,7 @@ path = [
   "libs/core/src/editor/virgultum/doc-editor/page-document-card.tsx",
   "libs/core/src/editor/virgultum/doc-editor/page-image.tsx",
   "libs/core/src/editor/attachment-viewer/text/format.ts",
-  "libs/core/src/editor/virgultum/doc-editor/page-input-lease.ts",
+  "libs/core/src/editor/virgultum/doc-editor/page-interaction.spec.ts",
   "libs/core/src/editor/virgultum/doc-editor/page-interaction.ts",
   "libs/core/src/editor/virgultum/doc-editor/page-renderer-context.ts",
   "libs/core/src/editor/virgultum/doc-editor/plain-page-formatting.tsx",
@@ -6009,4 +5994,15 @@ path = [
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/presentation-toolbar.tsx",
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/surface-ref-placeholder.tsx",
   "libs/core/src/editor/view-extensions/editor-view/mermaid-runtime-portal.tsx",
+  "libs/core/src/editor/outline-viewer/editor-outline-viewer.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-ai-bridge.ts",
+  "libs/core/src/editor/virgultum/doc-editor/page-block-chrome.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-bpmn.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-mermaid.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-outline-controller.spec.ts",
+  "libs/core/src/editor/virgultum/doc-editor/page-outline-controller.ts",
+  "libs/core/src/editor/virgultum/doc-editor/page-synced-doc-preview.spec.ts",
+  "libs/core/src/editor/virgultum/doc-editor/page-synced-doc-preview.ts",
+  "libs/core/src/editor/virgultum/doc-editor/page-table-cell.spec.ts",
+  "libs/core/src/editor/virgultum/doc-editor/page-table-cell.tsx",
 ]

@@ -28,7 +28,6 @@ import {
   EditorAutoConnectNavigator,
 } from "./auto-complete";
 import { EditorCanvasTemplates } from "./canvas-templates";
-import { EditorKeyboardToolbar, EditorKeyboardPanel } from "./keyboard-toolbar";
 import { EditorFrameOrder } from "./frame-order";
 import { EditorCanvasMenu } from "./canvas-menu";
 import { RegisteredCanvasToolbar, EditorCanvasTool } from "./canvas-toolbar";
@@ -163,8 +162,6 @@ export function patchEditorChromeHost(mountPortal: MountReactPortal) {
         </EditorEmbeddedUIRoot>,
       );
     },
-    mountKeyboardToolbar: mountStateControl(EditorKeyboardToolbar),
-    mountKeyboardPanel: mountStateControl(EditorKeyboardPanel),
     mountFrameOrder: mountStateControl(EditorFrameOrder, true),
     mountFrameNavigator: mountStateControl(EditorFrameNavigator),
     mountFrameCard: mountStateControl(EditorFrameCard),

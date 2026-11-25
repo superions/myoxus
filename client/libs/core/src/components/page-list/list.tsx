@@ -1,9 +1,11 @@
+import { useHotkeys } from "@myoxus/ui-facade";
 import {
   type ForwardedRef,
   memo,
   type PropsWithChildren,
   useEffect,
   useImperativeHandle,
+  useRef,
 } from "react";
 
 import {
@@ -36,57 +38,63 @@ export function toListPropsAtomSnapshot(
 // when pressing ESC or double clicking outside of the page list, close the selection mode
 const useItemSelectionStateEffect = () => {
   const [selectionState, setSelectionActive] = useAtom(selectionStateAtom);
-  useEffect(() => {
-    if (
-      selectionState.selectionActive &&
-      selectionState.selectable === "toggle"
-    ) {
-      const startTime = Date.now();
-      const dblClickHandler = (e: MouseEvent) => {
-        if (Date.now() - startTime < 200) {
-          return;
-        }
-        const target = e.target as HTMLElement;
-        // skip if event target is inside of a button or input
-        // or within a toolbar (like page list floating toolbar)
-        if (
-          target.tagName === "BUTTON" ||
-          target.tagName === "INPUT" ||
-          (e.target as HTMLElement).closest(
-            'button, input, [role="toolbar"], [role="listitem"]',
-          )
-        ) {
-          return;
-        }
-        setSelectionActive(false);
-        selectionState.onSelectedIdsChange?.([]);
-      };
+  const activationTimeRef = useRef(0);
+  const isToggleSelectionActive =
+    selectionState.selectionActive && selectionState.selectable === "toggle";
 
-      const escHandler = (e: KeyboardEvent) => {
-        if (Date.now() - startTime < 200) {
-          return;
-        }
-        if (e.key === "Escape") {
+  useHotkeys(
+    [
+      [
+        "Escape",
+        () => {
+          if (
+            !isToggleSelectionActive ||
+            Date.now() - activationTimeRef.current < 200
+          ) {
+            return;
+          }
           setSelectionActive(false);
           selectionState.onSelectedIdsChange?.([]);
-        }
-      };
+        },
+        { preventDefault: false },
+      ],
+    ],
+    [],
+    true,
+  );
 
-      document.addEventListener("dblclick", dblClickHandler);
-      document.addEventListener("keydown", escHandler);
-
-      return () => {
-        document.removeEventListener("dblclick", dblClickHandler);
-        document.removeEventListener("keydown", escHandler);
-      };
+  useEffect(() => {
+    if (!isToggleSelectionActive) {
+      return;
     }
-    return;
-  }, [
-    selectionState,
-    selectionState.selectable,
-    selectionState.selectionActive,
-    setSelectionActive,
-  ]);
+    const startTime = Date.now();
+    activationTimeRef.current = startTime;
+    const dblClickHandler = (e: MouseEvent) => {
+      if (Date.now() - startTime < 200) {
+        return;
+      }
+      const target = e.target as HTMLElement;
+      // skip if event target is inside of a button or input
+      // or within a toolbar (like page list floating toolbar)
+      if (
+        target.tagName === "BUTTON" ||
+        target.tagName === "INPUT" ||
+        (e.target as HTMLElement).closest(
+          'button, input, [role="toolbar"], [role="listitem"]',
+        )
+      ) {
+        return;
+      }
+      setSelectionActive(false);
+      selectionState.onSelectedIdsChange?.([]);
+    };
+
+    document.addEventListener("dblclick", dblClickHandler);
+
+    return () => {
+      document.removeEventListener("dblclick", dblClickHandler);
+    };
+  }, [isToggleSelectionActive, selectionState, setSelectionActive]);
 };
 
 export const ListInnerWrapper = memo(

@@ -254,19 +254,23 @@
   outline: 1px solid var(--myoxus-primary-color);
   border-radius: var(--mantine-radius-sm);
 }
-[data-page-table] textarea {
+[data-page-table] [data-cell-editor] {
   display: block;
   width: 100%;
-  field-sizing: content;
   min-height: 1lh;
-  padding: 0;
-  border: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   outline: none;
-  resize: none;
-  background: transparent;
   color: inherit;
   font: inherit;
   text-align: inherit;
+}
+[data-page-table] [data-cell-protected="fixed"] {
+  cursor: default;
+}
+[data-page-mermaid],
+[data-page-bpmn] {
+  margin-block: var(--mantine-spacing-md);
 }
 [data-page-code] {
   position: relative;

@@ -8,12 +8,13 @@ import { historySourceI18nKey, useDocumentHistory } from "./history-data";
 import { historyListGroupByDay } from "./history-preview";
 import { useI18n } from "@myoxus/i18n";
 import {
+  Accordion,
+  AccordionControl,
+  AccordionItem,
+  AccordionPanel,
   Avatar,
   Badge,
-  Box,
   Button,
-  Collapse,
-  DisclosureCardIndicator,
   Divider,
   Group,
   Menu,
@@ -84,7 +85,24 @@ export const HistoryTimeline = ({
     }
     return entries;
   }, [namedVersions]);
-  const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({});
+  const [closedDays, setClosedDays] = useState<string[]>([]);
+  const openDays = useMemo(
+    () =>
+      historyListByDay
+        .map(([day]) => day)
+        .filter((day) => !closedDays.includes(day)),
+    [closedDays, historyListByDay],
+  );
+  const handleAccordionChange = (nextOpen: string | string[] | null) => {
+    const nextOpenSet = new Set(
+      Array.isArray(nextOpen) ? nextOpen : nextOpen ? [nextOpen] : [],
+    );
+    setClosedDays(
+      historyListByDay
+        .map(([day]) => day)
+        .filter((day) => !nextOpenSet.has(day)),
+    );
+  };
   return (
     <Stack
       data-myoxus-ui-role="page-history-list"
@@ -133,225 +151,232 @@ export const HistoryTimeline = ({
                 {t["com.myoxus.history.filter.empty"]()}
               </SettingsNotice>
             ) : null}
-            {historyListByDay.map(([day, list]) => {
-              const collapsed = collapsedMap[day];
-              return (
-                <Box key={day} data-myoxus-ui-role="page-history-group">
-                  <Button
-                    aria-expanded={!collapsed}
-                    block
-                    data-state={collapsed ? "closed" : "open"}
-                    data-testid="page-list-group-header-collapsed-button"
-                    justifyContent="flex-start"
-                    onClick={() =>
-                      setCollapsedMap((previous) => ({
-                        ...previous,
-                        [day]: !collapsed,
-                      }))
-                    }
-                    prefix={<DisclosureCardIndicator expanded={!collapsed} />}
-                    variant="plain"
-                  >
-                    {day}
-                  </Button>
-                  <Collapse
-                    expanded={!collapsed}
-                    data-myoxus-ui-role="page-history-group-content"
-                  >
-                    <TimelineList>
-                      {list.map((history) => (
-                        <TimelineListItem key={history.snapshotId}>
-                          <SurfaceListItem
-                            appearance="row"
-                            density="compact"
-                            fullWidth
-                            layout="row"
-                            selected={
-                              selection?.snapshotId === history.snapshotId
-                            }
-                          >
-                            <SurfaceListAction
-                              aria-pressed={
-                                selection?.snapshotId === history.snapshotId
-                              }
-                              data-testid="version-history-item"
-                              data-snapshot-id={history.snapshotId}
-                              onClick={() =>
-                                onSelectionChange({
-                                  snapshotId: history.snapshotId,
-                                })
-                              }
-                            >
-                              <Stack>
-                                <Group>
-                                  <MyoxusText
-                                    component="span"
-                                    typographySlot="label-compact"
-                                  >
-                                    {t[historySourceI18nKey(history.origin)]()}
-                                  </MyoxusText>
-                                  <MyoxusText
-                                    component="span"
-                                    tone="secondary"
-                                    typographySlot="body-small"
-                                  >
-                                    {formatTime(history.timestamp)}
-                                  </MyoxusText>
-                                  {history.editor ? (
-                                    <>
-                                      <Avatar
-                                        url={history.editor.avatarUrl ?? ""}
-                                        name={history.editor.name}
-                                        size="xs"
-                                      />
+            {historyListByDay.length ? (
+              <Accordion
+                multiple
+                transitionDuration={0}
+                value={openDays}
+                onChange={handleAccordionChange}
+              >
+                {historyListByDay.map(([day, list]) => {
+                  const isOpen = openDays.includes(day);
+                  return (
+                    <AccordionItem
+                      key={day}
+                      value={day}
+                      data-myoxus-ui-role="page-history-group"
+                    >
+                      <AccordionControl
+                        data-state={isOpen ? "open" : "closed"}
+                        data-testid="page-list-group-header-collapsed-button"
+                      >
+                        {day}
+                      </AccordionControl>
+                      <AccordionPanel data-myoxus-ui-role="page-history-group-content">
+                        <TimelineList>
+                          {list.map((history) => (
+                            <TimelineListItem key={history.snapshotId}>
+                              <SurfaceListItem
+                                appearance="row"
+                                density="compact"
+                                fullWidth
+                                layout="row"
+                                selected={
+                                  selection?.snapshotId === history.snapshotId
+                                }
+                              >
+                                <SurfaceListAction
+                                  aria-pressed={
+                                    selection?.snapshotId === history.snapshotId
+                                  }
+                                  data-testid="version-history-item"
+                                  data-snapshot-id={history.snapshotId}
+                                  onClick={() =>
+                                    onSelectionChange({
+                                      snapshotId: history.snapshotId,
+                                    })
+                                  }
+                                >
+                                  <Stack>
+                                    <Group>
+                                      <MyoxusText
+                                        component="span"
+                                        typographySlot="label-compact"
+                                      >
+                                        {t[
+                                          historySourceI18nKey(history.origin)
+                                        ]()}
+                                      </MyoxusText>
                                       <MyoxusText
                                         component="span"
                                         tone="secondary"
                                         typographySlot="body-small"
                                       >
-                                        {history.editor.name}
+                                        {formatTime(history.timestamp)}
                                       </MyoxusText>
-                                    </>
-                                  ) : null}
-                                </Group>
-                                {(references.get(history.snapshotId) ?? []).map(
-                                  (version) => (
-                                    <Group
-                                      key={version.id}
-                                      data-version-id={version.id}
-                                    >
-                                      <MyoxusText
-                                        component="span"
-                                        typographySlot="label-compact"
-                                      >
-                                        {version.label}
-                                      </MyoxusText>
-                                      {version.versionNo !== null ? (
-                                        <Badge
-                                          aria-label={t[
-                                            "com.myoxus.sidebar.document-versions.meta.number"
-                                          ]()}
-                                        >
-                                          {new Intl.NumberFormat(
-                                            t.language,
-                                          ).format(version.versionNo)}
-                                        </Badge>
-                                      ) : null}
-                                      {version.isPinned ? (
-                                        <Badge>
-                                          {t[
-                                            "com.myoxus.sidebar.document-versions.badge.pinned"
-                                          ]()}
-                                        </Badge>
-                                      ) : null}
-                                      {version.isProtected ? (
-                                        <Badge>
-                                          {t[
-                                            "com.myoxus.sidebar.document-versions.meta.protected"
-                                          ]()}
-                                        </Badge>
+                                      {history.editor ? (
+                                        <>
+                                          <Avatar
+                                            url={history.editor.avatarUrl ?? ""}
+                                            name={history.editor.name}
+                                            size="xs"
+                                          />
+                                          <MyoxusText
+                                            component="span"
+                                            tone="secondary"
+                                            typographySlot="body-small"
+                                          >
+                                            {history.editor.name}
+                                          </MyoxusText>
+                                        </>
                                       ) : null}
                                     </Group>
-                                  ),
-                                )}
-                              </Stack>
-                            </SurfaceListAction>
-                            {canName ? (
-                              <Menu
-                                contentOptions={{ align: "end" }}
-                                items={
-                                  <>
-                                    <MenuItem
-                                      data-testid="history-name-state"
-                                      onSelect={() =>
-                                        onName(
-                                          history.snapshotId,
-                                          (
-                                            references.get(
-                                              history.snapshotId,
-                                            ) ?? []
-                                          ).map(({ id }) => id),
-                                          actionTriggers.current.get(
-                                            history.snapshotId,
-                                          ),
-                                        )
-                                      }
-                                    >
-                                      {t["com.myoxus.history.action.name"]()}
-                                    </MenuItem>
                                     {(
                                       references.get(history.snapshotId) ?? []
                                     ).map((version) => (
-                                      <MenuItem
-                                        disabled={
-                                          versionActionBusy === version.id
-                                        }
-                                        key={`edit:${version.id}`}
-                                        onSelect={() =>
-                                          onEdit(
-                                            version,
-                                            actionTriggers.current.get(
-                                              history.snapshotId,
-                                            ),
-                                          )
-                                        }
+                                      <Group
+                                        key={version.id}
+                                        data-version-id={version.id}
                                       >
-                                        {t[
-                                          "com.myoxus.sidebar.document-versions.action.edit"
-                                        ]()}
-                                        : {version.label}
-                                      </MenuItem>
-                                    ))}
-                                    {(
-                                      references.get(history.snapshotId) ?? []
-                                    ).map((version) => (
-                                      <MenuItem
-                                        disabled={
-                                          versionActionBusy === version.id
-                                        }
-                                        key={`pin:${version.id}`}
-                                        onSelect={() => onTogglePin(version)}
-                                      >
-                                        {version.isPinned
-                                          ? t[
-                                              "com.myoxus.sidebar.document-versions.action.unpin"
-                                            ]()
-                                          : t[
-                                              "com.myoxus.sidebar.document-versions.action.pin"
+                                        <MyoxusText
+                                          component="span"
+                                          typographySlot="label-compact"
+                                        >
+                                          {version.label}
+                                        </MyoxusText>
+                                        {version.versionNo !== null ? (
+                                          <Badge
+                                            aria-label={t[
+                                              "com.myoxus.sidebar.document-versions.meta.number"
                                             ]()}
-                                        : {version.label}
-                                      </MenuItem>
+                                          >
+                                            {new Intl.NumberFormat(
+                                              t.language,
+                                            ).format(version.versionNo)}
+                                          </Badge>
+                                        ) : null}
+                                        {version.isPinned ? (
+                                          <Badge>
+                                            {t[
+                                              "com.myoxus.sidebar.document-versions.badge.pinned"
+                                            ]()}
+                                          </Badge>
+                                        ) : null}
+                                        {version.isProtected ? (
+                                          <Badge>
+                                            {t[
+                                              "com.myoxus.sidebar.document-versions.meta.protected"
+                                            ]()}
+                                          </Badge>
+                                        ) : null}
+                                      </Group>
                                     ))}
-                                  </>
-                                }
-                              >
-                                <MenuTrigger
-                                  ref={(node) => {
-                                    if (node)
-                                      actionTriggers.current.set(
-                                        history.snapshotId,
-                                        node,
-                                      );
-                                    else
-                                      actionTriggers.current.delete(
-                                        history.snapshotId,
-                                      );
-                                  }}
-                                  data-testid="history-row-actions"
-                                  variant="plain"
-                                >
-                                  {t["com.myoxus.actions"]()}
-                                </MenuTrigger>
-                              </Menu>
-                            ) : null}
-                          </SurfaceListItem>
-                        </TimelineListItem>
-                      ))}
-                    </TimelineList>
-                  </Collapse>
-                </Box>
-              );
-            })}
+                                  </Stack>
+                                </SurfaceListAction>
+                                {canName ? (
+                                  <Menu
+                                    contentOptions={{ align: "end" }}
+                                    items={
+                                      <>
+                                        <MenuItem
+                                          data-testid="history-name-state"
+                                          onSelect={() =>
+                                            onName(
+                                              history.snapshotId,
+                                              (
+                                                references.get(
+                                                  history.snapshotId,
+                                                ) ?? []
+                                              ).map(({ id }) => id),
+                                              actionTriggers.current.get(
+                                                history.snapshotId,
+                                              ),
+                                            )
+                                          }
+                                        >
+                                          {t[
+                                            "com.myoxus.history.action.name"
+                                          ]()}
+                                        </MenuItem>
+                                        {(
+                                          references.get(history.snapshotId) ??
+                                          []
+                                        ).map((version) => (
+                                          <MenuItem
+                                            disabled={
+                                              versionActionBusy === version.id
+                                            }
+                                            key={`edit:${version.id}`}
+                                            onSelect={() =>
+                                              onEdit(
+                                                version,
+                                                actionTriggers.current.get(
+                                                  history.snapshotId,
+                                                ),
+                                              )
+                                            }
+                                          >
+                                            {t[
+                                              "com.myoxus.sidebar.document-versions.action.edit"
+                                            ]()}
+                                            : {version.label}
+                                          </MenuItem>
+                                        ))}
+                                        {(
+                                          references.get(history.snapshotId) ??
+                                          []
+                                        ).map((version) => (
+                                          <MenuItem
+                                            disabled={
+                                              versionActionBusy === version.id
+                                            }
+                                            key={`pin:${version.id}`}
+                                            onSelect={() =>
+                                              onTogglePin(version)
+                                            }
+                                          >
+                                            {version.isPinned
+                                              ? t[
+                                                  "com.myoxus.sidebar.document-versions.action.unpin"
+                                                ]()
+                                              : t[
+                                                  "com.myoxus.sidebar.document-versions.action.pin"
+                                                ]()}
+                                            : {version.label}
+                                          </MenuItem>
+                                        ))}
+                                      </>
+                                    }
+                                  >
+                                    <MenuTrigger
+                                      ref={(node) => {
+                                        if (node)
+                                          actionTriggers.current.set(
+                                            history.snapshotId,
+                                            node,
+                                          );
+                                        else
+                                          actionTriggers.current.delete(
+                                            history.snapshotId,
+                                          );
+                                      }}
+                                      data-testid="history-row-actions"
+                                      variant="plain"
+                                    >
+                                      {t["com.myoxus.actions"]()}
+                                    </MenuTrigger>
+                                  </Menu>
+                                ) : null}
+                              </SurfaceListItem>
+                            </TimelineListItem>
+                          ))}
+                        </TimelineList>
+                      </AccordionPanel>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            ) : null}
             {onLoadMore ? (
               <Button
                 block

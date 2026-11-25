@@ -40,7 +40,6 @@
     "@mantine/schedule": "9.7.5",
     "@mantine/spotlight": "9.7.5",
     "@mantine/tiptap": "9.7.5",
-    "@myoxus/dialogs": "workspace:*",
     "@myoxus/i18n": "workspace:*",
     "@myoxus/icons": "workspace:*",
     "@myoxus/notifications": "workspace:*",

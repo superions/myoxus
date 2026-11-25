@@ -73,7 +73,10 @@ export function UserPicker(props: UserPickerProps) {
   const listboxId = useId();
 
   const [query, setQuery] = useState("");
-  const [debouncedRaw] = useDebouncedValue(query.trim(), DEBOUNCE_MS);
+  const [debouncedRaw, cancelDebounce] = useDebouncedValue(
+    query.trim(),
+    DEBOUNCE_MS,
+  );
   const debounced = query.trim().length === 0 ? "" : debouncedRaw;
   const [open, { open: openDropdown, close: closeDropdown }] =
     useDisclosure(false);
@@ -194,11 +197,12 @@ export function UserPicker(props: UserPickerProps) {
 
   const commitSelection = useCallback(
     (option: UserOption) => {
+      cancelDebounce();
       props.onChange(option.id);
       setQuery(option.email);
       closeDropdown();
     },
-    [closeDropdown, props],
+    [cancelDebounce, closeDropdown, props],
   );
 
   const handleKeyDown = useCallback(

@@ -17,9 +17,7 @@ import {
   Card,
   Dropzone,
   type FileRejection,
-  IMAGE_MIME_TYPE,
   notify,
-  PDF_MIME_TYPE,
   Stack,
 } from "@myoxus/ui-facade";
 import type { NotificationService } from "@virgultum/core/services";
@@ -63,12 +61,12 @@ import { ChatDisclaimer, ChatScrollToLatest } from "../message-chrome";
 
 export const EMBEDDING_STATUS_CHECK_INTERVAL = 10000;
 const MAX_CONTEXT_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-const COMPOSER_DROPZONE_ACCEPT = [
-  ...IMAGE_MIME_TYPE,
-  ...PDF_MIME_TYPE,
-  "text/plain",
-  "text/csv",
-];
+const COMPOSER_DROPZONE_ACCEPT = {
+  "image/*": [],
+  "application/pdf": [".pdf"],
+  "text/plain": [".txt", ".md"],
+  "text/csv": [".csv"],
+};
 
 export interface AIChatComposerProps {
   onScrollToLatest?: () => void;
@@ -790,8 +788,12 @@ export function AIChatComposer({
       params: AISendParams | AIChatParams | null,
     ) => {
       if (!params) return;
-      const { context, host: targetHost } = params;
-      if (latestRef.current.host !== targetHost || !context) return;
+      const { context, host: targetHost, docId: targetDocId } = params;
+      const matchesTarget = targetHost
+        ? latestRef.current.host === targetHost
+        : !latestRef.current.host &&
+          (!targetDocId || latestRef.current.docId === targetDocId);
+      if (!matchesTarget || !context) return;
       latestRef.current.updateContext(context);
       if (
         context.docs ||
@@ -901,6 +903,7 @@ export function AIChatComposer({
 
   const handleDropFiles = useCallback(
     (files: File[]) => {
+      if (isDropDisabled) return;
       const images = files.filter((file) => file.type.startsWith("image/"));
       if (images.length) addImages(images);
       const docs = files.filter((file) => !file.type.startsWith("image/"));
@@ -918,20 +921,29 @@ export function AIChatComposer({
         }),
       );
     },
-    [addChip, addImages],
+    [addChip, addImages, isDropDisabled],
   );
 
-  const handleRejectFiles = useCallback((rejections: FileRejection[]) => {
-    for (const rejection of rejections) {
-      if (rejection.file.size > MAX_CONTEXT_FILE_SIZE_BYTES) {
-        notify({
-          title: chatI18n()["com.myoxus.ai.chat-panel.file-too-large"]({
-            name: rejection.file.name,
-          }),
-        });
+  const handleRejectFiles = useCallback(
+    (rejections: FileRejection[]) => {
+      if (isDropDisabled) return;
+      for (const rejection of rejections) {
+        if (rejection.file.size > MAX_CONTEXT_FILE_SIZE_BYTES) {
+          notify({
+            title: chatI18n()["com.myoxus.ai.chat-panel.file-too-large"]({
+              name: rejection.file.name,
+            }),
+          });
+        } else {
+          notify({
+            title: chatI18n()["com.myoxus.common.operation-failed"](),
+            message: rejection.file.name,
+          });
+        }
       }
-    }
-  }, []);
+    },
+    [isDropDisabled],
+  );
 
   return (
     <Stack gap="xs" style={{ flexShrink: 0 }}>
@@ -943,18 +955,12 @@ export function AIChatComposer({
           activateOnClick={false}
           activateOnKeyboard={false}
           enablePointerEvents
-          disabled={isDropDisabled}
           accept={COMPOSER_DROPZONE_ACCEPT}
           maxSize={MAX_CONTEXT_FILE_SIZE_BYTES}
           onDrop={handleDropFiles}
           onReject={handleRejectFiles}
           p={0}
-          styles={{
-            root: {
-              border: "none",
-              background: "none",
-            },
-          }}
+          style={{ borderColor: "transparent", background: "transparent" }}
         >
           <Stack gap="xs">
             <ChatPanelChips

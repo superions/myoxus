@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useI18n } from "@myoxus/i18n";
-import { LiveData, useFramework, useLiveData, useService } from "@myoxus/infra";
+import {
+  LiveData,
+  useFramework,
+  useLiveData,
+  useServiceOptional,
+} from "@myoxus/infra";
 import { PeekViewService } from "../../../modules/peek-view/services/peek-view";
 import {
   defaultAttachmentProps,
@@ -40,6 +45,7 @@ import {
   pasteAfterPageBlock,
 } from "./page-block-actions";
 import { usePageFloatingAnchor } from "./page-floating-anchor";
+import { PageCitationBadge } from "./page-block-chrome";
 const MediaPreview = lazy(async () => ({
   default: (await import("../../attachment-viewer/attachment-embed-preview"))
     .AttachmentEmbedPreview,
@@ -81,13 +87,14 @@ export default function PageAttachment({
   const t = useI18n();
   const framework = useFramework();
   const captionEditor = usePageCaption(model, readonly);
-  const peekView = useService(PeekViewService).peekView;
+  const peekView = useServiceOptional(PeekViewService)?.peekView;
   const block = useRef<HTMLDivElement>(null);
   const [selected, select] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [floating, setFloating] = useState<HTMLElement | null>(null);
-  const { sourceId, type, embed, name, size, style } = model.props;
+  const { sourceId, type, embed, name, size, style, footnoteIdentifier } =
+    model.props;
   const media =
     type === "application/pdf"
       ? "pdf"
@@ -95,9 +102,11 @@ export default function PageAttachment({
         ? "video"
         : type.startsWith("audio/")
           ? "audio"
-          : textAttachmentFormat(name, type)
-            ? "text"
-            : undefined;
+          : type.startsWith("image/")
+            ? "image"
+            : textAttachmentFormat(name, type)
+              ? "text"
+              : undefined;
   const { state, resource } = usePageResource(model, type);
   usePageFloatingAnchor({
     active: selected || renaming,
@@ -115,7 +124,7 @@ export default function PageAttachment({
     !model.store.readonly &&
     model.store.getModelById(model.id) === model;
   const peek = () => {
-    if (!current() || !type.endsWith("pdf")) return;
+    if (!current() || !type.endsWith("pdf") || !peekView) return;
     const element = model.store.getBlock(model.id);
     if (element) void peekView.open({ element }).catch(console.error);
   };
@@ -351,6 +360,7 @@ export default function PageAttachment({
       onCut={(e) => clipboard(e, "cut")}
       onPaste={(e) => clipboard(e, "paste")}
     >
+      <PageCitationBadge identifier={footnoteIdentifier} />
       {embed &&
       media &&
       state.url &&
@@ -360,6 +370,8 @@ export default function PageAttachment({
           <TextAttachmentPreview model={model} blobUrl={state.url} />
         ) : media === "video" ? (
           <video key={sourceId} src={state.url} controls aria-label={name} />
+        ) : media === "image" ? (
+          <img key={sourceId} src={state.url} alt={name} />
         ) : (
           <Suspense fallback={null}>
             <MediaPreview key={sourceId} model={model} />

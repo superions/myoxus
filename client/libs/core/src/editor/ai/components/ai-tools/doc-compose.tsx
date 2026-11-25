@@ -13,6 +13,7 @@ import type { BlockStdScope } from "@virgultum/editor/std";
 import { MarkdownTransformer } from "@virgultum/editor/widgets/linked-doc";
 import { useCallback, useEffect, useId, useRef } from "react";
 
+import type { PageAiBridge } from "../../../virgultum/doc-editor/page-ai-bridge";
 import { ArtifactSkeleton } from "../ai-artifact-skeleton";
 import { StoredAnswerText } from "../ai-message-content/stored-answer-text";
 import { ArtifactCardView, DocComposeControls } from "./artifact-view";
@@ -45,11 +46,13 @@ export interface DocComposeToolResult {
 export function DocComposeTool({
   data,
   std,
+  pageBridge,
   readOnly = false,
   notificationService,
 }: {
   data: DocComposeToolCall | DocComposeToolResult;
   std?: BlockStdScope;
+  pageBridge?: PageAiBridge | null;
   readOnly?: boolean;
   notificationService?: NotificationService;
 }) {
@@ -97,11 +100,15 @@ export function DocComposeTool({
     ) : isLoading ? (
       <ArtifactSkeleton icon={<PageIcon />} />
     ) : successResult ? (
-      <StoredAnswerText host={std?.host} text={successResult.markdown} />
+      <StoredAnswerText
+        host={std?.host}
+        pageBridge={pageBridge}
+        text={successResult.markdown}
+      />
     ) : null;
 
     const controls =
-      successResult && std ? (
+      successResult && (std || pageBridge) ? (
         <DocComposeControls
           copyText={successResult.markdown}
           onCopied={() => {
@@ -114,6 +121,19 @@ export function DocComposeTool({
                   void (async () => {
                     try {
                       if (!mountedRef.current || readOnly) return;
+                      if (!std && pageBridge) {
+                        const saved = await pageBridge.saveAsDoc(
+                          successResult.markdown,
+                          data.args.title,
+                        );
+                        if (!saved && mountedRef.current) {
+                          notificationService?.toast(
+                            t["com.myoxus.ai.chat-panel.doc-create-failed"](),
+                          );
+                        }
+                        return;
+                      }
+                      if (!std) return;
                       const workspace = std.store.workspace;
                       const refNodeSlots =
                         std.getOptional(RefNodeSlotsProvider);
@@ -180,6 +200,7 @@ export function DocComposeTool({
     isLoading,
     notificationService,
     ownerId,
+    pageBridge,
     preview,
     readOnly,
     std,

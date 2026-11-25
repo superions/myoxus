@@ -287,31 +287,6 @@ export type EditorFrameTitleControls = {
   edit: (event: MouseEvent) => void;
 };
 
-export type EditorKeyboardIcon =
-  MyoxusIconExportName | Readonly<{ svg: string }>;
-
-/** Commands and artwork are resolved in the editor; native controls own their visual state. */
-export type EditorKeyboardAction = Readonly<{
-  id: string;
-  label: string;
-  icon: EditorKeyboardIcon;
-  active?: boolean;
-  disabled?: boolean;
-  run: () => void;
-}>;
-export type EditorKeyboardToolbarControls = {
-  actions: readonly EditorKeyboardAction[];
-  back?: () => void;
-  keyboardVisible: boolean;
-  toggleKeyboard: () => void;
-};
-export type EditorKeyboardPanelControls = {
-  groups: readonly {
-    label: string;
-    actions: readonly EditorKeyboardAction[];
-  }[];
-};
-
 export type EditorCanvasToolbarItem =
   | {
       readonly type: "hosts";
@@ -566,14 +541,6 @@ export type EditorChromeHost = {
     state:
       | EditorCanvasToolControls
       | ReadonlySignal<EditorCanvasToolControls | null>,
-  ) => () => void;
-  mountKeyboardToolbar: (
-    anchor: HTMLElement,
-    state: ReadonlySignal<EditorKeyboardToolbarControls | null>,
-  ) => () => void;
-  mountKeyboardPanel: (
-    anchor: HTMLElement,
-    state: ReadonlySignal<EditorKeyboardPanelControls | null>,
   ) => () => void;
   mountFrameOrder: (
     anchor: HTMLElement,

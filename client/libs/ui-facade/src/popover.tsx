@@ -66,6 +66,7 @@ export function Popover({
   width,
   contentMeasure,
   position = "bottom",
+  offset,
   content,
   contentOptions,
   returnFocus,
@@ -89,6 +90,7 @@ export function Popover({
   /** Literal document text uses half the themed document column; native size middleware still clips it. */
   contentMeasure?: "reading";
   position?: MantineCorePopoverProps["position"];
+  offset?: MantineCorePopoverProps["offset"];
   content?: ReactNode;
   contentOptions?: MenuContentOptions;
   returnFocus?: boolean;
@@ -137,6 +139,7 @@ export function Popover({
           : undefined)
       }
       position={position}
+      offset={offset}
       floatingStrategy={floatingStrategy ?? (insideModal ? "fixed" : undefined)}
       hideDetached={hideDetached}
       middlewares={

@@ -16,6 +16,7 @@ import { ChatToolbar } from "@myoxus/core/editor/ai/components/ai-chat-toolbar";
 import { PlaygroundContent } from "@myoxus/core/editor/ai/components/playground/content";
 import { PlaygroundDialog } from "@myoxus/core/editor/ai/components/playground/view";
 import { NotificationServiceImpl } from "@myoxus/core/editor/view-extensions/editor-view/notification-service";
+import { createPageAiBridge } from "@myoxus/core/editor/virgultum/doc-editor/page-ai-bridge";
 import type { MyoxusEditorContainer } from "@myoxus/core/editor/virgultum/doc-editor";
 import {
   AIDraftService,
@@ -23,7 +24,9 @@ import {
 } from "@myoxus/core/modules/ai-button";
 import { AIModelService } from "@myoxus/core/modules/ai-button/services/models";
 import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
+import { EditorService } from "@myoxus/core/modules/editor";
 import { PeekViewService } from "@myoxus/core/modules/peek-view";
+import { ServerService } from "@myoxus/core/modules/server";
 import { WorkbenchService } from "@myoxus/core/modules/workbench";
 import type {
   ContextEmbedStatus,
@@ -32,7 +35,7 @@ import type {
 } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
 import { CenterPeekIcon } from "@myoxus/icons/react";
-import { useFramework, useService } from "@myoxus/infra";
+import { useFramework, useService, useServiceOptional } from "@myoxus/infra";
 import {
   Alert,
   Box,
@@ -96,8 +99,12 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
   const sessionLoadSeqRef = useRef(0);
   const loadedNotifiedRef = useRef(false);
 
-  const doc = editor?.doc;
-  const host = editor?.host;
+  const owner = useServiceOptional(EditorService)?.editor;
+  const server = useService(ServerService).server;
+  const peekViewService = framework.get(PeekViewService);
+
+  const doc = editor?.doc ?? owner?.doc.virgultumDoc;
+  const host = editor?.host ?? null;
 
   const resetPanel = useCallback(() => {
     sessionLoadSeqRef.current += 1;
@@ -410,6 +417,30 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
     [openDoc],
   );
 
+  const pageBridge = useMemo(
+    () =>
+      doc && !host
+        ? createPageAiBridge({
+            store: doc,
+            getSelectedBlockIds: () => owner?.selectedPageBlocks() ?? [],
+            getActiveBlockId: () => owner?.pageSelection?.focus.id ?? null,
+            notificationService,
+            peekViewService,
+            serverBaseUrl: server.baseUrl,
+            openDoc: (targetId) => handleOpenDoc(targetId),
+          })
+        : null,
+    [
+      doc,
+      handleOpenDoc,
+      host,
+      notificationService,
+      owner,
+      peekViewService,
+      server.baseUrl,
+    ],
+  );
+
   const isEmbedding =
     embeddingProgress[1] > 0 && embeddingProgress[0] < embeddingProgress[1];
   const [done, total] = embeddingProgress;
@@ -429,11 +460,12 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
         }}
         title={t["com.myoxus.ai.chat-panel.playground"]()}
       >
-        {doc && host && playgroundDocId === doc.id ? (
+        {doc && playgroundDocId === doc.id ? (
           <PlaygroundContent
             host={host}
+            pageBridge={pageBridge}
             doc={doc}
-            peekViewService={framework.get(PeekViewService)}
+            peekViewService={peekViewService}
             onOpenDoc={handleOpenDoc}
             reasoningConfig={reasoningConfig}
             searchMenuConfig={searchMenuConfig}
@@ -487,7 +519,7 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
                 tooltip={t["com.myoxus.ai.chat-panel.playground"]()}
                 tooltipOptions={{ side: "left" }}
                 onClick={() => {
-                  if (doc && host) setPlaygroundDocId(doc.id);
+                  if (doc) setPlaygroundDocId(doc.id);
                 }}
               >
                 <CenterPeekIcon />
@@ -518,10 +550,11 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
             style={{ flex: "1 1 auto" }}
             data-myoxus-ui-role="chat-panel-content-host"
           >
-            {doc && host ? (
+            {doc ? (
               <AIChatContent
                 key={contentKey}
                 host={host}
+                pageBridge={pageBridge}
                 boundedMode
                 session={session}
                 createSession={createSession}
@@ -533,7 +566,7 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
                 notificationService={notificationService}
                 aiDraftService={framework.get(AIDraftService)}
                 aiToolsConfigService={framework.get(AIToolsConfigService)}
-                peekViewService={framework.get(PeekViewService)}
+                peekViewService={peekViewService}
                 aiModelService={framework.get(AIModelService)}
                 onEmbeddingProgressChange={onEmbeddingProgressChange}
                 onContextChange={onContextChange}

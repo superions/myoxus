@@ -15,6 +15,7 @@ import type { EditorHost } from "@virgultum/editor/std";
 import type { Store } from "@virgultum/editor/store";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { PageAiBridge } from "../../../virgultum/doc-editor/page-ai-bridge";
 import { AIProvider } from "../../provider";
 import type { SearchMenuConfig } from "../ai-chat-add-context";
 import type { DocDisplayConfig } from "../ai-chat-chips";
@@ -45,7 +46,8 @@ const DEFAULT_CHAT_CONTEXT_VALUE: ChatContextValue = {
 };
 
 export interface PlaygroundChatProps {
-  host: EditorHost;
+  host?: EditorHost | null;
+  pageBridge?: PageAiBridge | null;
   doc: Store;
   session: CopilotChatHistoryFragment | null | undefined;
   peekViewService: PeekViewService;
@@ -66,6 +68,7 @@ export interface PlaygroundChatProps {
 
 export function PlaygroundChat({
   host,
+  pageBridge,
   doc,
   session,
   peekViewService,
@@ -218,6 +221,7 @@ export function PlaygroundChat({
         peekViewService={peekViewService}
         onOpenDoc={onOpenDoc}
         host={host}
+        pageBridge={pageBridge}
         workspaceId={doc.workspace.id}
         docId={doc.id}
         isHistoryLoading={isLoading}

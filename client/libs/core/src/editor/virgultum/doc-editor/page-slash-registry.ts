@@ -1393,8 +1393,15 @@ export function buildPageSlashItems(
         t["com.myoxus.editor.slash.remove-alias"](),
       ],
       runSync: (s, m) => {
+        const parent = s.getParent(m);
         const next = s.getNext(m) ?? s.getPrev(m);
+        const isSoleNoteChild =
+          parent?.flavour === "myoxus:note" && parent.children.length === 1;
         s.deleteBlock(m);
+        if (isSoleNoteChild && parent) {
+          const freshId = s.addBlock("myoxus:paragraph", {}, parent, 0);
+          return { id: freshId, offset: 0 };
+        }
         if (next?.text) return { id: next.id, offset: 0 };
         return;
       },

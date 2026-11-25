@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
 } from "react";
@@ -14,29 +15,11 @@ import { createPortal } from "react-dom";
 
 import { useEditorColorScheme } from "./embedded-ui-root";
 
-function getOrCreateOverlayHost(
-  id: string,
-  colorScheme: "dark" | "light" | undefined,
-): HTMLDivElement | null {
-  if (typeof document === "undefined" || !document.body) return null;
-  const existing = document.querySelector<HTMLDivElement>(
-    `[data-myoxus-mermaid-overlay-root="${CSS.escape(id)}"]`,
-  );
-  if (existing) {
-    if (colorScheme) {
-      existing.dataset.theme = colorScheme;
-    } else {
-      delete existing.dataset.theme;
-    }
-    return existing;
-  }
+function createDetachedOverlayHost(id: string): HTMLDivElement | null {
+  if (typeof document === "undefined") return null;
   const host = document.createElement("div");
   host.setAttribute("data-myoxus-mermaid-overlay-root", id);
   host.setAttribute("data-range-sync-exclude", "true");
-  if (colorScheme) {
-    host.dataset.theme = colorScheme;
-  }
-  document.body.append(host);
   return host;
 }
 
@@ -53,11 +36,11 @@ export function MermaidRuntimePortal({
   const colorScheme = useEditorColorScheme();
   const id = useId();
   const managedHost = useMemo(
-    () => (target ? null : getOrCreateOverlayHost(id, colorScheme)),
-    [target, id, colorScheme],
+    () => (target ? null : createDetachedOverlayHost(id)),
+    [target, id],
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!managedHost) return;
     if (colorScheme) {
       managedHost.dataset.theme = colorScheme;
@@ -66,9 +49,9 @@ export function MermaidRuntimePortal({
     }
   }, [managedHost, colorScheme]);
 
-  useEffect(() => {
-    if (!managedHost) return;
-    if (!managedHost.isConnected && document.body) {
+  useLayoutEffect(() => {
+    if (!managedHost || !document.body) return;
+    if (!managedHost.isConnected) {
       document.body.append(managedHost);
     }
     return () => {
@@ -131,6 +114,7 @@ export function useMermaidCaptureDrag() {
       document.removeEventListener("pointermove", move, true);
       document.removeEventListener("pointerup", up, true);
       document.removeEventListener("pointercancel", pointerCancel, true);
+      window.removeEventListener("blur", windowBlur);
       if (keyDown) {
         document.removeEventListener("keydown", keyDown, true);
       }
@@ -147,14 +131,27 @@ export function useMermaidCaptureDrag() {
 
     const up = (event: PointerEvent) => {
       if (cleaned) return;
-      handlers.onUp(event);
+      try {
+        handlers.onUp(event);
+      } finally {
+        cleanup();
+      }
     };
 
     const pointerCancel = (event: PointerEvent) => {
       if (cleaned) return;
-      if (handlers.onCancel) {
-        handlers.onCancel(event);
-      } else {
+      try {
+        handlers.onCancel?.(event);
+      } finally {
+        cleanup();
+      }
+    };
+
+    const windowBlur = () => {
+      if (cleaned) return;
+      try {
+        handlers.onCancel?.();
+      } finally {
         cleanup();
       }
     };
@@ -170,6 +167,7 @@ export function useMermaidCaptureDrag() {
     document.addEventListener("pointermove", move, true);
     document.addEventListener("pointerup", up, true);
     document.addEventListener("pointercancel", pointerCancel, true);
+    window.addEventListener("blur", windowBlur);
     if (keyDown) {
       document.addEventListener("keydown", keyDown, true);
     }

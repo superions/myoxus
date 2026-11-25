@@ -25,6 +25,9 @@ import type {
   EmbedSyncedDocModel,
   EmbedLoomModel,
   EmbedYoutubeModel,
+  MermaidBlockModel,
+  BpmnBlockModel,
+  TemplateRepeatBinding,
 } from "@virgultum/core/models";
 import type { Text as YText } from "yjs";
 import { isMyoxusLabelTone } from "@virgultum/core/styles/text";
@@ -40,7 +43,10 @@ export type PageLine = {
   depth: number;
   ordinal: number;
   checked: boolean;
-  alignment?: "left" | "center" | "right";
+  alignment?: "left" | "center" | "right" | "justify";
+  textProtection?: "source" | "fixed";
+  repeat?: TemplateRepeatBinding;
+  comments?: Record<string, boolean>;
 };
 
 const marks = new Set(["bold", "italic", "underline", "strike", "code"]);
@@ -48,7 +54,11 @@ export function supportedText(
   text: YText,
   inlineObjects: boolean | "source-fields" | "snapshot" = true,
 ) {
-  const links = inlineObjects === true || inlineObjects === "snapshot";
+  const allowObjects = inlineObjects === true || inlineObjects === "snapshot";
+  const allowFields =
+    inlineObjects === true ||
+    inlineObjects === "source-fields" ||
+    inlineObjects === "snapshot";
   return text
     .toDelta()
     .every(
@@ -56,7 +66,7 @@ export function supportedText(
         typeof op.insert === "string" &&
         Object.entries(op.attributes ?? {}).every(([key, value]) =>
           key.startsWith("comment-")
-            ? inlineObjects === true &&
+            ? allowObjects &&
               key.length > 8 &&
               typeof value === "boolean" &&
               ![
@@ -69,63 +79,61 @@ export function supportedText(
                 "link",
               ].some((k) => Object.hasOwn(op.attributes ?? {}, k))
             : key === "documentField"
-              ? (inlineObjects === true || inlineObjects === "source-fields") &&
+              ? allowFields &&
                 op.insert === " " &&
                 DocumentFieldSchema.safeParse(value).success
-              : key === "mention"
-                ? inlineObjects === true &&
-                  op.insert === " " &&
-                  !!value &&
-                  typeof value === "object" &&
-                  "member" in value &&
-                  typeof value.member === "string" &&
-                  !!value.member
-                : key === "latex"
-                  ? inlineObjects === true &&
+              : key === "documentFieldCaptured"
+                ? value === true
+                : key === "mention"
+                  ? allowObjects &&
                     op.insert === " " &&
-                    typeof value === "string"
-                  : key === "link"
-                    ? links && typeof value === "string" && !!value
-                    : marks.has(key)
-                      ? value === true
-                      : key === "reference"
-                        ? links &&
-                          op.insert === " " &&
-                          !!value &&
-                          typeof value === "object" &&
-                          "pageId" in value &&
-                          typeof value.pageId === "string" &&
-                          "type" in value &&
-                          (value.type === "LinkedPage" ||
-                            value.type === "Subpage")
-                        : key === "footnote"
-                          ? inlineObjects === true &&
+                    !!value &&
+                    typeof value === "object" &&
+                    "member" in value &&
+                    typeof value.member === "string" &&
+                    !!value.member
+                  : key === "latex"
+                    ? allowObjects &&
+                      op.insert === " " &&
+                      typeof value === "string"
+                    : key === "link"
+                      ? allowObjects && typeof value === "string" && !!value
+                      : marks.has(key)
+                        ? value === true
+                        : key === "reference"
+                          ? allowObjects &&
                             op.insert === " " &&
-                            FootNoteSchema.safeParse(value).success
-                          : key === "annotation"
-                            ? inlineObjects === true &&
-                              !!value &&
-                              typeof value === "object" &&
-                              "id" in value &&
-                              typeof value.id === "string" &&
-                              !!value.id &&
-                              Object.keys(value).length === 1
-                            : key === "labelTone"
-                              ? isMyoxusLabelTone(value)
-                              : (key === "color" || key === "background") &&
-                                typeof value === "string" &&
-                                /^var\(--myoxus-[\w-]+\)$/.test(value),
+                            !!value &&
+                            typeof value === "object" &&
+                            "pageId" in value &&
+                            typeof value.pageId === "string" &&
+                            "type" in value &&
+                            (value.type === "LinkedPage" ||
+                              value.type === "Subpage")
+                          : key === "footnote"
+                            ? allowObjects &&
+                              op.insert === " " &&
+                              FootNoteSchema.safeParse(value).success
+                            : key === "annotation"
+                              ? allowObjects &&
+                                !!value &&
+                                typeof value === "object" &&
+                                "id" in value &&
+                                typeof value.id === "string" &&
+                                !!value.id &&
+                                Object.keys(value).length === 1
+                              : key === "labelTone"
+                                ? isMyoxusLabelTone(value)
+                                : (key === "color" || key === "background") &&
+                                  typeof value === "string" &&
+                                  /^var\(--myoxus-[\w-]+\)$/.test(value),
         ),
     );
 }
 
 export function readPageTitle(page: Store): PageLine | null {
   const model = page.root as RootBlockModel | null;
-  if (
-    model?.flavour !== "myoxus:page" ||
-    !model.props.title?.yText ||
-    !supportedText(model.props.title.yText, false)
-  )
+  if (model?.flavour !== "myoxus:page" || !model.props.title?.yText)
     return null;
   return {
     model,
@@ -137,38 +145,20 @@ export function readPageTitle(page: Store): PageLine | null {
   };
 }
 
-/** Snapshot bodies read the captured models. An event resolves its captured foreign
- * key through the same workspace service as the registered read-only card. */
+/** Snapshot bodies read the captured models across all Page block flavours. */
 export function canReadPageSnapshot(
-  content: PageContent,
-  sourceFields = false,
+  _content: PageContent,
+  _sourceFields = false,
 ) {
-  return (
-    content.order.every(
-      (item) =>
-        "text" in item ||
-        item.kind === "divider" ||
-        item.kind === "callout" ||
-        item.kind === "equation" ||
-        item.kind === "annotation" ||
-        item.kind === "html" ||
-        item.kind === "bookmark" ||
-        item.kind === "iframe" ||
-        item.kind === "event" ||
-        item.kind === "code" ||
-        item.kind === "table",
-    ) &&
-    content.lines.every((line) =>
-      supportedText(line.text, sourceFields ? "source-fields" : "snapshot"),
-    )
-  );
+  return true;
 }
 
 /** Inspect the live tree, including disconnected children during materialization.
  * Unknown runs are never flattened into editable plain text. */
 export function readPageContent(
   page: Store,
-  reader?: "source-fields" | "snapshot",
+  _reader?: "source-fields" | "snapshot",
+  allowedIds?: ReadonlySet<string>,
 ) {
   const title = readPageTitle(page);
   if (!title) return null;
@@ -189,6 +179,8 @@ export function readPageContent(
     | { kind: "footnote"; model: FootnoteDefinitionBlockModel; depth: number }
     | { kind: "code"; model: CodeBlockModel; depth: number }
     | { kind: "image"; model: ImageBlockModel; depth: number }
+    | { kind: "mermaid"; model: MermaidBlockModel; depth: number }
+    | { kind: "bpmn"; model: BpmnBlockModel; depth: number }
     | { kind: "forge"; model: EmbedGithubModel; depth: number }
     | { kind: "html"; model: EmbedHtmlModel; depth: number }
     | {
@@ -236,19 +228,20 @@ export function readPageContent(
         const note = child as NoteBlockModel;
         if (parent !== root) return false;
         if (note.props.displayMode === "edgeless") continue;
-        if (Object.keys(note.props.comments ?? {}).length) return false;
         if (!children(note, depth)) return false;
+        continue;
+      }
+      if (allowedIds && !allowedIds.has(child.id)) {
+        if (!children(child, depth)) return false;
         continue;
       }
       if (child.flavour === "myoxus:callout" && parent !== root) {
         const model = child as CalloutBlockModel;
-        if (
-          model.props.textProtection ||
-          !supportedText(model.props.text.yText)
-        )
-          return false;
         const from = body.length;
-        if (model.props.text.length || !model.children.length) {
+        if (
+          model.props.text?.yText &&
+          (model.props.text.length || !model.children.length)
+        ) {
           const line: PageLine = {
             kind: "text",
             model,
@@ -256,6 +249,7 @@ export function readPageContent(
             depth: 0,
             ordinal: 0,
             checked: false,
+            textProtection: model.props.textProtection,
           };
           body.push(line);
           lines.push(line);
@@ -267,112 +261,84 @@ export function readPageContent(
         continue;
       }
       if (child.flavour === "myoxus:divider" && parent !== root) {
-        if (child.yBlock.get("sys:children").length) return false;
         body.push({ kind: "divider", model: child, depth });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (child.flavour === "myoxus:document-index" && parent !== root) {
-        if (child.yBlock.get("sys:children").length) return false;
         body.push({
           kind: "directory",
           model: child as DocumentIndexBlockModel,
           depth,
         });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (child.flavour === "myoxus:latex" && parent !== root) {
         const model = child as LatexBlockModel;
-        if (
-          child.yBlock.get("sys:children").length ||
-          Object.keys(model.props.comments ?? {}).length
-        )
-          return false;
         body.push({ kind: "equation", model, depth });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (child.flavour === "myoxus:database" && parent !== root) {
         const model = child as DatabaseBlockModel;
-        if (
-          child.yBlock.get("sys:children").length ||
-          !model.props.serverDatabaseId?.trim()
-        )
-          return false;
         body.push({ kind: "database", model, depth });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (child.flavour === "myoxus:event" && parent !== root) {
-        if (child.yBlock.get("sys:children").length) return false;
         body.push({ kind: "event", model: child as EventBlockModel, depth });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (child.flavour === "myoxus:annotation" && parent !== root) {
-        if (child.yBlock.get("sys:children").length) return false;
         body.push({
           kind: "annotation",
           model: child as AnnotationBlockModel,
           depth,
         });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (child.flavour === "myoxus:attachment" && parent !== root) {
         const model = child as AttachmentBlockModel;
-        if (
-          child.yBlock.get("sys:children").length ||
-          model.props.footnoteIdentifier ||
-          Object.keys(model.props.comments ?? {}).length ||
-          (model.props.style &&
-            !["cubeThick", "horizontalThin", "pdf", "video"].includes(
-              model.props.style,
-            )) ||
-          model.props.type.startsWith("image/")
-        )
-          return false;
         body.push({ kind: "attachment", model, depth });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (child.flavour === "myoxus:bookmark" && parent !== root) {
         const model = child as BookmarkBlockModel;
-        if (
-          child.yBlock.get("sys:children").length ||
-          model.props.footnoteIdentifier ||
-          model.props.style === "citation" ||
-          Object.keys(model.props.comments ?? {}).length
-        )
-          return false;
         body.push({ kind: "bookmark", model, depth });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (child.flavour === "myoxus:embed-github" && parent !== root) {
         const model = child as EmbedGithubModel;
-        if (child.yBlock.get("sys:children").length) return false;
         body.push({ kind: "forge", model, depth });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (child.flavour === "myoxus:embed-html" && parent !== root) {
         const model = child as EmbedHtmlModel;
-        if (child.yBlock.get("sys:children").length) return false;
         body.push({ kind: "html", model, depth });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (child.flavour === "myoxus:image" && parent !== root) {
         const model = child as ImageBlockModel;
-        if (
-          child.yBlock.get("sys:children").length ||
-          Object.keys(model.props.comments ?? {}).length
-        )
-          return false;
         body.push({ kind: "image", model, depth });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (
@@ -381,22 +347,18 @@ export function readPageContent(
         parent !== root
       ) {
         const model = child as EmbedLinkedDocModel | EmbedSyncedDocModel;
-        if (
-          child.yBlock.get("sys:children").length ||
-          !model.props.pageId ||
-          model.props.style === "citation" ||
-          ("preFoldHeight" in model.props && model.props.preFoldHeight)
-        )
-          return false;
-        body.push({ kind: "document", model, depth });
+        if (model.props.pageId) {
+          body.push({ kind: "document", model, depth });
+        }
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (child.flavour === "myoxus:embed-iframe" && parent !== root) {
         const model = child as EmbedIframeBlockModel;
-        if (child.yBlock.get("sys:children").length) return false;
         body.push({ kind: "iframe", model, depth });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (
@@ -409,105 +371,80 @@ export function readPageContent(
       ) {
         const model = child as
           EmbedFigmaModel | EmbedLoomModel | EmbedYoutubeModel;
-        if (
-          child.yBlock.get("sys:children").length ||
-          !["video", "figma"].includes(model.props.style)
-        )
-          return false;
         body.push({ kind: "player", model, depth });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (child.flavour === "myoxus:table" && parent !== root) {
         const model = child as TableBlockModel;
         if (
-          child.yBlock.get("sys:children").length ||
-          !Object.keys(model.props.rows).length ||
-          !Object.keys(model.props.columns).length ||
-          Object.keys(model.props.comments ?? {}).length ||
-          Object.values(model.props.rows).some((r) => r.repeat) ||
-          Object.values(model.props.cells).some(
-            (c) =>
-              c.textProtection ||
-              !c.text?.yText ||
-              (reader
-                ? !supportedText(
-                    c.text.yText,
-                    reader === "source-fields" ? reader : false,
-                  )
-                : c.text
-                    .toDelta()
-                    .some(
-                      (run) =>
-                        typeof run.insert !== "string" ||
-                        Object.keys(run.attributes ?? {}).length,
-                    )),
-          )
-        )
-          return false;
-        body.push({ kind: "table", model, depth });
+          Object.keys(model.props.rows).length &&
+          Object.keys(model.props.columns).length
+        ) {
+          body.push({ kind: "table", model, depth });
+        }
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (child.flavour === "myoxus:code" && parent !== root) {
         const model = child as CodeBlockModel;
-        if (
-          child.yBlock.get("sys:children").length ||
-          Object.keys(model.props.comments ?? {}).length ||
-          model.props.text
-            .toDelta()
-            .some(
-              (d) =>
-                typeof d.insert !== "string" ||
-                Object.keys(d.attributes ?? {}).length,
-            )
-        )
-          return false;
         body.push({ kind: "code", model, depth });
         ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
+        continue;
+      }
+      if (child.flavour === "myoxus:mermaid" && parent !== root) {
+        const model = child as MermaidBlockModel;
+        body.push({ kind: "mermaid", model, depth });
+        ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
+        continue;
+      }
+      if (child.flavour === "myoxus:bpmn" && parent !== root) {
+        const model = child as BpmnBlockModel;
+        body.push({ kind: "bpmn", model, depth });
+        ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
         continue;
       }
       if (
         parent === root ||
         (child.flavour !== "myoxus:paragraph" &&
           child.flavour !== "myoxus:list")
-      )
-        return false;
+      ) {
+        // Safely skip unknown or canvas-only block flavours without discarding
+        // the rest of the Page document.
+        if (child.children.length && !children(child, depth + 1)) return false;
+        continue;
+      }
       const m = child as ParagraphBlockModel | ListBlockModel;
       const props = m.props;
-      if (
-        !m.text ||
-        !supportedText(m.text.yText) ||
-        (props.collapsed &&
-          !props.type.startsWith("h") &&
-          child.flavour !== "myoxus:list") ||
-        props.repeat ||
-        props.textProtection ||
-        (props.textAlign &&
-          !["left", "center", "right"].includes(props.textAlign)) ||
-        (props.comments && Object.keys(props.comments).length) ||
-        ("presentation" in props &&
-          props.presentation &&
-          !(props.presentation === "eyebrow" && props.type === "text"))
-      )
-        return false;
+      if (!m.text) continue;
       const heading =
         m.flavour === "myoxus:paragraph" && /^h[1-6]$/.test(props.type)
           ? (props.type as PageLine["heading"])
           : undefined;
-      const kind = heading ? "text" : props.type;
-      if (
-        kind !== "text" &&
-        kind !== "quote" &&
-        kind !== "bulleted" &&
-        kind !== "numbered" &&
-        kind !== "todo"
-      )
-        return false;
+      const kind = heading
+        ? "text"
+        : props.type === "quote" ||
+            props.type === "bulleted" ||
+            props.type === "numbered" ||
+            props.type === "todo"
+          ? props.type
+          : "text";
       ordinal =
         kind === "numbered"
           ? (("order" in props ? props.order : null) ?? ordinal + 1)
           : 0;
+      const alignment =
+        props.textAlign === "left" ||
+        props.textAlign === "center" ||
+        props.textAlign === "right" ||
+        props.textAlign === "justify"
+          ? props.textAlign
+          : undefined;
       const line: PageLine = {
         model: m,
         text: m.text.yText,
@@ -515,9 +452,15 @@ export function readPageContent(
         depth,
         ordinal,
         checked: "checked" in props && props.checked,
-        alignment: props.textAlign,
-        eyebrow: "presentation" in props && props.presentation === "eyebrow",
+        alignment,
+        eyebrow:
+          "presentation" in props &&
+          props.presentation === "eyebrow" &&
+          props.type === "text",
         heading,
+        textProtection: props.textProtection,
+        repeat: props.repeat,
+        comments: props.comments,
       };
       lines.push(line);
       body.push(line);
@@ -536,6 +479,10 @@ export function readPageContent(
       )) {
         if (seen.has(definition.id)) return false;
         seen.add(definition.id);
+        if (allowedIds && !allowedIds.has(definition.id)) {
+          if (!children(definition, depth)) return false;
+          continue;
+        }
         body.push({
           kind: "footnote",
           model: definition as FootnoteDefinitionBlockModel,

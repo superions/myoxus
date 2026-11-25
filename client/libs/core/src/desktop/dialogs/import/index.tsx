@@ -78,11 +78,13 @@ import track from "@myoxus/track";
 import {
   Button,
   DialogFooterActions,
+  Dropzone,
   MenuItem,
   MenuPanel,
   Modal,
   MyoxusText,
   MyoxusTitle,
+  notify,
   Stack,
   Notice,
   Group,
@@ -480,10 +482,24 @@ export const ImportMenuItems = ({
   );
 };
 
+function inferDroppedImportType(files: File[]): ImportType | null {
+  const first = files[0];
+  if (!first) return null;
+  const name = first.name.toLowerCase();
+  if (name.endsWith(".md") || name.endsWith(".markdown")) return "markdown";
+  if (name.endsWith(".mmd") || name.endsWith(".mermaid")) return "mermaid";
+  if (name.endsWith(".bpmn")) return "bpmn";
+  if (name.endsWith(".html") || name.endsWith(".htm")) return "html";
+  return null;
+}
+
 const ImportOptions = ({
   onImport,
 }: {
-  onImport: (type: ImportType) => void | Promise<unknown>;
+  onImport: (
+    type: ImportType,
+    droppedFiles?: File[],
+  ) => void | Promise<unknown>;
 }) => {
   const t = useI18n();
 
@@ -492,9 +508,27 @@ const ImportOptions = ({
       <MyoxusTitle order={2} textAlign="center" typographySlot="section-title">
         {t["Import"]()}
       </MyoxusTitle>
-      <MenuPanel panelWidth="wide">
-        <ImportMenuItems onImport={onImport} />
-      </MenuPanel>
+      <Dropzone
+        activateOnClick={false}
+        activateOnKeyboard={false}
+        enablePointerEvents
+        onDrop={(files) => {
+          const detected = inferDroppedImportType(files);
+          if (detected) {
+            void onImport(detected, files);
+            return;
+          }
+          notify.error({
+            title: t["com.myoxus.import.status.failed.title"](),
+            message: files[0]?.name,
+          });
+        }}
+        data-myoxus-ui-role="import-dialog-dropzone"
+      >
+        <MenuPanel panelWidth="wide">
+          <ImportMenuItems onImport={onImport} />
+        </MenuPanel>
+      </Dropzone>
     </>
   );
 };
@@ -812,7 +846,7 @@ export function useWorkspaceImport({
   }, [globalDialogService, handleCreatedWorkspace, returnFocusRef]);
 
   return useAsyncCallback(
-    async (type: ImportType) => {
+    async (type: ImportType, droppedFiles?: File[]) => {
       if (type === "docx") {
         await importWord();
         return;
@@ -828,9 +862,13 @@ export function useWorkspaceImport({
         const { acceptType, multiple } = importConfig.fileOptions;
 
         const files =
-          acceptType === "Skip"
-            ? []
-            : await openFilesWith(acceptType, multiple);
+          droppedFiles && droppedFiles.length > 0
+            ? multiple
+              ? droppedFiles
+              : [droppedFiles[0]]
+            : acceptType === "Skip"
+              ? []
+              : await openFilesWith(acceptType, multiple);
 
         if (!files || (files.length === 0 && acceptType !== "Skip")) {
           onStatusChange?.("idle");
@@ -958,9 +996,9 @@ export const ImportDialog = ({
   const statusComponents = {
     idle: (
       <ImportOptions
-        onImport={(type) => {
+        onImport={(type, droppedFiles) => {
           setWordActive(type === "docx");
-          return handleImport(type);
+          return handleImport(type, droppedFiles);
         }}
       />
     ),

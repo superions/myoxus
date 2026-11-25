@@ -27,6 +27,7 @@ import {
   type ReactNode,
 } from "react";
 
+import type { PageAiBridge } from "../../../virgultum/doc-editor/page-ai-bridge";
 import { diffMarkdown } from "../../utils/apply-model/markdown-diff";
 import { copyText } from "../../utils/editor-actions";
 import { DocEditResultView } from "./doc-edit-result-view";
@@ -34,6 +35,7 @@ import { SectionEditResultView } from "./section-edit-result-view";
 
 type EditView = {
   host?: EditorHost | null;
+  pageBridge?: PageAiBridge | null;
   notificationService?: NotificationService;
   readOnly?: boolean;
   renderRichText: (text: string) => ReactNode;
@@ -54,23 +56,30 @@ async function copy(service: NotificationService | undefined, value: string) {
 
 export function StoredSectionEdit({
   host,
+  pageBridge,
   notificationService,
   readOnly,
   content,
   renderRichText,
 }: EditView & { content: string }) {
   const t = useI18n();
-  const storeReadOnly = useSignalValue(host?.store.readonly$);
-  const editable = !!host && !readOnly && !storeReadOnly;
+  const activeStore = host?.store ?? pageBridge?.store;
+  const storeReadOnly = useSignalValue(activeStore?.readonly$);
+  const editable = !!(host || pageBridge) && !readOnly && !storeReadOnly;
   const lifetime = useRef(0);
   useLayoutEffect(
     () => () => {
       lifetime.current++;
     },
-    [host, readOnly, storeReadOnly],
+    [host, pageBridge, readOnly, storeReadOnly],
   );
   const insert = async () => {
     const owner = lifetime.current;
+    if (readOnly || activeStore?.readonly) return;
+    if (!host && pageBridge) {
+      await pageBridge.insertMarkdown(content);
+      return;
+    }
     const { PAGE_INSERT, EDGELESS_INSERT } =
       await import("../../_common/chat-actions-handle");
     if (!host || readOnly || host.store.readonly || owner !== lifetime.current)
@@ -84,6 +93,11 @@ export function StoredSectionEdit({
   };
   const save = async () => {
     const owner = lifetime.current;
+    if (readOnly || activeStore?.readonly) return;
+    if (!host && pageBridge) {
+      await pageBridge.saveAsDoc(content);
+      return;
+    }
     const { SAVE_AS_DOC } = await import("../../_common/chat-actions-handle");
     if (host && !readOnly && !host.store.readonly && owner === lifetime.current)
       await SAVE_AS_DOC.handler(host, content);
@@ -190,6 +204,7 @@ type EditAction = "apply" | "accept" | "reject";
 function SavedOperation({
   change,
   host,
+  pageBridge,
   notificationService,
   readOnly,
   docId,
@@ -205,8 +220,9 @@ function SavedOperation({
   toggle: () => void;
 }) {
   const t = useI18n();
-  const readonlyStore = useSignalValue(host?.store.readonly$);
-  const editable = !!host && !readOnly && !readonlyStore;
+  const activeStore = host?.store ?? pageBridge?.store;
+  const readonlyStore = useSignalValue(activeStore?.readonly$);
+  const editable = !!(host || pageBridge) && !readOnly && !readonlyStore;
   const [busy, setBusy] = useState<EditAction | null>(null);
   const active = useRef<AbortController | null>(null);
   useLayoutEffect(() => {
@@ -215,15 +231,32 @@ function SavedOperation({
       active.current?.abort();
       active.current = null;
     };
-  }, [host, docId, readOnly, readonlyStore]);
+  }, [host, pageBridge, docId, readOnly, readonlyStore]);
   const run = async (action: EditAction) => {
-    if (!host || active.current || host.store.readonly || readOnly) return;
+    if (
+      (!host && !pageBridge) ||
+      active.current ||
+      activeStore?.readonly ||
+      readOnly
+    )
+      return;
     const task = new AbortController();
     active.current = task;
     setBusy(action);
     // A reopened or revoked Peek must never receive an older async edit.
-    const current = () => !task.signal.aborted && !host.store.readonly;
+    const current = () => !task.signal.aborted && !activeStore?.readonly;
     try {
+      if (!host && pageBridge) {
+        const event = { instruction, operation: change.op };
+        if (action === "reject") {
+          track.applyModel.chat.$.reject(event);
+          return;
+        }
+        track.applyModel.chat.$[action](event);
+        await pageBridge.applyDocUpdate(change.op, change.updates);
+        return;
+      }
+      if (!host) return;
       const { BlockDiffProvider } = await import("../../services/block-diff");
       if (!current()) return;
       const service = host.std.getOptional(BlockDiffProvider);
@@ -264,7 +297,7 @@ function SavedOperation({
   };
   const label = collapsed ? t.Expand() : t.Collapse();
   const copyChange = () => {
-    if (!host) return;
+    if (!host && !pageBridge) return;
     track.applyModel.chat.$.copy();
     void copy(notificationService, stripComments(change.changedContent));
   };

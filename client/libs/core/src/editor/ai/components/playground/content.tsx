@@ -9,6 +9,7 @@ import type { EditorHost } from "@virgultum/editor/std";
 import type { Store } from "@virgultum/editor/store";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import type { PageAiBridge } from "../../../virgultum/doc-editor/page-ai-bridge";
 import { AIProvider } from "../../provider";
 import type { SearchMenuConfig } from "../ai-chat-add-context";
 import type { DocDisplayConfig } from "../ai-chat-chips";
@@ -17,7 +18,8 @@ import { PlaygroundChat } from "./chat";
 import { PlaygroundColumns } from "./view";
 
 export interface PlaygroundContentProps {
-  host: EditorHost;
+  host?: EditorHost | null;
+  pageBridge?: PageAiBridge | null;
   doc: Store;
   peekViewService: PeekViewService;
   onOpenDoc: (docId: string, sessionId?: string) => void;
@@ -31,6 +33,7 @@ export interface PlaygroundContentProps {
 
 export function PlaygroundContent({
   host,
+  pageBridge,
   doc,
   peekViewService,
   onOpenDoc,
@@ -141,6 +144,7 @@ export function PlaygroundContent({
         content: (
           <PlaygroundChat
             host={host}
+            pageBridge={pageBridge}
             doc={doc}
             peekViewService={peekViewService}
             onOpenDoc={onOpenDoc}

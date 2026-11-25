@@ -64,6 +64,8 @@ vi.mock("@myoxus/i18n", () => ({
 }));
 
 vi.mock("@myoxus/icons/react", () => ({
+  CopyIcon: () => <span aria-hidden="true" />,
+  DoneIcon: () => <span aria-hidden="true" />,
   McpIcon: () => <span aria-hidden="true" />,
 }));
 
@@ -81,10 +83,18 @@ vi.mock("../../../primitives", () => ({
   Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
   Button: ({
     children,
+    prefix: _prefix,
     ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-    <button {...props}>{children}</button>
-  ),
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    prefix?: ReactNode;
+  }) => <button {...props}>{children}</button>,
+  CopyButton: ({
+    children,
+  }: {
+    value: string;
+    timeout?: number;
+    children: (payload: { copied: boolean; copy: () => void }) => ReactNode;
+  }) => children({ copied: false, copy: vi.fn() }),
   ErrorMessage: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),

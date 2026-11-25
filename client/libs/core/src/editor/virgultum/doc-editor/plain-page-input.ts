@@ -9,31 +9,6 @@ type Point = { id: string; offset: number };
 export type PageRange = { anchor: Point; focus: Point };
 type RelativePoint = { id: string; position: Y.RelativePosition };
 export type PageBookmark = { anchor: RelativePoint; focus: RelativePoint };
-export type PageIntent =
-  | {
-      kind: "table-cell";
-      id: string;
-      row: string;
-      column: string;
-      from: Y.RelativePosition;
-      to: Y.RelativePosition;
-      menu?: "cell" | "row";
-      paste?: DataTransfer;
-    }
-  | { kind: "range-clipboard"; action: "copy" | "cut" }
-  | { kind: "slash"; trigger: string; start: PageBookmark }
-  | { kind: "paste"; data: DataTransfer }
-  | { kind: "input"; inputType: string; data: string | null }
-  | {
-      kind: "key";
-      key: string;
-      code: string;
-      shiftKey: boolean;
-      altKey: boolean;
-      metaKey: boolean;
-      ctrlKey: boolean;
-    }
-  | { kind: "selection"; control?: string };
 
 function pointAt(
   root: HTMLElement,

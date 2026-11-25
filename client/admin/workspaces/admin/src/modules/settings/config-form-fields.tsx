@@ -796,14 +796,20 @@ export function ConfigColorField({
       ? props.defaultValue
       : (fallbackColor ?? "");
   const [text, setText] = useState(fallbackText);
+  const lastEmittedRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (lastEmittedRef.current === fallbackText) {
+      lastEmittedRef.current = null;
+      return;
+    }
     setText(fallbackText);
     setValidationError(undefined);
   }, [fallbackText, setValidationError]);
 
   const handleTextChange = (next: string) => {
     setText(next);
+    lastEmittedRef.current = next;
     if (isValidHexColor(next)) {
       setValidationError(undefined);
       props.onChange(props.field, next);
@@ -828,6 +834,7 @@ export function ConfigColorField({
       <ColorInput
         aria-label={copy.title}
         value={text}
+        fixOnBlur={false}
         disabled={resolvedDisabled}
         placeholder={i18n.t("admin.config.input.color-placeholder")}
         error={Boolean(mergedError)}

@@ -39,6 +39,7 @@ import {
   SurfaceListAction,
   SurfaceListItem,
   useConfirmModal,
+  useHotkeys,
 } from "@myoxus/ui-facade";
 import type { DocSnapshot, Store } from "@virgultum/editor/store";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -1145,18 +1146,29 @@ export const CommentSidebar = () => {
   const doc = useServiceOptional(DocService)?.doc;
   const entity = useCommentEntity(doc?.virgultumDoc);
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  useHotkeys(
+    [
+      [
+        "Escape",
+        () => {
+          entity?.highlightComment(null);
+          entity?.dismissDraftEditing();
+        },
+        { preventDefault: false },
+      ],
+    ],
+    [],
+    true,
+  );
 
   useEffect(() => {
-    const container = containerRef.current;
-    // dismiss the highlight when ESC is pressed
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        entity?.highlightComment(null);
-        entity?.dismissDraftEditing();
-      }
+    return () => {
+      entity?.highlightComment(null);
     };
-    const handleContainerClick = (event: MouseEvent) => {
+  }, [entity]);
+
+  const handleContainerClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
       const target = event.target as HTMLElement;
       if (!target.closest("[data-comment-id]")) {
         entity?.highlightComment(null);
@@ -1169,23 +1181,20 @@ export const CommentSidebar = () => {
       ) {
         entity.dismissDraftComment();
       }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    container?.addEventListener("click", handleContainerClick);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      container?.removeEventListener("click", handleContainerClick);
-      entity?.highlightComment(null);
-    };
-  }, [entity]);
+    },
+    [entity],
+  );
 
   if (!entity) {
     return null;
   }
 
   return (
-    <Stack ref={containerRef} p="sm" data-myoxus-ui-role="comment-sidebar-root">
+    <Stack
+      p="sm"
+      onClick={handleContainerClick}
+      data-myoxus-ui-role="comment-sidebar-root"
+    >
       <CommentList entity={entity} />
     </Stack>
   );

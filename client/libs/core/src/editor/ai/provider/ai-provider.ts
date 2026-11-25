@@ -13,7 +13,8 @@ export interface AIUserInfo {
 }
 
 export interface AIChatParams {
-  host: EditorHost;
+  host?: EditorHost | null;
+  docId?: string;
   input?: string;
   mode?: "page" | "edgeless";
   // Auto select and append selection to input via `Continue in AI Chat` action.
@@ -23,7 +24,8 @@ export interface AIChatParams {
 }
 
 export interface AISendParams {
-  host: EditorHost;
+  host?: EditorHost | null;
+  docId?: string;
   input: string;
   context?: Partial<ChatContextValue | null>;
 }

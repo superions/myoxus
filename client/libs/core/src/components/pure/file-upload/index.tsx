@@ -1,8 +1,19 @@
-import { useI18n } from "@myoxus/i18n";
-import { Button } from "@myoxus/ui-facade";
-import { type ChangeEvent, type PropsWithChildren, useRef } from "react";
+// SPDX-FileCopyrightText: 2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+// SPDX-License-Identifier: MIT
 
-export interface UploadProps {
+import { useI18n } from "@myoxus/i18n";
+import { Box, Button, FileButton } from "@myoxus/ui-facade";
+import {
+  type InputHTMLAttributes,
+  type PropsWithChildren,
+  useRef,
+} from "react";
+
+export interface UploadProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "onChange" | "type" | "accept" | "disabled"
+> {
   uploadType?: string;
   accept?: string;
   fileChange: (file: File) => void;
@@ -14,42 +25,37 @@ export const Upload = ({
   accept,
   children,
   disabled,
-  ...props
+  uploadType: _uploadType,
+  ...inputProps
 }: PropsWithChildren<UploadProps>) => {
   const t = useI18n();
-  const input_ref = useRef<HTMLInputElement>(null);
-  const _chooseFile = () => {
-    if (input_ref.current) {
-      input_ref.current.click();
-    }
-  };
-  const _handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) {
-      return;
-    }
-    const file = files[0];
-    fileChange(file);
-    if (input_ref.current) {
-      input_ref.current.value = "";
-    }
-  };
+  const resetRef = useRef<() => void>(null);
 
   if (disabled) {
-    return children ?? <Button>{t["Upload"]()}</Button>;
+    return children ?? <Button disabled>{t["Upload"]()}</Button>;
   }
 
   return (
-    <div style={{ display: "flex" }} onClick={_chooseFile}>
-      {children ?? <Button>{t["Upload"]()}</Button>}
-      <input
-        ref={input_ref}
-        type="file"
-        style={{ display: "none" }}
-        onChange={_handleInputChange}
-        accept={accept}
-        {...props}
-      />
-    </div>
+    <FileButton
+      accept={accept}
+      inputProps={inputProps}
+      resetRef={resetRef}
+      onChange={(file) => {
+        if (file) {
+          fileChange(file);
+        }
+        resetRef.current?.();
+      }}
+    >
+      {({ onClick }) =>
+        children ? (
+          <Box display="inline-flex" onClick={onClick}>
+            {children}
+          </Box>
+        ) : (
+          <Button onClick={onClick}>{t["Upload"]()}</Button>
+        )
+      }
+    </FileButton>
   );
 };

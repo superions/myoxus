@@ -6,6 +6,28 @@ import type { BlockStdScope } from "../runtime/index";
 import type { EditorInlinePopupControls } from "./editor-chrome-host";
 
 const activePopups = new WeakMap<Document, AbortController>();
+const hostPopupCleanups = new WeakMap<object, Set<() => void>>();
+
+function registerHostPopupCleanup(
+  host: BlockStdScope["host"],
+  cleanup: () => void,
+) {
+  let set = hostPopupCleanups.get(host);
+  if (!set) {
+    set = new Set();
+    hostPopupCleanups.set(host, set);
+    const activeSet = set;
+    host.disposables?.add(() => {
+      for (const fn of Array.from(activeSet)) fn();
+      activeSet.clear();
+      hostPopupCleanups.delete(host);
+    });
+  }
+  set.add(cleanup);
+  return () => {
+    set.delete(cleanup);
+  };
+}
 
 /** Mount in the existing React tree; range/block anchors retain renderer geometry. */
 export function mountInlinePopup(
@@ -42,13 +64,15 @@ export function mountInlinePopup(
   let release: (() => void) | undefined;
   let stopPositioning: (() => void) | undefined;
   let disposed = false;
-  std.host.disposables?.add(() => {
+  const hostCleanup = () => {
     if (!disposed) abort.abort();
-  });
+  };
+  const unregisterHostCleanup = registerHostPopupCleanup(std.host, hostCleanup);
   abort.signal.addEventListener(
     "abort",
     () => {
       disposed = true;
+      unregisterHostCleanup();
       stopPositioning?.();
       release?.();
       root.remove();
@@ -94,7 +118,9 @@ export function mountInlinePopup(
               height: `${rect.height}px`,
             });
           },
-          { animationFrame: false, elementResize: false },
+          // Canvas zoom/pan transforms emit no DOM scroll events on virtual
+          // references; animationFrame keeps the popup aligned while open.
+          { animationFrame: true, elementResize: false },
         );
         if (abort.signal.aborted) stopPositioning();
       },

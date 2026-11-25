@@ -8,6 +8,7 @@ import { EditorEquation } from "../../view-extensions/editor-view/editor-chrome/
 import { usePageFloatingAnchor } from "./page-floating-anchor";
 import type { PageLine } from "./plain-page-model";
 import type { PageInlineObject } from "./page-inline-object";
+import { sliceYTextDelta } from "./page-table-cell";
 import { restorePageRange } from "./plain-page-input";
 import { createAbsolutePositionFromRelativePosition } from "yjs";
 import { InlineContentTrigger } from "@myoxus/ui-facade";
@@ -53,13 +54,11 @@ export function InlineEquation({
       object.start,
       store.spaceDoc,
     );
-    if (
-      !at ||
-      at.type !== line.text ||
-      line.model.text?.sliceToDelta(at.index, at.index + 1)[0]?.attributes
-        ?.latex !== object.source
-    )
-      return;
+    if (!at || at.type !== line.text) return;
+    const run =
+      line.model.text?.sliceToDelta(at.index, at.index + 1)[0] ??
+      sliceYTextDelta(line.text, at.index, 1)[0];
+    if (run?.attributes?.latex !== object.source) return;
     return at.index;
   };
   const restoreFocus = () => {
@@ -79,7 +78,9 @@ export function InlineEquation({
       at === undefined ||
       readonly ||
       store.readonly ||
-      store.hasFixedText(line.model) ||
+      (line.model.flavour === "myoxus:table"
+        ? Boolean(field.closest('[data-cell-protected="fixed"]'))
+        : store.hasFixedText(line.model)) ||
       draft === object.source
     )
       return;

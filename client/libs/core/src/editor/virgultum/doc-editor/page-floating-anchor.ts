@@ -56,7 +56,7 @@ export function usePageFloatingAnchor({
   deps = [],
 }: {
   active: boolean;
-  reference: HTMLElement | null;
+  reference: FloatingRectSource | null;
   anchor: HTMLElement | null;
   floating?: HTMLElement | null;
   onDismiss?: () => void;
@@ -74,12 +74,15 @@ export function usePageFloatingAnchor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, reference, anchor, ...deps]);
 
+  const referenceElement = reference instanceof HTMLElement ? reference : null;
+
   const handleOutside = useCallback(
     (event: Event) => {
       if (!active || !onDismissRef.current) return;
       const target = event.target;
       if (target instanceof Node) {
-        if (reference?.contains(target) || floating?.contains(target)) return;
+        if (referenceElement?.contains(target) || floating?.contains(target))
+          return;
         if (
           target instanceof Element &&
           ignoreSelector &&
@@ -89,12 +92,12 @@ export function usePageFloatingAnchor({
       }
       onDismissRef.current();
     },
-    [active, reference, floating, ignoreSelector],
+    [active, referenceElement, floating, ignoreSelector],
   );
 
   useClickOutside(
     handleOutside,
     ["pointerdown"],
-    [reference, floating ?? null],
+    [referenceElement, floating ?? null],
   );
 }

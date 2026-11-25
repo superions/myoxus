@@ -2,8 +2,9 @@
  * DocumentTitle — headless component that keeps `document.title` in sync with
  * the active workbench view.
  *
- * Renders nothing to the DOM. Uses a `useEffect` to update `document.title`
- * whenever the active view's title or the unread notification count changes.
+ * Renders nothing to the DOM. Uses Facade `useDocumentTitle` to update
+ * `document.title` whenever the active view's title or the unread notification
+ * count changes.
  *
  * Title format:
  * - With unread notifications: `"(N) <ViewTitle> · Myoxus"`
@@ -15,6 +16,7 @@
 import { NotificationCountService } from "@myoxus/core/modules/notification";
 import { WorkbenchService } from "@myoxus/core/modules/workbench";
 import { useLiveData, useService } from "@myoxus/infra";
+import { useDocumentTitle } from "@myoxus/ui-facade";
 import { useEffect } from "react";
 
 /**
@@ -31,14 +33,16 @@ export const DocumentTitle = () => {
   const workbenchView = useLiveData(workbenchService.workbench.activeView$);
   const viewTitle = useLiveData(workbenchView.title$);
 
-  useEffect(() => {
-    const prefix = notificationCount > 0 ? `(${notificationCount}) ` : "";
-    document.title = prefix + (viewTitle ? `${viewTitle} · Myoxus` : "Myoxus");
+  const prefix = notificationCount > 0 ? `(${notificationCount}) ` : "";
+  const title = prefix + (viewTitle ? `${viewTitle} · Myoxus` : "Myoxus");
 
+  useDocumentTitle(title);
+
+  useEffect(() => {
     return () => {
       document.title = "Myoxus";
     };
-  }, [notificationCount, viewTitle]);
+  }, []);
 
   return null;
 };

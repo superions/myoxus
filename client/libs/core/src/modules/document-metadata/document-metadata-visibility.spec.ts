@@ -40,7 +40,7 @@ describe("document metadata visibility", () => {
     const source = readFileSync(
       join(
         process.cwd(),
-        "client/libs/core/src/editor/virgultum/doc-editor/lit-adaper.tsx",
+        "client/libs/core/src/editor/virgultum/doc-editor/plain-page-view.tsx",
       ),
       "utf8",
     );
@@ -54,7 +54,7 @@ describe("document metadata visibility", () => {
     const source = readFileSync(
       join(
         process.cwd(),
-        "client/libs/core/src/editor/virgultum/doc-editor/lit-adaper.tsx",
+        "client/libs/core/src/editor/virgultum/doc-editor/plain-page-view.tsx",
       ),
       "utf8",
     );
@@ -69,7 +69,7 @@ describe("document metadata visibility", () => {
     const source = readFileSync(
       join(
         process.cwd(),
-        "client/libs/core/src/editor/virgultum/doc-editor/lit-adaper.tsx",
+        "client/libs/core/src/editor/virgultum/doc-editor/plain-page-view.tsx",
       ),
       "utf8",
     );
@@ -94,7 +94,7 @@ describe("document metadata visibility", () => {
     const source = readFileSync(
       join(
         process.cwd(),
-        "client/libs/core/src/editor/virgultum/doc-editor/lit-adaper.tsx",
+        "client/libs/core/src/editor/virgultum/doc-editor/plain-page-view.tsx",
       ),
       "utf8",
     );

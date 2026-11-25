@@ -47,7 +47,6 @@ import {
   WorkbenchHeaderFrame,
   WorkbenchHeaderTitle,
   ViewSwitcher,
-  useResponsiveSmQuery,
 } from "@myoxus/ui-facade";
 import type { MouseEvent, ReactNode } from "react";
 import { useCallback, useMemo, useState } from "react";
@@ -537,7 +536,6 @@ export function TagCatalogPage({
   compact: boolean;
   children: (parts: { header: ReactNode; content: ReactNode }) => ReactNode;
 }) {
-  const compactViewport = useResponsiveSmQuery(compact);
   const tagService = useService(TagService);
   const commands = useWorkspaceTagCommands();
   const colors = useWorkspaceTagColorOptions();
@@ -578,6 +576,6 @@ export function TagCatalogPage({
         />
       </>
     ),
-    content: <TagCatalogContent compact={compactViewport} />,
+    content: <TagCatalogContent compact={compact} />,
   });
 }

@@ -9,6 +9,7 @@ import {
   Slice,
   type BlockModel,
   type SliceSnapshot,
+  type Store,
 } from "@virgultum/editor/store";
 import { patchDocEmbedService } from "../../view-extensions/editor-view/doc-embed";
 
@@ -19,10 +20,22 @@ export async function copyPageBlock(
   signal: AbortSignal,
   selection?: SliceSnapshot,
 ) {
-  const store = model.store;
+  return copyPageBlocks([model], framework, signal, selection);
+}
+
+/** Copy one or more live Page blocks as a Virgultum clipboard slice without an EditorHost. */
+export async function copyPageBlocks(
+  models: readonly BlockModel[],
+  framework: FrameworkProvider,
+  signal: AbortSignal,
+  selection?: SliceSnapshot,
+) {
+  const first = models[0];
+  if (!first) return;
+  const store = first.store;
   signal.throwIfAborted();
-  if (store.getModelById(model.id) !== model)
-    throw new Error("Clipboard source unavailable");
+  const live = models.filter((m) => store.getModelById(m.id) === m);
+  if (!live.length) throw new Error("Clipboard source unavailable");
   const std = new BlockStdScope({
     store,
     extensions: [...clipboardConfigs, patchDocEmbedService(framework)],
@@ -38,7 +51,47 @@ export async function copyPageBlock(
   signal.addEventListener("abort", close, { once: true });
   try {
     if (selection) await std.clipboard.copySnapshot(selection);
-    else await std.clipboard.copySlice(Slice.fromModels(store, [model]));
+    else await std.clipboard.copySlice(Slice.fromModels(store, live));
+  } finally {
+    signal.removeEventListener("abort", close);
+    close();
+  }
+}
+
+/** Paste a captured Virgultum clipboard payload directly into a Store without an EditorHost. */
+export async function pastePageClipboard(
+  captured: { types: readonly string[]; values: ReadonlyMap<string, string> },
+  store: Store,
+  framework: FrameworkProvider,
+  parentId: string,
+  index: number,
+  signal: AbortSignal,
+) {
+  signal.throwIfAborted();
+  if (store.readonly) return;
+  const std = new BlockStdScope({
+    store,
+    extensions: [...clipboardConfigs, patchDocEmbedService(framework)],
+  });
+  let closed = false;
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    std.unmount();
+  };
+  signal.addEventListener("abort", close, { once: true });
+  try {
+    const syntheticEvent = {
+      clipboardData: {
+        types: captured.types,
+        files: [],
+        items: [],
+        getData: (type: string) => captured.values.get(type) ?? "",
+      },
+    } as unknown as ClipboardEvent;
+    store.captureSync();
+    await std.clipboard.paste(syntheticEvent, store, parentId, index);
+    store.captureSync();
   } finally {
     signal.removeEventListener("abort", close);
     close();

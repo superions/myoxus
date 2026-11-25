@@ -54,6 +54,7 @@ export function ChatInputView(props: ChatInputViewProps) {
             if (event.isComposing || event.keyCode === 229) return;
             props.onSend(event);
           },
+          { preventDefault: false },
         ],
       ]),
     [props.onSend],

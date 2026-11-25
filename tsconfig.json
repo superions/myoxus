@@ -62,7 +62,6 @@
     { "path": "./client/libs/core" },
     { "path": "./client/libs/debug" },
     { "path": "./client/libs/desktop-api-contract" },
-    { "path": "./client/libs/dialogs" },
     { "path": "./client/libs/env" },
     { "path": "./client/libs/error" },
     { "path": "./client/libs/graphql" },

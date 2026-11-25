@@ -4,7 +4,7 @@ import type { McpApiKey } from "@myoxus/core/modules/server/stores/access-token"
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { UserFriendlyError } from "@myoxus/error";
 import { useI18n } from "@myoxus/i18n";
-import { McpIcon } from "@myoxus/icons/react";
+import { CopyIcon, DoneIcon, McpIcon } from "@myoxus/icons/react";
 import { useLiveData, useService } from "@myoxus/infra";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
@@ -15,6 +15,7 @@ import {
   AccordionPanel,
   Badge,
   Button,
+  CopyButton,
   ErrorMessage,
   Group,
   MonoText,
@@ -326,21 +327,33 @@ const McpServerSetting = () => {
       <SettingsSection
         title={t["com.myoxus.integration.mcp-server.config.title"]()}
         actions={
-          <Button
-            variant="primary"
-            onClick={() => {
-              if (!code) return;
-
-              navigator.clipboard.writeText(code);
-              notify.success({
-                title: t["Copied to clipboard"](),
-              });
-            }}
-            disabled={copyJsonDisabled}
-            tooltip={copyJsonTooltip}
-          >
-            {t["com.myoxus.integration.mcp-server.config.copy-json"]()}
-          </Button>
+          <CopyButton value={code ?? ""} timeout={2000}>
+            {({ copied, copy }) => (
+              <Button
+                variant="primary"
+                prefix={
+                  copied ? (
+                    <DoneIcon aria-hidden="true" />
+                  ) : (
+                    <CopyIcon aria-hidden="true" />
+                  )
+                }
+                onClick={() => {
+                  if (!code) return;
+                  copy();
+                  notify.success({
+                    title: t["Copied to clipboard"](),
+                  });
+                }}
+                disabled={copyJsonDisabled}
+                tooltip={copyJsonTooltip}
+              >
+                {copied
+                  ? t["Copied to clipboard"]()
+                  : t["com.myoxus.integration.mcp-server.config.copy-json"]()}
+              </Button>
+            )}
+          </CopyButton>
         }
       >
         {code ? (

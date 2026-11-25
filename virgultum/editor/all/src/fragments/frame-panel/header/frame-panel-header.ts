@@ -308,6 +308,26 @@ export class FramePanelHeader extends NativeViewElement {
       this.disposables = new DisposableGroup();
     }
     this._ensureDom();
+    const stopSettingsToggleOutsideClose = (event: Event) => {
+      if (!this._settingPopperShow$.peek()) return;
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest('[data-testid="frame-panel-settings"]')
+      ) {
+        event.stopPropagation();
+      }
+    };
+    this.disposables.addFromEvent(
+      this,
+      "mousedown",
+      stopSettingsToggleOutsideClose,
+    );
+    this.disposables.addFromEvent(
+      this,
+      "touchstart",
+      stopSettingsToggleOutsideClose,
+    );
     this._bindHost();
     this._bump();
   }

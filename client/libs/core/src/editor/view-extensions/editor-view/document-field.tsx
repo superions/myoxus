@@ -41,6 +41,10 @@ import { useEffect, useRef, useState } from "react";
 import type { PageLine } from "../../virgultum/doc-editor/plain-page-model";
 import type { PageInlineObject } from "../../virgultum/doc-editor/page-inline-object";
 import { restorePageRange } from "../../virgultum/doc-editor/plain-page-input";
+import {
+  restoreCellSelection,
+  sliceYTextDelta,
+} from "../../virgultum/doc-editor/page-table-cell";
 import { createAbsolutePositionFromRelativePosition } from "yjs";
 
 export function PageDocumentField({
@@ -56,6 +60,8 @@ export function PageDocumentField({
 }) {
   const context = useDocumentFieldPresentation(),
     store = line.model.store;
+  const isFixedCell = () =>
+    Boolean(element.closest('[data-cell-protected="fixed"]'));
   const locate = (expected?: DocumentField) => {
     if (
       !element.isConnected ||
@@ -67,8 +73,10 @@ export function PageDocumentField({
       store.spaceDoc,
     );
     if (!at || at.type !== line.text) return;
-    const run = line.model.text?.sliceToDelta(at.index, at.index + 1)[0],
-      parse = DocumentFieldSchema.safeParse(run?.attributes?.documentField);
+    const run =
+      line.model.text?.sliceToDelta(at.index, at.index + 1)[0] ??
+      sliceYTextDelta(line.text, at.index, 1)[0];
+    const parse = DocumentFieldSchema.safeParse(run?.attributes?.documentField);
     if (
       !parse.success ||
       run?.insert !== " " ||
@@ -85,6 +93,12 @@ export function PageDocumentField({
     return { index: at.index, field: parse.data, attributes: run.attributes };
   };
   const caret = (offset: number) => {
+    const cell = element.closest<HTMLElement>("[data-cell-editor]");
+    if (cell) {
+      cell.focus({ preventScroll: true });
+      restoreCellSelection(cell, offset);
+      return;
+    }
     const root = element.closest<HTMLElement>("[data-page-renderer]");
     if (!root) return;
     root
@@ -104,7 +118,9 @@ export function PageDocumentField({
       !at ||
       readonly ||
       store.readonly ||
-      store.hasFixedText(line.model) ||
+      (line.model.flavour === "myoxus:table"
+        ? isFixedCell()
+        : store.hasFixedText(line.model)) ||
       !parsed.success ||
       at.field.type !== "input" ||
       parsed.data.type !== "input" ||
@@ -145,7 +161,14 @@ export function PageDocumentField({
       }}
       convertToText={(expected, value) => {
         const at = locate(expected);
-        if (!at || readonly || store.readonly || store.hasFixedText(line.model))
+        if (
+          !at ||
+          readonly ||
+          store.readonly ||
+          (line.model.flavour === "myoxus:table"
+            ? isFixedCell()
+            : store.hasFixedText(line.model))
+        )
           return false;
         const {
           documentField: _,

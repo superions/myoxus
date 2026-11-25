@@ -219,7 +219,12 @@ export function BpmnDiagramCommands() {
           xyFlowStoreApi.getState(),
           bpmnEditorStoreApi.getState(),
         );
-      await navigator.clipboard.writeText(JSON.stringify(clipboard));
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(clipboard));
+      } catch {
+        notify.error(t["com.myoxus.common.operation-failed"]());
+        return;
+      }
       if (
         !mounted.current ||
         bpmnEditorStoreApi.getState().settings.isReadOnly ||
@@ -272,7 +277,7 @@ export function BpmnDiagramCommands() {
           });
       });
     };
-  }, [bpmnEditorStoreApi, commandsRef, xyFlowStoreApi]);
+  }, [bpmnEditorStoreApi, commandsRef, t, xyFlowStoreApi]);
 
   // Copy nodes
   useEffect(() => {
@@ -284,9 +289,13 @@ export function BpmnDiagramCommands() {
         xyFlowStoreApi.getState(),
         bpmnEditorStoreApi.getState(),
       );
-      await navigator.clipboard.writeText(JSON.stringify(clipboard));
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(clipboard));
+      } catch {
+        notify.error(t["com.myoxus.common.operation-failed"]());
+      }
     };
-  }, [bpmnEditorStoreApi, commandsRef, xyFlowStoreApi]);
+  }, [bpmnEditorStoreApi, commandsRef, t, xyFlowStoreApi]);
 
   // Paste nodes
   useEffect(() => {

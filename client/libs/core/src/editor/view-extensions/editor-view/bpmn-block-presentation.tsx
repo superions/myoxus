@@ -37,7 +37,10 @@ import {
 } from "react";
 import { materializeDiagramExportSvg } from "../../../components/hooks/myoxus/diagram-export-svg";
 import type { DocFrontend, DocFrontendDocState } from "@myoxus/storage";
-type PreviewDocStorage = Pick<DocFrontend, "docState$" | "waitForSynced">;
+export type PreviewDocStorage = Pick<
+  DocFrontend,
+  "docState$" | "waitForSynced"
+>;
 const PreviewProjection = createContext<{
   root: HTMLElement;
   scheme: string | undefined;
@@ -94,8 +97,11 @@ function BpmnEmbeddedUIRoot({
   );
 }
 
-function BpmnBlockPresentation(
-  props: BpmnBlockPresentationProps & { docStorage: PreviewDocStorage },
+export function BpmnBlockPresentation(
+  props: BpmnBlockPresentationProps & {
+    docStorage: PreviewDocStorage;
+    projectionRoot?: HTMLElement | null;
+  },
 ) {
   const t = useI18n();
   const [pending, setPending] = useState(false);
@@ -143,6 +149,7 @@ function BpmnBlockPresentation(
   const liveUrl = useRef<string | null>(null);
   const loadPreview = useRef(props.loadPreview);
   loadPreview.current = props.loadPreview;
+  const projectionRoot = projection?.root ?? props.projectionRoot ?? undefined;
   const imageTheme = `${theme}:${projection?.scheme}:${fontEpoch}`;
   useEffect(() => {
     const changed = () => setFontEpoch((value) => value + 1);
@@ -207,7 +214,7 @@ function BpmnBlockPresentation(
         const standalone = await materializeDiagramExportSvg(
           sanitized,
           signal,
-          projection?.root,
+          projectionRoot,
         );
         if (!active) return;
         const url = URL.createObjectURL(
@@ -233,7 +240,7 @@ function BpmnBlockPresentation(
       active = false;
       lifetime.abort();
     };
-  }, [previewId, previewRevision, imageTheme, projection?.root]);
+  }, [previewId, previewRevision, imageTheme, projectionRoot]);
   useEffect(
     () => () => {
       if (liveUrl.current) URL.revokeObjectURL(liveUrl.current);

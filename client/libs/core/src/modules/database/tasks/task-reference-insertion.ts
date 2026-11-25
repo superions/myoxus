@@ -14,8 +14,19 @@ import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
 import { Bound, Point } from "@virgultum/editor/global/gfx";
 import { DEFAULT_NOTE_OFFSET_Y } from "@virgultum/editor/blocks/surface";
 import { NoteBlockModel, NoteDisplayMode } from "@virgultum/editor/model";
-import type { BlockModel } from "@virgultum/editor/store";
+import type { BlockModel, Store } from "@virgultum/editor/store";
 import { DocModeProvider } from "@virgultum/editor/shared/services";
+
+export type TaskReferenceHost =
+  | BlockStdScope
+  | {
+      store: Store;
+      isAttached: () => boolean;
+    };
+
+function isBlockStdScope(host: TaskReferenceHost): host is BlockStdScope {
+  return "host" in host;
+}
 
 export type TaskReferenceTarget = {
   workspaceId: string;
@@ -44,9 +55,10 @@ const intents = new Map<string, Intent>();
  * use the current editor selection or insert a Database block inside a list.
  */
 export function taskReferencePlacement(
-  std: BlockStdScope,
+  host: TaskReferenceHost,
   source: Pick<TaskReferenceSource, "blockId" | "selectionAnchor">,
 ) {
+  const store = host.store;
   let ids = [source.blockId];
   let noteId: string | undefined;
   if (source.selectionAnchor) {
@@ -61,7 +73,7 @@ export function taskReferencePlacement(
       ];
       for (const point of [selection.from, selection.to]) {
         if (!point) continue;
-        const model = std.store.getBlock(point.blockId)?.model;
+        const model = store.getBlock(point.blockId)?.model;
         if (
           !model?.text ||
           point.index < 0 ||
@@ -77,15 +89,15 @@ export function taskReferencePlacement(
   let note: BlockModel | null = null;
   let index = -1;
   for (const id of new Set(ids)) {
-    let child = std.store.getBlock(id)?.model;
+    let child = store.getBlock(id)?.model;
     if (!child) return null;
     const visited = new Set<string>();
-    let parent = std.store.getParent(child);
+    let parent = store.getParent(child);
     while (parent && parent.flavour !== "myoxus:note") {
       if (visited.has(parent.id)) return null;
       visited.add(parent.id);
       child = parent;
-      parent = std.store.getParent(child);
+      parent = store.getParent(child);
     }
     if (
       !parent ||
@@ -108,9 +120,14 @@ export function taskReferencePlacement(
  */
 export function createTaskReferenceInserter(
   framework: FrameworkProvider,
-  std: BlockStdScope,
+  host: TaskReferenceHost,
   openingOwnerIdentity: string,
 ) {
+  const std = isBlockStdScope(host) ? host : null;
+  const store = host.store;
+  const workspace = std ? std.workspace : store.workspace;
+  const isHostConnected = () =>
+    isBlockStdScope(host) ? host.host.isConnected : host.isAttached();
   const capturedMode = (source: TaskReferenceSource) => {
     if (!source.selectionAnchor) return "page";
     try {
@@ -136,18 +153,19 @@ export function createTaskReferenceInserter(
       metadata.getModel(source.sourceExternalId)?.metadata.docId ??
       metadata.getIndexRowByExternalId(source.sourceExternalId)?.docId;
     return (
-      std.host.isConnected &&
+      isHostConnected() &&
       server &&
       JSON.stringify([
         server.id,
         server.baseUrl,
         server.account$.value?.id,
-        std.workspace.id,
+        workspace.id,
       ]) === openingOwnerIdentity &&
-      std.store.doc.id === source.sourceExternalId &&
+      store.doc.id === source.sourceExternalId &&
       docId === source.sourceDocumentId &&
-      target.workspaceId === std.workspace.id &&
-      std.get(DocModeProvider).getEditorMode() === capturedMode(source)
+      target.workspaceId === workspace.id &&
+      (std ? std.get(DocModeProvider).getEditorMode() : "page") ===
+        capturedMode(source)
     );
   };
   const owned = new Set<string>();
@@ -166,7 +184,7 @@ export function createTaskReferenceInserter(
     if (!intent) {
       if (intents.size >= 128) return "failed";
       intent = {
-        blockId: std.store.doc.workspace.idGenerator(),
+        blockId: store.doc.workspace.idGenerator(),
         target: { ...target },
         written: false,
         confirmed: false,
@@ -183,7 +201,7 @@ export function createTaskReferenceInserter(
     const signal = AbortSignal.timeout(10_000);
     let ref: ReturnType<DocsService["open"]> = null;
     try {
-      if (std.store.readonly) {
+      if (store.readonly) {
         if (!intent.written) intents.delete(owner);
         return "readonly";
       }
@@ -197,7 +215,7 @@ export function createTaskReferenceInserter(
         return "readonly";
       }
       ref = framework.get(DocsService).open(source.sourceExternalId);
-      if (!ref || ref.doc.yDoc !== std.store.doc.spaceDoc) return "failed";
+      if (!ref || ref.doc.yDoc !== store.doc.spaceDoc) return "failed";
       await ref.doc.waitForSyncReady(signal);
       if (!fence(source, target)) return "failed";
       await framework
@@ -205,7 +223,7 @@ export function createTaskReferenceInserter(
         .workspace.engine.doc.waitForSynced(source.sourceExternalId, signal);
       if (!fence(source, target)) return "failed";
       signal.throwIfAborted();
-      const existing = std.store.getBlock(intent.blockId)?.model;
+      const existing = store.getBlock(intent.blockId)?.model;
       if (existing) {
         if (
           !(existing instanceof DatabaseReferenceBlockModel) ||
@@ -225,19 +243,20 @@ export function createTaskReferenceInserter(
       const permitted = await waitForTaskReferenceOperation(permission, signal);
       signal.throwIfAborted();
       if (!fence(source, target)) return "failed";
-      if (!permitted || std.store.readonly) {
+      if (!permitted || store.readonly) {
         if (!intent.written) intents.delete(owner);
         return "readonly";
       }
-      const placement = taskReferencePlacement(std, source);
+      const placement = taskReferencePlacement(host, source);
       if (!placement) return "failed";
-      std.store.captureSync();
+      store.captureSync();
       // One Yjs history item owns only the reference and its new ordinary Note.
       // The source sticky is never resized, restyled or rewritten.
       // Native Store writes materialize the new parent between operations.
       let parent = placement.parent;
       let index = placement.index;
       if (capturedMode(source) === "edgeless") {
+        if (!std) throw new Error("Edgeless scope unavailable");
         const sourceNote = placement.parent;
         if (!(sourceNote instanceof NoteBlockModel))
           throw new Error("Source Note unavailable");
@@ -251,8 +270,8 @@ export function createTaskReferenceInserter(
           bound.h <= 0
         )
           throw new Error("Source Note unavailable");
-        intent.noteId ??= std.store.doc.workspace.idGenerator();
-        const existingNote = std.store.getBlock(intent.noteId)?.model;
+        intent.noteId ??= store.doc.workspace.idGenerator();
+        const existingNote = store.getBlock(intent.noteId)?.model;
         if (existingNote && existingNote.flavour !== "myoxus:note")
           throw new Error("Reference Note unavailable");
         if (!existingNote) {
@@ -268,12 +287,12 @@ export function createTaskReferenceInserter(
             offsetY: 0,
           });
         }
-        const note = std.store.getBlock(intent.noteId)?.model;
+        const note = store.getBlock(intent.noteId)?.model;
         if (!note) throw new Error("Reference Note unavailable");
         parent = note;
         index = 0;
       }
-      std.store.addBlock(
+      store.addBlock(
         "myoxus:database",
         {
           id: intent.blockId,
@@ -285,7 +304,7 @@ export function createTaskReferenceInserter(
         parent,
         index,
       );
-      std.store.captureSync();
+      store.captureSync();
       intent.written = true;
       await framework
         .get(WorkspaceService)

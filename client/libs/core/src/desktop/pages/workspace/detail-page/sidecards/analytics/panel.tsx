@@ -4,7 +4,7 @@
  * Displays two sections:
  *
  * ### 1. Page-view chart
- * A Recharts `LineChart` with two series — total views and unique views — over
+ * A Mantine `AreaChart` with two series — total views and unique views — over
  * a configurable time window (7, 14, 30, 60, or 90 days). All configured
  * windows are available without plan gating.
  *
@@ -37,13 +37,11 @@ import { ArrowDownSmallIcon, CalendarPanelIcon } from "@myoxus/icons/react";
 import { useService } from "@myoxus/infra";
 import { cssVar } from "@myoxus/theme";
 import {
+  AreaChart,
+  type AreaChartProps,
   Avatar,
   Button,
   Center,
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
   ColorDot,
   DashboardChartAxis,
   DashboardChartFrame,
@@ -63,20 +61,11 @@ import {
   SurfaceListMeta,
   SurfaceListText,
 } from "@myoxus/ui-facade";
-import {
-  type ComponentProps,
-  type ReactNode,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import { Area, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import {
-  type AnalyticsChartPoint,
   buildAnalyticsChartPoints,
   DEFAULT_ANALYTICS_WINDOW_DAYS,
-  ensureMinimumChartPoints,
   getAvailableAnalyticsWindowOptions,
   INITIAL_MEMBERS_PAGE_SIZE,
   MAX_MEMBERS_PAGE_SIZE,
@@ -119,15 +108,6 @@ function AnalyticsLoadingState() {
       <Loading />
     </Center>
   );
-}
-
-function analyticsTooltipLabel(
-  payload: Parameters<
-    NonNullable<ComponentProps<typeof ChartTooltipContent>["labelFormatter"]>
-  >[1],
-) {
-  const point = payload?.[0]?.payload as AnalyticsChartPoint | undefined;
-  return point?.date ? formatChartDate(point.date) : "";
 }
 
 export const EditorAnalyticsPanel = ({
@@ -216,22 +196,40 @@ export const EditorAnalyticsPanel = ({
   const analytics = analyticsData?.workspace?.doc?.analytics;
   const summary = analytics?.summary;
   const chartPoints = useMemo(
-    () =>
-      ensureMinimumChartPoints(
-        buildAnalyticsChartPoints(analytics?.series ?? []),
-      ),
+    () => buildAnalyticsChartPoints(analytics?.series ?? []),
     [analytics?.series],
   );
-  const chartConfig: ChartConfig = {
-    totalViews: {
-      label: t["com.myoxus.doc.analytics.chart.total-views"](),
-      color: totalViewsColor,
-    },
-    uniqueViews: {
-      label: t["com.myoxus.doc.analytics.chart.unique-views"](),
-      color: uniqueViewsColor,
-    },
-  };
+  const chartData = useMemo(
+    () =>
+      chartPoints.map((point) => ({
+        dateLabel: formatChartDate(point.date),
+        totalViews: point.totalViews,
+        uniqueViews: point.uniqueViews,
+      })),
+    [chartPoints],
+  );
+  const yAxisMax = useMemo(() => {
+    const maxVal = chartPoints.reduce(
+      (acc, point) => Math.max(acc, point.totalViews, point.uniqueViews),
+      0,
+    );
+    return Math.max(1, Math.ceil(maxVal * 1.1));
+  }, [chartPoints]);
+  const chartSeries = useMemo<AreaChartProps["series"]>(
+    () => [
+      {
+        name: "totalViews",
+        label: t["com.myoxus.doc.analytics.chart.total-views"](),
+        color: "myoxus",
+      },
+      {
+        name: "uniqueViews",
+        label: t["com.myoxus.doc.analytics.chart.unique-views"](),
+        color: "myoxusInfo",
+      },
+    ],
+    [t],
+  );
 
   const membersConnection = membersData?.workspace?.doc?.lastAccessedMembers;
   const memberEdges = useMemo(
@@ -333,86 +331,24 @@ export const EditorAnalyticsPanel = ({
               data-myoxus-ui-role="analytics-chart-frame"
               role="img"
             >
-              <ChartContainer config={chartConfig}>
-                {/* Recharts owns SVG/data geometry here; surrounding chart chrome stays facade-owned. */}
-                <LineChart
-                  data={chartPoints}
-                  margin={{ top: 10, right: 6, bottom: 6, left: 6 }}
-                >
-                  <CartesianGrid
-                    vertical={false}
-                    stroke={cssVar("borderColor")}
-                    strokeDasharray="3 3"
-                  />
-                  <XAxis
-                    dataKey="x"
-                    type="number"
-                    hide
-                    allowDecimals={false}
-                    domain={["dataMin", "dataMax"]}
-                  />
-                  <YAxis
-                    hide
-                    domain={[
-                      0,
-                      (max: number) => {
-                        if (max <= 0) {
-                          return 1;
-                        }
-                        return Math.ceil(max * 1.1);
-                      },
-                    ]}
-                  />
-                  <ChartTooltip
-                    cursor={{
-                      stroke: cssVar("borderColor"),
-                      strokeDasharray: "4 4",
-                    }}
-                    content={
-                      <ChartTooltipContent
-                        labelFormatter={(_, payload) =>
-                          analyticsTooltipLabel(payload)
-                        }
-                        valueFormatter={(value) => intFormatter.format(value)}
-                      />
-                    }
-                  />
-                  <Area
-                    dataKey="totalViews"
-                    type="monotone"
-                    stroke="var(--color-totalViews)"
-                    fill="var(--color-totalViews)"
-                    fillOpacity={0.15}
-                    isAnimationActive={false}
-                  />
-                  <Area
-                    dataKey="uniqueViews"
-                    type="monotone"
-                    stroke="var(--color-uniqueViews)"
-                    fill="var(--color-uniqueViews)"
-                    fillOpacity={0.1}
-                    isAnimationActive={false}
-                  />
-                  <Line
-                    dataKey="totalViews"
-                    type="monotone"
-                    stroke="var(--color-totalViews)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                    isAnimationActive={false}
-                  />
-                  <Line
-                    dataKey="uniqueViews"
-                    type="monotone"
-                    stroke="var(--color-uniqueViews)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 3 }}
-                    isAnimationActive={false}
-                  />
-                </LineChart>
-              </ChartContainer>
+              <AreaChart
+                h={160}
+                data={chartData}
+                dataKey="dateLabel"
+                series={chartSeries}
+                curveType="monotone"
+                gridAxis="x"
+                withXAxis={false}
+                withYAxis={false}
+                withDots={chartPoints.length <= 1}
+                fillOpacity={0.15}
+                strokeWidth={2}
+                yAxisProps={{ domain: [0, yAxisMax] }}
+                valueFormatter={(value) => intFormatter.format(value)}
+                areaChartProps={{
+                  margin: { top: 10, right: 6, bottom: 6, left: 6 },
+                }}
+              />
             </DashboardChartFrame>
             <DashboardChartAxis
               data-myoxus-ui-role="analytics-axis-labels"

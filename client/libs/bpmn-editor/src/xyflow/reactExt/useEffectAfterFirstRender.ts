@@ -19,20 +19,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // Modified by Myoxus: React 19/XYFlow 12 and direct Facade integration; see provenance.json.
 
-import * as React from "react";
-import { useEffect, useRef } from "react";
+import { useDidUpdate } from "@myoxus/ui-facade";
+import type * as React from "react";
 
 export function useEffectAfterFirstRender(
-  effect: Parameters<typeof useEffect>[0],
-  b: React.DependencyList,
+  effect: Parameters<typeof React.useEffect>[0],
+  deps: React.DependencyList,
 ) {
-  const didMountRef = useRef(false);
-
-  useEffect(() => {
-    if (didMountRef.current) {
-      return effect();
-    }
-    didMountRef.current = true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, b);
+  useDidUpdate(effect, deps);
 }

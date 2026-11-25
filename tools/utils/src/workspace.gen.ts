@@ -57,6 +57,7 @@ export const PackageList = [
       "client/libs/debug",
       "client/libs/desktop-api-contract",
       "client/libs/i18n",
+      "client/libs/icons",
       "client/libs/infra",
       "client/libs/storage",
       "client/libs/theme",
@@ -163,11 +164,6 @@ export const PackageList = [
     "workspaceDependencies": []
   },
   {
-    "location": "client/libs/dialogs",
-    "name": "@myoxus/dialogs",
-    "workspaceDependencies": []
-  },
-  {
     "location": "client/libs/env",
     "name": "@myoxus/env",
     "workspaceDependencies": ["virgultum/editor/all"]
@@ -262,7 +258,6 @@ export const PackageList = [
     "location": "client/libs/ui-facade",
     "name": "@myoxus/ui-facade",
     "workspaceDependencies": [
-      "client/libs/dialogs",
       "client/libs/i18n",
       "client/libs/icons",
       "client/libs/notifications",
@@ -470,7 +465,6 @@ export type PackageName =
   | "@myoxus/crypto"
   | "@myoxus/debug"
   | "@myoxus/desktop-api-contract"
-  | "@myoxus/dialogs"
   | "@myoxus/env"
   | "@myoxus/error"
   | "@myoxus/global-loading"

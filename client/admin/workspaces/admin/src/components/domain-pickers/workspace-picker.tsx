@@ -105,7 +105,7 @@ export function WorkspacePicker({
   const optionIdPrefix = useId();
 
   const [query, setQuery] = useState<string>("");
-  const [debouncedRaw] = useDebouncedValue(query, 200);
+  const [debouncedRaw, cancelDebounce] = useDebouncedValue(query, 200);
   const debouncedQuery = query.length === 0 ? "" : debouncedRaw;
   const [isOpen, { open: openDropdown, close: closeDropdown }] =
     useDisclosure(false);
@@ -187,13 +187,15 @@ export function WorkspacePicker({
 
   const commitSelection = useCallback(
     (option: WorkspaceOption) => {
+      cancelDebounce();
       onChange(option.id);
       setSelectedLabel(option.name);
       setQuery("");
+      setOptions([]);
       closeDropdown();
       setHighlightedIndex(0);
     },
-    [closeDropdown, onChange],
+    [cancelDebounce, closeDropdown, onChange],
   );
 
   const handleKeyDown = useCallback(

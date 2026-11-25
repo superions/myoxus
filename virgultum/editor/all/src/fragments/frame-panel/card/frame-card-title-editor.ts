@@ -126,7 +126,10 @@ export class FrameCardTitleEditor extends NativeViewElement {
         );
         this.disposables.addFromEvent(inlineEditorContainer, "keydown", (e) => {
           e.stopPropagation();
-          if (e.key === "Enter" && !e.isComposing && !this._isComposing) {
+          const composing =
+            e.isComposing || this._isComposing || e.keyCode === 229;
+          if (!composing && (e.key === "Enter" || e.key === "Escape")) {
+            e.preventDefault();
             this._unmount();
           }
         });
@@ -136,6 +139,9 @@ export class FrameCardTitleEditor extends NativeViewElement {
 
   disconnectedCallback() {
     this.disposables.dispose();
+    if (this.titleContentElement) {
+      this.titleContentElement.style.display = "block";
+    }
   }
 }
 

@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useI18n } from "@myoxus/i18n";
-import { DownloadIcon } from "@myoxus/icons/react";
+import {
+  DownloadIcon,
+  InsertBleowIcon,
+  PageIcon,
+  ReplaceIcon,
+} from "@myoxus/icons/react";
 import { Stack } from "@myoxus/ui-facade";
 import type { NotificationService } from "@virgultum/core/services";
 import type { ImageSelection } from "@virgultum/editor/shared/selection";
@@ -17,6 +22,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import type { PageAiBridge } from "../../virgultum/doc-editor/page-ai-bridge";
 import type { ChatAction } from "../_common/chat-actions-handle";
 import { AIProvider } from "../provider";
 import { copyText } from "../utils/editor-actions";
@@ -30,6 +36,7 @@ import { GeneratedFilesView } from "./generated-files-view";
 interface ResponseActionsProps {
   notificationService: NotificationService;
   host?: EditorHost | null;
+  pageBridge?: PageAiBridge | null;
   actions?: ChatAction[];
   content?: string;
   messageId?: string;
@@ -56,6 +63,7 @@ export function CopilotResponseActions(props: ResponseActionsProps) {
 function MessageActions({
   notificationService,
   host,
+  pageBridge,
   actions = [],
   content = "",
   messageId,
@@ -66,8 +74,8 @@ function MessageActions({
   exportable,
 }: ResponseActionsProps) {
   const t = useI18n();
-  const readonly = host?.std.store.readonly$;
-  useSyncExternalStore(
+  const readonly = host?.std.store.readonly$ ?? pageBridge?.store.readonly$;
+  const isReadonly = useSyncExternalStore(
     useCallback(
       (update: () => void) => readonly?.subscribe(update) ?? (() => {}),
       [readonly],
@@ -134,7 +142,50 @@ function MessageActions({
             if (success) notifySuccess(action.toast);
           },
         }))
-    : [];
+    : pageBridge && content
+      ? [
+          ...(!isReadonly
+            ? [
+                ...(pageBridge.hasSelection()
+                  ? [
+                      {
+                        id: "page-replace",
+                        label: t["com.myoxus.editor.mermaid.visual-replace"](),
+                        icon: <ReplaceIcon />,
+                        run: async () => {
+                          if (await pageBridge.replaceSelection(content)) {
+                            notifySuccess(
+                              t["com.myoxus.ai.chat-panel.inserted"](),
+                            );
+                          }
+                        },
+                      },
+                    ]
+                  : []),
+                {
+                  id: "page-insert",
+                  label: t["com.myoxus.common.insert"](),
+                  icon: <InsertBleowIcon />,
+                  run: async () => {
+                    if (await pageBridge.insertMarkdown(content)) {
+                      notifySuccess(t["com.myoxus.ai.chat-panel.inserted"]());
+                    }
+                  },
+                },
+              ]
+            : []),
+          {
+            id: "page-save-as-doc",
+            label: t["com.myoxus.ai.chat-panel.save-as-doc"](),
+            icon: <PageIcon />,
+            run: async () => {
+              if (await pageBridge.saveAsDoc(content)) {
+                notifySuccess(t["com.myoxus.ai.chat-panel.doc-created"]());
+              }
+            },
+          },
+        ]
+      : [];
   if (exportable && messageId && AIProvider.session?.exportMessage) {
     for (const [format, label] of [
       ["pdf", t["com.myoxus.export.pdf.menu-label"]()],

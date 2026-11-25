@@ -46,7 +46,7 @@ export function AssistantReply({
   sessionId,
   ...context
 }: ReplyProps) {
-  const { host, independentMode, notificationService } = context;
+  const { host, pageBridge, independentMode, notificationService } = context;
   const parts = item.streamObjects;
   const text = parts?.length ? mergeStreamContent(parts) : item.content;
   const generating = status === "transmitting";
@@ -59,10 +59,12 @@ export function AssistantReply({
     />
   );
   const reasoningFirst = parts?.[0]?.type === "reasoning";
+  const activeStore = host?.store ?? pageBridge?.store;
   const actions =
     generating || status === "loading" ? null : (
       <CopilotResponseActions
         host={host}
+        pageBridge={independentMode ? null : pageBridge}
         sessionId={sessionId}
         actions={
           host && text && !independentMode
@@ -76,7 +78,7 @@ export function AssistantReply({
         generatedFiles={item.generatedFiles}
         exportable={
           !!text.trim() &&
-          !host?.store.readonly &&
+          !activeStore?.readonly &&
           status !== "error" &&
           (item.params?.streamStatus === undefined ||
             item.params.streamStatus === "done")
@@ -110,7 +112,11 @@ export function AssistantReply({
               reasoningIdentity={reasoningFirst ? identity : undefined}
             />
           ) : (
-            <StoredAnswerText host={host} text={item.content} />
+            <StoredAnswerText
+              host={host}
+              pageBridge={pageBridge}
+              text={item.content}
+            />
           )}
           {failure}
           {actions}

@@ -382,10 +382,11 @@ export function QueueDetailPanel({
                 })}
               </SettingsListItemMeta>
               <Pagination
-                totalCount={Math.max(
-                  data.totalCount,
-                  data.nextCursor !== null ? data.nextCursor + 1 : 0,
-                )}
+                totalCount={
+                  data.nextCursor !== null
+                    ? Math.max(data.totalCount, data.nextCursor + 1)
+                    : Math.min(data.totalCount, cursor + data.jobs.length)
+                }
                 pageNum={Math.floor(cursor / limit)}
                 countPerPage={limit}
                 disabled={loading}

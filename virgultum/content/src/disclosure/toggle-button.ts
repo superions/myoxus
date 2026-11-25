@@ -54,7 +54,12 @@ export class ToggleButton extends NativeViewElement {
     }
     if (this.fallbackButton) {
       this.fallbackButton.setAttribute("aria-expanded", String(!value));
+      this.fallbackButton.setAttribute(
+        "aria-label",
+        value ? "Expand" : "Collapse",
+      );
       this.fallbackButton.dataset.collapsed = String(value);
+      this.fallbackButton.textContent = value ? "▸" : "▾";
     }
     this.syncState();
   }

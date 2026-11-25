@@ -4,10 +4,14 @@ import {
   ParagraphBlockModel,
   RootBlockModel,
 } from "@virgultum/core/models";
-import { matchModels } from "@virgultum/core/utils";
+import {
+  getOutlineHeadingBlocksFromDoc,
+  getOutlineHeadingBlocksFromNote,
+  getOutlineNotesFromStore,
+  isOutlineHeadingBlock,
+  matchModels,
+} from "@virgultum/core/utils";
 import type { BlockModel, Store } from "@virgultum/core/store";
-
-import { headingKeys } from "../config.js";
 
 export function getNotesFromStore(
   store: Store,
@@ -17,20 +21,7 @@ export function getNotesFromStore(
     NoteDisplayMode.EdgelessOnly,
   ],
 ) {
-  const rootModel = store.root;
-  if (!rootModel) return [];
-
-  const notes: NoteBlockModel[] = [];
-
-  rootModel.children.forEach((block) => {
-    if (!matchModels(block, [NoteBlockModel])) return;
-
-    if (modes.includes(block.props.displayMode$.value)) {
-      notes.push(block);
-    }
-  });
-
-  return notes;
+  return getOutlineNotesFromStore(store, modes);
 }
 
 export function isRootBlock(block: BlockModel): block is RootBlockModel {
@@ -40,22 +31,14 @@ export function isRootBlock(block: BlockModel): block is RootBlockModel {
 export function isHeadingBlock(
   block: BlockModel,
 ): block is ParagraphBlockModel {
-  return (
-    matchModels(block, [ParagraphBlockModel]) &&
-    headingKeys.has(block.props.type$.value)
-  );
+  return isOutlineHeadingBlock(block);
 }
 
 export function getHeadingBlocksFromNote(
   note: NoteBlockModel,
   ignoreEmpty = false,
 ) {
-  const models = note.children.filter((block) => {
-    const empty = block.text && block.text.length > 0;
-    return isHeadingBlock(block) && (!ignoreEmpty || empty);
-  });
-
-  return models;
+  return getOutlineHeadingBlocksFromNote(note, ignoreEmpty);
 }
 
 export function getHeadingBlocksFromDoc(
@@ -67,6 +50,5 @@ export function getHeadingBlocksFromDoc(
   ],
   ignoreEmpty = false,
 ) {
-  const notes = getNotesFromStore(store, modes);
-  return notes.flatMap((note) => getHeadingBlocksFromNote(note, ignoreEmpty));
+  return getOutlineHeadingBlocksFromDoc(store, modes, ignoreEmpty);
 }

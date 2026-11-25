@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { DisposableGroup } from "../../../primitives/disposable/index.js";
+import type { BlockModel } from "../../../store/index.js";
 import type { BlockStdScope } from "../../scope/std-scope.js";
 import {
   createRetainedBlockView,
@@ -11,21 +12,22 @@ import {
 export function createCanvasHost(
   std: BlockStdScope,
   doc: Document,
+  targetModel?: BlockModel,
 ): EditorHost {
   const shell = doc.createElement("div");
   shell.dataset.myoxusCanvasHost = "";
-  shell.tabIndex = 0;
+  shell.tabIndex = targetModel ? -1 : 0;
   Object.assign(shell.style, {
     outline: "none",
     isolation: "isolate",
-    height: "100%",
+    height: targetModel ? "auto" : "100%",
   });
   const bindings = {
     std,
     store: std.store,
     disposables: new DisposableGroup(),
     rebuildViews() {
-      const root = std.store.root;
+      const root = targetModel ?? std.store.root;
       const view = root && createRetainedBlockView(host, root);
       if (view) shell.replaceChildren(view);
       else shell.replaceChildren();

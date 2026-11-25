@@ -12,6 +12,8 @@ import { effects } from "./effects.js";
 import { MermaidBlockSpec, MermaidEdgelessBlockSpec } from "./mermaid-spec.js";
 import { MermaidEdgelessClipboardConfig } from "./presentation/edgeless-clipboard-config.js";
 
+export { MermaidBlockSpec };
+
 export class MermaidViewExtension extends ViewExtensionProvider {
   override name = "myoxus-mermaid-block";
 

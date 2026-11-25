@@ -24,6 +24,7 @@ import {
   Select,
   PromptModal,
   useConfirmModal,
+  usePromptModal,
 } from "./index";
 import { MyoxusUIProvider } from "./provider";
 
@@ -425,6 +426,173 @@ describe("Modal", () => {
     expect(description?.tagName).toBe("DIV");
     expect(description?.style.fontStyle).toBe("italic");
     expect(screen.getByRole("separator")).toBeInstanceOf(HTMLElement);
+  });
+
+  test("enforces danger type-to-confirm via @mantine/modals and resets between openings", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    const onSuccess = vi.fn();
+    const onCancel = vi.fn();
+
+    function DestructiveActionHost() {
+      const { openConfirmModal } = useConfirmModal();
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            openConfirmModal(
+              {
+                title: "Delete workspace",
+                description: "This permanently deletes workspace data.",
+                confirmText: "Delete permanently",
+                danger: true,
+                confirmMatchText: "acme-prod",
+                confirmMatchPlaceholder: "Type acme-prod",
+                onConfirm,
+                onCancel,
+              },
+              { onSuccess },
+            )
+          }
+        >
+          Remove workspace
+        </button>
+      );
+    }
+
+    render(
+      <MyoxusUIProvider>
+        <DestructiveActionHost />
+      </MyoxusUIProvider>,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Remove workspace" });
+    await user.click(trigger);
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Delete workspace",
+    });
+    const confirmButton = within(dialog).getByTestId(
+      "confirm-modal-confirm",
+    ) as HTMLButtonElement;
+    const typeInput = within(dialog).getByTestId(
+      "confirm-modal-type-input",
+    ) as HTMLInputElement;
+
+    expect(confirmButton.disabled).toBe(true);
+    expect(typeInput.placeholder).toBe("Type acme-prod");
+
+    await user.type(typeInput, "acme");
+    expect(confirmButton.disabled).toBe(true);
+
+    // Dismiss via Escape: triggers onCancel and returns focus to the trigger.
+    await user.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Delete workspace" }),
+      ).toBeNull(),
+    );
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(onConfirm).not.toHaveBeenCalled();
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+
+    // Reopen: input must start empty and confirm must enable only on exact match.
+    await user.click(trigger);
+    const reopened = await screen.findByRole("dialog", {
+      name: "Delete workspace",
+    });
+    const reopenedInput = within(reopened).getByTestId(
+      "confirm-modal-type-input",
+    ) as HTMLInputElement;
+    const reopenedConfirm = within(reopened).getByTestId(
+      "confirm-modal-confirm",
+    ) as HTMLButtonElement;
+    expect(reopenedInput.value).toBe("");
+    expect(reopenedConfirm.disabled).toBe(true);
+
+    await user.type(reopenedInput, "acme-prod");
+    expect(reopenedConfirm.disabled).toBe(false);
+    await user.click(reopenedConfirm);
+
+    expect(onConfirm).toHaveBeenCalledOnce();
+    expect(onSuccess).toHaveBeenCalledOnce();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Delete workspace" }),
+      ).toBeNull(),
+    );
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
+
+  test("manages imperative prompts through @mantine/modals including failure and autoClose", async () => {
+    const user = userEvent.setup();
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const onConfirm = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("duplicate name"))
+      .mockResolvedValueOnce(undefined);
+    const onSuccess = vi.fn();
+
+    function PromptHost() {
+      const { openPromptModal } = usePromptModal();
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            openPromptModal(
+              {
+                title: "Rename collection",
+                label: "Collection name",
+                confirmText: "Save",
+                onConfirm,
+              },
+              { onSuccess },
+            )
+          }
+        >
+          Rename
+        </button>
+      );
+    }
+
+    render(
+      <MyoxusUIProvider>
+        <PromptHost />
+      </MyoxusUIProvider>,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Rename" });
+    await user.click(trigger);
+    const dialog = await screen.findByRole("dialog", {
+      name: "Rename collection",
+    });
+    const input = within(dialog).getByTestId("prompt-modal-input");
+    const saveButton = within(dialog).getByTestId(
+      "prompt-modal-confirm",
+    ) as HTMLButtonElement;
+
+    expect(saveButton.disabled).toBe(true);
+    await user.type(input, "Architecture");
+    expect(saveButton.disabled).toBe(false);
+
+    // First attempt rejects: modal stays open and onSuccess is not called.
+    await user.click(saveButton);
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith("Architecture"));
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("dialog", { name: "Rename collection" }),
+    ).not.toBeNull();
+
+    // Second attempt succeeds: modal closes and focus returns to trigger.
+    await user.click(saveButton);
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Rename collection" }),
+      ).toBeNull(),
+    );
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+    errorSpy.mockRestore();
   });
 });
 

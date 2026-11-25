@@ -410,34 +410,41 @@ export function MermaidGfxEditorWorkbench({
     };
   }, [contextOpened, selectionKey]);
 
-  const embeddedActionsNodeRef = useRef<HTMLDivElement | null>(null);
+  const embeddedActionsHostRef = useRef<HTMLDivElement | null>(null);
   const [observeEmbeddedActions, embeddedActionsRect] =
-    useResizeObserver<HTMLDivElement>();
+    useResizeObserver<HTMLElement>();
   const attachEmbeddedActionsRef = useCallback(
     (node: HTMLDivElement | null) => {
-      embeddedActionsNodeRef.current = node;
-      observeEmbeddedActions(node);
+      embeddedActionsHostRef.current = node;
+      const target =
+        node?.querySelector<HTMLElement>(
+          '[data-myoxus-ui-role="mermaid-embedded-actions"]',
+        ) ?? node;
+      observeEmbeddedActions(target);
     },
     [observeEmbeddedActions],
   );
 
   useEffect(() => {
-    if (!hasEmbeddedActions) {
+    const host = embeddedActionsHostRef.current;
+    if (!hasEmbeddedActions || !host) {
       onEmbeddedActionsInsetChangeRef.current?.(0);
       return;
     }
+    const target = host.querySelector<HTMLElement>(
+      '[data-myoxus-ui-role="mermaid-embedded-actions"]',
+    );
+    if (target) observeEmbeddedActions(target);
     const reportInset = () => {
       const measured =
-        embeddedActionsNodeRef.current?.querySelector<HTMLElement>(
-          '[data-myoxus-ui-role="mermaid-embedded-actions"]',
-        )?.offsetHeight ?? Math.round(embeddedActionsRect.height);
+        target?.offsetHeight ?? Math.round(embeddedActionsRect.height);
       onEmbeddedActionsInsetChangeRef.current?.(measured);
     };
     const frame = requestAnimationFrame(reportInset);
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [hasEmbeddedActions, embeddedActionsRect.height]);
+  }, [hasEmbeddedActions, embeddedActionsRect.height, observeEmbeddedActions]);
 
   useEffect(() => {
     return () => {

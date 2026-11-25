@@ -30,6 +30,7 @@ import {
   pasteAfterPageBlock,
 } from "./page-block-actions";
 import { usePageFloatingAnchor } from "./page-floating-anchor";
+import { PageCitationBadge } from "./page-block-chrome";
 
 export default function PageBookmarkCard({
   model,
@@ -285,6 +286,7 @@ export default function PageBookmarkCard({
         void pasteAfterPageBlock(model, e.clipboardData).catch(console.error);
       }}
     >
+      <PageCitationBadge identifier={model.props.footnoteIdentifier} />
       <EditorBookmarkCard
         controls={{
           title: model.props.title ?? current?.data?.title ?? null,

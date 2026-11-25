@@ -184,7 +184,7 @@
   inset-inline-end: calc(
     -1 * calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm))
   );
-  z-index: -1;
+  z-index: 1;
   min-width: calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm));
   padding-block-start: var(--mantine-spacing-xs);
   padding-inline-start: var(--mantine-spacing-sm);

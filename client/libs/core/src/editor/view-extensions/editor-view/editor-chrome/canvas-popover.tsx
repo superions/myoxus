@@ -44,24 +44,13 @@ export function EditorCanvasPopover({
     opened,
     onClose,
     position = "top",
+    offset,
     withArrow = false,
     closeOnClickOutside = true,
     label,
     trigger,
     content,
   } = controls;
-
-  useEffect(() => {
-    if (!opened) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      event.stopPropagation();
-      onClose();
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [opened, onClose]);
 
   const flushSurface = !withArrow;
 
@@ -72,11 +61,12 @@ export function EditorCanvasPopover({
         if (!nextOpen) onClose();
       }}
       position={position}
+      offset={offset}
       withArrow={withArrow}
       floatingStrategy="fixed"
       closeOnEscape
       closeOnClickOutside={closeOnClickOutside}
-      returnFocus={false}
+      returnFocus={Boolean(trigger && closeOnClickOutside)}
     >
       <PopoverTarget>
         {trigger ? (

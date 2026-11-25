@@ -159,7 +159,7 @@ export function DashboardChartFrame({
           "calc(\n    calc(var(--mantine-spacing-2xl) * 2) + calc(var(--mantine-spacing-2xl) * 2) +\n      calc(var(--mantine-spacing-2xl) * 2) - var(--mantine-spacing-lg)\n  )",
         minHeight:
           "calc(\n    calc(var(--mantine-spacing-2xl) * 2) + calc(var(--mantine-spacing-2xl) * 2) +\n      calc(var(--mantine-spacing-2xl) * 2) - var(--mantine-spacing-lg)\n  )",
-        overflow: "hidden",
+        overflow: "visible",
         borderRadius: "var(--mantine-radius-lg)",
         ...style,
       }}

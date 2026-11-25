@@ -73,6 +73,7 @@ import {
 } from "react";
 
 import { myoxusMantineDensity } from "./theme-density";
+import { ManagedModalEscapeGuard } from "./modal";
 
 const myoxusPrimaryScale = [
   cssVar("backgroundPrimaryColor"),
@@ -1440,7 +1441,12 @@ export function MyoxusUIProvider({
         {hasNotificationHost ? (
           children
         ) : (
-          <ModalsProvider>{children}</ModalsProvider>
+          <Modal.Stack>
+            <ManagedModalEscapeGuard />
+            <ModalsProvider modalProps={{ stackId: "myoxus-managed-modal" }}>
+              {children}
+            </ModalsProvider>
+          </Modal.Stack>
         )}
       </MyoxusMantineProvider>
     </NotificationHostContext.Provider>

@@ -16,7 +16,7 @@ import {
   ThemeIcon,
   useLocalStorage,
 } from "@myoxus/ui-facade";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { ChatContentImages } from "./ai-message-content/images";
 
 export function ChatAssistantIdentity({
@@ -220,6 +220,7 @@ export function ChatConversationLayout({
   const [savedRatio, setSavedRatio] = useLocalStorage<number>({
     key: "chat-panel-split-view-size",
     defaultValue: 50,
+    getInitialValueInEffect: false,
     deserialize: (value) => {
       const parsed = Number(value);
       return Number.isFinite(parsed) && parsed >= 20 && parsed <= 80
@@ -228,9 +229,13 @@ export function ChatConversationLayout({
     },
     serialize: (value) => String(value),
   });
+  const [liveRatio, setLiveRatio] = useState<number>(savedRatio);
+  useEffect(() => {
+    setLiveRatio(savedRatio);
+  }, [savedRatio]);
   const ratio =
-    Number.isFinite(savedRatio) && savedRatio >= 20 && savedRatio <= 80
-      ? savedRatio
+    Number.isFinite(liveRatio) && liveRatio >= 20 && liveRatio <= 80
+      ? liveRatio
       : 50;
   const main = (
     // Messages and composer own their spacing; the frame only distributes the viewport.
@@ -266,12 +271,13 @@ export function ChatConversationLayout({
         if (!open) return;
         const next = Number(sizes[0]);
         if (Number.isFinite(next) && next >= 20 && next <= 80) {
-          setSavedRatio(next);
+          setLiveRatio(next);
         }
       }}
       onResizeEnd={(_, sizes) => {
         const next = Number(sizes[0]);
         if (Number.isFinite(next) && next >= 20 && next <= 80) {
+          setLiveRatio(next);
           setSavedRatio(next);
         }
       }}

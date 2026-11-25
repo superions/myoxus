@@ -2,12 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 /**
- * Shared field error state for Admin config pages, backed by Facade `useForm`
- * (`@mantine/form`).
+ * Shared field error state for Admin config pages, backed by Facade `useForm`.
  *
  * Preserves the server-backed draft baseline in `useAppConfig` (so native
  * disclosure/tab switches never wipe unsaved edits) while delegating per-field
- * error storage and clearing to `@mantine/form`.
+ * error storage and clearing to the Facade form hook.
  */
 import { useForm } from "@myoxus/ui-facade";
 import { useCallback, useMemo } from "react";

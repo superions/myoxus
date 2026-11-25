@@ -453,7 +453,7 @@ export const CMDKGroup = ({
   selectedValue,
   onSelectChange,
   onSubmit,
-  query,
+  query: _query,
   wrapLabels = false,
 }: {
   group: {
@@ -585,6 +585,7 @@ export const CMDKGroup = ({
           id={item.id}
           ref={selected ? selectedItemRef : undefined}
           role="option"
+          tabIndex={-1}
           data-cmdk-item=""
           data-action={undefined}
           aria-selected={selected}
@@ -639,7 +640,7 @@ export const CMDKGroup = ({
   if (inSpotlight) {
     return (
       <SpotlightActionsGroup
-        key={`${query}:${group?.id ?? ""}`}
+        key={group?.id ?? ""}
         data-cmdk-group=""
         role="group"
         label={groupLabel}
@@ -653,7 +654,7 @@ export const CMDKGroup = ({
 
   return (
     <Stack
-      key={`${query}:${group?.id ?? ""}`}
+      key={group?.id ?? ""}
       gap={2}
       data-cmdk-group=""
       role="group"

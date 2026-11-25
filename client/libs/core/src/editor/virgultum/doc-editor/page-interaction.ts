@@ -1,24 +1,61 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { FrameworkProvider } from "@myoxus/infra";
 import { captureLeafTextSelection } from "@virgultum/core/adapters/copy";
-import type { Store } from "@virgultum/core/store";
-import { appendPageParagraph, getLastNoteBlock } from "@virgultum/core/utils";
+import { TextSelection } from "@virgultum/core/runtime";
+import {
+  Text,
+  type BlockModel,
+  type DeltaInsert,
+  type Store,
+} from "@virgultum/core/store";
+import type { DocumentField } from "@virgultum/core/types";
+import {
+  appendPageParagraph,
+  getLastNoteBlock,
+  isValidUrl,
+  normalizeUrl,
+} from "@virgultum/core/utils";
 import {
   bookmark,
   deletionRange,
-  readPageRange,
   inputTarget,
+  readPageRange,
   replacePageRange,
   resolveBookmark,
   restorePageRange,
   segments,
   type PageBookmark,
-  type PageIntent,
   type PageRange,
 } from "./plain-page-input";
 import { readPageContent, type PageLine } from "./plain-page-model";
-import { pasteAfterPageBlock } from "./page-block-actions";
+import { duplicatePageBlock, pasteAfterPageBlock } from "./page-block-actions";
+import { sliceYTextDelta } from "./page-table-cell";
+
 export type PickerStart = { start: PageBookmark; trigger: string };
+
+export type PageBlockConversionTarget =
+  | "text"
+  | "h1"
+  | "h2"
+  | "h3"
+  | "h4"
+  | "h5"
+  | "h6"
+  | "quote"
+  | "bulleted"
+  | "numbered"
+  | "todo"
+  | "code"
+  | "callout";
+
+export type PageInteractionCallbacks = {
+  openInlineLink?: () => void;
+  openTemplateVariable?: (anchor: {
+    blockId: string;
+    from: number;
+    to: number;
+  }) => void;
+};
 
 /** The DOM owns an IME preedit; the Store owns its final replacement. Remote
  * edits move the bookmarked endpoints without replacing the composing node. */
@@ -39,13 +76,10 @@ export class PageInteraction {
     private readonly lines: () => PageLine[],
     private readonly writable: () => boolean,
     private readonly refresh: () => void,
-    private readonly handoff: (
-      range: PageBookmark | null,
-      intent?: PageIntent,
-    ) => void,
     private readonly picker: (start: PickerStart) => void,
     private readonly framework: FrameworkProvider,
     private readonly slash?: (start: PickerStart) => void,
+    private readonly callbacks?: PageInteractionCallbacks,
   ) {
     const { signal } = this.stop;
     root.addEventListener("beforeinput", this.input, { signal });
@@ -98,9 +132,353 @@ export class PageInteraction {
     if (!body) return [];
     const a = body.findIndex((b) => b.model.id === r.anchor.id);
     const b = body.findIndex((b) => b.model.id === r.focus.id);
+    if (a < 0 || b < 0) return [];
     return body
       .slice(Math.max(0, Math.min(a, b)), Math.max(a, b) + 1)
       .map((b) => b.model.id);
+  }
+  selectedText(): string {
+    const r = this.current && resolveBookmark(this.page, this.current);
+    if (!r) return "";
+    return segments(this.lines(), r)
+      .map(({ line, from, to }) => line.text.toString().slice(from, to))
+      .join("\n");
+  }
+  selectedTextSelection(): TextSelection | null {
+    const r = this.current && resolveBookmark(this.page, this.current);
+    if (!r) return null;
+    const parts = segments(this.lines(), r).filter(
+      (part) => part.line.kind !== "title",
+    );
+    if (!parts.length) return null;
+    const first = parts[0];
+    const last = parts.at(-1)!;
+    if (first === last) {
+      if (first.to <= first.from) return null;
+      return new TextSelection({
+        from: {
+          blockId: first.line.model.id,
+          index: first.from,
+          length: first.to - first.from,
+        },
+        to: null,
+      });
+    }
+    return new TextSelection({
+      from: {
+        blockId: first.line.model.id,
+        index: first.from,
+        length: first.line.text.length - first.from,
+      },
+      to: {
+        blockId: last.line.model.id,
+        index: 0,
+        length: last.to,
+      },
+    });
+  }
+  applyLink(rawUrl: string, replacementText?: string) {
+    if (!this.canWrite() || !this.current) return false;
+    const url = normalizeUrl(rawUrl.trim());
+    if (!url || !isValidUrl(url)) return false;
+    const range = resolveBookmark(this.page, this.current);
+    if (!range) return false;
+    const parts = segments(this.lines(), range).filter(
+      (part) =>
+        part.line.kind !== "title" && !this.page.hasFixedText(part.line.model),
+    );
+    if (!parts.length) return false;
+    let nextRange: PageRange = range;
+    this.page.captureSync();
+    this.page.transact(() => {
+      if (parts.length === 1) {
+        const { line, from, to } = parts[0];
+        const label = replacementText?.trim();
+        if (to === from) {
+          const text = label || url;
+          line.text.insert(from, text, { link: url });
+          nextRange = {
+            anchor: { id: line.model.id, offset: from },
+            focus: { id: line.model.id, offset: from + text.length },
+          };
+        } else if (label && label !== line.text.toString().slice(from, to)) {
+          line.text.delete(from, to - from);
+          line.text.insert(from, label, { link: url });
+          nextRange = {
+            anchor: { id: line.model.id, offset: from },
+            focus: { id: line.model.id, offset: from + label.length },
+          };
+        } else {
+          line.text.format(from, to - from, { link: url });
+        }
+      } else {
+        for (const { line, from, to } of parts) {
+          if (to > from) line.text.format(from, to - from, { link: url });
+        }
+      }
+    });
+    this.page.captureSync();
+    this.after = nextRange;
+    this.refresh();
+    return true;
+  }
+  insertTemplateToken(
+    token: string,
+    explicit?: { blockId: string; from: number; to: number },
+  ) {
+    if (!this.canWrite()) return false;
+    const range = explicit
+      ? {
+          anchor: { id: explicit.blockId, offset: explicit.from },
+          focus: { id: explicit.blockId, offset: explicit.to },
+        }
+      : this.current && resolveBookmark(this.page, this.current);
+    if (!range) return false;
+    const parts = segments(this.lines(), range).filter(
+      (p) => p.line.kind !== "title" && !this.page.hasFixedText(p.line.model),
+    );
+    const first = parts[0];
+    if (!first) return false;
+    const deleteLen = first.to - first.from;
+    this.page.captureSync();
+    this.page.transact(() => {
+      if (deleteLen > 0) first.line.text.delete(first.from, deleteLen);
+      first.line.text.insert(first.from, token);
+    });
+    this.page.captureSync();
+    const point = {
+      id: first.line.model.id,
+      offset: first.from + token.length,
+    };
+    this.after = { anchor: point, focus: point };
+    this.refresh();
+    return true;
+  }
+  insertDocumentField(
+    field: DocumentField,
+    explicit?: { blockId: string; from: number; to: number },
+  ) {
+    if (!this.canWrite()) return false;
+    const range = explicit
+      ? {
+          anchor: { id: explicit.blockId, offset: explicit.from },
+          focus: { id: explicit.blockId, offset: explicit.to },
+        }
+      : this.current && resolveBookmark(this.page, this.current);
+    if (!range) return false;
+    const parts = segments(this.lines(), range).filter(
+      (p) => p.line.kind !== "title" && !this.page.hasFixedText(p.line.model),
+    );
+    const first = parts[0];
+    if (!first) return false;
+    const deleteLen = first.to - first.from;
+    this.page.captureSync();
+    this.page.transact(() => {
+      if (deleteLen > 0) first.line.text.delete(first.from, deleteLen);
+      first.line.text.insert(first.from, " ", { documentField: field });
+    });
+    this.page.captureSync();
+    const point = { id: first.line.model.id, offset: first.from + 1 };
+    this.after = { anchor: point, focus: point };
+    this.refresh();
+    return true;
+  }
+  replaceSelectionWithLinkedDoc(docId: string) {
+    if (!this.canWrite() || !this.current) return false;
+    const range = resolveBookmark(this.page, this.current);
+    if (!range) return false;
+    const parts = segments(this.lines(), range).filter(
+      (p) => p.line.kind !== "title" && !this.page.hasFixedText(p.line.model),
+    );
+    const first = parts[0];
+    if (!first) return false;
+    this.page.captureSync();
+    this.page.transact(() => {
+      const last = parts.at(-1)!;
+      if (parts.length === 1) {
+        first.line.text.delete(first.from, first.to - first.from);
+      } else {
+        first.line.text.delete(first.from, first.line.text.length - first.from);
+        for (const middle of parts.slice(1, -1)) {
+          if (middle.line.model.children.length === 0)
+            this.page.deleteBlock(middle.line.model);
+        }
+        last.line.text.delete(0, last.to);
+      }
+      first.line.text.insert(first.from, " ", {
+        reference: { type: "LinkedPage", pageId: docId },
+      });
+    });
+    this.page.captureSync();
+    const point = { id: first.line.model.id, offset: first.from + 1 };
+    this.after = { anchor: point, focus: point };
+    this.refresh();
+    return true;
+  }
+  convertSelectedBlocks(target: PageBlockConversionTarget) {
+    if (!this.canWrite() || !this.current) return false;
+    const range = resolveBookmark(this.page, this.current);
+    if (!range) return false;
+    const parts = segments(this.lines(), range).filter(
+      (p) =>
+        p.line.kind !== "title" &&
+        !this.page.hasFixedText(p.line.model) &&
+        (p.line.model.flavour === "myoxus:paragraph" ||
+          p.line.model.flavour === "myoxus:list"),
+    );
+    if (!parts.length) return false;
+    let focusId = parts[0].line.model.id;
+    let focusOffset = parts[0].from;
+    this.page.captureSync();
+    this.page.transact(() => {
+      for (const { line } of parts) {
+        const model = line.model;
+        const parent = model.parent;
+        if (!parent) continue;
+        const idx = parent.children.indexOf(model);
+        if (idx < 0) continue;
+        const isParagraphTarget =
+          target === "text" || target === "quote" || /^h[1-6]$/.test(target);
+        const isListTarget =
+          target === "bulleted" || target === "numbered" || target === "todo";
+
+        if (isParagraphTarget && model.flavour === "myoxus:paragraph") {
+          this.page.updateBlock(model, { type: target });
+          continue;
+        }
+        if (isListTarget && model.flavour === "myoxus:list") {
+          this.page.updateBlock(model, {
+            type: target,
+            ...(target === "todo" ? { checked: false } : {}),
+          });
+          continue;
+        }
+        if (target === "code") {
+          const id = this.page.addBlock(
+            "myoxus:code",
+            {
+              text: new Text(line.text.toString()),
+              language: "Plain Text",
+            },
+            parent,
+            idx,
+          );
+          if (model.children.length === 0) this.page.deleteBlock(model);
+          else line.text.delete(0, line.text.length);
+          if (model.id === focusId) {
+            focusId = id;
+            focusOffset = 0;
+          }
+          continue;
+        }
+        if (target === "callout") {
+          const calloutId = this.page.addBlock(
+            "myoxus:callout",
+            { type: "note" },
+            parent,
+            idx,
+          );
+          const childId = this.page.addBlock(
+            "myoxus:paragraph",
+            { text: new Text(line.text.toDelta() as DeltaInsert[]) },
+            calloutId,
+            0,
+          );
+          if (model.children.length) {
+            this.page.moveBlocks(
+              model.children,
+              this.page.getModelById(calloutId)!,
+              undefined,
+              false,
+            );
+          }
+          this.page.deleteBlock(model);
+          if (model.id === focusId) {
+            focusId = childId;
+          }
+          continue;
+        }
+        // Switch between paragraph and list while preserving text & children.
+        const newFlavour = isListTarget ? "myoxus:list" : "myoxus:paragraph";
+        const newProps: Record<string, unknown> = {
+          type: target,
+          text: new Text(line.text.toDelta() as DeltaInsert[]),
+        };
+        if (target === "todo") newProps.checked = false;
+        const createdId = this.page.addBlock(newFlavour, newProps, parent, idx);
+        const createdModel = this.page.getModelById(createdId);
+        if (createdModel && model.children.length) {
+          this.page.moveBlocks(model.children, createdModel, undefined, false);
+        }
+        this.page.deleteBlock(model);
+        if (model.id === focusId) {
+          focusId = createdId;
+        }
+      }
+    });
+    this.page.captureSync();
+    if (this.page.getModelById(focusId)?.text) {
+      const point = {
+        id: focusId,
+        offset: Math.min(
+          focusOffset,
+          this.page.getModelById(focusId)?.text?.length ?? 0,
+        ),
+      };
+      this.after = { anchor: point, focus: point };
+    }
+    this.refresh();
+    return true;
+  }
+  duplicateSelectedBlocks() {
+    if (!this.canWrite()) return false;
+    const ids = this.selectedBlocks();
+    const models = ids
+      .map((id) => this.page.getModelById(id))
+      .filter((m): m is BlockModel => !!m && m.flavour !== "myoxus:page");
+    if (!models.length) return false;
+    let lastId: string | null = null;
+    for (const model of models) {
+      lastId = duplicatePageBlock(model) ?? lastId;
+    }
+    if (lastId && this.page.getModelById(lastId)?.text) {
+      this.focusPoint(lastId, 0);
+    }
+    return Boolean(lastId);
+  }
+  deleteSelectedBlocks() {
+    if (!this.canWrite()) return false;
+    const range = this.current && resolveBookmark(this.page, this.current);
+    if (!range) return false;
+    const parts = segments(this.lines(), range).filter(
+      (p) => p.line.kind !== "title" && !this.page.hasFixedText(p.line.model),
+    );
+    if (!parts.length) return false;
+    this.page.captureSync();
+    this.page.transact(() => {
+      for (const { line } of parts) {
+        if (this.page.getModelById(line.model.id) === line.model)
+          this.page.deleteBlock(line.model);
+      }
+    });
+    this.page.captureSync();
+    this.refresh();
+    return true;
+  }
+  copySelectedBlocks() {
+    const ids = this.selectedBlocks();
+    const models = ids
+      .map((id) => this.page.getModelById(id))
+      .filter((m): m is BlockModel => !!m && m.flavour !== "myoxus:page");
+    if (!models.length) return;
+    const { signal } = this.stop;
+    void import("./page-block-copy")
+      .then(({ copyPageBlocks }) =>
+        copyPageBlocks(models, this.framework, signal),
+      )
+      .catch((error) => {
+        if (!signal.aborted) console.error(error);
+      });
   }
   private selectedDivider() {
     const el = this.root.ownerDocument.activeElement;
@@ -123,9 +501,9 @@ export class PageInteraction {
     if (this.selectedDivider())
       this.root.ownerDocument.getSelection()?.removeAllRanges();
   };
-  /** A card's visible DOM can contain a resolved server record. Copy the
-   * document reference through its model serializer, not the preview text. */
-  private transferMixedClipboard(e: ClipboardEvent, action: "copy" | "cut") {
+  /** A card's visible DOM can contain a resolved server record. Copy/cut rich
+   * inline objects or multi-block ranges directly through the Store serializer. */
+  private handleMixedClipboard(e: ClipboardEvent, action: "copy" | "cut") {
     const range = readPageRange(this.root);
     if (
       !range ||
@@ -157,51 +535,88 @@ export class PageInteraction {
     });
     if (!inline && range.anchor.id === range.focus.id) return false;
     const part = parts.length === 1 ? parts[0] : undefined;
-    if (action === "copy" && part) {
+    const { signal } = this.stop;
+    if (part) {
       const { model } = part.line;
-      // Footnote copies can carry asset-bearing definition bodies through the source job.
-      const runs = model.text?.sliceToDelta(part.from, part.to);
-      if (
-        runs?.some((run) => run.attributes?.reference) &&
-        !runs.some((run) => run.attributes?.footnote)
-      ) {
-        const selection = captureLeafTextSelection(
-          model,
-          part.from,
-          part.to - part.from,
-        );
-        if (selection) {
-          e.preventDefault();
-          const { signal } = this.stop;
-          void import("./page-block-copy")
-            .then(({ copyPageBlock }) =>
-              copyPageBlock(model, this.framework, signal, selection),
-            )
-            .catch((error) => {
-              if (!signal.aborted) console.error(error);
-            });
-          return true;
+      const selection = captureLeafTextSelection(
+        model,
+        part.from,
+        part.to - part.from,
+      );
+      if (selection) {
+        e.preventDefault();
+        if (e.clipboardData) {
+          e.clipboardData.setData(
+            "text/plain",
+            part.line.text.toString().slice(part.from, part.to),
+          );
         }
+        void import("./page-block-copy")
+          .then(({ copyPageBlock }) =>
+            copyPageBlock(model, this.framework, signal, selection),
+          )
+          .catch((error) => {
+            if (!signal.aborted) console.error(error);
+          });
+        if (
+          action === "cut" &&
+          this.canWrite() &&
+          !this.page.hasFixedText(model)
+        ) {
+          this.write(range, "");
+        }
+        return true;
       }
     }
     const body = readPageContent(this.page)?.order;
     if (!body) return false;
     const a = body.findIndex((b) => b.model.id === range.anchor.id);
     const b = body.findIndex((b) => b.model.id === range.focus.id);
-    if (
-      !inline &&
-      !body
-        .slice(Math.min(a, b) + 1, Math.max(a, b))
-        .some((block) => !("text" in block))
-    )
-      return false;
+    if (a < 0 || b < 0) return false;
+    const sliceItems = body.slice(Math.min(a, b), Math.max(a, b) + 1);
+    const hasAtomic = sliceItems.some((block) => !("text" in block));
+    if (!inline && !hasAtomic) return false;
     e.preventDefault();
-    if (action === "copy" || this.canWrite())
-      this.transfer({ kind: "range-clipboard", action });
+    const models = sliceItems.map((item) => item.model);
+    if (e.clipboardData) {
+      e.clipboardData.setData(
+        "text/plain",
+        document.getSelection()?.toString() ?? "",
+      );
+    }
+    void import("./page-block-copy")
+      .then(({ copyPageBlocks }) =>
+        copyPageBlocks(models, this.framework, signal),
+      )
+      .catch((error) => {
+        if (!signal.aborted) console.error(error);
+      });
+    if (action === "cut" && this.canWrite()) {
+      if (
+        !parts.some((p) => this.page.hasFixedText(p.line.model)) &&
+        !this.write(range, "")
+      ) {
+        this.page.captureSync();
+        this.page.transact(() => {
+          for (const item of sliceItems) {
+            if (this.page.getModelById(item.model.id) === item.model)
+              this.page.deleteBlock(item.model);
+          }
+        });
+        this.page.captureSync();
+        this.refresh();
+      }
+    }
     return true;
   }
   private copyBlock = (event: ClipboardEvent) => {
-    if (this.transferMixedClipboard(event, "copy")) return;
+    if (
+      (event.target as Element)?.closest?.(
+        "[contenteditable=false][data-block-id]",
+      )
+    )
+      return;
+    if (this.handleMixedClipboard(event, "copy")) return;
     if (!this.selectedDivider() || !event.clipboardData) return;
     event.preventDefault();
     event.clipboardData.setData("text/plain", "---");
@@ -238,6 +653,10 @@ export class PageInteraction {
       this.root
         .querySelector<HTMLElement>(`[data-page-divider="${CSS.escape(id)}"]`)
         ?.focus();
+    } else if (next && !next.text) {
+      this.root
+        .querySelector<HTMLElement>(`[data-block-id="${CSS.escape(id)}"]`)
+        ?.focus();
     } else {
       const point = {
         id,
@@ -248,9 +667,6 @@ export class PageInteraction {
       this.after = { anchor: point, focus: point };
       this.refresh();
     }
-  }
-  relinquish(intent?: PageIntent) {
-    this.transfer(intent);
   }
   restore() {
     if (this.current) {
@@ -443,11 +859,6 @@ export class PageInteraction {
     this.stop.abort();
     this.page.spaceDoc.off("beforeAllTransactions", this.remember);
   }
-  private transfer(intent?: PageIntent) {
-    this.remember();
-    this.retired = true;
-    this.handoff(this.current ?? null, intent);
-  }
   private write(range: PageRange, value: string) {
     const next = replacePageRange(
       this.page,
@@ -461,6 +872,176 @@ export class PageInteraction {
       this.refresh();
     }
     return !!next;
+  }
+  private indentRange(range: PageRange, outdent: boolean): boolean {
+    if (!this.canWrite()) return false;
+    const parts = segments(this.lines(), range).filter(
+      (p) =>
+        p.line.kind !== "title" &&
+        !this.page.hasFixedText(p.line.model) &&
+        (p.line.model.flavour === "myoxus:paragraph" ||
+          p.line.model.flavour === "myoxus:list"),
+    );
+    if (!parts.length) return false;
+    let changed = false;
+    this.page.captureSync();
+    this.page.transact(() => {
+      if (outdent) {
+        for (const { line } of [...parts].reverse()) {
+          const model = line.model;
+          const parent = model.parent;
+          const grandParent = parent?.parent;
+          if (
+            !parent ||
+            !grandParent ||
+            parent.flavour === "myoxus:note" ||
+            parent.flavour === "myoxus:page" ||
+            parent.flavour === "myoxus:callout"
+          )
+            continue;
+          try {
+            const schemas = this.page.schema.flavourSchemaMap;
+            this.page.schema.validateSchema(
+              schemas.get(model.flavour)!,
+              schemas.get(grandParent.flavour)!,
+            );
+          } catch {
+            continue;
+          }
+          const idx = parent.children.indexOf(model);
+          const trailingSiblings = parent.children.slice(idx + 1);
+          this.page.moveBlocks([model], grandParent, parent, false);
+          if (trailingSiblings.length) {
+            this.page.moveBlocks(trailingSiblings, model, undefined, false);
+          }
+          changed = true;
+        }
+      } else {
+        for (const { line } of parts) {
+          const model = line.model;
+          const parent = model.parent;
+          if (!parent) continue;
+          const idx = parent.children.indexOf(model);
+          if (idx <= 0) continue;
+          const prev = parent.children[idx - 1];
+          if (
+            prev.flavour !== "myoxus:paragraph" &&
+            prev.flavour !== "myoxus:list"
+          )
+            continue;
+          try {
+            const schemas = this.page.schema.flavourSchemaMap;
+            this.page.schema.validateSchema(
+              schemas.get(model.flavour)!,
+              schemas.get(prev.flavour)!,
+            );
+          } catch {
+            continue;
+          }
+          this.page.moveBlocks([model], prev, undefined, false);
+          changed = true;
+        }
+      }
+    });
+    this.page.captureSync();
+    if (changed) {
+      this.after = range;
+      this.refresh();
+    }
+    return changed;
+  }
+  private applyMarkdownPrefix(line: PageLine, prefix: string): boolean {
+    const model = line.model;
+    const parent = model.parent;
+    if (!parent || this.page.hasFixedText(model)) return false;
+
+    const headingMatch = /^(#{1,6})$/.exec(prefix);
+    if (headingMatch && model.flavour === "myoxus:paragraph") {
+      const level = `h${headingMatch[1].length}` as
+        "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+      this.page.captureSync();
+      this.page.transact(() => {
+        line.text.delete(0, prefix.length);
+        this.page.updateBlock(model, { type: level });
+      });
+      this.page.captureSync();
+      const point = { id: model.id, offset: 0 };
+      this.after = { anchor: point, focus: point };
+      this.refresh();
+      return true;
+    }
+
+    const bulletMatch = /^[-*+]$/.test(prefix);
+    const numberMatch = /^([0-9]+)[.)]$/.exec(prefix);
+    const todoMatch = /^\[( |x|X)?\]$/.exec(prefix);
+    if (bulletMatch || numberMatch || todoMatch) {
+      const listType = bulletMatch
+        ? "bulleted"
+        : numberMatch
+          ? "numbered"
+          : "todo";
+      const listProps: Record<string, unknown> = { type: listType };
+      if (numberMatch) listProps.order = Number(numberMatch[1]);
+      if (todoMatch) listProps.checked = /x/i.test(todoMatch[1] ?? "");
+
+      let targetId = model.id;
+      this.page.captureSync();
+      this.page.transact(() => {
+        line.text.delete(0, prefix.length);
+        if (model.flavour === "myoxus:list") {
+          this.page.updateBlock(model, listProps);
+        } else {
+          const idx = parent.children.indexOf(model);
+          listProps.text = new Text(line.text.toDelta() as DeltaInsert[]);
+          targetId = this.page.addBlock("myoxus:list", listProps, parent, idx);
+          const created = this.page.getModelById(targetId);
+          if (created && model.children.length) {
+            this.page.moveBlocks(model.children, created, undefined, false);
+          }
+          this.page.deleteBlock(model);
+        }
+      });
+      this.page.captureSync();
+      const point = { id: targetId, offset: 0 };
+      this.after = { anchor: point, focus: point };
+      this.refresh();
+      return true;
+    }
+
+    const codeMatch = /^```(.*)$/.exec(prefix);
+    if (codeMatch && this.page.schema.flavourSchemaMap.has("myoxus:code")) {
+      const language = codeMatch[1].trim() || "Plain Text";
+      let codeId = "";
+      this.page.captureSync();
+      this.page.transact(() => {
+        line.text.delete(0, prefix.length);
+        const remaining = line.text.toString();
+        const idx = parent.children.indexOf(model);
+        codeId = this.page.addBlock(
+          "myoxus:code",
+          { language, text: new Text(remaining) },
+          parent,
+          idx,
+        );
+        if (model.children.length === 0) {
+          this.page.deleteBlock(model);
+        }
+      });
+      this.page.captureSync();
+      this.refresh();
+      if (codeId) {
+        requestAnimationFrame(() => {
+          this.root
+            .querySelector<HTMLElement>(
+              `[data-block-id="${CSS.escape(codeId)}"] textarea, [data-block-id="${CSS.escape(codeId)}"]`,
+            )
+            ?.focus({ preventScroll: true });
+        });
+      }
+      return true;
+    }
+
+    return false;
   }
   private quoteBreak(range: PageRange, soft: boolean) {
     if (range.anchor.id !== range.focus.id) return false;
@@ -504,6 +1085,74 @@ export class PageInteraction {
     this.after = { anchor: point, focus: point };
     this.refresh();
     return true;
+  }
+  private softLineBreak(range: PageRange): boolean {
+    if (range.anchor.id !== range.focus.id) return false;
+    const line = this.lines().find((l) => l.model.id === range.focus.id);
+    if (
+      !line ||
+      line.kind === "title" ||
+      !this.canWrite() ||
+      this.page.hasFixedText(line.model)
+    )
+      return false;
+    const from = Math.min(range.anchor.offset, range.focus.offset);
+    const to = Math.max(range.anchor.offset, range.focus.offset);
+    this.page.captureSync();
+    this.page.transact(() => {
+      if (to > from) line.text.delete(from, to - from);
+      line.text.insert(from, "\n");
+    });
+    this.page.captureSync();
+    const point = { id: line.model.id, offset: from + 1 };
+    this.after = { anchor: point, focus: point };
+    this.refresh();
+    return true;
+  }
+  private exitEmptyListOrHeading(line: PageLine): boolean {
+    if (!this.canWrite() || this.page.hasFixedText(line.model)) return false;
+    if (line.model.flavour === "myoxus:list") {
+      if (line.depth > 0) {
+        const point = { id: line.model.id, offset: 0 };
+        return this.indentRange({ anchor: point, focus: point }, true);
+      }
+      const parent = line.model.parent;
+      if (!parent) return false;
+      const idx = parent.children.indexOf(line.model);
+      let nextId = "";
+      this.page.captureSync();
+      this.page.transact(() => {
+        nextId = this.page.addBlock(
+          "myoxus:paragraph",
+          {
+            type: "text",
+            text: new Text(line.text.toDelta() as DeltaInsert[]),
+          },
+          parent,
+          idx,
+        );
+        const created = this.page.getModelById(nextId);
+        if (created && line.model.children.length) {
+          this.page.moveBlocks(line.model.children, created, undefined, false);
+        }
+        this.page.deleteBlock(line.model);
+      });
+      this.page.captureSync();
+      const point = { id: nextId, offset: 0 };
+      this.after = { anchor: point, focus: point };
+      this.refresh();
+      return true;
+    }
+    if (line.heading || line.kind === "quote") {
+      this.page.captureSync();
+      this.page.updateBlock(line.model, { type: "text" });
+      this.page.captureSync();
+      const point = { id: line.model.id, offset: 0 };
+      this.after = { anchor: point, focus: point };
+      this.refresh();
+      return true;
+    }
+    return false;
   }
   markActive(key: string) {
     const range = this.current && resolveBookmark(this.page, this.current);
@@ -631,7 +1280,10 @@ export class PageInteraction {
     if (!this.canWrite() || !this.current) return;
     const range = resolveBookmark(this.page, this.current);
     if (!range) return;
-    const parts = segments(this.lines(), range);
+    const parts = segments(this.lines(), range).filter(
+      (part) => !this.page.hasFixedText(part.line.model),
+    );
+    if (!parts.length) return;
     const attrs = {
       [key]: value === undefined ? (this.markActive(key) ? null : true) : value,
     };
@@ -684,6 +1336,9 @@ export class PageInteraction {
     }
     if (
       !this.root.contains(e.target as Node) ||
+      (e.target as Element)?.closest?.(
+        "[contenteditable=false][data-block-id]",
+      ) ||
       !(e.target as Element).closest("[data-page-text],[data-page-body]") ||
       e.isComposing ||
       !this.canWrite()
@@ -701,16 +1356,15 @@ export class PageInteraction {
     ) {
       const line = this.lines().find((l) => l.model.id === range.focus.id);
       if (
-        line?.kind === "quote" &&
+        line &&
         e.key === "Backspace" &&
-        range.focus.offset === 0
+        range.focus.offset === 0 &&
+        (line.kind === "quote" ||
+          Boolean(line.heading) ||
+          line.model.flavour === "myoxus:list")
       ) {
         e.preventDefault();
-        this.page.captureSync();
-        this.page.updateBlock(line.model, { type: "text" });
-        this.page.captureSync();
-        this.after = range;
-        this.refresh();
+        this.exitEmptyListOrHeading(line);
         return;
       }
       const backwards = e.key === "Backspace" || e.key === "ArrowUp";
@@ -725,28 +1379,13 @@ export class PageInteraction {
           siblings?.[siblings.indexOf(line.model) + (backwards ? -1 : 1)];
         if (
           adjacent &&
-          !["myoxus:paragraph", "myoxus:list", "myoxus:divider"].includes(
-            adjacent.flavour,
-          )
+          !["myoxus:paragraph", "myoxus:list"].includes(adjacent.flavour)
         ) {
-          // Navigation/deletion at a report boundary belongs to block
-          // selection, never to the text line on the other side of the report.
-          e.preventDefault();
-          this.transfer({
-            kind: "key",
-            key: e.key,
-            code: e.code,
-            ctrlKey: false,
-            altKey: false,
-            metaKey: false,
-            shiftKey: false,
-          });
-          return;
-        }
-        if (adjacent?.flavour === "myoxus:divider") {
-          const el = this.root.querySelector<HTMLElement>(
-            `[data-page-divider="${CSS.escape(adjacent.id)}"]`,
-          );
+          const selector =
+            adjacent.flavour === "myoxus:divider"
+              ? `[data-page-divider="${CSS.escape(adjacent.id)}"]`
+              : `[data-block-id="${CSS.escape(adjacent.id)}"]`;
+          const el = this.root.querySelector<HTMLElement>(selector);
           if (el) {
             e.preventDefault();
             el.focus();
@@ -770,47 +1409,54 @@ export class PageInteraction {
       }
       return;
     }
-    if (
-      e.key === "Tab" ||
-      ((e.ctrlKey || e.metaKey) &&
-        ["k", "e", "Enter", "[", "]"].includes(
-          e.key.length === 1 ? e.key.toLowerCase() : e.key,
-        ))
-    ) {
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        e.key === "Enter" &&
-        range &&
-        this.quoteBreak(range, true)
-      ) {
+    if (e.key === "Tab" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (range) {
         e.preventDefault();
-        return;
+        this.indentRange(range, e.shiftKey);
       }
-      e.preventDefault();
-      this.transfer({
-        kind: "key",
-        key: e.key,
-        code: e.code,
-        altKey: e.altKey,
-        shiftKey: e.shiftKey,
-        ctrlKey: e.ctrlKey,
-        metaKey: e.metaKey,
-      });
       return;
     }
     if (e.ctrlKey || e.metaKey) {
-      const key = e.key.toLowerCase();
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       if (key === "z" || key === "y") {
         e.preventDefault();
         key === "y" || e.shiftKey ? this.page.redo() : this.page.undo();
-      } else if (["b", "i", "u"].includes(key)) {
+      } else if (["b", "i", "u", "e"].includes(key)) {
         e.preventDefault();
         this.remember();
         this.format(
           (
-            { b: "bold", i: "italic", u: "underline" } as Record<string, string>
+            {
+              b: "bold",
+              i: "italic",
+              u: "underline",
+              e: "code",
+            } as Record<string, string>
           )[key],
         );
+      } else if (key === "[" || key === "]") {
+        if (range) {
+          e.preventDefault();
+          this.indentRange(range, key === "[");
+        }
+      } else if (key === "k") {
+        e.preventDefault();
+        this.remember();
+        this.callbacks?.openInlineLink?.();
+      } else if (key === "Enter" && range) {
+        if (this.quoteBreak(range, true)) {
+          e.preventDefault();
+          return;
+        }
+        const line = this.lines().find((l) => l.model.id === range.focus.id);
+        if (line?.kind === "todo") {
+          e.preventDefault();
+          this.page.captureSync();
+          this.page.updateBlock(line.model, { checked: !line.checked });
+          this.page.captureSync();
+          this.after = range;
+          this.refresh();
+        }
       }
     }
   };
@@ -837,6 +1483,12 @@ export class PageInteraction {
     e.preventDefault();
     if (!range || !this.canWrite()) return;
     const lines = this.lines();
+    if (
+      segments(lines, range).some((part) =>
+        this.page.hasFixedText(part.line.model),
+      )
+    )
+      return;
     switch (e.inputType) {
       case "insertText":
       case "insertReplacementText": {
@@ -845,164 +1497,191 @@ export class PageInteraction {
           (e.data === "/" || e.data === "、") &&
           range.focus.id !== this.page.root?.id
         ) {
-          if (this.write(range, e.data) && this.after) {
-            if (this.slash) {
-              const at = {
-                id: this.after.focus.id,
-                offset: Math.max(0, this.after.focus.offset - e.data.length),
-              };
-              const start = bookmark(this.lines(), { anchor: at, focus: at });
-              if (start) {
-                this.slash({ start, trigger: e.data });
-                break;
-              }
-            } else {
-              this.current = bookmark(lines, this.after) ?? undefined;
-              this.after = undefined;
-              if (this.current)
-                this.handoff(this.current, {
-                  kind: "slash",
-                  trigger: e.data,
-                  start: this.current,
-                });
-            }
-          }
-        } else {
-          const line = lines.find((l) => l.model.id === range.focus.id);
-          const prefix =
-            line?.text.toString().slice(0, range.focus.offset) ?? "";
-          const trigger =
-            e.data === "@"
-              ? "@"
-              : e.data === "[" && prefix.endsWith("[")
-                ? "[["
-                : e.data === "【" && prefix.endsWith("【")
-                  ? "【【"
-                  : undefined;
-          if (
-            trigger &&
-            line &&
-            line.kind !== "title" &&
-            range.anchor.id === range.focus.id &&
-            range.anchor.offset === range.focus.offset &&
-            !prefix.includes("%%")
-          ) {
+          if (this.write(range, e.data) && this.after && this.slash) {
             const at = {
-              id: line.model.id,
-              offset: range.focus.offset - (trigger.length - 1),
+              id: this.after.focus.id,
+              offset: Math.max(0, this.after.focus.offset - e.data.length),
             };
-            const start = bookmark(lines, { anchor: at, focus: at });
-            if (start && this.write(range, e.data)) {
-              this.picker({ start, trigger });
-              break;
+            const start = bookmark(this.lines(), { anchor: at, focus: at });
+            if (start) {
+              this.slash({ start, trigger: e.data });
             }
           }
-          if (
-            line?.kind === "text" &&
-            !line.eyebrow &&
-            e.data === " " &&
-            prefix === ">" &&
-            range.anchor.id === range.focus.id &&
-            range.anchor.offset === range.focus.offset &&
-            !this.page.hasFixedText(line.model)
-          ) {
-            this.page.captureSync();
-            this.page.transact(() => {
-              line.text.delete(0, 1);
-              this.page.updateBlock(line.model, { type: "quote" });
-            });
-            this.page.captureSync();
-            const point = { id: line.model.id, offset: 0 };
-            this.after = { anchor: point, focus: point };
-            this.refresh();
-            break;
-          }
-          if (
-            line?.kind === "text" &&
-            e.data === " " &&
-            /^(-{3,}|\*{3,}|_{3,})$/.test(prefix) &&
-            range.anchor.id === range.focus.id &&
-            range.anchor.offset === range.focus.offset &&
-            !this.page.hasFixedText(line.model) &&
-            line.model.parent
-          ) {
-            const parent = line.model.parent;
-            this.page.captureSync();
-            this.page.transact(() => {
-              this.page.addBlock(
-                "myoxus:divider",
-                {},
-                parent,
-                parent.children.indexOf(line.model),
-              );
-              line.text.delete(0, prefix.length);
-            });
-            this.page.captureSync();
-            const point = { id: line.model.id, offset: 0 };
-            this.after = { anchor: point, focus: point };
-            this.refresh();
-            break;
-          }
-          // Let the established shortcut/reference owners consume their actual
-          // triggering input once, rather than inserting a second marker.
-          if (
-            (line?.kind !== "title" &&
-              (trigger ||
-                (e.data === "%" && prefix.endsWith("%")) ||
-                (e.data === "[" && prefix.endsWith("[")) ||
-                (e.data === " " &&
-                  /^(?:#{1,6}|[-*+>]|[0-9]+[.)]|\[[ x]?\]|```.*)$/.test(
-                    prefix,
-                  )))) ||
-            !this.write(range, e.data)
-          )
-            this.transfer({
-              kind: "input",
-              inputType: e.inputType,
-              data: e.data,
-            });
+          break;
         }
+        const line = lines.find((l) => l.model.id === range.focus.id);
+        const prefix = line?.text.toString().slice(0, range.focus.offset) ?? "";
+        const collapsed =
+          range.anchor.id === range.focus.id &&
+          range.anchor.offset === range.focus.offset;
+        const trigger =
+          e.data === "@"
+            ? "@"
+            : e.data === "[" && prefix.endsWith("[")
+              ? "[["
+              : e.data === "【" && prefix.endsWith("【")
+                ? "【【"
+                : undefined;
+        if (
+          trigger &&
+          line &&
+          line.kind !== "title" &&
+          collapsed &&
+          !prefix.includes("%%")
+        ) {
+          const at = {
+            id: line.model.id,
+            offset: range.focus.offset - (trigger.length - 1),
+          };
+          const start = bookmark(lines, { anchor: at, focus: at });
+          if (start && this.write(range, e.data)) {
+            this.picker({ start, trigger });
+            break;
+          }
+        }
+        if (
+          line &&
+          line.kind !== "title" &&
+          collapsed &&
+          e.data === "%" &&
+          prefix.endsWith("%") &&
+          this.callbacks?.openTemplateVariable
+        ) {
+          const from = range.focus.offset - 1;
+          this.page.captureSync();
+          this.page.transact(() => line.text.delete(from, 1));
+          this.page.captureSync();
+          const point = { id: line.model.id, offset: from };
+          this.after = { anchor: point, focus: point };
+          this.refresh();
+          this.callbacks.openTemplateVariable({
+            blockId: line.model.id,
+            from,
+            to: from,
+          });
+          break;
+        }
+        if (
+          line?.kind === "text" &&
+          !line.eyebrow &&
+          e.data === " " &&
+          prefix === ">" &&
+          collapsed
+        ) {
+          this.page.captureSync();
+          this.page.transact(() => {
+            line.text.delete(0, 1);
+            this.page.updateBlock(line.model, { type: "quote" });
+          });
+          this.page.captureSync();
+          const point = { id: line.model.id, offset: 0 };
+          this.after = { anchor: point, focus: point };
+          this.refresh();
+          break;
+        }
+        if (
+          line?.kind === "text" &&
+          e.data === " " &&
+          /^(-{3,}|\*{3,}|_{3,})$/.test(prefix) &&
+          collapsed &&
+          line.model.parent
+        ) {
+          const parent = line.model.parent;
+          this.page.captureSync();
+          this.page.transact(() => {
+            this.page.addBlock(
+              "myoxus:divider",
+              {},
+              parent,
+              parent.children.indexOf(line.model),
+            );
+            line.text.delete(0, prefix.length);
+          });
+          this.page.captureSync();
+          const point = { id: line.model.id, offset: 0 };
+          this.after = { anchor: point, focus: point };
+          this.refresh();
+          break;
+        }
+        if (
+          line?.kind === "text" &&
+          !line.eyebrow &&
+          !line.heading &&
+          e.data === " " &&
+          collapsed &&
+          /^(?:#{1,6}|[-*+]|[0-9]+[.)]|\[[ xX]?\]|```.*)$/.test(prefix) &&
+          this.applyMarkdownPrefix(line, prefix)
+        ) {
+          break;
+        }
+        this.write(range, e.data);
         break;
       }
       case "insertParagraph":
-      case "insertLineBreak":
-        {
-          if (this.quoteBreak(range, e.inputType === "insertLineBreak")) break;
-          this.page.captureSync();
-          const line = lines.find((l) => l.model.id === range.focus.id);
-          if (
-            e.inputType === "insertLineBreak" ||
-            (line &&
-              line.kind !== "title" &&
-              line.kind !== "text" &&
-              !line.text.length) ||
-            !this.write(range, "\n")
-          )
-            this.transfer({
-              kind: "key",
-              key: "Enter",
-              code: "Enter",
-              shiftKey: e.inputType === "insertLineBreak",
-              altKey: false,
-              ctrlKey: false,
-              metaKey: false,
-            });
-          this.page.captureSync();
+      case "insertLineBreak": {
+        if (this.quoteBreak(range, e.inputType === "insertLineBreak")) break;
+        if (e.inputType === "insertLineBreak") {
+          this.softLineBreak(range);
+          break;
         }
+        const line = lines.find((l) => l.model.id === range.focus.id);
+        if (
+          line &&
+          line.kind !== "title" &&
+          line.kind !== "text" &&
+          !line.text.length &&
+          range.anchor.id === range.focus.id &&
+          range.anchor.offset === range.focus.offset
+        ) {
+          this.exitEmptyListOrHeading(line);
+          break;
+        }
+        this.page.captureSync();
+        if (!this.write(range, "\n") && line && line.kind !== "title") {
+          // If splitting a block with children or a callout line, insert a
+          // sibling/child paragraph directly on Store instead of dropping Enter.
+          const parent = line.model.parent;
+          if (parent) {
+            const from = Math.min(range.anchor.offset, range.focus.offset);
+            const to = Math.max(range.anchor.offset, range.focus.offset);
+            let nextId = "";
+            this.page.transact(() => {
+              const tailDelta = sliceYTextDelta(
+                line.text,
+                to,
+                line.text.length - to,
+              );
+              line.text.delete(from, line.text.length - from);
+              const targetParent =
+                line.model.flavour === "myoxus:callout" ||
+                line.model.children.length
+                  ? line.model
+                  : parent;
+              const targetIndex =
+                targetParent === line.model
+                  ? 0
+                  : parent.children.indexOf(line.model) + 1;
+              nextId = this.page.addBlock(
+                "myoxus:paragraph",
+                { text: new Text(tailDelta as DeltaInsert[]) },
+                targetParent,
+                targetIndex,
+              );
+            });
+            const point = { id: nextId, offset: 0 };
+            this.after = { anchor: point, focus: point };
+            this.refresh();
+          }
+        }
+        this.page.captureSync();
         break;
+      }
       case "deleteContentBackward":
       case "deleteContentForward":
-        if (
-          !this.write(
-            deletionRange(
-              lines,
-              range,
-              e.inputType === "deleteContentBackward",
-            ),
-            "",
-          )
-        )
-          this.transfer({ kind: "input", inputType: e.inputType, data: null });
+        this.write(
+          deletionRange(lines, range, e.inputType === "deleteContentBackward"),
+          "",
+        );
         break;
       case "deleteWordBackward":
       case "deleteWordForward":
@@ -1010,8 +1689,7 @@ export class PageInteraction {
       case "deleteSoftLineForward":
       case "deleteHardLineBackward":
       case "deleteHardLineForward":
-        if (!this.write(range, ""))
-          this.transfer({ kind: "input", inputType: e.inputType, data: null });
+        this.write(range, "");
         break;
       case "historyUndo":
         this.page.undo();
@@ -1028,7 +1706,11 @@ export class PageInteraction {
     }
   };
   private cut = (e: ClipboardEvent) => {
-    if (this.transferMixedClipboard(e, "cut")) return;
+    if (
+      (e.target as Element)?.closest?.("[contenteditable=false][data-block-id]")
+    )
+      return;
+    if (this.handleMixedClipboard(e, "cut")) return;
     if (this.selectedDivider()) {
       this.copyBlock(e);
       if (e.defaultPrevented) this.leaveDivider(1, true);
@@ -1036,16 +1718,27 @@ export class PageInteraction {
     }
     const range = readPageRange(this.root);
     if (!range || !e.clipboardData || !this.canWrite()) return;
+    if (
+      segments(this.lines(), range).some((part) =>
+        this.page.hasFixedText(part.line.model),
+      )
+    ) {
+      e.preventDefault();
+      return;
+    }
     e.preventDefault();
     const r = document.getSelection()!.getRangeAt(0);
     const container = document.createElement("div");
     container.append(r.cloneContents());
     e.clipboardData.setData("text/plain", document.getSelection()!.toString());
     e.clipboardData.setData("text/html", container.innerHTML);
-    if (!this.write(range, ""))
-      this.transfer({ kind: "input", inputType: "deleteByCut", data: null });
+    this.write(range, "");
   };
   private paste = (e: ClipboardEvent) => {
+    if (
+      (e.target as Element)?.closest?.("[contenteditable=false][data-block-id]")
+    )
+      return;
     const block = this.selectedDivider();
     if (block && e.clipboardData) {
       e.preventDefault();
@@ -1057,20 +1750,92 @@ export class PageInteraction {
       range = readPageRange(this.root);
     if (!data || !range) return;
     e.preventDefault();
-    if (!this.canWrite()) return;
+    const lines = this.lines();
+    const parts = segments(lines, range);
     if (
-      data.types.some((t) => t !== "text/plain") ||
-      !this.write(range, data.getData("text/plain"))
-    ) {
-      const copy = new DataTransfer();
-      for (const type of data.types) {
-        if (type !== "Files") copy.setData(type, data.getData(type));
+      !this.canWrite() ||
+      parts.some((part) => this.page.hasFixedText(part.line.model))
+    )
+      return;
+    const focusLine = lines.find((l) => l.model.id === range.focus.id);
+    if (data.files.length && focusLine && focusLine.kind !== "title") {
+      void pasteAfterPageBlock(focusLine.model, data).catch(console.error);
+      return;
+    }
+    const html = data.getData("text/html");
+    const hasVirgultumSnapshot =
+      html.includes("data-virgultum-snapshot=") ||
+      data.types.includes("VIRGULTUM/SNAPSHOT");
+    if (hasVirgultumSnapshot && focusLine && focusLine.kind !== "title") {
+      const targetParent = focusLine.model.parent;
+      if (targetParent) {
+        const types = Array.from(data.types);
+        const values = new Map(types.map((type) => [type, data.getData(type)]));
+        const insertIndex = targetParent.children.indexOf(focusLine.model) + 1;
+        const signal = this.stop.signal;
+        void import("./page-block-copy")
+          .then(({ pastePageClipboard }) =>
+            pastePageClipboard(
+              { types, values },
+              this.page,
+              this.framework,
+              targetParent.id,
+              insertIndex,
+              signal,
+            ),
+          )
+          .then(() => {
+            if (!signal.aborted) this.refresh();
+          })
+          .catch((error) => {
+            if (!signal.aborted) console.error(error);
+          });
+        return;
       }
-      for (const f of data.files) copy.items.add(f);
-      this.transfer({ kind: "paste", data: copy });
+    }
+    const plain = data.getData("text/plain");
+    if (!plain) return;
+    const trimmed = plain.trim();
+    const nonCollapsed =
+      range.anchor.id !== range.focus.id ||
+      range.anchor.offset !== range.focus.offset;
+    if (
+      nonCollapsed &&
+      trimmed &&
+      !trimmed.includes("\n") &&
+      isValidUrl(trimmed) &&
+      focusLine?.kind !== "title"
+    ) {
+      this.current = bookmark(lines, range) ?? undefined;
+      if (this.applyLink(trimmed)) return;
+    }
+    if (!this.write(range, plain) && focusLine) {
+      // Fallback for blocks with children where multi-line split is restricted.
+      const singleLine = plain.replace(/\r?\n/g, " ");
+      const from = Math.min(range.anchor.offset, range.focus.offset);
+      const to =
+        range.anchor.id === range.focus.id
+          ? Math.max(range.anchor.offset, range.focus.offset)
+          : from;
+      this.page.captureSync();
+      this.page.transact(() => {
+        if (to > from) focusLine.text.delete(from, to - from);
+        focusLine.text.insert(from, singleLine, this.marks);
+      });
+      this.page.captureSync();
+      const point = {
+        id: focusLine.model.id,
+        offset: from + singleLine.length,
+      };
+      this.after = { anchor: point, focus: point };
+      this.refresh();
     }
   };
-  private start = () => {
+  private start = (e: CompositionEvent) => {
+    if (
+      (e.target as Element)?.closest?.("[contenteditable=false][data-block-id]")
+    )
+      return;
     const s = readPageRange(this.root);
     if (!s || !this.canWrite()) return;
     const field = this.root.querySelector<HTMLElement>(

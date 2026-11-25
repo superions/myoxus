@@ -43,6 +43,7 @@ export class AddButton extends NativeViewElement {
   }
 
   private suppressDragClick = false;
+  private dragAbortController: AbortController | null = null;
 
   columnDragging$ = signal(false);
   rowDragging$ = signal(false);
@@ -176,7 +177,14 @@ export class AddButton extends NativeViewElement {
         }
       }
     };
+    this.dragAbortController?.abort();
+    const abortController = new AbortController();
+    this.dragAbortController = abortController;
     const onMouseUp = () => {
+      abortController.abort();
+      if (this.dragAbortController === abortController) {
+        this.dragAbortController = null;
+      }
       this.columnDragging$.value = false;
       this.rowDragging$.value = false;
       this.rowColumnDragging$.value = false;
@@ -186,14 +194,20 @@ export class AddButton extends NativeViewElement {
       this.suppressDragClick = rowCount !== 0 || columnCount !== 0;
       this.dataManager.virtualColumnCount$.value = 0;
       this.dataManager.virtualRowCount$.value = 0;
-      this.dataManager.addNRow(rowCount);
-      this.dataManager.addNColumn(columnCount);
-
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+      if (this.isConnected) {
+        this.dataManager.addNRow(rowCount);
+        this.dataManager.addNColumn(columnCount);
+      }
     };
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("mousemove", onMouseMove, {
+      signal: abortController.signal,
+    });
+    window.addEventListener("mouseup", onMouseUp, {
+      signal: abortController.signal,
+    });
+    window.addEventListener("blur", onMouseUp, {
+      signal: abortController.signal,
+    });
   }
 
   private createControlState(kind: "column" | "row" | "row-column") {
@@ -292,7 +306,7 @@ export class AddButton extends NativeViewElement {
     });
     this.disposables.addFromEvent(this, "click", (event: MouseEvent) => {
       const target = event.target;
-      if (!(target instanceof Element)) return;
+      if (!(target instanceof Element) || target.closest("button")) return;
       const edge = target.closest(".column-add, .row-add, .row-column-add");
       if (!edge) return;
       event.preventDefault();
@@ -309,6 +323,8 @@ export class AddButton extends NativeViewElement {
   }
 
   disconnectedCallback(): void {
+    this.dragAbortController?.abort();
+    this.dragAbortController = null;
     this.disposables.dispose();
     this.replaceChildren();
   }

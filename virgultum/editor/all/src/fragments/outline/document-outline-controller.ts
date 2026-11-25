@@ -4,17 +4,7 @@
 import { computed, signal, type ReadonlySignal } from "@preact/signals-core";
 import { changeNoteDisplayMode } from "@virgultum/embeds/blocks";
 import { Bound } from "@virgultum/core/primitives/gfx";
-import {
-  AttachmentBlockModel,
-  BookmarkBlockModel,
-  CodeBlockModel,
-  ImageBlockModel,
-  ListBlockModel,
-  NoteBlockModel,
-  NoteDisplayMode,
-  ParagraphBlockModel,
-  RootBlockModel,
-} from "@virgultum/core/models";
+import { NoteBlockModel, NoteDisplayMode } from "@virgultum/core/models";
 import {
   DocDisplayMetaProvider,
   DocEmbedProvider,
@@ -26,8 +16,11 @@ import {
   type EditorOutlineEntry,
   type EditorOutlineState,
 } from "@virgultum/core/services";
-import { focusTitle, matchModels } from "@virgultum/core/utils";
-import type { MyoxusTextAttributes } from "@virgultum/core/types";
+import {
+  describeOutlineBlockFromStore,
+  focusTitle,
+  matchModels,
+} from "@virgultum/core/utils";
 import {
   BlockSelection,
   type BlockStdScope,
@@ -57,101 +50,39 @@ export function describeOutlineBlock(
   std: BlockStdScope,
   titles = new Map<string, ReadonlySignal<string>>(),
 ): EditorOutlineEntry | undefined {
-  const message = (key: string, fallback: string) =>
+  const resolveMessage = (key: string, fallback: string) =>
     resolveEditorMessage(
       editorMessage(key, fallback),
       std.getOptional(EditorI18nProvider) ?? undefined,
     );
-  if (matchModels(block, [RootBlockModel])) {
-    const label = block.props.title$.value.deltas$.value
-      .map((delta) => String(delta.insert))
-      .join("");
-    return label
-      ? { id: block.id, label, level: 0, icon: "PageIcon" }
-      : undefined;
-  }
-  if (matchModels(block, [ParagraphBlockModel, ListBlockModel])) {
-    const type = block.props.type$.value;
-    const icons = {
-      text: "TextIcon",
-      quote: "QuoteIcon",
-      h1: "Heading1Icon",
-      h2: "Heading2Icon",
-      h3: "Heading3Icon",
-      h4: "Heading4Icon",
-      h5: "Heading5Icon",
-      h6: "Heading6Icon",
-      bulleted: "BulletedListIcon",
-      numbered: "NumberedListIcon",
-      todo: "CheckBoxCheckLinearIcon",
-      toggle: "BlockIcon",
-    } as const;
-    const segments = block.props.text$.value.deltas$.value.flatMap((delta) => {
-      const reference = (delta.attributes as MyoxusTextAttributes | undefined)
-        ?.reference;
-      if (!reference) return [{ text: String(delta.insert) }];
-      const meta = std.workspace.meta.docMetas.find(
-        (doc) => doc.id === reference.pageId,
-      );
+  return describeOutlineBlockFromStore(block, {
+    resolveMessage,
+    resolveReference: (pageId, workspaceId) => {
+      const meta = std.workspace.meta.docMetas.find((doc) => doc.id === pageId);
       if (
         !meta ||
         std.getOptional(DocEmbedProvider)?.readable(meta.id).value !== true ||
-        (reference.workspaceId && reference.workspaceId !== std.workspace.id)
-      )
-        return [
-          {
-            text: message(
-              "com.myoxus.reference.target-unavailable",
-              "Target unavailable",
-            ),
-            unavailable: true,
-          },
-        ];
+        (workspaceId && workspaceId !== std.workspace.id)
+      ) {
+        return {
+          text: resolveMessage(
+            "com.myoxus.reference.target-unavailable",
+            "Target unavailable",
+          ),
+          unavailable: true,
+        };
+      }
       let title = titles.get(meta.id);
       if (!title) {
         title = std.get(DocDisplayMetaProvider).title(meta.id);
         titles.set(meta.id, title);
       }
-      return [
-        {
-          text: title.value || message("Untitled", "Untitled"),
-          docId: meta.id,
-        },
-      ];
-    });
-    const label = segments.map((segment) => segment.text).join("");
-    return label.trim()
-      ? {
-          id: block.id,
-          label,
-          segments,
-          level: /^h[1-6]$/.test(type) ? Number(type[1]) - 1 : 0,
-          icon: icons[type],
-        }
-      : undefined;
-  }
-  let label: string, icon: EditorOutlineEntry["icon"];
-  if (matchModels(block, [BookmarkBlockModel])) {
-    label =
-      block.props.title$.value ||
-      block.props.url$.value ||
-      message("Bookmark", "Bookmark");
-    icon = "BookmarkIcon";
-  } else if (matchModels(block, [CodeBlockModel])) {
-    label =
-      block.props.language$.value ||
-      message("com.myoxus.editor.slash.code-block", "Code Block");
-    icon = "CodeBlockIcon";
-  } else if (matchModels(block, [ImageBlockModel])) {
-    label = block.props.caption$.value || message("Image", "Image");
-    icon = "ImageIcon";
-  } else if (matchModels(block, [AttachmentBlockModel])) {
-    label =
-      block.props.name$.value ||
-      message("com.myoxus.editor.slash.attachment", "Attachment");
-    icon = "AttachmentIcon";
-  } else return;
-  return { id: block.id, label, level: 0, icon };
+      return {
+        text: title.value || resolveMessage("Untitled", "Untitled"),
+        docId: meta.id,
+      };
+    },
+  });
 }
 
 /** One lazy, subscription-owned scope serves the sidebar and standalone editor mounts. */

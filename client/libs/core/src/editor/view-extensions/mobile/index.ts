@@ -1,4 +1,3 @@
-import { KeyboardToolbarExtension } from "@myoxus/core/editor/view-extensions/mobile/keyboard-toolbar-extension";
 import { MobileFeatureFlagControl } from "@myoxus/core/editor/view-extensions/mobile/mobile-feature-flag-control";
 import { FrameworkProvider } from "@myoxus/infra";
 import {
@@ -22,11 +21,6 @@ export class MobileViewExtension extends ViewExtensionProvider<MobileViewOptions
     super.setup(context, options);
     const isMobile = BUILD_CONFIG.isMobileEdition;
     if (!isMobile) return;
-
-    const framework = options?.framework;
-    if (framework) {
-      context.register(KeyboardToolbarExtension(framework));
-    }
 
     context.register(MobileFeatureFlagControl);
   }

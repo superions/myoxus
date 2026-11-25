@@ -192,7 +192,9 @@ export default function PageInline({
       readonly ||
       store.readonly ||
       range.body !== expected ||
-      store.hasFixedText(model)
+      (model.flavour === "myoxus:table"
+        ? Boolean(field.closest('[data-cell-protected="fixed"]'))
+        : store.hasFixedText(model))
     )
       return false;
     if (body === expected) return true;

@@ -11,14 +11,17 @@ function readSource(path: string) {
 
 const OUTLINE_FILES = [
   "client/libs/core/src/desktop/pages/workspace/detail-page/sidecards/outline.tsx",
-  "client/libs/core/src/editor/outline-viewer/index.tsx",
+  "client/libs/core/src/editor/virgultum/doc-editor/page-outline-controller.ts",
+  "client/libs/core/src/editor/outline-viewer/editor-outline-viewer.tsx",
 ] as const;
 
 describe("Virgultum outline parity", () => {
-  test("keeps every outline consumer backed by the Virgultum outline model", () => {
+  test("keeps every outline consumer backed by the shared Store outline model and retires MIT outline-viewer", () => {
     for (const removedPath of [
       "client/libs/core/src/editor/outline-viewer/outline-viewer.css",
       "client/libs/core/src/editor/outline-viewer/outline-viewer.styles.ts",
+      "client/libs/core/src/editor/outline-viewer/index.tsx",
+      "virgultum/editor/all/src/fragments/outline/outline-viewer.ts",
     ]) {
       expect(existsSync(resolve(process.cwd(), removedPath)), removedPath).toBe(
         false,
@@ -35,16 +38,24 @@ describe("Virgultum outline parity", () => {
     expect(facadeCss).toContain("@container viewport (width <= 48em)");
     expect(facadeCss).not.toContain("@container (width <= 640px)");
 
+    const pageController = readSource(
+      "client/libs/core/src/editor/virgultum/doc-editor/page-outline-controller.ts",
+    );
+    const viewer = readSource(
+      "client/libs/core/src/editor/outline-viewer/editor-outline-viewer.tsx",
+    );
+    const sidebar = readSource(
+      "client/libs/core/src/desktop/pages/workspace/detail-page/sidecards/outline.tsx",
+    );
+
+    expect(pageController).toContain("@virgultum/core/utils");
+    expect(viewer).toContain("@virgultum/core/utils");
+    expect(viewer).toContain("TableOfContents");
+    expect(viewer).toContain("Popover");
+    expect(sidebar).not.toContain("requireEditorHost");
+
     for (const file of OUTLINE_FILES) {
       const source = readSource(file);
-      expect(
-        source,
-        `${file} must keep the editor-model outline source`,
-      ).toContain("@virgultum/editor/fragments/outline");
-      expect(
-        source,
-        `${file} must not replace editor outline logic with DOM scroll-spy`,
-      ).not.toContain("TableOfContents");
       expect(
         source,
         `${file} must not import raw Mantine into product outline code`,
@@ -74,7 +85,7 @@ describe("Virgultum outline parity", () => {
       "client/libs/core/src/modules/peek-view/view/doc-preview/doc-peek-view.tsx",
     );
     const viewer = readSource(
-      "client/libs/core/src/editor/outline-viewer/index.tsx",
+      "client/libs/core/src/editor/outline-viewer/editor-outline-viewer.tsx",
     );
 
     expect(detailPage).not.toContain("EditorOutlineViewer");

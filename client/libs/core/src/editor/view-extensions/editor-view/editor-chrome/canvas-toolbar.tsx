@@ -191,6 +191,7 @@ function EditorCanvasToolbar({
 }: {
   controls: EditorCanvasToolbarControls;
 }) {
+  const overflowMenu = useRef<MenuRef>(null);
   const moreMenu = useRef<MenuRef>(null);
   const t = useI18n();
   // Tool poppers and retained artwork extend beyond the canvas dock bounds.
@@ -234,14 +235,14 @@ function EditorCanvasToolbar({
                 return (
                   <Box component="span">
                     <Menu
-                      ref={moreMenu}
+                      ref={overflowMenu}
                       noPortal
                       items={
                         <SelectionActions
                           actions={menuActions}
                           menu
                           afterAction={() =>
-                            moreMenu.current?.changeOpen(false)
+                            overflowMenu.current?.changeOpen(false)
                           }
                           renderControl={renderControl}
                         />

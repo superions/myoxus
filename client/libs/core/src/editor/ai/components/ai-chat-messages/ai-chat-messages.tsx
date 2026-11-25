@@ -21,6 +21,7 @@ import {
   type CSSProperties,
 } from "react";
 
+import type { PageAiBridge } from "../../../virgultum/doc-editor/page-ai-bridge";
 import { AssistantReply } from "../../chat-panel/message/assistant";
 import { type AIError, AIProvider, UnauthorizedError } from "../../provider";
 import { resolveRetryTarget } from "../../utils/chat-turn";
@@ -52,6 +53,7 @@ export interface AIChatMessagesProps {
   boundedMode?: boolean;
   messages: HistoryMessage[];
   host?: EditorHost | null;
+  pageBridge?: PageAiBridge | null;
   workspaceId: string;
   docId?: string;
   isHistoryLoading: boolean;
@@ -80,6 +82,7 @@ export const AIChatMessages = forwardRef<
     boundedMode,
     messages,
     host,
+    pageBridge,
     workspaceId,
     docId,
     isHistoryLoading,
@@ -473,11 +476,9 @@ export const AIChatMessages = forwardRef<
               : typeof item.params?.inputRequestId === "string"
                 ? item.params.inputRequestId
                 : undefined;
-          const messageKey =
-            item.id ||
-            (requestKey
-              ? `${item.role}:${requestKey}`
-              : `${item.role}:${item.createdAt}:${index}`);
+          const messageKey = requestKey
+            ? `${item.role}:${requestKey}`
+            : item.id || `${item.role}:${item.createdAt}:${index}`;
           if (item.role === "user") {
             return (
               <ChatUserMessage
@@ -499,6 +500,7 @@ export const AIChatMessages = forwardRef<
               retry={isLast ? () => void retry() : undefined}
               sessionId={session?.sessionId}
               host={host}
+              pageBridge={pageBridge}
               notificationService={notificationService}
               independentMode={independentMode}
               docDisplayService={docDisplayService}

@@ -47,7 +47,7 @@ import { WorkspaceDialogService } from "../../../modules/dialogs";
 import { DocsService } from "../../../modules/doc";
 import { FeatureFlagService } from "../../../modules/feature-flag";
 import { GraphQLService } from "../../../modules/server/services/graphql";
-import { useBuildingBlockPicker } from "../../../modules/template-doc/view/building-block-picker";
+import type { useBuildingBlockPicker } from "../../../modules/template-doc/view/building-block-picker";
 import { ViewService } from "../../../modules/workbench";
 import { WorkspaceService } from "../../../modules/workspace";
 import { DatabasePagesService } from "../../../modules/workspace-pages/database-pages-service";
@@ -176,6 +176,8 @@ export default function PageSlash({
   start,
   root,
   enableAI,
+  openBuildingBlockPicker,
+  insertNamedBuildingBlock,
   close,
 }: {
   owner: PageInteraction;
@@ -183,6 +185,12 @@ export default function PageSlash({
   start: PickerStart;
   root: HTMLElement;
   enableAI: boolean;
+  openBuildingBlockPicker: ReturnType<
+    typeof useBuildingBlockPicker
+  >["openBuildingBlockPicker"];
+  insertNamedBuildingBlock: ReturnType<
+    typeof useBuildingBlockPicker
+  >["insertNamedBuildingBlock"];
   close: () => void;
 }) {
   const t = useI18n();
@@ -205,11 +213,6 @@ export default function PageSlash({
 
   const { openTemplateVariablePicker, templateVariablePicker } =
     useTemplateVariablePicker();
-  const {
-    openBuildingBlockPicker,
-    insertNamedBuildingBlock,
-    buildingBlockPicker,
-  } = useBuildingBlockPicker();
 
   const editorI18n = useMemo(
     () => new DefaultEditorI18nService(configureEditorI18n()),
@@ -361,9 +364,30 @@ export default function PageSlash({
             });
           })().catch(console.error);
         },
-        openAttachmentUpload: () => {
+        openAttachmentUpload: (pdfOnly) => {
           void (async () => {
-            const file = await openSingleFileWith();
+            const file = pdfOnly
+              ? await new Promise<File | null>((resolve) => {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.accept = "application/pdf,.pdf";
+                  input.style.display = "none";
+                  document.body.append(input);
+                  input.addEventListener("change", () => {
+                    input.remove();
+                    resolve(input.files?.[0] ?? null);
+                  });
+                  input.addEventListener("cancel", () => {
+                    input.remove();
+                    resolve(null);
+                  });
+                  if ("showPicker" in HTMLInputElement.prototype) {
+                    input.showPicker();
+                  } else {
+                    input.click();
+                  }
+                })
+              : await openSingleFileWith();
             if (!file || page.readonly || page.getModelById(model.id) !== model)
               return;
             if (file.size > attachmentFileLimit.maxFileSize) {
@@ -374,8 +398,11 @@ export default function PageSlash({
             insertBlockAfter(model, "myoxus:attachment", {
               name: file.name,
               size: file.size,
-              type: file.type || "application/octet-stream",
+              type:
+                file.type ||
+                (pdfOnly ? "application/pdf" : "application/octet-stream"),
               sourceId,
+              ...(pdfOnly ? { embed: true } : {}),
             });
           })().catch(console.error);
         },
@@ -454,8 +481,6 @@ export default function PageSlash({
               root,
               (id, caret) => owner.focusPoint(id, caret ?? 0),
             );
-            hasModalRef.current = true;
-            setHoldingPicker(true);
             openBuildingBlockPicker(target);
           } catch {
             notify.error({
@@ -482,17 +507,19 @@ export default function PageSlash({
           }
         },
         openTaskCardCreate: () => {
-          // Lazily reuse the existing server task-card creation flow on an
-          // ephemeral BlockStdScope only when the user invokes this action.
           void (async () => {
-            const [{ BlockStdScope }, { openTaskCardCreation }] =
-              await Promise.all([
-                import("@virgultum/core/runtime"),
-                import("../../../modules/database/tasks/create-task-card"),
-              ]);
-            const std = new BlockStdScope({ store: page, extensions: [] });
-            await openTaskCardCreation(framework, { std, model });
-            std.unmount();
+            const { openTaskCardCreation } =
+              await import("../../../modules/database/tasks/create-task-card");
+            const anchor =
+              root.querySelector<HTMLElement>(
+                `[data-block-id="${CSS.escape(model.id)}"]`,
+              ) ?? root;
+            await openTaskCardCreation(framework, {
+              store: page,
+              model,
+              anchor,
+              isAttached: () => root.isConnected,
+            });
           })().catch(console.error);
         },
         openEmbedExistingDatabase: () => {
@@ -614,6 +641,29 @@ export default function PageSlash({
               notify.error({
                 title: t["com.myoxus.common.operation-failed"](),
               });
+              return;
+            }
+            const { BpmnEditorService } =
+              await import("../../../modules/bpmn-editor/session");
+            const bpmnEditorService = framework.getOptional(BpmnEditorService);
+            const originView = framework.getOptional(ViewService)?.view;
+            if (bpmnEditorService) {
+              void bpmnEditorService
+                .open(
+                  {
+                    workspaceId: workspace.id,
+                    docId: page.id,
+                    blockId: result.blockId,
+                    editorHostId: `page-slash-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                  },
+                  page.readonly,
+                  originView,
+                )
+                .catch(() => {
+                  notify.error({
+                    title: t["com.myoxus.common.operation-failed"](),
+                  });
+                });
             }
           })().catch(console.error);
         },
@@ -872,15 +922,6 @@ export default function PageSlash({
     <>
       {controls ? <EditorSlashMenu controls={controls} /> : null}
       {templateVariablePicker}
-      {holdingPicker ? (
-        <div
-          onKeyDown={(event) => {
-            if (event.key === "Escape") finishAll();
-          }}
-        >
-          {buildingBlockPicker}
-        </div>
-      ) : null}
       {modal?.kind === "embed" && embedMeta ? (
         <EditorEmbedCardCreate
           controls={{

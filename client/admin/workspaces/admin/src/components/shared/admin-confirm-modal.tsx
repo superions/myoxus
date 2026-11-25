@@ -4,13 +4,12 @@
 import { useI18n } from "@myoxus/i18n";
 import { ConfirmModal, type ConfirmModalProps } from "@myoxus/ui-facade";
 
-export interface AdminConfirmModalProps extends ConfirmModalProps {
-  danger?: boolean;
-}
+export type AdminConfirmModalProps = ConfirmModalProps;
 
 /**
  * Localizes Admin defaults while the shared Facade owns all dialog chrome,
- * typography, sizing, busy state and footer behavior.
+ * typography, sizing, destructive styling, type-to-confirm, busy state and
+ * footer behavior.
  */
 export function AdminConfirmModal({
   cancelButtonOptions,
@@ -18,7 +17,6 @@ export function AdminConfirmModal({
   closeOnConfirm = false,
   confirmButtonOptions,
   confirmText,
-  danger = false,
   ...props
 }: AdminConfirmModalProps) {
   const i18n = useI18n();
@@ -36,7 +34,6 @@ export function AdminConfirmModal({
       confirmButtonOptions={{
         "data-testid": "admin-confirm-modal-confirm",
         ...confirmButtonOptions,
-        ...(danger ? { variant: "error" } : undefined),
       }}
     />
   );

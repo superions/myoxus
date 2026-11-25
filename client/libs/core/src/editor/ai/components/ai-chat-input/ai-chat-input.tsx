@@ -128,6 +128,7 @@ export function AIChatInput({
     aiModelService,
     isRootSession,
     onChatSuccess,
+    onSyncedDraftChange,
     trackOptions,
   });
   latestRef.current = {
@@ -148,6 +149,7 @@ export function AIChatInput({
     aiModelService,
     isRootSession,
     onChatSuccess,
+    onSyncedDraftChange,
     trackOptions,
   };
 
@@ -510,6 +512,7 @@ export function AIChatInput({
             ) {
               clearedRevision = ++draftRevisionRef.current;
               setDraft("");
+              latestRef.current.onSyncedDraftChange?.("");
               await latestRef.current.aiDraftService?.setDraft({ input: "" });
             }
           },
@@ -570,6 +573,7 @@ export function AIChatInput({
         ) {
           draftRevisionRef.current++;
           setDraft(originalDraft);
+          latestRef.current.onSyncedDraftChange?.(originalDraft);
           void latestRef.current.aiDraftService
             ?.setDraft({ input: originalDraft })
             .catch(console.error);
@@ -634,7 +638,12 @@ export function AIChatInput({
       },
     );
     const openSub = AIProvider.slots.requestOpenWithChat.subscribe((params) => {
-      if (!params || latestRef.current.host !== params.host) return;
+      if (!params) return;
+      const matchesTarget = params.host
+        ? latestRef.current.host === params.host
+        : !latestRef.current.host &&
+          (!params.docId || latestRef.current.docId === params.docId);
+      if (!matchesTarget) return;
       if (params.input) {
         draftRevisionRef.current++;
         setDraft(params.input);

@@ -3,15 +3,16 @@ import { usePageCaption } from "./page-caption";
 import {
   lazy,
   Suspense,
-  useEffect,
+  useContext,
   useLayoutEffect,
+  useMemo,
   useState,
   useRef,
 } from "react";
 import { createPortal } from "react-dom";
 import { effect } from "@preact/signals-core";
 import { useI18n } from "@myoxus/i18n";
-import { useFramework, useService } from "@myoxus/infra";
+import { useFramework, useService, useServiceOptional } from "@myoxus/infra";
 import { MyoxusText, ReferenceCard } from "@myoxus/ui-facade";
 import { LinkIcon } from "@myoxus/icons/react";
 import { nanoid } from "nanoid";
@@ -20,8 +21,8 @@ import type {
   EmbedSyncedDocModel,
   NoteBlockModel,
 } from "@virgultum/core/models";
-import { Text, type BlockModel } from "@virgultum/core/store";
-import { supportedText } from "./plain-page-model";
+import { Text, type BlockModel, type Store } from "@virgultum/core/store";
+import type { PageContent } from "./plain-page-model";
 import { pageTextRun } from "./page-text-run";
 import { EMBED_CARD_HEIGHT, EMBED_CARD_WIDTH } from "@virgultum/core/consts";
 import { CoreDocEmbedProvider, DocsService } from "../../../modules/doc";
@@ -42,9 +43,15 @@ import {
   pasteAfterPageBlock,
 } from "./page-block-actions";
 import { usePageFloatingAnchor } from "./page-floating-anchor";
-import type { PageBookmark, PageIntent } from "./plain-page-input";
 import { readRasterSurface } from "./raster-surface";
 import type { SurfaceBlockModel } from "@virgultum/core/runtime/gfx";
+import {
+  MAX_SYNCED_DOC_DEPTH,
+  projectSyncedDocContent,
+  SyncedDocAncestorsContext,
+  syncedDocAncestorKey,
+} from "./page-synced-doc-preview";
+import { PageSnapshot } from "./plain-page-view";
 const RasterPreview = lazy(() => import("./canvas-preview"));
 
 type Target = NonNullable<
@@ -53,6 +60,9 @@ type Target = NonNullable<
 type State = {
   key: string;
   target?: Target;
+  page?: Store;
+  content?: PageContent | null;
+  empty?: boolean;
   title?: string;
   updated?: number;
   lines?: BlockModel[];
@@ -60,8 +70,8 @@ type State = {
   deleted?: boolean;
   error?: boolean;
   loading?: boolean;
-  specialist?: boolean;
   cycle?: boolean;
+  revision?: number;
 };
 function Excerpt({ model }: { model: BlockModel }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -92,11 +102,9 @@ function Excerpt({ model }: { model: BlockModel }) {
 export default function PageDocumentCard({
   model,
   readonly,
-  handoff,
 }: {
   model: EmbedLinkedDocModel | EmbedSyncedDocModel;
   readonly: boolean;
-  handoff: (r: PageBookmark | null, i?: PageIntent) => void;
 }) {
   const caption = usePageCaption(model, readonly);
   const t = useI18n(),
@@ -104,11 +112,13 @@ export default function PageDocumentCard({
     guard = useService(GuardService),
     docs = useService(DocsService),
     workspace = useService(WorkspaceService).workspace;
-  const workbench = useService(WorkbenchService).workbench,
-    peek = useService(PeekViewService).peekView,
+  const workbench = useServiceOptional(WorkbenchService)?.workbench,
+    peek = useServiceOptional(PeekViewService)?.peekView,
     { jumpToPageBlock } = useNavigateHelper();
+  const ancestors = useContext(SyncedDocAncestorsContext);
   const { pageId, workspaceId, params, title, description, style } =
       model.props,
+    cardStyle = style === "citation" ? "horizontal" : style,
     synced = model.flavour === "myoxus:embed-synced-doc";
   const key = JSON.stringify([workspaceId, pageId, params, style]);
   const [result, setResult] = useState<State>(),
@@ -138,6 +148,7 @@ export default function PageDocumentCard({
       const attempt = new AbortController(),
         signal = AbortSignal.any([attempt.signal, AbortSignal.timeout(30000)]);
       let release: (() => void) | undefined;
+      let paintRevision = 0;
       const live = () =>
         !attempt.signal.aborted &&
         binding.target.peek() === target &&
@@ -168,10 +179,82 @@ export default function PageDocumentCard({
               return;
             }
             active.current = target;
-            const compact = ["list", "cube", "horizontalThin"].includes(style);
+            const targetKey = syncedDocAncestorKey(
+              target.collection.id,
+              target.docId,
+            );
             const cycle =
-              target.collection.id === workspace.id &&
-              target.docId === model.store.id;
+              (target.collection.id === workspace.id &&
+                target.docId === model.store.id) ||
+              ancestors.has(targetKey) ||
+              ancestors.size >= MAX_SYNCED_DOC_DEPTH;
+            const updated = page.meta?.updatedDate ?? page.meta?.createDate;
+            const rev = ++paintRevision;
+
+            if (synced) {
+              if (cycle) {
+                setResult({
+                  key,
+                  target,
+                  title: currentTitle,
+                  updated,
+                  cycle: true,
+                  revision: rev,
+                });
+                return;
+              }
+              const hasSelection = !!(
+                params?.blockIds?.length ||
+                params?.elementIds?.length ||
+                params?.blockSelection !== undefined
+              );
+              const canvas =
+                !hasSelection &&
+                mode === "edgeless" &&
+                target.collection.id === workspace.id
+                  ? readRasterSurface(page)
+                  : undefined;
+              if (canvas) {
+                setResult({
+                  key,
+                  target,
+                  page,
+                  title: currentTitle,
+                  updated,
+                  canvas,
+                  revision: rev,
+                });
+                return;
+              }
+              const projection = projectSyncedDocContent(page, params, mode);
+              if (projection.status === "error") {
+                setResult({
+                  key,
+                  target,
+                  title: currentTitle,
+                  updated,
+                  error: true,
+                  revision: rev,
+                });
+                return;
+              }
+              setResult({
+                key,
+                target,
+                page,
+                content: projection.content,
+                lines: projection.fallbackLines,
+                empty: projection.empty,
+                title: currentTitle,
+                updated,
+                revision: rev,
+              });
+              return;
+            }
+
+            const compact = ["list", "cube", "horizontalThin"].includes(
+              cardStyle,
+            );
             const nodes = page.root.children
               .filter(
                 (m) =>
@@ -183,54 +266,28 @@ export default function PageDocumentCard({
             const selected = !!(
               params?.blockIds?.length || params?.elementIds?.length
             );
-            const eligibleText = (m: BlockModel) =>
-              m.flavour === "myoxus:paragraph" &&
-              (m.props as { type?: string }).type === "text" &&
-              !m.children.length &&
-              !!m.text &&
-              supportedText(m.text.yText, false);
-            const candidates = synced
-              ? nodes
-              : nodes.filter(
-                  (m) =>
-                    (m.flavour === "myoxus:image" && style === "vertical") ||
-                    (["myoxus:paragraph", "myoxus:list"].includes(m.flavour) &&
-                      !!m.text?.length),
-                );
+            const candidates = nodes.filter(
+              (m) =>
+                ["myoxus:paragraph", "myoxus:list"].includes(m.flavour) &&
+                !!m.text?.length,
+            );
             const needed =
-              cycle || (!synced && (compact || !!description || selected))
+              cycle || compact || !!description || selected
                 ? []
-                : style === "horizontal"
+                : cardStyle === "horizontal"
                   ? candidates.slice(0, 1)
-                  : synced
-                    ? candidates
-                    : candidates.slice(
-                        0,
-                        Math.floor(EMBED_CARD_HEIGHT[style] / 20),
-                      );
-            // A raster-only viewport cannot represent a Note, frame, specialist
-            // diagram or selected subset. Hand the entire preview to its owner.
-            const canvas =
-              synced &&
-              !selected &&
-              mode === "edgeless" &&
-              target.collection.id === workspace.id
-                ? readRasterSurface(page)
-                : undefined;
-            const specialist =
-              !cycle &&
-              !canvas &&
-              ((synced && (selected || mode === "edgeless" || !mode)) ||
-                needed.some((m) => !eligibleText(m)));
+                  : candidates.slice(
+                      0,
+                      Math.floor(EMBED_CARD_HEIGHT[cardStyle] / 20),
+                    );
             setResult({
               key,
               target,
               title: currentTitle,
-              updated: page.meta?.updatedDate ?? page.meta?.createDate,
-              lines: specialist ? [] : needed,
-              specialist,
-              canvas,
+              updated,
+              lines: needed,
               cycle,
+              revision: rev,
             });
           };
           release = () => {
@@ -256,11 +313,28 @@ export default function PageDocumentCard({
       binding.dispose();
       provider.dispose();
     };
-  }, [model, workspace, docs, guard, key, retry, description, synced]);
+  }, [
+    model,
+    workspace,
+    docs,
+    guard,
+    key,
+    retry,
+    description,
+    synced,
+    ancestors,
+  ]);
   const state = result?.key === key ? result : undefined;
-  useEffect(() => {
-    if (state?.specialist && active.current === state.target) handoff(null);
-  }, [state, handoff]);
+  const nextAncestors = useMemo(() => {
+    const next = new Set(ancestors);
+    next.add(syncedDocAncestorKey(workspace.id, model.store.id));
+    if (state?.target) {
+      next.add(
+        syncedDocAncestorKey(state.target.collection.id, state.target.docId),
+      );
+    }
+    return next;
+  }, [ancestors, workspace.id, model.store.id, state?.target]);
   const open = (event: React.MouseEvent, center: boolean) => {
     const tr = active.current;
     if (!tr || !tr.access.readable(tr.docId).peek()) return;
@@ -275,12 +349,14 @@ export default function PageDocumentCard({
       return;
     }
     if (center) {
-      void peek
-        .open({ docRef: { docId: tr.docId }, ...params })
-        .catch(console.error);
+      if (peek) {
+        void peek
+          .open({ docRef: { docId: tr.docId }, ...params })
+          .catch(console.error);
+      }
       return;
     }
-    workbench.openDoc(
+    workbench?.openDoc(
       { docId: tr.docId, ...params },
       {
         at: event.altKey && BUILD_CONFIG.isElectron ? "beside" : "new-tab",
@@ -322,12 +398,14 @@ export default function PageDocumentCard({
     if (!parent) return;
     const index = parent.children.indexOf(model);
     if (index < 0) return;
+    const workspaceId = (model.props as { workspaceId?: string }).workspaceId;
     if (nextKind === "inline") {
       const refText = new Text();
       refText.insert(" ", 0, {
         reference: {
           type: synced ? "Subpage" : "LinkedPage",
           pageId: model.props.pageId,
+          ...(workspaceId ? { workspaceId } : {}),
           params: model.props.params,
         },
       });
@@ -351,6 +429,7 @@ export default function PageDocumentCard({
         targetFlavour,
         {
           pageId: model.props.pageId,
+          ...(workspaceId ? { workspaceId } : {}),
           params: model.props.params,
           caption: model.props.caption,
         },
@@ -388,7 +467,7 @@ export default function PageDocumentCard({
       },
       {
         id: "peek",
-        label: t["com.myoxus.editor.toolbar.open-in-peek"](),
+        label: t["com.myoxus.peek-view-controls.open-doc-in-center-peek"](),
         icon: "CenterPeekIcon" as const,
         disabled: !state?.target,
         run: (_el: HTMLElement, e: MouseEvent) =>
@@ -547,20 +626,36 @@ export default function PageDocumentCard({
         <Suspense fallback={null}>
           <RasterPreview surface={state.canvas} title={label} />
         </Suspense>
-      ) : synced && state?.target && !state.specialist && !state.cycle ? (
-        <ReferenceCard
-          size="preview"
-          orientation="vertical"
-          title={label}
-          icon={<LinkIcon />}
-          preview={
-            state.lines?.some((model) => model.text?.length)
-              ? state.lines.map((model) => (
-                  <Excerpt key={model.id} model={model} />
+      ) : synced &&
+        state?.target &&
+        !state.error &&
+        !state.deleted &&
+        !state.cycle ? (
+        <SyncedDocAncestorsContext.Provider value={nextAncestors}>
+          <ReferenceCard
+            size="preview"
+            orientation="vertical"
+            title={label}
+            icon={<LinkIcon />}
+            preview={
+              state.empty ? (
+                t["com.myoxus.editor.embed.synced-empty-hint"]()
+              ) : state.content && state.page ? (
+                <PageSnapshot
+                  page={state.page}
+                  content={state.content}
+                  embedded
+                />
+              ) : state.lines?.some((entry) => entry.text?.length) ? (
+                state.lines.map((entry) => (
+                  <Excerpt key={entry.id} model={entry} />
                 ))
-              : t["com.myoxus.editor.embed.synced-empty-hint"]()
-          }
-        />
+              ) : (
+                t["com.myoxus.editor.embed.synced-empty-hint"]()
+              )
+            }
+          />
+        </SyncedDocAncestorsContext.Provider>
       ) : (
         <EditorDocumentCard
           controls={{
@@ -568,7 +663,7 @@ export default function PageDocumentCard({
             selected: false,
             inSurface: false,
             kind: synced ? "synced" : "linked",
-            variant: synced ? "horizontal" : style,
+            variant: synced ? "horizontal" : cardStyle,
             description: state?.target ? (description ?? "") : "",
             deleted: state?.deleted,
             updated,
@@ -579,8 +674,8 @@ export default function PageDocumentCard({
             nodeReference: !!(
               params?.blockIds?.length || params?.elementIds?.length
             ),
-            height: EMBED_CARD_HEIGHT[style],
-            width: EMBED_CARD_WIDTH[style],
+            height: EMBED_CARD_HEIGHT[cardStyle],
+            width: EMBED_CARD_WIDTH[cardStyle],
             mountPreview: setPreview,
             reload: () => setRetry((n) => n + 1),
           }}

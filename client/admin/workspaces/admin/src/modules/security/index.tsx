@@ -30,7 +30,6 @@ import {
   Badge,
   Button,
   Checkbox,
-  ConfirmModal,
   ErrorMessage,
   Group,
   InlineLink,
@@ -77,6 +76,7 @@ import useSWR from "swr";
 import { fetchCaptchaChallenge } from "../../api/captcha-health-api";
 import { fetchGlobalTlsSnapshot } from "../../api/runtime-status-api";
 import { OuPicker } from "../../components/domain-pickers/ou-picker";
+import { AdminConfirmModal } from "../../components/shared/admin-confirm-modal";
 import { useMutation } from "../../use-mutation";
 import { gqlFetcher, useQuery } from "../../use-query";
 import { AdminPageFrame, AdminPageScroll, AdminSubnav } from "../admin-shell";
@@ -550,14 +550,14 @@ function SimpleProviderSection({
             </Button>
           </Group>
         </Stack>
-        <ConfirmModal
+        <AdminConfirmModal
           open={removeOpen}
           onOpenChange={setRemoveOpen}
           title={i18n.t("admin.security.oauth.remove")}
           description={i18n.t("admin.security.oauth.remove-confirm")}
-          cancelText={i18n.t("admin.common.cancel")}
           confirmText={i18n.t("admin.security.oauth.remove")}
-          confirmButtonOptions={{ variant: "error" }}
+          danger
+          closeOnConfirm
           onConfirm={() => onRemove(provider)}
         />
       </AccordionPanel>
@@ -1675,14 +1675,14 @@ function OidcProviderSection({
             </Button>
           </Group>
         </Stack>
-        <ConfirmModal
+        <AdminConfirmModal
           open={removeOpen}
           onOpenChange={setRemoveOpen}
           title={i18n.t("admin.security.oauth.remove")}
           description={i18n.t("admin.security.oauth.remove-confirm")}
-          cancelText={i18n.t("admin.common.cancel")}
           confirmText={i18n.t("admin.security.oauth.remove")}
-          confirmButtonOptions={{ variant: "error" }}
+          danger
+          closeOnConfirm
           onConfirm={() => {
             catalog.invalidate();
             return onRemove(provider);

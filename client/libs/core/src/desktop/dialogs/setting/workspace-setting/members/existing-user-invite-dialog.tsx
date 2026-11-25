@@ -75,6 +75,7 @@ export const ExistingUserInviteDialog = ({
   useEffect(() => {
     if (!debouncedSearch.trim()) {
       setResults([]);
+      setIsSearching(false);
       return;
     }
     let cancelled = false;

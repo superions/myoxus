@@ -12,7 +12,7 @@ import type { PatchOp } from "./markdown-diff";
 export async function applyPatchToDoc(
   doc: Store,
   patch: PatchOp[],
-  host: EditorHost,
+  host?: EditorHost,
 ): Promise<void> {
   // Get all note blocks
   const notes = doc.getBlocksByFlavour("myoxus:note");

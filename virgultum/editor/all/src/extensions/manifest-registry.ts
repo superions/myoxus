@@ -64,10 +64,8 @@ import { EdgelessAutoConnectViewExtension } from "@virgultum/canvas/view";
 import { EdgelessSelectedRectViewExtension } from "@virgultum/canvas/view";
 import { EdgelessToolbarViewExtension } from "@virgultum/canvas/view";
 import { FrameTitleViewExtension } from "@virgultum/canvas/view";
-import { KeyboardToolbarViewExtension } from "../widgets/keyboard-toolbar/view";
 import { LinkedDocViewExtension } from "../widgets/linked-doc/view";
 import { NoteSlicerViewExtension } from "@virgultum/canvas/view";
-import { PageDraggingAreaViewExtension } from "../widgets/page-dragging-area/view";
 import { RemoteSelectionViewExtension } from "../widgets/remote-selection/view";
 import { ScrollAnchoringViewExtension } from "../widgets/scroll-anchoring/view";
 import { SlashMenuViewExtension } from "../widgets/slash-menu/view";
@@ -258,10 +256,6 @@ const INTERNAL_MANIFESTS: ReadonlyArray<FeatureManifest> = [
     view: [FrameTitleViewExtension],
   },
   {
-    id: featureManifestId("widget-keyboard-toolbar"),
-    view: [KeyboardToolbarViewExtension],
-  },
-  {
     id: featureManifestId("widget-linked-doc"),
     view: [LinkedDocViewExtension],
   },
@@ -284,10 +278,6 @@ const INTERNAL_MANIFESTS: ReadonlyArray<FeatureManifest> = [
   {
     id: featureManifestId("widget-viewport-overlay"),
     view: [ViewportOverlayViewExtension],
-  },
-  {
-    id: featureManifestId("widget-page-dragging-area"),
-    view: [PageDraggingAreaViewExtension],
   },
   {
     id: featureManifestId("widget-edgeless-selected-rect"),
@@ -375,14 +365,12 @@ const INTERNAL_VIEW_ORDER: ReadonlyArray<FeatureManifestId> = [
   featureManifestId("widget-drag-handle"),
   featureManifestId("widget-edgeless-auto-connect"),
   featureManifestId("widget-frame-title"),
-  featureManifestId("widget-keyboard-toolbar"),
   featureManifestId("widget-linked-doc"),
   featureManifestId("widget-remote-selection"),
   featureManifestId("widget-scroll-anchoring"),
   featureManifestId("widget-slash-menu"),
   featureManifestId("widget-toolbar"),
   featureManifestId("widget-viewport-overlay"),
-  featureManifestId("widget-page-dragging-area"),
   featureManifestId("widget-edgeless-selected-rect"),
   featureManifestId("widget-note-slicer"),
   featureManifestId("widget-edgeless-toolbar"),

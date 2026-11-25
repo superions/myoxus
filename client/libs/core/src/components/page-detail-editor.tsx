@@ -36,7 +36,6 @@ export const PageDetailEditor = ({
 
   const doc = useService(DocService).doc;
   const journal = useLiveData(useService(JournalService).journalDate$(doc.id));
-  const template = useLiveData(doc.isTemplate$);
   const docMeta = useLiveData(doc.meta$) as DocMetaWithHeaderImage | null;
   const pageWidth = useLiveData(doc.pageWidth$);
 
@@ -62,12 +61,6 @@ export const PageDetailEditor = ({
       )}
 
       <VirgultumEditor
-        plainPage={
-          (mode === "page" || !journal) &&
-          !template &&
-          !doc.virgultumDoc.meta?.docKind &&
-          !isSharedMode
-        }
         {...detailPageEditorRootAttrs({
           fullWidthLayout: !isSharedMode && fullWidthLayout,
         })}

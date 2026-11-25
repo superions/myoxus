@@ -33,10 +33,17 @@ export function AIScrollableTextRenderer({
 }) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const lastScrollHeightRef = useRef(0);
+  const pausedRef = useRef(false);
   const [paused, setPaused] = useState(false);
+
+  const setPausedState = useCallback((next: boolean) => {
+    pausedRef.current = next;
+    setPaused(next);
+  }, []);
 
   const throttledScrollToEnd = useThrottledCallback(() => {
     requestAnimationFrame(() => {
+      if (pausedRef.current) return;
       const viewport = viewportRef.current;
       if (!viewport) return;
       const scrollHeight = viewport.scrollHeight || 0;
@@ -49,9 +56,10 @@ export function AIScrollableTextRenderer({
 
   useEffect(() => {
     if (state !== "generating") {
-      setPaused(false);
+      lastScrollHeightRef.current = 0;
+      setPausedState(false);
     }
-  }, [state]);
+  }, [setPausedState, state]);
 
   useEffect(() => {
     if (
@@ -69,19 +77,21 @@ export function AIScrollableTextRenderer({
     const distanceFromBottom =
       viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
     if (distanceFromBottom > AUTO_SCROLL_PAUSE_THRESHOLD_PX) {
-      setPaused(true);
+      setPausedState(true);
     } else if (distanceFromBottom <= AUTO_SCROLL_RESUME_THRESHOLD_PX) {
-      setPaused(false);
+      setPausedState(false);
     }
-  }, [state]);
+  }, [setPausedState, state]);
 
   const resumeAutoScroll = useCallback(() => {
-    setPaused(false);
+    setPausedState(false);
     const viewport = viewportRef.current;
     if (!viewport) return;
     lastScrollHeightRef.current = viewport.scrollHeight || 0;
-    viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
-  }, []);
+    // Instant scroll avoids firing intermediate scroll frames > 32px from the
+    // bottom that would immediately re-pause auto-scroll.
+    viewport.scrollTo({ top: viewport.scrollHeight });
+  }, [setPausedState]);
 
   return (
     <Stack gap="xs">

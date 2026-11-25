@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { WorkspaceServerService } from "../../../modules/server";
-import { useService, useFramework } from "@myoxus/infra";
+import { useServiceOptional, useFramework } from "@myoxus/infra";
 import { notify } from "@myoxus/ui-facade";
 import { copyEditorBlockLink } from "../../../components/hooks/myoxus/use-share-url";
 import { useI18n } from "@myoxus/i18n";
@@ -57,7 +57,7 @@ export default function PageCode({
 }) {
   const t = useI18n(),
     { resolvedTheme } = useMyoxusTheme();
-  const workspaceServer = useService(WorkspaceServerService);
+  const workspaceServer = useServiceOptional(WorkspaceServerService);
   const framework = useFramework();
   const copyOwner = useRef<AbortController | null>(null);
   useLayoutEffect(() => {
@@ -315,7 +315,7 @@ export default function PageCode({
                 workspaceId: store.workspace.id,
                 blockIds: [model.id],
                 mode: "page",
-                baseUrl: workspaceServer.server?.baseUrl ?? location.origin,
+                baseUrl: workspaceServer?.server?.baseUrl ?? location.origin,
               },
               model.flavour,
             ).catch(console.error);

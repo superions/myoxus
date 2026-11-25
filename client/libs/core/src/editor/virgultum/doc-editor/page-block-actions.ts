@@ -47,13 +47,27 @@ export function deletePageBlock(model: BlockModel) {
   return true;
 }
 
-export function duplicatePageBlock(model: BlockModel): string | null {
-  const store = model.store;
-  if (store.readonly || store.getModelById(model.id) !== model) return null;
-  const parent = store.getParent(model);
-  if (!parent) return null;
-  const index = parent.children.indexOf(model);
-  if (index < 0) return null;
+function cloneBlockValue(value: unknown): unknown {
+  if (value instanceof Text) {
+    return new Text(value.toDelta() as DeltaInsert[]);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => cloneBlockValue(item));
+  }
+  if (value && typeof value === "object") {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype === Object.prototype || prototype === null) {
+      const cloned: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value)) {
+        cloned[k] = cloneBlockValue(v);
+      }
+      return cloned;
+    }
+  }
+  return value;
+}
+
+function cloneBlockProps(model: BlockModel): Record<string, unknown> {
   const props: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(
     model.props as Record<string, unknown>,
@@ -62,13 +76,44 @@ export function duplicatePageBlock(model: BlockModel): string | null {
     if (key === "text" && model.text) {
       props.text = new Text(model.text.toDelta() as DeltaInsert[]);
     } else if (value !== undefined) {
-      props[key] = value;
+      props[key] = cloneBlockValue(value);
     }
   }
+  return props;
+}
+
+function cloneBlockSubtree(
+  store: Store,
+  source: BlockModel,
+  parent: BlockModel,
+  index: number,
+): string {
+  const createdId = store.addBlock(
+    source.flavour,
+    cloneBlockProps(source),
+    parent,
+    index,
+  );
+  const createdModel = store.getModelById(createdId);
+  if (createdModel && source.children.length) {
+    source.children.forEach((child, childIndex) => {
+      cloneBlockSubtree(store, child, createdModel, childIndex);
+    });
+  }
+  return createdId;
+}
+
+export function duplicatePageBlock(model: BlockModel): string | null {
+  const store = model.store;
+  if (store.readonly || store.getModelById(model.id) !== model) return null;
+  const parent = store.getParent(model);
+  if (!parent) return null;
+  const index = parent.children.indexOf(model);
+  if (index < 0) return null;
   let created: string | null = null;
   store.captureSync();
   store.transact(() => {
-    created = store.addBlock(model.flavour, props, parent, index + 1);
+    created = cloneBlockSubtree(store, model, parent, index + 1);
   });
   store.captureSync();
   return created;
@@ -162,6 +207,10 @@ export async function pasteAfterPageBlock(
   if (store.readonly || store.getModelById(model.id) !== model) return false;
   const files = Array.from(data.files ?? []);
   if (files.length) {
+    const prepared: Array<{
+      flavour: string;
+      props: Record<string, unknown>;
+    }> = [];
     for (const file of files) {
       if (file.size > attachmentFileLimit.maxFileSize) {
         attachmentFileLimit.onOverFileSize();
@@ -171,53 +220,43 @@ export async function pasteAfterPageBlock(
         file.type.startsWith("image/") &&
         store.schema.flavourSchemaMap.has("myoxus:image")
       ) {
-        const target = resolveInsertParent(store, model, "myoxus:image");
-        if (!target) continue;
         const [imageSize, sourceId] = await Promise.all([
           readImageSize(file),
           store.blobSync.set(file),
         ]);
-        if (
-          store.readonly ||
-          store.getModelById(target.anchor.id) !== target.anchor
-        )
-          return false;
-        store.captureSync();
-        store.transact(() => {
-          store.addBlock(
-            "myoxus:image",
-            { size: file.size, sourceId, ...imageSize },
-            target.parent,
-            target.index + 1,
-          );
+        prepared.push({
+          flavour: "myoxus:image",
+          props: { size: file.size, sourceId, ...imageSize },
         });
-        store.captureSync();
       } else if (store.schema.flavourSchemaMap.has("myoxus:attachment")) {
-        const target = resolveInsertParent(store, model, "myoxus:attachment");
-        if (!target) continue;
         const sourceId = await store.blobSync.set(file);
-        if (
-          store.readonly ||
-          store.getModelById(target.anchor.id) !== target.anchor
-        )
-          return false;
-        store.captureSync();
-        store.transact(() => {
-          store.addBlock(
-            "myoxus:attachment",
-            {
-              name: file.name,
-              size: file.size,
-              type: file.type || "application/octet-stream",
-              sourceId,
-            },
-            target.parent,
-            target.index + 1,
-          );
+        prepared.push({
+          flavour: "myoxus:attachment",
+          props: {
+            name: file.name,
+            size: file.size,
+            type: file.type || "application/octet-stream",
+            sourceId,
+          },
         });
-        store.captureSync();
       }
     }
+    if (!prepared.length) return true;
+    if (store.readonly || store.getModelById(model.id) !== model) return false;
+    const target = resolveInsertParent(store, model, prepared[0].flavour);
+    if (!target) return false;
+    store.captureSync();
+    store.transact(() => {
+      prepared.forEach((entry, offset) => {
+        store.addBlock(
+          entry.flavour,
+          entry.props,
+          target.parent,
+          target.index + 1 + offset,
+        );
+      });
+    });
+    store.captureSync();
     return true;
   }
 

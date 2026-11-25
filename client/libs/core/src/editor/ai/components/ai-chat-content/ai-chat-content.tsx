@@ -24,6 +24,7 @@ import {
   type ReactNode,
 } from "react";
 
+import type { PageAiBridge } from "../../../virgultum/doc-editor/page-ai-bridge";
 import { ChatErrorView } from "../../messages/error-view";
 import { type AIChatParams, AIProvider } from "../../provider/ai-provider";
 import { extractSelectedContent } from "../../utils/extract";
@@ -65,6 +66,7 @@ export interface AIChatContentProps {
   independentMode?: boolean;
   boundedMode?: boolean;
   host?: EditorHost | null;
+  pageBridge?: PageAiBridge | null;
   session: CopilotChatHistoryFragment | null | undefined;
   createSession: () => Promise<CopilotChatHistoryFragment | null | undefined>;
   workspaceId: string;
@@ -88,6 +90,7 @@ export function AIChatContent({
   independentMode,
   boundedMode = false,
   host,
+  pageBridge,
   session,
   createSession,
   workspaceId,
@@ -321,10 +324,14 @@ export function AIChatContent({
     const openWithChatSub = AIProvider.slots.requestOpenWithChat.subscribe(
       (params: AIChatParams | null) => {
         if (!params) return;
-        if (latestRef.current.host === params.host) {
-          if (params.fromAnswer && params.context) {
+        const matchesTarget = params.host
+          ? latestRef.current.host === params.host
+          : !latestRef.current.host &&
+            (!params.docId || latestRef.current.docId === params.docId);
+        if (matchesTarget) {
+          if (params.context) {
             updateContext(params.context);
-          } else {
+          } else if (params.host) {
             extractSelectedContent(params.host)
               .then((context) => {
                 if (!context) return;
@@ -426,6 +433,7 @@ export function AIChatContent({
             onScrollAvailabilityChange={setCanScrollToLatest}
             onScrollEnd={handleScrollEnd}
             host={host}
+            pageBridge={pageBridge}
             workspaceId={workspaceId}
             docId={docId}
             session={session}

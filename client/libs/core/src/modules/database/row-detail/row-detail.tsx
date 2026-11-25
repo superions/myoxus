@@ -34,7 +34,7 @@ import {
   AccordionPanel,
   Badge,
   Button,
-  DetailPeek,
+  Drawer,
   EmptyState,
   FormRow,
   Group,
@@ -2138,17 +2138,34 @@ export function DatabaseRowDetailPeek({
       }
     />
   ) : undefined;
+  const drawerHeaderTitle =
+    !managedTask && headerActions ? (
+      <Group justify="space-between" gap="xs" wrap="nowrap" w="100%">
+        <MyoxusText component="span" lineClamp={2} typographySlot="card-title">
+          {title}
+        </MyoxusText>
+        {headerActions}
+      </Group>
+    ) : (
+      title
+    );
   return (
-    <DetailPeek
+    <Drawer
       open={Boolean(row) || Boolean(loadState)}
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
+      position="right"
+      size="lg"
+      withOverlay={false}
+      trapFocus={false}
+      lockScroll={false}
+      returnFocus={false}
       returnFocusRef={returnFocusRef}
-      title={title}
-      actions={managedTask ? undefined : headerActions}
+      title={drawerHeaderTitle}
       closeButtonLabel={t["com.myoxus.peek-view-controls.close"]()}
       aria-label={t["com.myoxus.database.row.open-details"]()}
+      data-myoxus-ui-role="detail-peek"
       data-testid="database-row-detail-peek"
     >
       {row ? (
@@ -2173,6 +2190,6 @@ export function DatabaseRowDetailPeek({
           title={title}
         />
       )}
-    </DetailPeek>
+    </Drawer>
   );
 }

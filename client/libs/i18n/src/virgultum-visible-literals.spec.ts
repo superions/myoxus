@@ -15,12 +15,10 @@ const migratedFiles = [
   "virgultum/editor/all/src/blocks/root/configs/toolbar.ts",
   "virgultum/embeds/src/note/configs/toolbar.ts",
   "virgultum/content/src/blocks/callout/configs/toolbar.ts",
-  "virgultum/editor/all/src/widgets/keyboard-toolbar/config.ts",
   "virgultum/embeds/src/attachment/configs/toolbar.ts",
   "virgultum/content/src/blocks/code/code-toolbar/controller.ts",
   "virgultum/embeds/src/embed-doc/embed-linked-doc-block/configs/toolbar.ts",
   "virgultum/embeds/src/embed-doc/embed-synced-doc-block/configs/toolbar.ts",
-  "virgultum/editor/all/src/fragments/outline/outline-viewer.ts",
   "client/libs/core/src/editor/view-extensions/editor-view/editor-chrome/reference-editor.tsx",
   "virgultum/canvas/src/blocks/frame/present/present-button.ts",
 ] as const;

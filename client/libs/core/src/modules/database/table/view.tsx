@@ -31,7 +31,6 @@ import {
   Badge,
   Button,
   Checkbox,
-  Drawer,
   Group,
   IconButton,
   InlineEdit,
@@ -49,7 +48,6 @@ import {
   TableHeader,
   TableRow,
   TableScrollContainer,
-  useResponsiveSmQuery,
 } from "@myoxus/ui-facade";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -236,12 +234,6 @@ export function DatabaseTableView(props: DatabaseTableViewProps) {
     DatabaseFieldKind.Text,
   );
   const [createFieldError, setCreateFieldError] = useState<string | null>(null);
-  // Active field-creation surface. The facade surface contract is
-  // Modal-on-desktop, Drawer-on-compact so the operator never loses the
-  // create-field chrome when the viewport shrinks. The contract is
-  // owned by the shared facade so the screen reader + size queries
-  // stay in one place (P-DB-31).
-  const isCompactViewport = useResponsiveSmQuery();
 
   // All fields (including Title) are rendered through data cells via
   // `renderCell`. Parity with the legacy preset where the title
@@ -967,24 +959,13 @@ export function DatabaseTableView(props: DatabaseTableViewProps) {
         </Group>
       ) : null}
 
-      {isCompactViewport ? (
-        <Drawer
-          open={createFieldOpen}
-          onClose={() => setCreateFieldOpen(false)}
-          title={labels.createField}
-          position="bottom"
-        >
-          {createFieldBody}
-        </Drawer>
-      ) : (
-        <Modal
-          open={createFieldOpen}
-          onOpenChange={setCreateFieldOpen}
-          title={labels.createField}
-        >
-          {createFieldBody}
-        </Modal>
-      )}
+      <Modal
+        open={createFieldOpen}
+        onOpenChange={setCreateFieldOpen}
+        title={labels.createField}
+      >
+        {createFieldBody}
+      </Modal>
       <Modal
         open={Boolean(bulkDeleteRows)}
         onOpenChange={(open) => {

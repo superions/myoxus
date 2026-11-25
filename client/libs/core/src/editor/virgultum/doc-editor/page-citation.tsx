@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useService } from "@myoxus/infra";
-import { Popover, PopoverContent, PopoverTarget } from "@myoxus/ui-facade";
+import { useService, useServiceOptional } from "@myoxus/infra";
+import { HoverCard } from "@myoxus/ui-facade";
 import type { CitationFootNote } from "@virgultum/core/models";
 import type { Store } from "@virgultum/core/store";
 import { createAbsolutePositionFromRelativePosition } from "yjs";
@@ -23,6 +23,7 @@ import { workspaceLinkPreview } from "../../view-extensions/link-preview-service
 import { FootnoteMarker } from "../../view-extensions/editor-view/footnote";
 import { EditorCitationPreview } from "../../view-extensions/editor-view/editor-chrome/citation-preview";
 import type { PageInlineObject } from "./page-inline-object";
+import { sliceYTextDelta } from "./page-table-cell";
 import type { PageLine } from "./plain-page-model";
 
 type PageSource = {
@@ -59,11 +60,10 @@ export function CitationMarker({
     docs = useService(DocsService),
     workspace = useService(WorkspaceService).workspace,
     meta = useService(DocDisplayMetaService),
-    peek = useService(PeekViewService).peekView,
+    peek = useServiceOptional(PeekViewService)?.peekView,
     base = useService(ServerService).server.baseUrl;
   const [open, setOpen] = useState(false),
     [controls, setControls] = useState<EditorCitationControls>(),
-    timer = useRef<ReturnType<typeof setTimeout>>(undefined),
     lease = useRef<AbortController | null>(null);
 
   const offset = () => {
@@ -78,13 +78,11 @@ export function CitationMarker({
       source.object.start,
       store.spaceDoc,
     );
-    if (
-      at?.type === line.text &&
-      JSON.stringify(
-        line.model.text?.sliceToDelta(at.index, at.index + 1)[0]?.attributes
-          ?.footnote,
-      ) === JSON.stringify(footnote)
-    )
+    if (!at || at.type !== line.text) return undefined;
+    const run =
+      line.model.text?.sliceToDelta(at.index, at.index + 1)[0] ??
+      sliceYTextDelta(line.text, at.index, 1)[0];
+    if (JSON.stringify(run?.attributes?.footnote) === JSON.stringify(footnote))
       return at.index;
     return undefined;
   };
@@ -118,7 +116,7 @@ export function CitationMarker({
           current()
         )
           void peek
-            .open({
+            ?.open({
               docRef: {
                 docId: target.docId,
                 workspaceId: target.collection.id,
@@ -136,7 +134,6 @@ export function CitationMarker({
   };
   useEffect(
     () => () => {
-      clearTimeout(timer.current);
       lease.current?.abort();
     },
     [store, footnote],
@@ -162,7 +159,9 @@ export function CitationMarker({
           !source ||
           source.readonly ||
           store.readonly ||
-          store.hasFixedText(source.line.model),
+          (source.line.model.flavour === "myoxus:table"
+            ? Boolean(field?.closest('[data-cell-protected="fixed"]'))
+            : store.hasFixedText(source.line.model)),
       },
       target,
       footnote,
@@ -174,8 +173,11 @@ export function CitationMarker({
       },
       (next) => {
         const at = offset();
-        if (line && at !== undefined)
+        if (line && at !== undefined) {
+          store.captureSync();
           store.transact(() => line.text.format(at, 1, { footnote: next }));
+          store.captureSync();
+        }
       },
     );
     setControls(owned);
@@ -196,18 +198,28 @@ export function CitationMarker({
     source?.readonly,
     line?.model,
   ]);
-  const hover = (value: boolean) => {
-    clearTimeout(timer.current);
-    if (value && !document.getSelection()?.isCollapsed) return;
-    timer.current = setTimeout(() => setOpen(value), value ? 300 : 180);
-  };
+  const [hoverDisabled, setHoverDisabled] = useState(false);
   return (
-    <Popover opened={open} onChange={setOpen} position="top" fitViewport>
-      <PopoverTarget>
+    <HoverCard
+      position="top"
+      openDelay={300}
+      closeDelay={180}
+      shadow="md"
+      withArrow={false}
+      disabled={hoverDisabled}
+      onOpen={() => {
+        if (!document.getSelection()?.isCollapsed) return;
+        setOpen(true);
+      }}
+      onClose={() => setOpen(false)}
+    >
+      <HoverCard.Target>
         <sup
           ref={marker}
-          onMouseEnter={() => hover(true)}
-          onMouseLeave={() => hover(false)}
+          onPointerEnter={() => {
+            const sel = document.getSelection();
+            setHoverDisabled(Boolean(sel && !sel.isCollapsed));
+          }}
         >
           <FootnoteMarker
             hasPreview
@@ -216,15 +228,10 @@ export function CitationMarker({
             navigate={() => void activate()}
           />
         </sup>
-      </PopoverTarget>
-      <PopoverContent>
-        <div
-          onMouseEnter={() => clearTimeout(timer.current)}
-          onMouseLeave={() => hover(false)}
-        >
-          {controls && <EditorCitationPreview controls={controls} />}
-        </div>
-      </PopoverContent>
-    </Popover>
+      </HoverCard.Target>
+      <HoverCard.Dropdown data-testid="citation-preview-hover-card">
+        {controls && <EditorCitationPreview controls={controls} />}
+      </HoverCard.Dropdown>
+    </HoverCard>
   );
 }

@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { useI18n } from "@myoxus/i18n";
-import { Input } from "@myoxus/ui-facade";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 
 import { AdminConfirmModal } from "./admin-confirm-modal";
 
@@ -34,15 +33,6 @@ export function AdminTypeConfirmModal({
   onCancel,
 }: AdminTypeConfirmModalProps) {
   const i18n = useI18n();
-  const [input, setInput] = useState("");
-
-  const handleInput = useCallback((value: string) => {
-    setInput(value);
-  }, []);
-
-  useEffect(() => {
-    if (!open) setInput("");
-  }, [open]);
 
   return (
     <AdminConfirmModal
@@ -53,19 +43,12 @@ export function AdminTypeConfirmModal({
       cancelText={cancelText}
       confirmText={confirmText}
       danger
+      confirmMatchText={targetText}
+      confirmMatchPlaceholder={
+        inputPlaceholder ?? i18n.t("admin.common.type-to-confirm-placeholder")
+      }
       onConfirm={onConfirm}
       onCancel={onCancel}
-      confirmButtonOptions={{ disabled: input !== targetText }}
-    >
-      <Input
-        autoFocus
-        type="text"
-        value={input}
-        onChange={handleInput}
-        placeholder={
-          inputPlaceholder ?? i18n.t("admin.common.type-to-confirm-placeholder")
-        }
-      />
-    </AdminConfirmModal>
+    />
   );
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useLayoutEffect, useState, useRef } from "react";
-import { useFramework, useService } from "@myoxus/infra";
+import { useFramework, useServiceOptional } from "@myoxus/infra";
 import { useI18n } from "@myoxus/i18n";
 import type { ImageBlockModel } from "@virgultum/core/models";
 import { formatSize } from "@virgultum/core/utils";
@@ -36,7 +36,7 @@ export default function PageImage({
   const { resource, state } = usePageResource(model),
     t = useI18n(),
     framework = useFramework(),
-    peek = useService(PeekViewService).peekView;
+    peek = useServiceOptional(PeekViewService)?.peekView;
   const captionEditor = usePageCaption(model, readonly);
   const { width, height, caption, sourceId, textAlign, size } = model.props;
   const root = useRef<HTMLDivElement>(null),
@@ -161,7 +161,7 @@ export default function PageImage({
   };
   const open = () => {
     const element = model.store.getBlock(model.id);
-    if (element) void peek.open({ element }).catch(console.error);
+    if (element && peek) void peek.open({ element }).catch(console.error);
   };
   const live = () => {
     const d = drag.current;

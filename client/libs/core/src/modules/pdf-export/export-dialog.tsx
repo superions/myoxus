@@ -26,8 +26,17 @@ import {
   AccordionControl,
   AccordionItem,
   AccordionPanel,
+  notify,
+  useClipboard,
 } from "@myoxus/ui-facade";
-import { type RefObject, useCallback, useMemo, useRef, useState } from "react";
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   createDefaultPdfExportFormValue,
@@ -250,7 +259,20 @@ export function PdfExportDialog({
   const [renderError, setRenderError] = useState<PdfExportRenderError | null>(
     null,
   );
+  const clipboard = useClipboard({ timeout: 2000 });
   const exportFailedMessage = t.t("com.myoxus.pdf-export.dialog.error.failed");
+
+  useEffect(() => {
+    if (clipboard.copied) {
+      notify.success({ title: t["Copied to clipboard"]() });
+    }
+  }, [clipboard.copied, t]);
+
+  useEffect(() => {
+    if (clipboard.error) {
+      notify.error({ title: t["com.myoxus.common.operation-failed"]() });
+    }
+  }, [clipboard.error, t]);
 
   const updateProgress = useCallback((next: ServerPdfExportProgress | null) => {
     progressRef.current = next;
@@ -515,9 +537,10 @@ export function PdfExportDialog({
             {renderError ? (
               <SettingsNotice tone="error" role="alert">
                 <PdfExportErrorDisplay
+                  copied={clipboard.copied}
                   error={renderError}
                   onCopyDetails={(details) => {
-                    void navigator.clipboard?.writeText(details);
+                    clipboard.copy(details);
                   }}
                 />
               </SettingsNotice>

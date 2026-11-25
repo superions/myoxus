@@ -74,7 +74,7 @@ function BlockDiffRow({
           right:
             "calc((var(--mantine-spacing-lg) + var(--mantine-spacing-xs)) * -1)",
           pointerEvents: "auto",
-          visibility: hovered ? "visible" : "hidden",
+          opacity: hovered ? 1 : 0,
         },
       },
       createElement(DiffOptions, {

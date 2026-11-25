@@ -18,6 +18,7 @@ import {
   Text,
   Button as MantineButton,
 } from "@mantine/core";
+import { Dropzone as MantineDropzone } from "@mantine/dropzone";
 import { reactNodeText } from "./helpers/accessibility";
 import { UploadIcon } from "@myoxus/icons/react";
 import { type MyoxusUiRoleProp } from "./helpers/ui-role";
@@ -53,10 +54,19 @@ export function UploadTarget({
   onFile,
   onFiles,
 }: UploadTargetProps) {
-  // Directory upload is a browser-native extension. Mantine owns the file input
-  // and reset behavior; the facade only passes the technical attribute.
   const resetFilePickerRef = useRef<() => void>(null);
+  const dropzoneOpenRef = useRef<() => void>(null);
   const [drag, setDrag] = useState(false);
+
+  const emitFiles = useCallback(
+    (files: File[]) => {
+      const firstFile = files[0];
+      if (!firstFile) return;
+      onFiles?.(files);
+      onFile?.(firstFile);
+    },
+    [onFile, onFiles],
+  );
 
   const handleDragOver = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
@@ -72,33 +82,142 @@ export function UploadTarget({
     setDrag(false);
   }, []);
 
-  const handleDrop = useCallback(
+  const handleDropEvent = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       if (disabled) return;
       event.preventDefault();
       setDrag(false);
       const files = Array.from(event.dataTransfer.files ?? []);
-      const firstFile = files[0];
-      if (!firstFile) return;
-      onFiles?.(files);
-      onFile?.(firstFile);
+      emitFiles(files);
     },
-    [disabled, onFile, onFiles],
+    [disabled, emitFiles],
   );
 
   const handleFilePick = useCallback(
     (payload: File | File[] | null) => {
       const files = Array.isArray(payload) ? payload : payload ? [payload] : [];
-      const firstFile = files[0];
-      if (firstFile) {
-        onFiles?.(files);
-        onFile?.(firstFile);
-      }
+      emitFiles(files);
       resetFilePickerRef.current?.();
     },
-    [onFile, onFiles],
+    [emitFiles],
   );
 
+  const renderSurfaceBody = (onOpen: () => void) => (
+    <Stack align="center" gap="xs">
+      <MantineThemeIcon
+        aria-hidden
+        color="myoxus"
+        radius="xl"
+        size="lg"
+        variant="light"
+      >
+        <UploadIcon aria-hidden />
+      </MantineThemeIcon>
+      <Text component="span">{title}</Text>
+      {description ? (
+        <Text component="span" c="dimmed">
+          {description}
+        </Text>
+      ) : null}
+      <MantineButton
+        type="button"
+        disabled={disabled}
+        size="xs"
+        variant="subtle"
+        data-myoxus-ui-role="button:compact:upload-pick"
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpen();
+        }}
+      >
+        {pickLabel}
+      </MantineButton>
+    </Stack>
+  );
+
+  if (!directory) {
+    const open = () => {
+      if (disabled) return;
+      dropzoneOpenRef.current?.();
+    };
+    return (
+      <MantineDropzone
+        openRef={dropzoneOpenRef}
+        disabled={disabled}
+        multiple={multiple}
+        activateOnClick={false}
+        activateOnKeyboard={false}
+        enablePointerEvents
+        onDrop={(files) => {
+          setDrag(false);
+          emitFiles(files);
+        }}
+        onDragOverCapture={handleDragOver}
+        onDragLeaveCapture={handleDragLeave}
+        onDropCapture={(event) => {
+          if (disabled) return;
+          const files = Array.from(event.dataTransfer?.files ?? []);
+          if (
+            files.length > 0 &&
+            !event.dataTransfer?.types?.includes("Files")
+          ) {
+            event.preventDefault();
+            event.stopPropagation();
+            setDrag(false);
+            emitFiles(files);
+          }
+        }}
+        inputProps={{
+          accept,
+          onChange: (event) => {
+            event.stopPropagation();
+            const files = Array.from(event.currentTarget.files ?? []);
+            emitFiles(files);
+            event.currentTarget.value = "";
+          },
+        }}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-label={reactNodeText(title) || undefined}
+        aria-disabled={disabled || undefined}
+        data-drag={drag ? "true" : "false"}
+        data-disabled={disabled ? "true" : "false"}
+        data-testid={dataTestId}
+        data-myoxus-ui-role={uiRole ?? "button:upload-target"}
+        className={className}
+        p="xl"
+        radius="lg"
+        ta="center"
+        bg={
+          drag
+            ? "var(--mantine-color-default-hover)"
+            : "var(--mantine-color-body)"
+        }
+        bd={`calc(0.125rem * var(--mantine-scale)) dashed ${
+          drag
+            ? "var(--mantine-primary-color-filled)"
+            : "var(--mantine-color-default-border)"
+        }`}
+        opacity={disabled ? 0.5 : 1}
+        style={{
+          ...style,
+          cursor: disabled ? "not-allowed" : "pointer",
+        }}
+        onClick={open}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            open();
+          }
+        }}
+      >
+        {renderSurfaceBody(open)}
+      </MantineDropzone>
+    );
+  }
+
+  // Directory upload is a browser-native extension. Mantine FileButton owns the
+  // file input and reset behavior; the facade only passes webkitdirectory.
   return (
     <MantineFileButton
       accept={accept}
@@ -106,13 +225,7 @@ export function UploadTarget({
       disabled={disabled}
       resetRef={resetFilePickerRef}
       onChange={handleFilePick}
-      inputProps={
-        directory
-          ? ({
-              webkitdirectory: "",
-            } as React.ComponentProps<"input">)
-          : undefined
-      }
+      inputProps={{ webkitdirectory: "" } as React.ComponentProps<"input">}
     >
       {({ onClick }) => {
         const open = () => {
@@ -158,38 +271,9 @@ export function UploadTarget({
             }}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            onDrop={handleDropEvent}
           >
-            <Stack align="center" gap="xs">
-              <MantineThemeIcon
-                aria-hidden
-                color="myoxus"
-                radius="xl"
-                size="lg"
-                variant="light"
-              >
-                <UploadIcon aria-hidden />
-              </MantineThemeIcon>
-              <Text component="span">{title}</Text>
-              {description ? (
-                <Text component="span" c="dimmed">
-                  {description}
-                </Text>
-              ) : null}
-              <MantineButton
-                type="button"
-                disabled={disabled}
-                size="xs"
-                variant="subtle"
-                data-myoxus-ui-role="button:compact:upload-pick"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  open();
-                }}
-              >
-                {pickLabel}
-              </MantineButton>
-            </Stack>
+            {renderSurfaceBody(open)}
           </MantineCard>
         );
       }}

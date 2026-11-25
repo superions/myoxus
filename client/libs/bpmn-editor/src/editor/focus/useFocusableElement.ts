@@ -25,13 +25,15 @@ import {
   useBpmnEditorStore,
   useBpmnEditorStoreApi,
 } from "../store/StoreContext";
+
 export function useFocusableElement(
   ref: React.RefObject<HTMLInputElement | null>,
   id: string | undefined,
   before?: (cb: () => void) => void,
 ) {
   const bpmnEditorStoreApi = useBpmnEditorStoreApi();
-  const shoudFocus = useBpmnEditorStore((s) => s.focus.consumableId === id);
+  const shouldFocus = useBpmnEditorStore((s) => s.focus.consumableId === id);
+
   useEffect(() => {
     if (!id) {
       return;
@@ -42,8 +44,8 @@ export function useFocusableElement(
         state.focus.consumableId = undefined;
       });
     };
-    if (shoudFocus && ref.current) {
+    if (shouldFocus && ref.current) {
       before?.(cb) ?? cb();
     }
-  }, [before, bpmnEditorStoreApi, id, ref, shoudFocus]);
+  }, [before, bpmnEditorStoreApi, id, ref, shouldFocus]);
 }
