@@ -62,7 +62,7 @@ resolver = "2"
   hmac = "0.12"
   http = "1"
   http-body-util = "0.1"
-  lettre = { version = "0.11.23", default-features = false, features = [
+  lettre = { version = "0.11.24", default-features = false, features = [
     "tokio1-rustls",
     "ring",
     "webpki-roots",
@@ -87,7 +87,7 @@ resolver = "2"
   openssl = "0.10"
   pem = "3"
   percent-encoding = "2.3.2"
-  pulldown-cmark = "0.13.4"
+  pulldown-cmark = "0.13.6"
   rand = "0.8"
   rcgen = "0.12"
   redis = { version = "1.7.1", features = [
@@ -113,7 +113,7 @@ resolver = "2"
   # rusqlite 0.32 is the matching line; `bundled` keeps server images
   # independent from a host SQLite installation and `blob` permits streaming
   # legacy assets without allocating their complete payloads.
-  rmcp = { version = "3.8.0", default-features = false, features = [
+  rmcp = { version = "3.9.0", default-features = false, features = [
     "server",
     "transport-streamable-http-server",
   ] }

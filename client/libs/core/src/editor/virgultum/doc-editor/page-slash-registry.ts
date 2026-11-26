@@ -1463,22 +1463,39 @@ export function scorePageSlashItem(
   const normalize = (value: string) => value.toLocaleLowerCase(locale);
   const needle = normalize(query.trim());
   if (!needle) return 0;
-  const match = (candidate: string) => {
+  const matchTerm = (candidate: string, term: string) => {
     const text = normalize(candidate);
-    if (text === needle) return 4;
-    if (text.startsWith(needle)) return 3.25;
-    if (text.split(/[^\p{L}\p{N}]+/u).some((w) => w.startsWith(needle)))
-      return 3;
-    if (text.includes(needle)) return 2;
+    if (text === term) return 4;
+    if (text.startsWith(term)) return 3.25;
+    if (text.split(/[^\p{L}\p{N}]+/u).some((w) => w.startsWith(term))) return 3;
+    if (text.includes(term)) return 2;
     return 0;
   };
-  const labelScore = match(item.label);
+  const labelScore = matchTerm(item.label, needle);
   const bestAlias = Math.max(
     0,
-    ...(item.aliases ?? []).map(match),
-    match(item.id),
+    ...(item.aliases ?? []).map((alias) => matchTerm(alias, needle)),
+    matchTerm(item.id, needle),
   );
-  return Math.max(labelScore ? labelScore + 0.5 : 0, bestAlias);
+  const direct = Math.max(labelScore ? labelScore + 0.5 : 0, bestAlias);
+  if (direct > 0) return direct;
+
+  // Support multi-word and punctuated queries like "/mermaid elk" or
+  // "/mermaid-elk" where tokens match across label, aliases, and id without
+  // outranking direct contiguous substring matches (minimum score 2.0).
+  const tokens = needle.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (tokens.length < 2) return 0;
+  const fields = [item.label, ...(item.aliases ?? []), item.id];
+  let total = 0;
+  for (const token of tokens) {
+    const tokenScore = Math.max(
+      0,
+      ...fields.map((field) => matchTerm(field, token)),
+    );
+    if (tokenScore === 0) return 0;
+    total += tokenScore;
+  }
+  return (total / tokens.length) * 0.45;
 }
 
 /** Flatten nested submenus during search so typing `/h5` or `/gantt` matches directly. */

@@ -44,7 +44,7 @@ if [[ -z "${MYOXUS_DMG_PYTHON:-}" ]]; then
     fi
   done
 fi
-"$dmg_python" -c 'import sys; assert sys.version_info >= (3, 10), "DMG packaging requires Python 3.10+; set MYOXUS_DMG_PYTHON to an existing supported interpreter"'
+"$dmg_python" -c 'import sys; assert sys.version_info >= (3, 11), "DMG packaging requires Python 3.11+; set MYOXUS_DMG_PYTHON to an existing supported interpreter"'
 export MYOXUS_DMG_PYTHON="$dmg_python"
 export COREPACK_HOME="${HOME}/Library/Caches/node/corepack"
 export MYOXUS_SKIP_COREPACK_ENABLE=1

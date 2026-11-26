@@ -203,6 +203,28 @@ describe("Facade Input", () => {
     expect(onChange).toHaveBeenCalledWith("#334455");
   });
 
+  test("assigns a discernible accessible name to the ColorInput eye-dropper button when supported", () => {
+    const previousEyeDropper = (window as { EyeDropper?: unknown }).EyeDropper;
+    (window as { EyeDropper?: unknown }).EyeDropper = class MockEyeDropper {
+      open = async () => ({ sRGBHex: "#123456" });
+    };
+    try {
+      render(
+        <MyoxusUIProvider>
+          <ColorInput label="Primary" value="#1e96eb" onChange={() => {}} />
+        </MyoxusUIProvider>,
+      );
+
+      expect(screen.getByRole("button", { name: "Pick color" })).not.toBeNull();
+    } finally {
+      if (previousEyeDropper === undefined) {
+        delete (window as { EyeDropper?: unknown }).EyeDropper;
+      } else {
+        (window as { EyeDropper?: unknown }).EyeDropper = previousEyeDropper;
+      }
+    }
+  });
+
   test("portals ColorInput popover into the owning Modal layer when rendered inside a modal", () => {
     render(
       <MyoxusUIProvider>

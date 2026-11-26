@@ -342,6 +342,20 @@ function DataScatterPointShape({
       aria-pressed={onSelect ? selected : undefined}
       data-chart-point-id={point.id}
       data-selected={selected || undefined}
+      pointerEvents={onSelect ? "bounding-box" : undefined}
+      onClick={(event) => {
+        if (event.target !== event.currentTarget) return;
+        event.stopPropagation();
+        focusPoint();
+        onSelect?.(point.id);
+      }}
+      onPointerDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        event.preventDefault();
+        event.stopPropagation();
+        focusPoint();
+        onSelect?.(point.id);
+      }}
       onDoubleClick={(event) => {
         event.stopPropagation();
         onLabelEditor?.(point.id);
@@ -427,6 +441,7 @@ function DataScatterPointShape({
         cx={cx}
         cy={cy}
         fill="transparent"
+        pointerEvents="fill"
         onClick={(event) => {
           event.stopPropagation();
           focusPoint();
@@ -575,6 +590,8 @@ function DataScatterPointShape({
       {point.decoration ? (
         <foreignObject
           height={40}
+          onClick={(event) => event.stopPropagation()}
+          onDoubleClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
           width={72}
           x={cx + radius + 6}

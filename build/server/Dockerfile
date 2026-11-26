@@ -73,7 +73,7 @@ FROM builder-base AS sbom-tools
 RUN --mount=type=cache,id=myoxus-server-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,id=myoxus-server-cargo-git,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,id=myoxus-server-cargo-cyclonedx-target,target=/tmp/cargo-cyclonedx-target,sharing=locked \
-    CARGO_TARGET_DIR=/tmp/cargo-cyclonedx-target cargo install --locked cargo-cyclonedx --version 0.5.9
+    CARGO_TARGET_DIR=/tmp/cargo-cyclonedx-target cargo install --locked cargo-cyclonedx --version 0.5.10
 
 FROM builder-base AS builder
 ARG MYOXUS_SOURCE_PROVENANCE_SHA256=""

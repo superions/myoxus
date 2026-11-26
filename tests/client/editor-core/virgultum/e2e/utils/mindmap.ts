@@ -20,9 +20,12 @@ export async function createMindMap(page: Page, _coords: [number, number]) {
         ids,
       );
       if (!id) return undefined;
-      return await page.evaluate((id) => {
+      return page.evaluate((id) => {
         const model = window.doc.getBlock(id)?.model;
-        return model && "childIds" in model && model.childIds.length > 0
+        return model &&
+          "childIds" in model &&
+          Array.isArray(model.childIds) &&
+          model.childIds.length > 0
           ? id
           : undefined;
       }, id);

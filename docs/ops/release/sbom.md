@@ -56,7 +56,7 @@ Release jobs invoke its `cyclonedx-yarn` CLI wrapper through the locked Yarn
 4.18.0 workspace. They never run `yarn plugin import`, `yarn dlx`, or install a
 generator at release runtime.
 
-Server SBOM generation requires `cargo-cyclonedx 0.5.9`. Release jobs verify
+Server SBOM generation requires `cargo-cyclonedx 0.5.10`. Release jobs verify
 that exact version and do not install an unbounded latest version. JSON schema
 validation uses pinned `ajv-cli 5.0.0`; the official CycloneDX 1.5, SPDX, and
 JSF schemas are downloaded into the local cache and checked against fixed

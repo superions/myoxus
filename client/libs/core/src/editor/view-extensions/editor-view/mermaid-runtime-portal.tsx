@@ -175,5 +175,5 @@ export function useMermaidCaptureDrag() {
     return cleanup;
   }, []);
 
-  return { start, cancel };
+  return useMemo(() => ({ start, cancel }), [start, cancel]);
 }

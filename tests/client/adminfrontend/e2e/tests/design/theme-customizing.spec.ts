@@ -287,11 +287,16 @@ test.describe("Theme DB runtime live gate", () => {
       const expected = expectedH1Style(selected);
 
       await openAdminSurface(page, "typography");
+      await page.getByTestId("typography-tab-hierarchy").click();
       const preview = page.getByTestId("hierarchy-h1-preview");
       await expect(preview).toBeVisible({ timeout: 15_000 });
 
       const rendered = await preview.evaluate((node) => {
-        const style = getComputedStyle(node);
+        const sample =
+          node.querySelector(
+            '[data-myoxus-ui-role="authoring-typography-text"]',
+          ) ?? node;
+        const style = getComputedStyle(sample);
         return {
           fontFamily: style.fontFamily,
           fontSize: style.fontSize,

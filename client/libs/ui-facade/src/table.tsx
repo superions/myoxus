@@ -168,11 +168,17 @@ export function Pagination({
       disabled={disabled}
       withEdges={withEdges}
       getControlProps={(control) => {
-        if (control === "previous" && previousLabel) {
-          return { "aria-label": previousLabel };
+        if (control === "previous") {
+          return { "aria-label": previousLabel || "Previous page" };
         }
-        if (control === "next" && nextLabel) {
-          return { "aria-label": nextLabel };
+        if (control === "next") {
+          return { "aria-label": nextLabel || "Next page" };
+        }
+        if (control === "first") {
+          return { "aria-label": "First page" };
+        }
+        if (control === "last") {
+          return { "aria-label": "Last page" };
         }
         return {};
       }}

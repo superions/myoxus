@@ -121,7 +121,9 @@ export async function mountFramePanelFixture(page: Page) {
       blockSize: "100vh",
     });
     document.body.append(panel);
-    await panel.updateComplete;
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => resolve()),
+    );
   });
 }
 
@@ -2103,6 +2105,7 @@ export async function createMindmap(page: Page, _coord: number[]) {
             ({ model }) =>
               !previous.includes(model.id) &&
               "childIds" in model &&
+              Array.isArray(model.childIds) &&
               model.childIds.length > 0 &&
               root.service.selection.selectedElements.some(
                 (selected) => selected.id === model.id,

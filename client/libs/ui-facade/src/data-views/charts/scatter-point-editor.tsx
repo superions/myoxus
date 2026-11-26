@@ -223,7 +223,7 @@ export function DataScatterPointEditor(props: DataScatterPointEditorProps) {
   return (
     <Stack aria-label={props.label} gap="sm" role="region">
       <Table.ScrollContainer minWidth={500}>
-        <Table highlightOnHover>
+        <Table aria-label={props.label} highlightOnHover>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>{props.labelColumn}</Table.Th>

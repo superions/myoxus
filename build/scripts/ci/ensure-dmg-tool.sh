@@ -5,7 +5,7 @@ set -euo pipefail
 tools="${1:?pass the task packaging-tools directory}"
 requirements="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/dmg-requirements.txt"
 python_bin="${MYOXUS_DMG_PYTHON:-python3}"
-"$python_bin" -c 'import sys; assert sys.version_info >= (3, 10), "DMG packaging requires Python 3.10+; set MYOXUS_DMG_PYTHON to an existing supported interpreter"'
+"$python_bin" -c 'import sys; assert sys.version_info >= (3, 11), "DMG packaging requires Python 3.11+; set MYOXUS_DMG_PYTHON to an existing supported interpreter"'
 if [[ ! -f "$tools/dmg/requirements.sha256" ]] || ! cmp -s <(shasum -a 256 "$requirements") "$tools/dmg/requirements.sha256"; then
   "$python_bin" -m venv "$tools/dmg"
   "$tools/dmg/bin/python3" -m pip install --disable-pip-version-check --require-hashes -r "$requirements"

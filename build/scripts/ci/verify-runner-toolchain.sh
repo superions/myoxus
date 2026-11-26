@@ -58,7 +58,7 @@ if $CHECK_RUST; then
   rustup default "$rust_toolchain"
   if $INSTALL_RUST_COMPONENTS; then
     rustup component add rustfmt clippy
-    cargo_cyclonedx_version="${CARGO_CYCLONEDX_VERSION:-0.5.9}"
+    cargo_cyclonedx_version="${CARGO_CYCLONEDX_VERSION:-0.5.10}"
     installed_cyclonedx_version="$(cargo cyclonedx --version 2>/dev/null | awk '{print $NF}' || true)"
     if [ "$installed_cyclonedx_version" != "$cargo_cyclonedx_version" ]; then
       cargo install --locked --force cargo-cyclonedx --version "$cargo_cyclonedx_version"

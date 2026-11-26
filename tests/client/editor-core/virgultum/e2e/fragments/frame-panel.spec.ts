@@ -105,7 +105,9 @@ test.describe("frame panel", () => {
         const host = window.editor.host;
         if (!host) throw new Error("Editor host is not mounted");
         panel.host = host;
-        await panel.updateComplete;
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => resolve()),
+        );
       });
       await checkNoteRect();
 
@@ -115,7 +117,9 @@ test.describe("frame panel", () => {
         const host = window.editor.host;
         if (!host) throw new Error("Editor host is not mounted");
         panel.host = host;
-        await panel.updateComplete;
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => resolve()),
+        );
       });
       await checkNoteRect();
     });
@@ -132,7 +136,9 @@ test.describe("frame panel", () => {
         const host = window.editor.host;
         if (!host) throw new Error("Editor host is not mounted");
         panel.host = host;
-        await panel.updateComplete;
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => resolve()),
+        );
       });
       await switchEditorMode(page);
       await page.evaluate(async () => {
@@ -140,7 +146,9 @@ test.describe("frame panel", () => {
         const host = window.editor.host;
         if (!host) throw new Error("Editor host is not mounted");
         panel.host = host;
-        await panel.updateComplete;
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => resolve()),
+        );
       });
 
       async function moveNoteAndCheck(

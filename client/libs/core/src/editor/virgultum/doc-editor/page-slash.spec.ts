@@ -10,6 +10,7 @@ import {
   CodeBlockSchemaExtension,
   DividerBlockSchemaExtension,
   ListBlockSchemaExtension,
+  MermaidBlockSchemaExtension,
   NoteBlockSchemaExtension,
   ParagraphBlockSchemaExtension,
   RootBlockSchemaExtension,
@@ -39,6 +40,7 @@ function createTestStore() {
       NoteBlockSchemaExtension,
       ParagraphBlockSchemaExtension,
       ListBlockSchemaExtension,
+      MermaidBlockSchemaExtension,
       CodeBlockSchemaExtension,
       DividerBlockSchemaExtension,
       CalloutBlockSchemaExtension,
@@ -119,6 +121,15 @@ describe("PageSlash Store registry (SPE-01)", () => {
 
     const todo = filterPageSlashItems(entries, "todo", "en");
     expect(todo[0]?.id).toBe("block-list-todo");
+
+    const mermaidElk = filterPageSlashItems(entries, "mermaid elk", "en");
+    expect(mermaidElk.some((e) => e.id === "mermaid-flowchart-elk-basic")).toBe(
+      true,
+    );
+    const mermaidElkHyphen = filterPageSlashItems(entries, "mermaid-elk", "en");
+    expect(
+      mermaidElkHyphen.some((e) => e.id === "mermaid-flowchart-elk-basic"),
+    ).toBe(true);
   });
 
   test("converts paragraph to heading and list with single-step undo", () => {

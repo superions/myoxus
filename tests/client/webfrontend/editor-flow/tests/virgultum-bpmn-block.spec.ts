@@ -125,7 +125,7 @@ async function selectEdgeByMouse(page: Page) {
 async function downloadSource(page: Page) {
   const pending = page.waitForEvent("download");
   await page
-    .locator("myoxus-bpmn")
+    .locator("myoxus-bpmn, [data-page-bpmn]")
     .getByRole("button", { name: /^(Download|Herunterladen)$/ })
     .click();
   const download = await pending;
@@ -283,7 +283,7 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
       .locator("..")
       .click();
     await page
-      .locator("myoxus-bpmn")
+      .locator("[data-page-bpmn]")
       .getByRole("button", { name: /^(Edit|Bearbeiten)$/ })
       .click();
     await expect(dialog.locator(".react-flow__node")).toHaveCount(3);
@@ -300,7 +300,7 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
     await typeSlashCommand(page, "/bpmn");
     await page.getByTestId("slash-menu-item-bpmn").click();
     await expect(dialog.locator(".react-flow")).toBeVisible();
-    await expect(page.locator("myoxus-bpmn")).toHaveCount(1);
+    await expect(page.locator("[data-page-bpmn]")).toHaveCount(1);
     await closeDialog.click();
     await page
       .getByRole("radio", { name: "Edgeless", exact: true })

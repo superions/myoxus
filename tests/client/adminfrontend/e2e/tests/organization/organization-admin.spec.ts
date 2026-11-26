@@ -53,10 +53,14 @@ test.describe("ORG-I-07 — Admin Organization page", () => {
     // The overview panel is localized; test the stable Admin role structure
     // instead of language-specific marketing copy.
     await expect(
-      page.getByRole("heading", { name: /Übersicht|Overview/i }),
+      page.getByRole("heading", {
+        name: /Organisation|Organization/i,
+        level: 1,
+      }),
     ).toBeVisible();
+    await expect(page.getByTestId("organization-name-input")).toBeVisible();
     await expect(
-      page.getByText(/Öffentlicher Name|Public name/i),
+      page.getByLabel(/^(Name|Öffentlicher Name|Public name)$/i),
     ).toBeVisible();
 
     // Workspace-OU assignment lives in the workspace detail drawer; the
@@ -104,12 +108,12 @@ test.describe("ORG-I-07 — Admin Organization page", () => {
 
     await expect(
       page.getByRole("option", {
-        name: /^Fachbereichkvk\.fachbereich$/,
+        name: /^Fachbereich · kvk\.fachbereich$/,
       }),
     ).toBeVisible();
     await expect(
       page.getByRole("option", {
-        name: /^Amtkvg\.amt$/,
+        name: /^Amt · kvg\.amt$/,
       }),
     ).toHaveCount(0);
 
@@ -190,10 +194,12 @@ test.describe("ORG-I-07 — Admin Organization page", () => {
     await page.goto(`${ADMIN_FRONTEND_BASE}/organization`);
     await page.getByTestId("organization-tab-unit-types").click();
 
-    // The preset showcase banner mentions the seeded packages.
+    // The unit-types tab exposes the seeded organization-model catalog cards.
     await expect(
-      page.getByText(/Mitgelieferte Preset-Pakete|Seeded preset packages/i),
+      page.getByTestId("organization-unit-type-catalog-default"),
     ).toBeVisible();
-    await expect(page.getByText(/Default/i).first()).toBeVisible();
+    await expect(
+      page.getByTestId("organization-unit-type-catalog-kvk"),
+    ).toBeVisible();
   });
 });

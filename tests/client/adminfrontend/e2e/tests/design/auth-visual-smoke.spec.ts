@@ -87,6 +87,7 @@ async function capture(
       '[data-testid="auth-background-hedge"]',
     )!;
     const bounds = art.getBoundingClientRect();
+    const isImg = art instanceof HTMLImageElement;
     return {
       theme: document.documentElement.dataset.theme,
       mantine: document.documentElement.dataset.mantineColorScheme,
@@ -94,6 +95,8 @@ async function capture(
       artwork: {
         tag: art.tagName.toLowerCase(),
         paths: art.querySelectorAll("path").length,
+        loaded: isImg ? art.complete && art.naturalWidth > 0 : true,
+        src: isImg ? art.currentSrc || art.getAttribute("src") || "" : "",
         width: bounds.width,
         height: bounds.height,
         opacity: getComputedStyle(art).opacity,
@@ -101,8 +104,13 @@ async function capture(
     };
   });
   expect(dom.horizontalOverflow).toBe(false);
-  expect(dom.artwork.tag).toBe("svg");
-  expect(dom.artwork.paths).toBeGreaterThan(0);
+  expect(["img", "svg"]).toContain(dom.artwork.tag);
+  if (dom.artwork.tag === "svg") {
+    expect(dom.artwork.paths).toBeGreaterThan(0);
+  } else {
+    expect(dom.artwork.loaded).toBe(true);
+    expect(dom.artwork.src).toContain("auth-background");
+  }
   expect(dom.artwork.width).toBeGreaterThan(300);
   expect(dom.artwork.height).toBeGreaterThan(300);
   expect(Number(dom.artwork.opacity)).toBeGreaterThan(0);

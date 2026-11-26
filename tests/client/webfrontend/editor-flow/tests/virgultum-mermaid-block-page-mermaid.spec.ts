@@ -2015,9 +2015,11 @@ test.describe("Virgultum Mermaid block", () => {
       // snapshot must restore both rich text and diagram content, not replay
       // old Yjs bytes into a live document that retains the newer values.
       await typeSlashCommand(page, "History state A");
-      const text = page.locator("rich-text [contenteditable=true]").filter({
-        hasText: "History state A",
-      });
+      const text = page
+        .locator("[data-page-text], rich-text [contenteditable=true]")
+        .filter({
+          hasText: "History state A",
+        });
       const openVersionsSidebar = async () => {
         const sidebarToggle = page.getByTestId("context-panel-toggle");
         if ((await sidebarToggle.getAttribute("aria-expanded")) !== "true") {
@@ -7257,7 +7259,7 @@ flowchart LR
       await expand.click();
       await expect(leaf).toBeAttached();
       // Hover also exposes a parent handle without changing tree selection.
-      await page.locator("editor-host").first().focus();
+      await page.locator("[data-page-body], editor-host").first().focus();
       const key = await branch.getAttribute("data-mermaid-edit-key");
       if (!key) throw new Error("Mindmap branch has no Source binding");
       const point = await flowchartNodePoint(block, key);
@@ -7272,7 +7274,7 @@ flowchart LR
       await expect(leaf).toHaveCount(0);
       await expect(expand).toBeVisible();
       expect(await source()).toBe(fixture);
-      await page.locator("editor-host").first().focus();
+      await page.locator("[data-page-body], editor-host").first().focus();
       await page.keyboard.press("Control+z");
       await expect(leaf).toBeAttached();
       await page.keyboard.press("Control+Shift+z");

@@ -260,6 +260,7 @@ export type ColorInputProps = Omit<
   swatches?: MantineColorInputProps["swatches"];
   withPicker?: MantineColorInputProps["withPicker"];
   withEyeDropper?: MantineColorInputProps["withEyeDropper"];
+  eyeDropperButtonProps?: MantineColorInputProps["eyeDropperButtonProps"];
   disallowInput?: MantineColorInputProps["disallowInput"];
   onChangeEnd?: MantineColorInputProps["onChangeEnd"];
   allowEmpty?: boolean;
@@ -278,6 +279,7 @@ export const ColorInput = forwardRef(function ColorInput(
     block = false,
     endFix,
     error,
+    eyeDropperButtonProps,
     fixOnBlur,
     inputClassName,
     inputStyle,
@@ -349,6 +351,14 @@ export const ColorInput = forwardRef(function ColorInput(
       }
       data-myoxus-ui-role="form-color-input"
       error={error ?? (status === "error" ? true : undefined)}
+      eyeDropperButtonProps={{
+        ...eyeDropperButtonProps,
+        "aria-label":
+          eyeDropperButtonProps?.["aria-label"] ??
+          (eyeDropperButtonProps?.["aria-labelledby"]
+            ? undefined
+            : "Pick color"),
+      }}
       leftSection={preFix}
       onChange={(nextValue) => {
         if (nextValue.trim().length > 0) {

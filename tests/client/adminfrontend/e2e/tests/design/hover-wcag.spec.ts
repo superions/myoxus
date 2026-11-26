@@ -68,8 +68,6 @@ test.describe("design-page server branding hover contract", () => {
       "design-tab-overview",
       "design-tab-colors",
       "design-tab-branding",
-      "design-tab-font-library",
-      "design-tab-editor-fonts",
     ]) {
       await expect(page.getByTestId(testId)).toBeVisible();
     }

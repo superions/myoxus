@@ -12,11 +12,12 @@ import {
   type MermaidPageViewportProjection,
 } from "@virgultum/block-mermaid";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { MermaidJourneyRuntime } from "./mermaid-journey-runtime";
 import { MermaidPacketRuntime } from "./mermaid-packet-runtime";
+import { useMermaidCaptureDrag } from "./mermaid-runtime-portal";
 
 afterEach(cleanup);
 
@@ -436,4 +437,29 @@ test("deferred chart delivery retains updated props and recovers through retry",
   expect(renderer).toHaveBeenLastCalledWith(updated);
   expect(chartDelivery.load).toHaveBeenCalledTimes(2);
   expect(screen.queryByRole("alert")).toBeNull();
+});
+
+test("useMermaidCaptureDrag preserves return identity across rerenders so effect cleanups do not cancel active targets", () => {
+  const resets = vi.fn();
+  function Probe() {
+    const [target, setTarget] = useState<string | null>(null);
+    const drag = useMermaidCaptureDrag();
+    useEffect(() => {
+      resets();
+      drag.cancel();
+      setTarget(null);
+    }, [drag]);
+    return (
+      <button type="button" onClick={() => setTarget("before:node-1")}>
+        {target ?? "none"}
+      </button>
+    );
+  }
+  render(<Probe />);
+  expect(resets).toHaveBeenCalledTimes(1);
+  const button = screen.getByRole("button");
+  expect(button.textContent).toBe("none");
+  fireEvent.click(button);
+  expect(button.textContent).toBe("before:node-1");
+  expect(resets).toHaveBeenCalledTimes(1);
 });
