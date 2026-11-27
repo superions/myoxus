@@ -4,22 +4,25 @@ import { cssVar } from "@virgultum/core/theme";
 export const cellContainerStyle = css({
   position: "relative",
   alignItems: "center",
-  border: "1px solid",
+  borderTop: "0",
+  borderLeft: "0",
+  borderRight: "1px solid",
+  borderBottom: "1px solid",
   borderColor: cssVar("borderColor"),
-  borderCollapse: "collapse",
   isolation: "auto",
   textAlign: "start",
   verticalAlign: "top",
 });
 
-// Cell-border anchors are table hit geometry, not button chrome.
+// Cell-border anchors sit outside the table perimeter so handles never slice
+// across cell borders or overlap cell content; padding bridges the hover gap.
 export const columnOptionsCellStyle = css({
   position: "absolute",
-  height: "0",
+  bottom: "100%",
+  paddingBottom: "4px",
   zIndex: 2,
   opacity: 0,
   ":hover, :focus-within": { opacity: 1 },
-  top: "0",
   left: "0",
   width: "100%",
   display: "flex",
@@ -30,8 +33,8 @@ export const columnOptionsCellStyle = css({
 export const rowOptionsCellStyle = css({
   position: "absolute",
   top: "0",
-  left: "0",
-  width: "0",
+  right: "100%",
+  paddingRight: "4px",
   zIndex: 2,
   opacity: 0,
   ":hover, :focus-within": { opacity: 1 },

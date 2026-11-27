@@ -25,14 +25,42 @@ export const codeBlockStyles = `
     text-decoration: var(--myoxus-typography-code-block-decoration, none);
     text-transform: var(--myoxus-typography-code-block-text-transform, none);
     position: relative;
-    padding: 32px 20px;
+    padding: 0;
     background: var(--myoxus-background-code-block);
     border: calc(var(--mantine-scale) * 1px) solid var(--myoxus-border-color);
-    border-radius: var(--mantine-radius-xl);
+    border-radius: var(--mantine-radius-lg);
     box-sizing: border-box;
   }
 
-  .myoxus-code-block-container.mobile {
+  .myoxus-code-block-header {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 12px 0 16px;
+    background: var(--myoxus-background-secondary-color);
+    border-bottom: calc(var(--mantine-scale, 1) * 1px) solid var(--myoxus-border-color);
+    border-start-start-radius: calc(var(--mantine-radius-lg, 8px) - 1px);
+    border-start-end-radius: calc(var(--mantine-radius-lg, 8px) - 1px);
+    font-family: var(--mantine-font-family, var(--myoxus-font-family));
+    font-size: var(--mantine-font-size-xs, 12px);
+    font-weight: 500;
+    line-height: 1;
+    color: var(--myoxus-text-secondary-color);
+    user-select: none;
+    pointer-events: none;
+    box-sizing: border-box;
+  }
+
+  .myoxus-code-block-header::before {
+    content: attr(data-language);
+  }
+
+  .myoxus-code-block-body {
+    padding: 12px 16px;
+  }
+
+  .myoxus-code-block-container.mobile .myoxus-code-block-body {
     padding: 12px;
   }
 
@@ -71,15 +99,17 @@ export const codeBlockStyles = `
 
   .myoxus-code-block-container .line-number {
     position: sticky;
-    text-align: left;
+    text-align: end;
+    font-variant-numeric: tabular-nums;
     padding-right: 12px;
-    width: 32px;
+    width: 36px;
     word-break: break-word;
     white-space: nowrap;
     left: -0.5px;
     z-index: 1;
     background: var(--myoxus-background-code-block);
-    color: var(--myoxus-text-secondary);
+    color: var(--myoxus-text-secondary-color, var(--myoxus-text-secondary));
+    opacity: 0.65;
     box-sizing: border-box;
     user-select: none;
   }

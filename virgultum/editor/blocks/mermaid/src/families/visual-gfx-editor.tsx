@@ -50,15 +50,21 @@ import {
   renderMermaidGfxAlignmentGuides,
   renderMermaidGfxContextMenu,
   renderMermaidGfxEdgeReconnectHandles,
+  renderMermaidGfxHoverConnectHandles,
   renderMermaidGfxNodeConnectHandles,
   renderMermaidGfxNodeResizeHandle,
   renderMermaidGfxSelectionChrome,
+  renderMermaidGfxSnapGuides,
   renderMermaidGfxSubgraphMoveHandle,
   renderMermaidGfxSubgraphDropPreview,
   renderMermaidGfxSubgraphResizeHandle,
   renderMermaidGfxViewportResizeHandle,
 } from "./runtime/gfx-editor-overlays.js";
-import type { MermaidGfxAlignmentGuideProjection } from "./runtime/gfx-editor-overlays.js";
+import type {
+  MermaidGfxAlignmentGuideProjection,
+  MermaidGfxGeometryHud,
+  MermaidGfxProjectedSnapGuide,
+} from "./runtime/gfx-editor-overlays.js";
 import { typeOwnedMermaidMinimumReadableZoom } from "./runtime/gfx-owner-hooks.js";
 
 type MermaidGfxViewPoint = { readonly left: number; readonly top: number };
@@ -106,6 +112,9 @@ function MermaidScopedCanvas({
 
 export type MermaidGfxPageEditorVisualState = {
   readonly alignmentGuides: readonly MermaidGfxAlignmentGuideProjection[];
+  readonly snapGuides?: readonly MermaidGfxProjectedSnapGuide[];
+  readonly geometryHud?: MermaidGfxGeometryHud | null;
+  readonly hoverConnectHandles?: readonly MermaidGfxViewPort[];
   readonly connectionPreview: MermaidGfxConnectionPreview | null;
   readonly contextMenu: {
     readonly left: number;
@@ -149,6 +158,12 @@ export type MermaidGfxPageEditorHandlers = {
     event: PointerEvent,
     portId: string,
   ) => void;
+  readonly onHoverConnectorHandlePointerDown?: (
+    event: PointerEvent,
+    portId: string,
+  ) => void;
+  readonly onViewportPointerMove?: MermaidGfxDomListener;
+  readonly onViewportPointerLeave?: MermaidGfxDomListener;
   readonly onContextConnect: () => void;
   readonly onCloseContextMenu: () => void;
   readonly onEdgeReconnectKeydown: (
@@ -223,6 +238,7 @@ export function renderMermaidGfxPageEditor({
   embeddedEditing = false,
   gfxStore,
   handlers,
+  hasStoredViewportHeight = false,
   inspector,
   isViewportUserPositioned,
   projectShell,
@@ -249,6 +265,7 @@ export function renderMermaidGfxPageEditor({
   readonly embeddedEditing?: boolean;
   readonly gfxStore: Store;
   readonly handlers: MermaidGfxPageEditorHandlers;
+  readonly hasStoredViewportHeight?: boolean;
   readonly inspector: MermaidGfxEditorState;
   readonly keyboardDetailItems?: readonly {
     ownerKey: string;
@@ -406,12 +423,16 @@ export function renderMermaidGfxPageEditor({
     displayOnly
       ? MERMAID_SCOPED_GFX_DISPLAY_MIN_VIEWPORT_HEIGHT
       : MERMAID_SCOPED_GFX_PAGE_MIN_VIEWPORT_HEIGHT,
-    MERMAID_SCOPED_GFX_PAGE_MAX_VIEWPORT_HEIGHT,
+    Math.min(600, MERMAID_SCOPED_GFX_PAGE_MAX_VIEWPORT_HEIGHT),
     paddingTop / viewScale,
     paddingBottom / viewScale,
-    minimumReadableZoom,
+    Math.max(1, minimumReadableZoom),
   );
   const viewportHeight = resolveViewportHeight(autoViewportHeight);
+  const cssViewportHeight =
+    embedded || displayOnly || hasStoredViewportHeight
+      ? `${viewportHeight}px`
+      : `min(${viewportHeight}px, max(${MERMAID_SCOPED_GFX_PAGE_MIN_VIEWPORT_HEIGHT}px, calc(100dvh - 180px)))`;
   const naturalContentWidth = ownerBound.w + paddingLeft + paddingRight;
   const naturalContentHeight = ownerBound.h + paddingTop + paddingBottom;
 
@@ -439,6 +460,18 @@ export function renderMermaidGfxPageEditor({
           handlers.onViewportPointerDown,
           options,
         );
+      if (handlers.onViewportPointerMove)
+        anchor.addEventListener(
+          "pointermove",
+          handlers.onViewportPointerMove,
+          options,
+        );
+      if (handlers.onViewportPointerLeave)
+        anchor.addEventListener(
+          "pointerleave",
+          handlers.onViewportPointerLeave,
+          { signal: lifetime.signal },
+        );
     }
     return () => lifetime.abort();
   };
@@ -462,7 +495,7 @@ export function renderMermaidGfxPageEditor({
       data-mermaid-page-natural-width={naturalContentWidth}
       style={
         {
-          "--myoxus-mermaid-gfx-viewport-height": `${viewportHeight}px`,
+          "--myoxus-mermaid-gfx-viewport-height": cssViewportHeight,
         } as CSSProperties
       }
     >
@@ -501,6 +534,11 @@ export function renderMermaidGfxPageEditor({
           guides: visualState.alignmentGuides,
           onSelect: handlers.onAlignmentGuideSelect,
         })}
+        {renderMermaidGfxSnapGuides({
+          displayOnly,
+          guides: visualState.snapGuides ?? [],
+          hud: visualState.geometryHud ?? null,
+        })}
         {displayOnly || readonly
           ? null
           : renderMermaidGfxSelectionChrome({
@@ -508,6 +546,12 @@ export function renderMermaidGfxPageEditor({
               count: visualState.selectionRects.length,
               items: visualState.selectionRects,
             })}
+        {renderMermaidGfxHoverConnectHandles({
+          disabled: readonly,
+          displayOnly,
+          handles: visualState.hoverConnectHandles ?? [],
+          onPointerDown: handlers.onHoverConnectorHandlePointerDown,
+        })}
         {renderMermaidGfxNodeConnectHandles({
           disabled: readonly,
           displayOnly,

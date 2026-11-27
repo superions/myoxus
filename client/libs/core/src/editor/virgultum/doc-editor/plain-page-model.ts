@@ -201,6 +201,7 @@ export function readPageContent(
         children: Item[];
       };
   const body: Item[] = [];
+  const surfaceDiagrams: Item[] = [];
   function children(parent: BlockModel, depth: number): boolean {
     const models = parent.children;
     if (models.length !== parent.yBlock.get("sys:children").length)
@@ -219,9 +220,31 @@ export function readPageContent(
       if (seen.has(child.id)) return false;
       seen.add(child.id);
       if (child.flavour === "myoxus:surface") {
-        // The Page surface owner indexes this root child but paints none of its
-        // geometry or descendants. They remain in the live Store for Canvas.
+        // Skip canvas-only geometry, frames, and edgeless-only notes, but
+        // collect top-level diagram blocks owned directly by the surface
+        // (such as catalog-created Mermaid diagrams) without mutating their
+        // Store parent. Appended after Note content so Page Notes keep first
+        // position in mixed documents while surface-only diagram docs render
+        // directly in Page.
         if (parent !== root) return false;
+        for (const surfaceChild of child.children) {
+          if (seen.has(surfaceChild.id)) return false;
+          seen.add(surfaceChild.id);
+          if (allowedIds && !allowedIds.has(surfaceChild.id)) continue;
+          if (surfaceChild.flavour === "myoxus:mermaid") {
+            surfaceDiagrams.push({
+              kind: "mermaid",
+              model: surfaceChild as MermaidBlockModel,
+              depth,
+            });
+          } else if (surfaceChild.flavour === "myoxus:bpmn") {
+            surfaceDiagrams.push({
+              kind: "bpmn",
+              model: surfaceChild as BpmnBlockModel,
+              depth,
+            });
+          }
+        }
         continue;
       }
       if (child.flavour === "myoxus:note") {
@@ -494,6 +517,7 @@ export function readPageContent(
     return true;
   }
   if (!children(root, 0)) return null;
+  if (surfaceDiagrams.length) body.push(...surfaceDiagrams);
   if (!body.some((item) => item.kind === "callout"))
     return { lines, body, order: body };
   // Clipboard and selection use document order even when a host presents nested blocks.

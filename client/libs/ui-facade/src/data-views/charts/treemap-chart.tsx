@@ -273,12 +273,16 @@ export function DataTreemapChart({
             delete event.currentTarget.dataset.reparentTargetId;
           }}
         >
-          {layout.map((node) => {
+          {layout.map((node, nodeIndex) => {
             const input = inputById.get(node.id);
             if (!input) return null;
             const width = Math.max(0, node.x1 - node.x0);
             const height = Math.max(0, node.y1 - node.y0);
             const selected = selectedId === node.id;
+            const leafTone =
+              node.type === "leaf" && !input.appearance?.fill
+                ? String(nodeIndex % 4)
+                : undefined;
             return (
               <g
                 aria-label={`${node.label}, ${valueFormatter(node.type === "leaf" ? node.value : node.aggregate)}`}
@@ -313,6 +317,7 @@ export function DataTreemapChart({
                       ? "myoxus-data-treemap-section"
                       : "myoxus-data-treemap-leaf"
                   }
+                  data-leaf-tone={leafTone}
                   height={height}
                   style={{
                     fill: input.appearance?.fill,
@@ -357,7 +362,11 @@ export function DataTreemapChart({
                       event.stopPropagation();
                       onEdit?.(node.id, "value");
                     }}
-                    x={node.type === "section" ? width - 8 : width / 2}
+                    x={
+                      node.type === "section"
+                        ? Math.max(8, width - 16)
+                        : width / 2
+                    }
                     y={
                       node.type === "section"
                         ? DATA_TREEMAP_SECTION_HEADER / 2

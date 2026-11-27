@@ -3,6 +3,7 @@
 import {
   CalendarDaysIcon,
   CommentIcon,
+  MoreHorizontalIcon,
   PaletteIcon,
   PlusIcon,
   SettingsIcon,
@@ -330,7 +331,7 @@ export function MermaidGanttRuntime({
               })
             }
             size="compact-sm"
-            variant="default"
+            variant="secondary"
           >
             {messages.ganttAddMilestone()}
           </Button>
@@ -343,7 +344,7 @@ export function MermaidGanttRuntime({
               })
             }
             size="compact-sm"
-            variant="default"
+            variant="secondary"
           >
             {messages.ganttAddSection()}
           </Button>
@@ -356,7 +357,7 @@ export function MermaidGanttRuntime({
                 setPopover(undefined);
               }}
               size="compact-sm"
-              variant={connectMode ? "primary" : "default"}
+              variant={connectMode ? "primary" : "secondary"}
             >
               <SettingsIcon size={14} />
             </IconButton>
@@ -378,7 +379,7 @@ export function MermaidGanttRuntime({
               setCommentsVisible(next);
             }}
             size="compact-sm"
-            variant="default"
+            variant="secondary"
           >
             <CommentIcon size={14} />
           </IconButton>
@@ -402,7 +403,7 @@ export function MermaidGanttRuntime({
               setPopover(popover === "appearance" ? undefined : "appearance")
             }
             size="compact-sm"
-            variant="default"
+            variant="secondary"
           >
             <PaletteIcon size={14} />
           </IconButton>
@@ -429,7 +430,9 @@ export function MermaidGanttRuntime({
         }}
       >
         <PopoverTarget>
-          <Button
+          <IconButton
+            aria-label={messages.visualMoreActions()}
+            tooltip={messages.visualMoreActions()}
             aria-expanded={
               popover === "more" ||
               popover === "calendar" ||
@@ -445,10 +448,10 @@ export function MermaidGanttRuntime({
               )
             }
             size="compact-sm"
-            variant="default"
+            variant="secondary"
           >
-            {messages.visualMoreActions()}
-          </Button>
+            <MoreHorizontalIcon size={14} />
+          </IconButton>
         </PopoverTarget>
         <PopoverContent id={calendarOptionsPortalId}>
           {popover === "calendar" ? (

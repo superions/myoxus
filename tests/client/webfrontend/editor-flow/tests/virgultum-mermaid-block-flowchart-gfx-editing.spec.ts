@@ -161,10 +161,7 @@ test.describe("Virgultum Mermaid block", () => {
       const visualCanvas = mermaidBlock
         .locator(".myoxus-mermaid-gfx-viewport")
         .first();
-      await visualCanvas.click({
-        force: true,
-        position: await flowchartNodePoint(mermaidBlock, "C", 0.18, 0.5),
-      });
+      await selectFlowchartNode(mermaidBlock, visualCanvas, "C");
       await expect(mermaidBlock.getByLabel("Selected node label")).toHaveCount(
         0,
       );

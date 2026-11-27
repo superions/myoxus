@@ -63,7 +63,7 @@ export function PacketBitGrid(props: PacketBitGridProps) {
         data-myoxus-ui-role="packet-bit-scroll"
         owner={props.scrollOwner ?? "self"}
         viewportRef={geometry.viewportRef}
-        type="always"
+        type="auto"
         scrollbars="x"
       >
         <Box

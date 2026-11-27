@@ -1,7 +1,3 @@
-import {
-  readMermaidGfxNodeId,
-  readMermaidGfxEdgeId,
-} from "./mermaid-gfx-metadata.js";
 import { calPanDeltaFromClientPoint } from "@virgultum/canvas-runtime/surface";
 import { Bound, getCommonBound } from "@virgultum/core/primitives/gfx";
 import {
@@ -24,6 +20,7 @@ import {
   typeOwnedMermaidObjectEditAnchorSide,
 } from "./families/runtime/gfx-owner-hooks.js";
 import {
+  projectMermaidGfxForPageViewport,
   resolveMermaidGfxProjection,
   type MermaidGfxProjection,
 } from "./presentation/gfx-projection-owner.js";
@@ -180,27 +177,19 @@ export class MermaidGfxViewportBridge {
   }
 
   private get projection() {
-    const projection = resolveMermaidGfxProjection(this.host.getModel());
-    if (
-      !projection ||
-      (!this.hiddenObjectKeys.size && !this.previewNavigationBound)
-    )
-      return projection;
+    const raw = resolveMermaidGfxProjection(this.host.getModel());
+    if (!raw) return null;
+    const projection = projectMermaidGfxForPageViewport(raw, {
+      hiddenObjectKeys: this.hiddenObjectKeys,
+      visualModel: getMermaidVisualModel(this.host.getModel()),
+    });
+    if (!this.previewNavigationBound) return projection;
     return {
       ...projection,
-      ownerXYWH: this.previewNavigationBound
-        ? getCommonBound([
-            Bound.deserialize(projection.ownerXYWH),
-            this.previewNavigationBound,
-          ])!.serialize()
-        : projection.ownerXYWH,
-      childElementIds: projection.childElementIds.filter((id) => {
-        const element = projection.getElementById(id);
-        return (
-          !this.hiddenObjectKeys.has(readMermaidGfxNodeId(element)) &&
-          !this.hiddenObjectKeys.has(readMermaidGfxEdgeId(element))
-        );
-      }),
+      ownerXYWH: getCommonBound([
+        Bound.deserialize(projection.ownerXYWH),
+        this.previewNavigationBound,
+      ])!.serialize(),
     };
   }
 

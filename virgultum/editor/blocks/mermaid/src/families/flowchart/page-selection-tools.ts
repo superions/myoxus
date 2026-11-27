@@ -20,7 +20,7 @@ export const mermaidFlowchartPageSelectionTools = {
           ? mermaidMessages.flowchartSubgraphNodesOnly()
           : mermaidMessages.flowchartSubgraphMinimum(),
     validate: ({ items, visualModel }) => {
-      if (items.some((item) => item.kind !== "node")) {
+      if (items.some((item) => item.kind !== "edge" && item.kind !== "node")) {
         return { code: "flowchart.subgraph.nodes-only", valid: false };
       }
       const nodeItems = items.filter((item) => item.kind === "node");

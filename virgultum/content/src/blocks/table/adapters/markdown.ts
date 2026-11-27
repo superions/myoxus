@@ -76,30 +76,59 @@ export const tableBlockMarkdownAdapterMatcher: BlockMarkdownAdapterMatcher = {
   fromBlockSnapshot: {
     enter: (o, context) => {
       const { walkerContext, deltaConverter } = context;
-      const { columns, rows, cells, headerRows } = o.node
+      const { columns, rows, cells, headerRows, headerColumn, caption } = o.node
         .props as unknown as TableBlockPropsSerialized;
       const table = processTable(columns, rows, cells);
       const count =
         headerRows === undefined
           ? 0
           : normalizeTableHeaderRows(headerRows, table.rows.length);
-      if (count !== 1 && table.rows.length) {
+      const hasMergedCells = table.rows.some((row) =>
+        row.cells.some(
+          (cell) =>
+            (cell.colspan && cell.colspan > 1) ||
+            (cell.rowspan && cell.rowspan > 1),
+        ),
+      );
+      if (
+        (count !== 1 || hasMergedCells || headerColumn || caption?.trim()) &&
+        table.rows.length
+      ) {
         const element: import("hast").Element = {
           type: "element",
           tagName: "table",
           properties: {},
-          children: tableHtmlSections(
-            table,
-            headerRows,
-            (cell, header, column) => ({
-              type: "element",
-              tagName: header ? "th" : "td",
-              properties: table.align[column]
-                ? { style: `text-align: ${table.align[column]}` }
-                : {},
-              children: deltaConverter.deltaToHtmlAST(cell.value.delta),
-            }),
-          ),
+          children: [
+            ...(caption?.trim()
+              ? [
+                  {
+                    type: "element" as const,
+                    tagName: "caption",
+                    properties: {},
+                    children: [{ type: "text" as const, value: caption }],
+                  },
+                ]
+              : []),
+            ...tableHtmlSections(
+              table,
+              headerRows,
+              (cell, header, column, span) => ({
+                type: "element",
+                tagName:
+                  header || (Boolean(headerColumn) && column === 0)
+                    ? "th"
+                    : "td",
+                properties: {
+                  ...(table.align[column]
+                    ? { style: `text-align: ${table.align[column]}` }
+                    : {}),
+                  ...(span.colspan > 1 ? { colSpan: span.colspan } : {}),
+                  ...(span.rowspan > 1 ? { rowSpan: span.rowspan } : {}),
+                },
+                children: deltaConverter.deltaToHtmlAST(cell.value.delta),
+              }),
+            ),
+          ],
         };
         const value = markdownTableHtml(element);
         if (

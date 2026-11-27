@@ -18,7 +18,7 @@ export const connectorHandleStyles = `
       border: 2px solid var(--myoxus-text-emphasis-color);
       background-color: var(--myoxus-background-primary-color);
       cursor: pointer;
-      z-index: 10;
+      z-index: 20;
       pointer-events: all;
       /**
        * Fix: pointerEvent stops firing after a short time.
@@ -57,20 +57,29 @@ export function startConnectorReconnect(
   const slots = std.get(EdgelessLegacySlotIdentifier);
   const controller = new AbortController();
   const options = { signal: controller.signal };
+  const ownerWindow = handle.ownerDocument.defaultView ?? window;
   const finish = () => {
     if (controller.signal.aborted) return;
     controller.abort();
-    if (handle.hasPointerCapture(pointerId))
-      handle.releasePointerCapture(pointerId);
+    try {
+      if (handle.hasPointerCapture(pointerId))
+        handle.releasePointerCapture(pointerId);
+    } catch {
+      /* Capture may already be released or unavailable for synthetic input. */
+    }
     overlay.clear();
     std.store.captureSync();
     slots.elementResizeEnd.next();
   };
 
-  handle.setPointerCapture(pointerId);
+  try {
+    handle.setPointerCapture(pointerId);
+  } catch {
+    /* Synthetic or cross-boundary drags still work via window listeners. */
+  }
   std.store.captureSync();
   slots.elementResizeStart.next();
-  handle.addEventListener(
+  ownerWindow.addEventListener(
     "pointermove",
     (move) => {
       if (move.pointerId !== pointerId) return;
@@ -90,8 +99,7 @@ export function startConnectorReconnect(
   const finishPointer = (end: PointerEvent) => {
     if (end.pointerId === pointerId) finish();
   };
-  handle.addEventListener("pointerup", finishPointer, options);
-  handle.addEventListener("pointercancel", finishPointer, options);
-  handle.addEventListener("lostpointercapture", finishPointer, options);
+  ownerWindow.addEventListener("pointerup", finishPointer, options);
+  ownerWindow.addEventListener("pointercancel", finishPointer, options);
   return finish;
 }

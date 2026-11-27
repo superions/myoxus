@@ -90,7 +90,7 @@ describe("Mermaid Flowchart family module", () => {
     const node = { ...state.visualModel.nodes[0]!, height: 88, width: 200 };
     const projected = flowchartNodeElementStyle(state.visualModel, node);
     const typography = resolveMermaidGfxTheme().typography;
-    expect(projected.fontSize).toBe(typography.sectionFontSize);
+    expect(projected.fontSize).toBe(typography.fontSize);
     expect(projected.strokeColor).toBe("--myoxus-text-secondary-color");
 
     const wrapped = flowchartNodeElementStyle(state.visualModel, {
@@ -128,20 +128,14 @@ describe("Mermaid Flowchart family module", () => {
 
     expect(
       flowchartSubgraphElementStyle(state.visualModel, group).fontSize,
-    ).toBe(
-      resolveMermaidGfxTheme().typography.fontSize * 2 -
-        resolveMermaidGfxTheme().typography.minimumReadableFontSize,
-    );
+    ).toBe(resolveMermaidGfxTheme().typography.fontSize);
     expect(
       flowchartEdgeElementStyle(
         state.visualModel,
         state.visualModel.edges[0]!,
         0,
       ).fontSize,
-    ).toBe(
-      resolveMermaidGfxTheme().typography.fontSize * 2 -
-        resolveMermaidGfxTheme().typography.minimumReadableFontSize,
-    );
+    ).toBe(resolveMermaidGfxTheme().typography.minimumReadableFontSize);
     expect(
       flowchartEdgeElementStyle(
         state.visualModel,

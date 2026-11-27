@@ -284,6 +284,7 @@ export const classGfxHooks: MermaidGfxFamilyHookRegistration = {
       stroke: resolveMermaidGfxProjectionTheme().secondaryTextColor,
       fontSize: resolveMermaidGfxProjectionTheme().typography.fontSize,
     }),
+    minimumReadableZoom: (_model, minimum) => Math.max(1, minimum),
     subgraphElementProjection: () => ({
       ...projectNeutralMermaidGfxSubgraphElement(),
       filled: false,

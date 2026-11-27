@@ -1,0 +1,55 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+rust-version = "1.95"
+repository = "https://github.com/storytold/craft-libs"
+
+[workspace.dependencies]
+craft-cfb = { path = "crates/cfb" }
+craft-codepage = { path = "crates/codepage" }
+craft-docx = { path = "crates/docx" }
+craft-drawingml = { path = "crates/drawingml" }
+craft-math = { path = "crates/math" }
+craft-media-testkit = { path = "crates/media-testkit" }
+craft-offcrypto = { path = "crates/offcrypto" }
+craft-opc = { path = "crates/opc" }
+craft-testkit = { path = "crates/testkit" }
+craft-wordmodel = { path = "crates/wordmodel" }
+craft-xml = { path = "crates/xml" }
+craft-zip = { path = "crates/zip" }
+
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+encoding_rs = "0.8"
+kurbo = "0.13"
+log = "0.4"
+miniz_oxide = "0.8"
+proptest = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.11"
+thiserror = "2"
+zip = { version = "9.8.2", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(craft_pdf_unicode_fixtures)"] }
+
+[workspace.lints.clippy]
+cognitive_complexity = "deny"
+too_many_arguments = "deny"
+wildcard_imports = "deny"
+dbg_macro = "warn"
+todo = "warn"
+
+[profile.dev]
+opt-level = 1
+debug = 0
+
+[profile.dev.package."*"]
+opt-level = 2
+debug = 0

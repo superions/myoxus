@@ -1397,6 +1397,10 @@ export const Menu = forwardRef(function Menu(
             contentWrapperStyle,
             panelWidth ? menuPanelWidthByKind[panelWidth] : undefined,
             panelPadding ? menuPanelPaddingByKind[panelPadding] : undefined,
+            // Release pointer hit-testing immediately while Mantine animates
+            // a dismissed menu out, so a fast click onto a canvas behind the
+            // dropdown lands on the canvas instead of a closing menu item.
+            finalOpen ? undefined : { pointerEvents: "none" },
             style,
           )}
           data-myoxus-ui-role="menu-content"

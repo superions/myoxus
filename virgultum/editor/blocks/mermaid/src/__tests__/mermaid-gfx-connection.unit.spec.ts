@@ -39,7 +39,7 @@ describe("Mermaid GFX node connection gates", () => {
       20,
       { distance: 0.5, anchor: ConnectorLabelOffsetAnchor.Top },
     );
-    expect(bounds).toEqual([-20, 30, 40, 20]);
+    expect(bounds).toEqual([120, 76, 40, 20]);
     expect(connector.absolutePath).toEqual([
       [0, 0],
       [0, 100],
@@ -129,7 +129,7 @@ describe("Mermaid GFX node connection gates", () => {
         20,
         { distance: 0.5, anchor: ConnectorLabelOffsetAnchor.Top },
       ),
-    ).toEqual([-8, -12, 40, 20]);
+    ).toEqual([-8, -6, 40, 20]);
   });
 
   test("starts node connection only from an editable selected source node", () => {

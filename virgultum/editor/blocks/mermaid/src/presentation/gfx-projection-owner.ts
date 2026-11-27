@@ -1,10 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type { MermaidBlockModel } from "@virgultum/core/models";
-import type { SerializedXYWH } from "@virgultum/core/primitives/gfx";
+import { Bound, type SerializedXYWH } from "@virgultum/core/primitives/gfx";
 import type { FrameBlockModel } from "@virgultum/core/models";
 import type { GfxModel } from "@virgultum/core/runtime/gfx";
 
+import { getMermaidGfxTitleBandHeight } from "../families/runtime/gfx-element-projection.js";
+import { MERMAID_GFX_TITLE_ROLE } from "../families/runtime/gfx-element-roles.js";
+import type { MermaidVisualModel } from "../families/runtime/gfx-model.js";
+import {
+  readMermaidGfxEdgeId,
+  readMermaidGfxNodeId,
+  readMermaidGfxRole,
+} from "../mermaid-gfx-metadata.js";
 import { resolveMermaidLegacyLinkedOwner } from "./legacy-linked-owner.js";
 
 export type MermaidGfxProjectionOwner = {
@@ -88,5 +96,89 @@ export function resolveMermaidGfxProjection(
     ownerId: legacy.frame.id,
     ownerXYWH: legacy.frame.xywh,
     surfaceId,
+  };
+}
+
+/**
+ * Project a Mermaid GFX owner for Page / embedded block-shell viewports.
+ *
+ * Surface-owned diagrams materialize a presentation-only native title child
+ * (`MERMAID_GFX_TITLE_ROLE`) plus a top title band for Edgeless, which has no
+ * block shell header. Page viewports already render the single editable title
+ * in `MermaidBlockShell`, so they must omit that native title element and trim
+ * its reserved top band instead of showing an uneditable duplicate title.
+ */
+export function projectMermaidGfxForPageViewport(
+  projection: MermaidGfxProjection,
+  {
+    hiddenObjectKeys,
+    visualModel,
+  }: {
+    readonly hiddenObjectKeys?: ReadonlySet<string>;
+    readonly visualModel?: MermaidVisualModel | null;
+  } = {},
+): MermaidGfxProjection {
+  let hasNativeTitleChild = false;
+  const childElementIds: string[] = [];
+  const semanticShapeBounds: Bound[] = [];
+
+  for (const id of projection.childElementIds) {
+    const element = projection.getElementById(id);
+    const role = readMermaidGfxRole(element);
+    if (role === MERMAID_GFX_TITLE_ROLE) {
+      hasNativeTitleChild = true;
+      continue;
+    }
+    if (
+      hiddenObjectKeys?.size &&
+      (hiddenObjectKeys.has(readMermaidGfxNodeId(element)) ||
+        hiddenObjectKeys.has(readMermaidGfxEdgeId(element)))
+    ) {
+      continue;
+    }
+    childElementIds.push(id);
+    if (
+      element &&
+      "type" in element &&
+      element.type === "shape" &&
+      "xywh" in element &&
+      typeof element.xywh === "string"
+    ) {
+      semanticShapeBounds.push(Bound.deserialize(element.xywh));
+    }
+  }
+
+  let ownerXYWH = projection.ownerXYWH;
+  if (hasNativeTitleChild) {
+    const ownerBound = Bound.deserialize(projection.ownerXYWH);
+    const titleBandHeight = getMermaidGfxTitleBandHeight(visualModel);
+    if (
+      titleBandHeight > 0 &&
+      semanticShapeBounds.length > 0 &&
+      semanticShapeBounds.every(
+        (bound) => bound.y >= ownerBound.y + titleBandHeight,
+      )
+    ) {
+      ownerXYWH = new Bound(
+        ownerBound.x,
+        ownerBound.y + titleBandHeight,
+        ownerBound.w,
+        Math.max(1, ownerBound.h - titleBandHeight),
+      ).serialize();
+    }
+  }
+
+  if (
+    !hasNativeTitleChild &&
+    childElementIds.length === projection.childElementIds.length &&
+    ownerXYWH === projection.ownerXYWH
+  ) {
+    return projection;
+  }
+
+  return {
+    ...projection,
+    childElementIds,
+    ownerXYWH,
   };
 }

@@ -110,8 +110,10 @@ export function projectNeutralMermaidGfxNodeElement(
       node.shape === "rounded" ||
       node.shape === "stadium" ||
       node.shape === "delay"
-        ? 0.16
-        : 0,
+        ? 0.22
+        : node.shape === "rect"
+          ? 0.08
+          : 0,
     shapeType: MERMAID_VISUAL_SHAPE_TO_GFX_SHAPE[node.shape] ?? ShapeType.Rect,
   };
 }

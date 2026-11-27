@@ -73,6 +73,10 @@ export class MyoxusCodeToolbarWidget extends NativeEditorWidget<CodeBlockModel> 
           setActive,
         );
 
+        const headerElement =
+          codeBlock.querySelector<HTMLElement>(".myoxus-code-block-header") ??
+          codeBlock;
+
         return mountEditorPortal(
           this.host,
           abortController,
@@ -85,11 +89,11 @@ export class MyoxusCodeToolbarWidget extends NativeEditorWidget<CodeBlockModel> 
               ),
             ),
           {
-            referenceElement: codeBlock,
+            referenceElement: edgeless ? codeBlock : headerElement,
             placement: "top",
             middleware: [
               // Canvas content scales; native chrome stays above it at normal UI density.
-              offset(({ rects }) => (edgeless ? 0 : -rects.floating.height)),
+              offset(({ rects }) => (edgeless ? 8 : -rects.floating.height)),
               size({
                 apply({ rects, elements }) {
                   elements.floating.style.width = edgeless
@@ -147,7 +151,8 @@ export class MyoxusCodeToolbarWidget extends NativeEditorWidget<CodeBlockModel> 
       menu?.type === "menu"
         ? menu.items.flatMap((group) => group.actions ?? [group])
         : [];
-    const action = [...primary, ...more, ...menuActions].find(
+    const flatMore = more.flatMap((item) => item.actions ?? [item]);
+    const action = [...primary, ...flatMore, ...menuActions].find(
       (a) => a.id === id,
     );
     if (action && !action.disabled && action.run)

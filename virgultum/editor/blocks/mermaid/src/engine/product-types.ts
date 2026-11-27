@@ -90,7 +90,7 @@ export const MERMAID_PRODUCT_DIAGRAM_SPECS = [
     label: "Architecture",
     templateId: "architecture-basic",
     templateSource:
-      "architecture-beta\n  group web(icon)[Web]\n  service app(icon)[App] in web\n  service db(icon)[DB] in web\n  app:R --> L:db",
+      "architecture-beta\n  group web(cloud)[Web]\n  service app(server)[App] in web\n  service db(database)[DB] in web\n  app:R --> L:db",
   },
   {
     diagramType: "block",

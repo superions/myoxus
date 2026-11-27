@@ -42,6 +42,109 @@ export type MermaidGfxAlignmentGuideProjection = {
   readonly points: readonly MermaidGfxPoint[];
 };
 
+export type MermaidGfxProjectedSnapGuide = {
+  readonly axis: "x" | "y";
+  readonly kind: "align" | "spacing";
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+  readonly spacingGap?: number;
+};
+
+export type MermaidGfxGeometryHud = {
+  readonly left: number;
+  readonly top: number;
+  readonly text: string;
+};
+
+export function renderMermaidGfxSnapGuides({
+  displayOnly,
+  guides,
+  hud,
+}: {
+  displayOnly: boolean;
+  guides: readonly MermaidGfxProjectedSnapGuide[];
+  hud: MermaidGfxGeometryHud | null;
+}) {
+  if (displayOnly || (guides.length === 0 && !hud)) return null;
+  return (
+    <div aria-hidden="true" className="myoxus-mermaid-gfx-snap-guides">
+      {guides.map((guide, index) => (
+        <Fragment key={`${guide.axis}:${guide.kind}:${index}`}>
+          <div
+            className="myoxus-mermaid-gfx-snap-guide"
+            data-snap-guide-axis={guide.axis}
+            data-snap-guide-kind={guide.kind}
+            style={{
+              height: `${Math.max(guide.height, 1)}px`,
+              left: `${guide.left}px`,
+              top: `${guide.top}px`,
+              width: `${Math.max(guide.width, 1)}px`,
+            }}
+          ></div>
+          {guide.kind === "spacing" && guide.spacingGap !== undefined ? (
+            <div
+              className="myoxus-mermaid-gfx-snap-gap"
+              style={{
+                left: `${guide.left + guide.width / 2}px`,
+                top: `${guide.top + guide.height / 2}px`,
+              }}
+            >
+              {guide.spacingGap}
+            </div>
+          ) : null}
+        </Fragment>
+      ))}
+      {hud ? (
+        <div
+          className="myoxus-mermaid-gfx-drag-hud"
+          style={{ left: `${hud.left}px`, top: `${hud.top}px` }}
+        >
+          {hud.text}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function renderMermaidGfxHoverConnectHandles({
+  disabled,
+  displayOnly,
+  handles,
+  onPointerDown,
+}: {
+  disabled: boolean;
+  displayOnly: boolean;
+  handles: readonly MermaidGfxPort[];
+  onPointerDown?: (event: PointerEvent, portId: string) => void;
+}) {
+  if (displayOnly || disabled || handles.length === 0 || !onPointerDown) {
+    return null;
+  }
+  return handles.map((handle) => (
+    <button
+      key={`hover:${handle.id}`}
+      className="myoxus-mermaid-gfx-hover-connect-handle"
+      type="button"
+      tabIndex={-1}
+      aria-label={`${mermaidMessages.visualConnectorHandle()} ${connectionPortIndicator(handle.position)}`}
+      data-hover-port-id={handle.id}
+      data-port-x={handle.position[0]}
+      data-port-y={handle.position[1]}
+      title={`${mermaidMessages.visualConnectorHandle()} ${connectionPortIndicator(handle.position)}`}
+      style={{
+        left: `${handle.left}px`,
+        top: `${handle.top}px`,
+      }}
+      ref={bindHandle(
+        () => undefined,
+        (event) => onPointerDown(event, handle.id),
+      )}
+    ></button>
+  ));
+}
+
 export function renderMermaidGfxAlignmentGuides({
   displayOnly,
   guides,

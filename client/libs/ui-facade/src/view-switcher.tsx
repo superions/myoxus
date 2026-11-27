@@ -35,6 +35,7 @@ export type ViewSwitcherProps<TValue extends string = string> = {
   value?: TValue;
   onChange?: (value: TValue) => void;
   layout?: "header" | "sidebar";
+  size?: "xs" | "sm";
   "aria-label"?: string;
   "data-testid"?: string;
   "data-myoxus-ui-role"?: string;
@@ -67,6 +68,7 @@ export function ViewSwitcher<TValue extends string = string>({
   value,
   onChange,
   layout = "header",
+  size,
   "aria-label": ariaLabel,
   "data-testid": testId,
   "data-myoxus-ui-role": uiRole = "view-switcher",
@@ -74,6 +76,7 @@ export function ViewSwitcher<TValue extends string = string>({
   return (
     <SegmentedControl<TValue>
       aria-label={ariaLabel}
+      size={size}
       data={items.map(
         ({ disabled, icon, label, testId: itemTestId, value }) => ({
           disabled,

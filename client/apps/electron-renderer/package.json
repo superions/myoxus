@@ -18,14 +18,14 @@
     "@myoxus/track": "workspace:*",
     "@myoxus/ui-facade": "workspace:*",
     "@virgultum/editor": "workspace:*",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "react-router": "7.18.4",
     "uuid": "13.0.1"
   },
   "devDependencies": {
-    "@types/react": "^19.0.1",
-    "@types/react-dom": "^19.0.2",
+    "@types/react": "^19.3.1",
+    "@types/react-dom": "^19.3.0",
     "typescript": "7.0.2"
   },
   "license": "MIT AND AGPL-3.0-or-later"

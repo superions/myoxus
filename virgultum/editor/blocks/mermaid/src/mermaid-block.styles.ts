@@ -108,9 +108,13 @@ const mermaidBlockStyles = `
       var(--myoxus-edgeless-grid-color) 1px,
       transparent 1px
     );
-    background-size: 18px 18px;
+    background-size: 20px 20px;
     container-name: viewport;
     container-type: inline-size;
+  }
+
+  .myoxus-mermaid-gfx-editor > .myoxus-mermaid-gfx-viewport:focus:not(:focus-visible) {
+    outline: none;
   }
 
   .myoxus-mermaid-gfx-editor[data-mermaid-display-mode="display"]
@@ -277,6 +281,83 @@ const mermaidBlockStyles = `
     inset: 0;
     z-index: 17;
     pointer-events: none;
+  }
+
+  .myoxus-mermaid-gfx-snap-guides {
+    position: absolute;
+    inset: 0;
+    z-index: 19;
+    pointer-events: none;
+  }
+
+  .myoxus-mermaid-gfx-snap-guide {
+    position: absolute;
+    background: var(--myoxus-primary-color);
+    pointer-events: none;
+  }
+
+  .myoxus-mermaid-gfx-snap-guide[data-snap-guide-kind="spacing"] {
+    background: transparent;
+    border-top: 1px dashed var(--myoxus-primary-color);
+  }
+
+  .myoxus-mermaid-gfx-snap-guide[data-snap-guide-kind="spacing"][data-snap-guide-axis="x"] {
+    border-top: 0;
+    border-left: 1px dashed var(--myoxus-primary-color);
+  }
+
+  .myoxus-mermaid-gfx-snap-gap {
+    position: absolute;
+    padding: 1px 5px;
+    border-radius: var(--mantine-radius-xs);
+    background: var(--myoxus-primary-color);
+    color: var(--myoxus-background-primary-color);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .myoxus-mermaid-gfx-drag-hud {
+    position: absolute;
+    z-index: 21;
+    padding: 2px 6px;
+    border: 1px solid ${cssVar("borderColor")};
+    border-radius: var(--mantine-radius-xs);
+    background: ${cssVar("backgroundPrimaryColor")};
+    color: ${cssVar("textSecondaryColor")};
+    box-shadow: var(--mantine-shadow-xs);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+    white-space: nowrap;
+    transform: translate(10px, 10px);
+    pointer-events: none;
+  }
+
+  .myoxus-mermaid-gfx-hover-connect-handle {
+    position: absolute;
+    z-index: 19;
+    width: calc(var(--mantine-spacing-sm) + 4px);
+    height: calc(var(--mantine-spacing-sm) + 4px);
+    padding: 0;
+    border: calc(var(--mantine-scale) * 1.5px) solid var(--myoxus-primary-color);
+    border-radius: var(--mantine-radius-xl);
+    background: ${cssVar("backgroundPrimaryColor")};
+    box-shadow: var(--mantine-shadow-xs);
+    cursor: crosshair;
+    opacity: 0.78;
+    transform: translate(-50%, -50%);
+    transition: opacity 120ms ease, transform 120ms ease, background-color 120ms ease;
+    touch-action: none;
+  }
+
+  .myoxus-mermaid-gfx-hover-connect-handle:hover {
+    opacity: 1;
+    background: var(--myoxus-primary-color);
+    transform: translate(-50%, -50%) scale(1.15);
   }
 
   .myoxus-mermaid-gfx-alignment-guide {

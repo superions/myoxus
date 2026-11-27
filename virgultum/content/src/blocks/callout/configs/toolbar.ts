@@ -78,10 +78,10 @@ const backgroundColorAction = {
           icon: "ResetIcon",
           run: () => update("grey"),
         },
-        ...editorBackgroundColors.map(({ name, label, background }) => ({
+        ...editorBackgroundColors.map(({ name, label, emphasis }) => ({
           id: name,
           label,
-          swatch: background,
+          swatch: emphasis,
           active:
             current === name || (name === "grey" && current === "default"),
           run: () => update(name),

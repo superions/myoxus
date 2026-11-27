@@ -427,7 +427,7 @@ export function MermaidGitGraphRuntimeEditor({
     </Popover>
   );
   const actions = (
-    <Group wrap="nowrap" gap="xs" aria-label={m.controlsLabel()}>
+    <Group wrap="wrap" gap="xs" aria-label={m.controlsLabel()}>
       {primary.map(actionPopover)}
       <Menu
         title={m.visualMoreActions()}

@@ -55,6 +55,7 @@ import {
   releaseMermaidGfxPreviewProperty,
   resolveMermaidGfxNodeDragEndSubgraph,
 } from "./mermaid-gfx-drag.js";
+import { resolveMermaidGfxMoveSnap } from "./mermaid-gfx-snap.js";
 
 import { resolveMermaidGfxPendingNodeInsert } from "./mermaid-gfx-insert.js";
 import { readMermaidGfxMeta } from "./mermaid-gfx-metadata.js";
@@ -91,7 +92,11 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
       element: ShapeElementModel;
       initialXywh: ShapeElementModel["xywh"];
     }>;
+    movingBounds: { x: number; y: number; width: number; height: number };
     nodeIds: readonly string[];
+    ownerOrigin: { x: number; y: number };
+    rawDx: number;
+    rawDy: number;
     startModel: NonNullable<ReturnType<typeof getMermaidVisualModel>>;
     source: string;
     viewportIdentity: object | null;
@@ -906,7 +911,12 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
     this.requestUpdate();
   };
 
-  protected _moveVisualNodeByDrag(nodeId: string, dx: number, dy: number) {
+  protected _moveVisualNodeByDrag(
+    nodeId: string,
+    dx: number,
+    dy: number,
+    bypassSnap = false,
+  ) {
     const active = this._transientVisualNodeDrag;
     if (
       this.store.readonly ||
@@ -997,10 +1007,31 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
         element.stash("xywh");
         return [{ element, initialXywh }];
       });
+      const movingNodes = dragModel.nodes.filter((node) =>
+        selectedNodeIds.includes(node.id),
+      );
+      const minX = Math.min(...movingNodes.map((node) => node.x));
+      const minY = Math.min(...movingNodes.map((node) => node.y));
+      const maxX = Math.max(...movingNodes.map((node) => node.x + node.width));
+      const maxY = Math.max(...movingNodes.map((node) => node.y + node.height));
+      const anchorNode = dragModel.nodes.find((node) => node.id === nodeId);
+      const anchorBound = Bound.deserialize(scopedElement.xywh);
+      const ownerOrigin = anchorNode
+        ? { x: anchorBound.x - anchorNode.x, y: anchorBound.y - anchorNode.y }
+        : { x: 0, y: 0 };
       this._transientVisualNodeDrag = {
         connectors,
         elements,
+        movingBounds: {
+          x: minX,
+          y: minY,
+          width: Math.max(1, maxX - minX),
+          height: Math.max(1, maxY - minY),
+        },
         nodeIds: [...selectedNodeIds],
+        ownerOrigin,
+        rawDx: 0,
+        rawDy: 0,
         startModel: dragModel,
         source: getMermaidBlockSource(this.model.props),
         viewportIdentity:
@@ -1009,21 +1040,79 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
         subgraphs,
       };
     }
-    for (const { element } of this._transientVisualNodeDrag.elements) {
-      element.xywh = Bound.deserialize(element.xywh)
-        .moveDelta(dx, dy)
+    const transient = this._transientVisualNodeDrag;
+    transient.rawDx += dx;
+    transient.rawDy += dy;
+    const rawMovingRect = {
+      x: transient.movingBounds.x + transient.rawDx,
+      y: transient.movingBounds.y + transient.rawDy,
+      width: transient.movingBounds.width,
+      height: transient.movingBounds.height,
+    };
+    const movingSet = new Set(transient.nodeIds);
+    const snapCandidates = transient.startModel.nodes
+      .filter((candidate) => !movingSet.has(candidate.id))
+      .map((candidate) => ({
+        id: candidate.id,
+        x: candidate.x,
+        y: candidate.y,
+        width: candidate.width,
+        height: candidate.height,
+      }));
+    const snap = resolveMermaidGfxMoveSnap({
+      movingRect: rawMovingRect,
+      candidates: snapCandidates,
+      gridEnabled: this._snapToGridEnabled,
+      zoom: this._getScopedGfxController()?.viewport?.zoom ?? 1,
+      bypass: bypassSnap,
+    });
+    const totalDx = transient.rawDx + snap.dx;
+    const totalDy = transient.rawDy + snap.dy;
+
+    for (const { element, initialXywh } of transient.elements) {
+      element.xywh = Bound.deserialize(initialXywh)
+        .moveDelta(totalDx, totalDy)
         .serialize();
     }
-    this._visualNodeDragModel = selectedNodeIds.reduce(
+    this._visualNodeDragModel = transient.nodeIds.reduce(
       (model, selectedNodeId) =>
-        accumulateMermaidGfxNodeDrag(model, selectedNodeId, dx, dy),
-      dragModel,
+        accumulateMermaidGfxNodeDrag(model, selectedNodeId, totalDx, totalDy),
+      transient.startModel,
     );
+    // Project smart alignment guides from owner-relative model space into
+    // surface coordinates so overlay projection aligns pixel-for-pixel.
+    const ox = transient.ownerOrigin.x;
+    const oy = transient.ownerOrigin.y;
+    this._activeSnapGuides = snap.guides.map((guide) =>
+      guide.axis === "x"
+        ? {
+            ...guide,
+            position: guide.position + ox,
+            start: guide.start + oy,
+            end: guide.end + oy,
+          }
+        : {
+            ...guide,
+            position: guide.position + oy,
+            start: guide.start + ox,
+            end: guide.end + ox,
+          },
+    );
+    const snappedX = rawMovingRect.x + snap.dx;
+    const snappedY = rawMovingRect.y + snap.dy;
+    this._activeGeometryHud = {
+      x: snappedX + ox + rawMovingRect.width,
+      y: snappedY + oy + rawMovingRect.height,
+      text: `${Math.round(snappedX)}, ${Math.round(snappedY)}`,
+    };
+    this._hoveredVisualNodeId = "";
     this._refreshScopedGfxRenderer();
     this.requestUpdate();
   }
 
   private _cancelTransientVisualNodeDrag() {
+    this._activeSnapGuides = [];
+    this._activeGeometryHud = null;
     const transient = this._transientVisualNodeDrag;
     this._transientVisualNodeDrag = null;
     if (!transient) return;
@@ -1144,6 +1233,8 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
     parentId: string,
     coalesceKey: string,
   ) {
+    this._activeSnapGuides = [];
+    this._activeGeometryHud = null;
     this._visualSubgraphDropPreview = null;
     const visualModel = this._getMermaidVisualModelForEditing();
     const currentParentId =
@@ -1177,6 +1268,8 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
     // A plain click starts the same pointer session as a drag. Only real
     // Movement should recalculate the containing subgraph. A plain click must
     // retain the more specific selected child instead of selecting its lane.
+    this._activeSnapGuides = [];
+    this._activeGeometryHud = null;
     this._visualSubgraphDropPreview = null;
     const dragModel = this._visualNodeDragModel;
     this._visualNodeDragModel = null;

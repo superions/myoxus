@@ -85,6 +85,7 @@ import { getMermaidVisualModel } from "../commands/model-resolution.js";
 
 import { preserveGitGraphOwnerTransform } from "../families/gitgraph/source-application.js";
 import { MERMAID_GFX_TITLE_ROLE } from "../families/runtime/gfx-element-roles.js";
+import { projectMermaidGfxForPageViewport } from "../presentation/gfx-projection-owner.js";
 import {
   parseMermaidArchitectureSource,
   updateMermaidArchitectureDiagram,
@@ -3731,5 +3732,67 @@ describe("Mermaid runtime integration contracts", () => {
     expect(generateMermaidSourceFromVisualModel(open)).toContain(
       "A[Start] --- C[Done]",
     );
+  });
+
+  test("omits Edgeless native diagram title child and trims its reserved band in Page GFX projection", () => {
+    const elements = new Map<string, Record<string, unknown>>([
+      [
+        "title-1",
+        {
+          id: "title-1",
+          type: "shape",
+          xywh: "[112,200,616,28]",
+          yMap: new Map([["mermaidRole", MERMAID_GFX_TITLE_ROLE]]),
+        },
+      ],
+      [
+        "node-a",
+        {
+          id: "node-a",
+          type: "shape",
+          xywh: "[140,256,120,48]",
+          yMap: new Map([
+            ["mermaidRole", "mermaid-flowchart-node"],
+            ["mermaidNodeId", "A"],
+          ]),
+        },
+      ],
+      [
+        "node-b",
+        {
+          id: "node-b",
+          type: "shape",
+          xywh: "[140,360,120,48]",
+          yMap: new Map([
+            ["mermaidRole", "mermaid-flowchart-node"],
+            ["mermaidNodeId", "B"],
+          ]),
+        },
+      ],
+    ]);
+
+    const rawProjection = {
+      childElementIds: ["title-1", "node-a", "node-b"],
+      displayOnly: false,
+      getElementById: (id: string) => (elements.get(id) ?? null) as never,
+      kind: "direct" as const,
+      owner: {} as never,
+      ownerId: "mermaid-1",
+      ownerXYWH: "[100,200,640,300]" as const,
+      surfaceId: "surface-1",
+    };
+
+    const pageProjection = projectMermaidGfxForPageViewport(rawProjection);
+    expect(pageProjection.childElementIds).toEqual(["node-a", "node-b"]);
+    expect(Bound.deserialize(pageProjection.ownerXYWH)).toEqual(
+      new Bound(100, 232, 640, 268),
+    );
+
+    const withoutTitle = projectMermaidGfxForPageViewport({
+      ...rawProjection,
+      childElementIds: ["node-a", "node-b"],
+    });
+    expect(withoutTitle.childElementIds).toEqual(["node-a", "node-b"]);
+    expect(withoutTitle.ownerXYWH).toBe(rawProjection.ownerXYWH);
   });
 });

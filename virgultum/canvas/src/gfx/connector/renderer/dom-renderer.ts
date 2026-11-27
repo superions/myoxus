@@ -387,6 +387,14 @@ function renderConnectorLabel(
       : textAlign === "right"
         ? "flex-end"
         : "flex-start";
+  labelElement.style.boxSizing = "border-box";
+  labelElement.style.borderRadius = `${Math.min(6, lh / 2, lw / 2) * zoom}px`;
+  labelElement.style.backgroundColor = renderer.getColorValue(
+    DefaultTheme.noteBackgrounColor,
+    DefaultTheme.noteBackgrounColor,
+    true,
+  );
+  labelElement.style.border = `${Math.max(1, zoom)}px solid ${renderer.getColorValue("--myoxus-border-color", DefaultTheme.connectorColor, true)}`;
 
   // Style the text
   labelElement.style.color = renderer.getColorValue(

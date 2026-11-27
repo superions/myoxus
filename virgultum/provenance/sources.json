@@ -241,7 +241,7 @@
         },
         {
           "path": "virgultum/canvas-runtime/src/snap/snap-manager.ts",
-          "sha256": "67ff7e02993d6e55057ae1a9a973bb2b631ad3fcc238cc901fb9003fcef08cda",
+          "sha256": "a23e2a7c27b3f32bcd7b4dcb9c632f3bbf95da9cadc8c20582b6713325adc2f0",
           "originalPath": "blocksuite/affine/gfx/pointer/src/snap/snap-manager.ts",
           "originalGitBlob": "2de9ff524492a96e2af0e54b38f5f52622c3f557"
         },
@@ -727,7 +727,7 @@
         },
         {
           "path": "virgultum/canvas/src/gfx/connector/components/connector-handle.ts",
-          "sha256": "fe917a4bd268e86e9dfeac826b3fd32661293691970a1fca1c4727cdeea11a30",
+          "sha256": "90ac17887fd7c879f1d315c84e3f2542f7a29bb39f101b5279b13547279e4772",
           "originalPath": "blocksuite/affine/gfx/connector/src/components/connector-handle.ts",
           "originalGitBlob": "f72fd7de7f7cc1bd4fd88f4c75b4ae6324a3e454"
         },
@@ -775,13 +775,13 @@
         },
         {
           "path": "virgultum/canvas/src/gfx/connector/renderer/dom-renderer.ts",
-          "sha256": "17acaa7c9f15bb501193624dea7403ccfe3c9b83e4a90a23e87c4b75937fea15",
+          "sha256": "c78679d74a3030ad1c95eb1b67cc0763be2bb810e62003af82e8909e3c6ee02b",
           "originalPath": "blocksuite/affine/gfx/connector/src/renderer/dom-renderer.ts",
           "originalGitBlob": "46a6a07112f7b4a12dfb3fc539afc4ad58a5c0fb"
         },
         {
           "path": "virgultum/canvas/src/gfx/connector/renderer/element-renderer.ts",
-          "sha256": "2674170d31dbf11c7ba9a1e6778e45dd90b25c0ac091d970470461b6c8922b41",
+          "sha256": "642c7df101d5c3206de19e2374c44791a443bde690a7316b170e2bc8851b7645",
           "originalPath": "blocksuite/affine/gfx/connector/src/renderer/element-renderer.ts",
           "originalGitBlob": "6d6b1e205f9a9abcb619ad5ea96e1e590bc9a155"
         },
@@ -1603,7 +1603,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/callout/configs/toolbar.ts",
-          "sha256": "a9705178cca609d79051c0fbd21eef8b26a58e30e8805431b58e02ae4cbfe809",
+          "sha256": "42ec564a74986c61cc75f2e076f14a0bdc017f32f12f269fb477ca6259a2540c",
           "originalPath": "blocksuite/affine/blocks/callout/src/configs/toolbar.ts",
           "originalGitBlob": "d021da8f660d8dd465d32c40f100a6849bb6f38c"
         },
@@ -1687,7 +1687,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/code/code-block.ts",
-          "sha256": "c058e65309ad8041a4a331c7ce569158c88b8887492348dc4c2cd2297689125c",
+          "sha256": "238add1e1a98b480f856452dc1d7457fc80827948dcb654068a21b8e8b709b3e",
           "originalPath": "blocksuite/affine/blocks/code/src/code-block.ts",
           "originalGitBlob": "ba386b88c3841563000ebcf3c9156ebee3e0a793"
         },
@@ -1711,7 +1711,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/code/code-toolbar/index.ts",
-          "sha256": "6f077581b874725719b12f0f48450d79213b541eaec3897cf7e7e8a5ec8ea434",
+          "sha256": "b6411d4d32d28446aa1ea3fcd8e0d0d382bd477c53c1651d5c01050860a875c2",
           "originalPath": "blocksuite/affine/blocks/code/src/code-toolbar/index.ts",
           "originalGitBlob": "26962b887098808bce6a8073361011f556daffd2"
         },
@@ -1759,7 +1759,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/code/styles.ts",
-          "sha256": "1cd6dc9741400461013e2eff3a4578ae249a7fc121072b306a4ea5ec962d4f78",
+          "sha256": "bb8693cba46e21e8b308299b5c7a38ae45a580b2bc3f6e5f0959ea25d00714bc",
           "originalPath": "blocksuite/affine/blocks/code/src/styles.ts",
           "originalGitBlob": "c8cdfeb86511da6ac235a67309b5e0848f58d593"
         },
@@ -2137,13 +2137,13 @@
         },
         {
           "path": "virgultum/content/src/blocks/table/adapters/html.ts",
-          "sha256": "101c96396230922efb661603e3b8ac4f2d721b4a4944e4bbd217620e97980c94",
+          "sha256": "52840045fdc8be4ca071e6f8f18adbc5e0c4971555d33b453512665df39caa68",
           "originalPath": "blocksuite/affine/blocks/table/src/adapters/html.ts",
           "originalGitBlob": "3d28af2928d5201ca064c5dc85b1dd75ef925c2a"
         },
         {
           "path": "virgultum/content/src/blocks/table/adapters/markdown.ts",
-          "sha256": "b024e3790406a61b5b99dd97032429336b0e0394f7706f822022ee4d36862067",
+          "sha256": "46afc92da31b4123df21b1d356356b08550622eba024fe828b39f0f04adb47b9",
           "originalPath": "blocksuite/affine/blocks/table/src/adapters/markdown.ts",
           "originalGitBlob": "7577084aa15bca6885abd71396928eb4f2f475cc"
         },
@@ -2161,7 +2161,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/table/adapters/utils.ts",
-          "sha256": "0dd90740e23693c2aa022e4d0140f962a5d43b2cd5010ddeb8977ffb711a0369",
+          "sha256": "b19526d125a3504d3a429052aaf49d8a767096b06cc704c7db524661a1f33829",
           "originalPath": "blocksuite/affine/blocks/table/src/adapters/utils.ts",
           "originalGitBlob": "d7a6b87a2906e5b680ead4dc603e80f0495f4505"
         },
@@ -2179,7 +2179,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/table/color.ts",
-          "sha256": "bea8c6f7eca4aed8c7cea39158ab4680f6dc300118df71d9d0de6e735d89010e",
+          "sha256": "eebb9300ba28067dfa9f659067b6912b948fd763620840541fa0e573f9b7430c",
           "originalPath": "blocksuite/affine/blocks/table/src/color.ts",
           "originalGitBlob": "3dc70783e8952c2af3961c3e1426ccf2ba312a7f"
         },
@@ -2215,7 +2215,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/table/table-block-css.ts",
-          "sha256": "3b7c4167b8b0fd218ac0f73dd1b6cda7966d8ac597ed11916decf1bd4103f257",
+          "sha256": "8dbba6973b569eba33caeca5dcd2fd9d06abbec62318dcbe9175c08c13cbe0db",
           "originalPath": "blocksuite/affine/blocks/table/src/table-block-css.ts",
           "originalGitBlob": "7e39f270b61208ae05655066beb05b68a202dbef"
         },
@@ -2227,7 +2227,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/table/table-cell-css.ts",
-          "sha256": "de925c7b1171bc2debf25189a89d7100809c295d2f29e73943e7de61d28384b3",
+          "sha256": "21856742f3ba47a8d36251e73ba20320838e6a88507f5a9c021c8608e476989b",
           "originalPath": "blocksuite/affine/blocks/table/src/table-cell-css.ts",
           "originalGitBlob": "56811c0e8c81c8bc6202e9fe57fabff12e40e400"
         },
@@ -2239,7 +2239,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/table/table-data-manager.ts",
-          "sha256": "312f29850f41d10e449653919ca47817a19809e9af84e7c6c0f534c8a8196bca",
+          "sha256": "47ba00c38befe672624cc5936d0164aa8bd468b6c30f07c711fc3ffd95447af4",
           "originalPath": "blocksuite/affine/blocks/table/src/table-data-manager.ts",
           "originalGitBlob": "916999d4c598b99071c4c69eac999614447f99a5"
         },
@@ -3523,7 +3523,7 @@
         },
         {
           "path": "virgultum/core/src/models/blocks/table/table-model.ts",
-          "sha256": "5c8d01dc140d155b20ed2db06ca8bc37966234fe3822462ef5bc7ca812ccf7f8",
+          "sha256": "7e39f85bd5e5800085f1b358a19c7c24bd8794ed6decce704289fc7bd938c078",
           "originalPath": "blocksuite/affine/model/src/blocks/table/table-model.ts",
           "originalGitBlob": "2090358a968842573565fd0697bd2d2282cc65df"
         },
@@ -3565,7 +3565,7 @@
         },
         {
           "path": "virgultum/core/src/models/elements/connector/connector.ts",
-          "sha256": "017819f002497e0725b4c37cfe076aaf79d471f4642e3216f2a78497cc12ffe1",
+          "sha256": "9fd8dd6cdba5da24565aabb087181a6089bb1264cc86bce5214ccd7d2ef3afa4",
           "originalPath": "blocksuite/affine/model/src/elements/connector/connector.ts",
           "originalGitBlob": "a242f5a35080d9373ba4526cb8275e039693a1c7"
         },
@@ -3955,7 +3955,7 @@
         },
         {
           "path": "virgultum/core/src/runtime/event/control/pointer.ts",
-          "sha256": "831e97d1ffc7bd6d7f8edddc406f3fc371651a087f4a3dc74e5cf9c40857def1",
+          "sha256": "e538d7fb009c29d2e6d720854ebc6e9329fa599f4bfc4aba40160a85ddbd2b95",
           "originalPath": "blocksuite/framework/std/src/event/control/pointer.ts",
           "originalGitBlob": "3b86c0ca0620d0d4e5875189fa6443b7fe021323"
         },
@@ -5623,7 +5623,7 @@
         },
         {
           "path": "virgultum/editor/all/package.json",
-          "sha256": "511b25df6734a27c785e71baabd384617b45adf14d54dbe8512512bb22cc07f1",
+          "sha256": "776b3f0626dca14e02bc6b6190b0fa650f631273d640f21a1697bcb87c816863",
           "originalPath": "blocksuite/affine/all/package.json",
           "originalGitBlob": "abba782d27e671eb45ee10935eebfb0427f3bea6"
         },
@@ -5977,7 +5977,7 @@
         },
         {
           "path": "virgultum/editor/all/src/blocks/root/configs/toolbar.ts",
-          "sha256": "a63ab27f53453aaed45ac23c29a935896d656d7c8e26b7c60939ab7ca8e595f9",
+          "sha256": "31c54c94e825363bd43c0808dd52310c0a3f3ce90c1be978d6815d68d18db607",
           "originalPath": "blocksuite/affine/blocks/root/src/configs/toolbar.ts",
           "originalGitBlob": "b51cb417c7e4789256359ec954a604b8df195205"
         },
@@ -8437,7 +8437,7 @@
         },
         {
           "path": "virgultum/integration-test/package.json",
-          "sha256": "86aeaa250e515aec495e3fa46df7a19d26fd46a354443bec16564c8d53e24c25",
+          "sha256": "ace7384a8082cb1f2c157b5d997219b7026506b448f3ee61210d58c17eaec3ca",
           "originalPath": "blocksuite/integration-test/package.json",
           "originalGitBlob": "d131b8e20d200fc30ef2b9e350ee40de2feeee84"
         },
@@ -8776,7 +8776,7 @@
         },
         {
           "path": "virgultum/content/package.json",
-          "sha256": "848dd2e5b058c476d44ea9b7da367feb9502dde98b169a30d9ab00f8dbb41348"
+          "sha256": "8aab920812912253dfe05990bd9836282281cc132affbbeac5de47e84e8c4cfd"
         },
         {
           "path": "virgultum/content/scripts/generate-syntax-languages.mjs",
@@ -8828,7 +8828,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/code/code-toolbar/controller.ts",
-          "sha256": "ba8be4e21880b1d7fd3ecdab504d3eb32c0ac3d9cfb9e3cabae8d13e40dc3829"
+          "sha256": "e3950f93b372a2c5fdd5f12d333f46f95100e96a1b3c1769bd475898aa377788"
         },
         {
           "path": "virgultum/content/src/blocks/divider/manifest.ts",
@@ -8864,7 +8864,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/table/table-menu-actions.ts",
-          "sha256": "fe70f620da3c0deb9235293283690033e8c9a5b7cbfdbf70754db9de9c188ce3"
+          "sha256": "7d25a81729ce8942bc9bfde2670739ea097323b9076e704faa52e11b6ce3b279"
         },
         {
           "path": "virgultum/content/src/blocks/table/table-menu.ts",
@@ -8904,7 +8904,7 @@
         },
         {
           "path": "virgultum/content/src/entries/page-table.ts",
-          "sha256": "d2db84a3ff963abcdb3f4d9cf6445c1bcddf7ef8d4298ce1c76be4ca53403571"
+          "sha256": "d6e51648178e68f9a9705a916de1d7654878641e53ff36ccc5657ca85c9a559e"
         },
         {
           "path": "virgultum/content/src/entries/painters/code.ts",
@@ -9028,7 +9028,7 @@
         },
         {
           "path": "virgultum/core/package.json",
-          "sha256": "10495b9027719bb8c11da0b005cca8b509ad8c71ef08c5077b803544cadcc72d"
+          "sha256": "9ac7c4856b1b45c414368b926c679d65b4cf98ca3bafb2d4197243122fcdb604"
         },
         {
           "path": "virgultum/core/src/__tests__/adapters/markdown/table-html.unit.spec.ts",
@@ -9316,7 +9316,7 @@
         },
         {
           "path": "virgultum/core/src/services/editor-chrome-host.ts",
-          "sha256": "53f875f7c4412a2db982eb9272c99e5f1296935bd3e815c9ab88230a6439a42e"
+          "sha256": "692ddaed36e08d3a977b2b6adaf397455ede7fe9be381d10b69a8f3e67899fdd"
         },
         {
           "path": "virgultum/core/src/services/footnote-react-host.ts",
@@ -9764,7 +9764,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/package.json",
-          "sha256": "dea2790e5b1e4a97022ef54fb62ccd06747099aecb75745e46591adea6a51c1f"
+          "sha256": "11b6bddb12f6a790bb89c4effa1daaf814332f8db7ae20d9cecb98438676d6ea"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/__tests__/gfx-projection-read-migration.unit.spec.ts",
@@ -9800,7 +9800,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/__tests__/mermaid-gfx-connection.unit.spec.ts",
-          "sha256": "fc7bb04c0b9f8b1403a446e5e05ee75fba2166e57a2b22f984ee37359ee6b7f9"
+          "sha256": "992c9b1cb12eec446b7584b592ff82e5d1bf603f11c1c67792ad113d6fbfec98"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/__tests__/mermaid-gfx-context-menu.unit.spec.ts",
@@ -9851,6 +9851,10 @@
           "sha256": "a449a0de46f9acf48037eb2cac04e417d4698ca7c6bbcfaa2960c402b94b05cc"
         },
         {
+          "path": "virgultum/editor/blocks/mermaid/src/__tests__/mermaid-gfx-snap.unit.spec.ts",
+          "sha256": "9f509bdb1ab98e8bf0cd7732ad77a14b1a61a177184f39ca1e7e2f7bf4ca128f"
+        },
+        {
           "path": "virgultum/editor/blocks/mermaid/src/__tests__/mermaid-gfx-viewport.unit.spec.ts",
           "sha256": "014af2385c3f1a0b6889fa955cf906c737de7d0e426210d3d34d74a7361b462c"
         },
@@ -9880,7 +9884,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/__tests__/mermaid-runtime-integration.unit.spec.ts",
-          "sha256": "e5d82e8bd778892e2c1b22558d9088b5b68ee1ec7fcd997232733ac23d3cdc26"
+          "sha256": "40c78cfe49bbc48ee5d0c3c4445a88cbc1983d4c86f2a460245acf69ef7a9741"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/__tests__/mermaid-source-controls.unit.spec.ts",
@@ -9944,7 +9948,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/commands/model-resolution.ts",
-          "sha256": "ef58cf22c4c9e92af07a67505dd76141061a5665a580522cc3dcf6b6222b6758"
+          "sha256": "326da919a5937dde3530dcff862329001d77c5a5716a795567614bb67337da74"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/commands/owner-projection.ts",
@@ -10728,7 +10732,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/flowchart-geometry.ts",
-          "sha256": "c3de84133bd6bfb74354855e6dce5409f984feb8e5cf580966587af237ea3d63"
+          "sha256": "d23ab50b925eef88b113477788dedea257f0b6232cd98b827f06bcf58c612b23"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/flowchart-model.ts",
@@ -11044,7 +11048,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/product-types.ts",
-          "sha256": "f1c6a5318681248e5d1ad5dfa2df2fe292f09f4de8656f72de22035a4ab8e4a8"
+          "sha256": "ff7bc37b04908beda6c3ee939d59d73a08996748cf02af70c69f3845a5ba723f"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/requirement/commands/accessibility.ts",
@@ -11416,7 +11420,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/architecture/runtime-hooks.ts",
-          "sha256": "184a06d630cf764a53ba6147c8037c02c563131545eb3fd71088f0268b76b69a"
+          "sha256": "fd4ff71aec7ab83823d944e2e76b04e3adbc95de5a4a6d1b4c10743d80c05024"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/architecture/runtime.ts",
@@ -11828,7 +11832,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/class/runtime.ts",
-          "sha256": "6a5bdb1aad559d1291a641535f14cb921f2907bc2d848696c9c7d77929bf802c"
+          "sha256": "7bbff19fd7d8daba3dee3ec0592b5132998791c21490d477bd05b7ec44aa0f45"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/class/source-application.ts",
@@ -11912,7 +11916,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/__tests__/flowchart-family.unit.spec.ts",
-          "sha256": "2d4c494b8330ffa0220a7891bf1090659c92cda806ecfc9041299bdcdd507e6a"
+          "sha256": "74e0aa6ec31c9d68023e3f8385411db92026b1f85c160ec6a72af2380006556b"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/accessibility.ts",
@@ -11948,7 +11952,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/edgeless-toolbar.ts",
-          "sha256": "33468c9c7cd4c845620a86ad781090fbcb21e1914c2f726a55facdd4ffebca77"
+          "sha256": "8cdf03d8d24cb875ceedf5fc07a8587ac98a9ed7b23194f195d8a5701f30b900"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/editor-ui.ts",
@@ -11968,7 +11972,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/gfx-style-projection.ts",
-          "sha256": "87c56ae83c2d8f06168c009d5b913662703fd20c17ed642463a93f822b256f44"
+          "sha256": "1f4f7623ae00991e9471986a4a3423d3d42977a4798f1692dfbff90b119e4858"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/host-adapter.ts",
@@ -11980,11 +11984,11 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/label-geometry.ts",
-          "sha256": "fcd4669c94dcdce6ec11e2d8b89a6366c240990cbe6728982f89a84430f2a159"
+          "sha256": "cc23740d14c128f35029037d7b7ac5e9628afb80a4b110ddfc3e76e9b0b97b55"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/layout.ts",
-          "sha256": "2dcb9ba147902fabea61b22a62c9e37c69fe509ba05194c25e57fa4570b73397"
+          "sha256": "c8ed4e7dc2d003e0af8ebcdd7145a53a00e78479b15557a5d4a0740dd4503efe"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/model-operations.ts",
@@ -12000,7 +12004,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/page-selection-tools.ts",
-          "sha256": "ecafb537869f28623e18919d13c18c3d37d802b8658458c02fb46fbbdda27ff0"
+          "sha256": "7f1693b2f5de9db8d4b7803a781fc27b05e46b81c64551030b6313bc61c2a4d8"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/projection-reconciliation.ts",
@@ -12012,11 +12016,11 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/runtime-hooks.ts",
-          "sha256": "2f7836a367f065ad359db1b6ae151b8cbe856c38e7023caa4e51bf80a01375c9"
+          "sha256": "3ddcc96b9ba223c2cd694282946f2eed8ed32b82c515877ec67aa7da27823dd4"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/runtime.ts",
-          "sha256": "37eba4dc6f200675f95e2ce624bb7a1bc94bbec5ab0e6766d9dffc2965c814c6"
+          "sha256": "67e833c93b8e91a560578fb96784d8288943e237222b363f02290d15f8fa1804"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/source-application.ts",
@@ -12112,7 +12116,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/gitgraph/host-adapter.ts",
-          "sha256": "5261aed31257dabeb2b67a1103c4c9bd2bdda082acbae1d1409b6c73332fdc58"
+          "sha256": "6b60786580fc3b7a8adfda6b06174c869b6c4850d171b4ff1a957771704c553a"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/gitgraph/index.ts",
@@ -12152,7 +12156,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/gitgraph/visual-model.ts",
-          "sha256": "5b7695ef943b1be792310152145a42f7f49a15dc4cac64aa60a962b1e3e40bfd"
+          "sha256": "2e52ff4a16d3c6cd0b3bcd101b303aee990cde3b23ffe3f79949052090dbda12"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/index.ts",
@@ -12564,7 +12568,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/runtime/gfx-editor-overlays.tsx",
-          "sha256": "3743d5b03b55eb1bd4edd56c6905e04a429374901e4ba21deae040cdecf7b851"
+          "sha256": "94684e9ef461676b9213fcc70125a111a6718b1f41e2ca9611be65ca50c54555"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/runtime/gfx-editor-state.ts",
@@ -12572,11 +12576,11 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/runtime/gfx-element-projection-defaults.ts",
-          "sha256": "17fb4e68a1eefef506acb98dbe3bf0ed75b5096517419d0992f622ea51f754d4"
+          "sha256": "38ef195974c1248e194f290c2b871c3a300331f814ad911b374a89b64d719f1b"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/runtime/gfx-element-projection.ts",
-          "sha256": "fd835cc2de2af3a6ce51e07a3c9751eab7073480222bb7860de63c139d04cf2c"
+          "sha256": "61db833dbd1b9856c8e6f899851d7662ecfe91b3f6a46d898d6ce3fe3e5439c3"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/runtime/gfx-element-readback.ts",
@@ -12652,7 +12656,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/runtime/gfx-session.ts",
-          "sha256": "2a0f1b853a0afae7b0159b4f700f5dd2c603e239838d740e3c7ea15f5cb02bd0"
+          "sha256": "9a70acab1144d4036e82e411650bc62defa97af99e128a56388faa331383b7ee"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/runtime/gfx-subgraph-commands.ts",
@@ -12680,7 +12684,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/runtime/registry.ts",
-          "sha256": "4cb502af64a0a068ee902d70efbb54370082d8b0c95432169a3a182fabf4f679"
+          "sha256": "4f2a0d345a02227a5c61d49f90523139b0e507a5f5180d18386f58c34f93e0cc"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/runtime/session-selection.ts",
@@ -12692,11 +12696,11 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/runtime/shell-contract.ts",
-          "sha256": "21c8e7dc4625259b6d09e95f3b1af8b07ffacacf6ba8eeebb8d055007b9a18ac"
+          "sha256": "be232bfe0b976d000e3a25ecc598d72bb0b225eaa62bf48177d65c78dfbb712c"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/runtime/source-lifecycle.ts",
-          "sha256": "9104358e1a122325b063daebbf5d878dbabc9f46750c85d6ec872f7c0abf1952"
+          "sha256": "369e5113df704225a050326e35169619b68c016b4e7ee99b812fd6bad5e4ad44"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/runtime/source-style-projection.ts",
@@ -12816,7 +12820,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/state/layout.ts",
-          "sha256": "bd0a44a29c602bb5b4cb2812ad1b7dc27d37df951202495bfdf3736fb05aa23e"
+          "sha256": "f9a6cd75a318e7e0ed31283fc37318b45dc6d933d9542db9a32ec6182dc66125"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/state/react-host-contract.ts",
@@ -12876,11 +12880,11 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/visual-gfx-editor.tsx",
-          "sha256": "f041f3c7798452ac08e5340fa5533cb397d0a6b8f45c22084cf284b68421cef9"
+          "sha256": "b3f8f1c127ff23465ae44163bfba67445bbcaa1bc8f00319c4d8ce428da26e06"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/i18n.ts",
-          "sha256": "a42655b61c75ca0e1d44d0f174c8e5831234963b4090dfbccc9afca3fc17e391"
+          "sha256": "e770649f64d2bde69c9a5893a3a15803712ecbec0f0f3a0c24adee152a2ec5d1"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/index.ts",
@@ -12900,11 +12904,11 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-block.styles.ts",
-          "sha256": "e39266004e8a7fa1004c06cbcdd9b4841b1cafb9ba6fc50548873d95c985e3fe"
+          "sha256": "86a1eb1c7b9461947480ae37f7c7634bf7fbfb282ca773ca3f3d778a66ec2d1d"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-block.ts",
-          "sha256": "8606d913012d2afb652a97e0f418aa386f1d76b07877f087050cb5bcc70453ed"
+          "sha256": "ea3b573f9a0d59488453d32ae4706385df69cad39e51c1734e741ef970b9525c"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-editor-events.ts",
@@ -12975,16 +12979,20 @@
           "sha256": "610defb79416209da0aceb70714f710b3bce6c342d930cfefe3b7126c1b5cd7f"
         },
         {
+          "path": "virgultum/editor/blocks/mermaid/src/mermaid-gfx-snap.ts",
+          "sha256": "8d186ce0610629f20eac2204de7ea61bdf9a3248f1c8a2fef2c6dce9ce694bb9"
+        },
+        {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-gfx-theme.ts",
-          "sha256": "a2e0b267127600cf8a5a24daba6198d7bbd5edc6cd9b5bac8ec0b3c5f42bf3df"
+          "sha256": "bbfe5ae5479a136fe2a7e6ebb46e9a8e3e36f410c9e1d3e88c778c2d0ded4283"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-gfx-viewport-bridge.ts",
-          "sha256": "e32e33cb178040472824560d73c6a0be8afdc8fec0ca7331f0a78d6bb55f3713"
+          "sha256": "8f106c3c8231147cfa94768150bf878b21173bc35838dc85bd72eb1e0fa2cb0a"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-gfx-viewport-interaction-controller.ts",
-          "sha256": "e51097f4478dfb4ad5b31b4cfdc0cc9e1fd7d843409c2713cc14b12a57dd3f1d"
+          "sha256": "770e9ba3575905b5e18430b21632f0feaf3a6b59de566f3b9e3e2a1637e11d89"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-gfx-viewport.ts",
@@ -12992,7 +13000,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-host-controls.ts",
-          "sha256": "53d725e2c80c6947227fe538cf6731d050045fa082ba54f781f868aec80aa9cd"
+          "sha256": "6798b448fb2838dfce765529a48c475dbdbd4fcd7307cb987fd2003f159a7c61"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-host-display-render.ts",
@@ -13008,7 +13016,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-host-gfx-actions.ts",
-          "sha256": "17fd8d352142afbbff9405930a16d72ef3e9ae790f1fe0501ee70d83ae507141"
+          "sha256": "c20353da30f36c80bc88fd21816f1f8f16349abfe9ba21fddea98cd303fb3292"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-host-gfx-mutations.ts",
@@ -13016,11 +13024,11 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-host-gfx-render.ts",
-          "sha256": "45649e333601303931fb796c2cdf223f7eee8d79829ab412df27322f4d21a4ff"
+          "sha256": "27b68dbb1ff90ea82660f85bd926955b591a6eb3a66107963a644f3155acbb59"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-host-gfx-selection.ts",
-          "sha256": "8cc0b7c1e7fd6d574a16465cac98e56ae7ef41c3d11a368d3b3f640b4bb42059"
+          "sha256": "3c88c66c8b4431f454b40017fd2008345cbdc1d2963e3459bd709f4e66eaf571"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-host-gfx-sync.ts",
@@ -13036,11 +13044,11 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-host-source.ts",
-          "sha256": "29e2bb8db5e6b05ceca26fec5f981d524569d4817cb0a03e20aeea26258cf66a"
+          "sha256": "4952efe9b204af50be69945feb8bc954898a9688fd93ebcf6fe9add72af84796"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-host-state.ts",
-          "sha256": "0b892481bb2e6c9c58b46c32ff9ad60e69054546117765430cc3a62b9be89e73"
+          "sha256": "17ba11bc5474a9402fc4e023f3d1ba4d2b6c5c182025e61c3a7616b7faba0842"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-inline-connector-label-editor.ts",
@@ -13088,7 +13096,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-page-viewport-state.ts",
-          "sha256": "5de51d6fc1c7c540a3a34aa956c227cd4b86212bdb896b1490afa76371d609eb"
+          "sha256": "9df9789b9f37f6fd681cc9c882fe518c56595bacdf3036c35b9626267463146d"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/mermaid-render-state.ts",
@@ -13132,7 +13140,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/presentation/edgeless-owner-gfx-sync.ts",
-          "sha256": "e21ac5de948428404edc26447a736108d03972dcd499b7e6fa1d2094f6b2303c"
+          "sha256": "cfc521ffa69d6a9462e5ad50e17a0e2e0cf18ad0631e074ec63ed19d1b00df3f"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/presentation/edgeless-owner-resolution.ts",
@@ -13144,7 +13152,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/presentation/gfx-projection-owner.ts",
-          "sha256": "b1fb37530d44b3d55b5af2b39a5ed8ddabd7b94ce84b9ec5d25d0338e4bdecc4"
+          "sha256": "1c58802d8acbe12bc355da7a4b2b6cf0b6bbedbf14d66f8077d1818c740b3c67"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/presentation/legacy-linked-owner.ts",
@@ -13180,7 +13188,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/scoped-gfx-editor.ts",
-          "sha256": "d334e9302e5d707415452ce6c6eb0dba7b0f98f96fa98eaabfcbf7c40fdbb692"
+          "sha256": "9fa111cebf72857e57cbdfc5300cdbdeedae20b3cdda2ec8453d5b215a30208c"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/slash-menu.ts",
@@ -13216,7 +13224,7 @@
         },
         {
           "path": "virgultum/embeds/package.json",
-          "sha256": "fab6bf7a9b2812043fa95e1881a2ba8aeadbdb3eda439305f5cb911cda5cf2f9"
+          "sha256": "0a2b08d4a1991f1228e6572ddbc5986c4011f6f4e61e35fe6c59b6e1072aafd9"
         },
         {
           "path": "virgultum/embeds/src/attachment/rename-session.ts",
@@ -13412,7 +13420,7 @@
         },
         {
           "path": "virgultum/icons/package.json",
-          "sha256": "462e02624f6c64dfad84a7597ad94aeef1429e5fb215583d7c138ba73f2d9663"
+          "sha256": "9ecda50666c1d8f403fef23c9d31a9ef8ec8037eb6c06b77ae6a03f194e44e11"
         },
         {
           "path": "virgultum/icons/PROVENANCE.md",

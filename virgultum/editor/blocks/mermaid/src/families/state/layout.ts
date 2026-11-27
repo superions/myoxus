@@ -229,8 +229,21 @@ export function layoutStateHierarchy(
       let primaryOffset = 0,
         regionHeight = type.lineHeight + config.padding * 2;
       const positions = new Map<string, StateLayoutFrame>();
-      for (const [, rank] of [...ranks.entries()].sort(([a], [b]) => a - b)) {
-        let cross = 0;
+      const orderedRanks = [...ranks.entries()].sort(([a], [b]) => a - b);
+      const rankCrossSpan = (rank: MermaidVisualNode[]) =>
+        rank.reduce(
+          (sum, box, index) =>
+            sum +
+            (horizontal ? box.height : box.width) +
+            (index > 0 ? config.nodeSpacing : 0),
+          0,
+        );
+      const maxCross = Math.max(
+        0,
+        ...orderedRanks.map(([, r]) => rankCrossSpan(r)),
+      );
+      for (const [, rank] of orderedRanks) {
+        let cross = Math.max(0, (maxCross - rankCrossSpan(rank)) / 2);
         for (const box of rank) {
           const x = pad + (horizontal ? primaryOffset : cross),
             y = bottom + (horizontal ? cross : primaryOffset);

@@ -252,12 +252,13 @@ export const createHighlightActionGroup = (includeRegularBackgrounds = false) =>
                   ({ name }) =>
                     includeRegularBackgrounds || name.startsWith("neon-"),
                 )
-                .map(({ name, label, background }) => ({
+                .map(({ name, label, background, emphasis }) => ({
                   id: includeRegularBackgrounds
                     ? name
                     : name.replace("neon-", ""),
                   label,
                   value: background,
+                  swatch: emphasis,
                 }));
         return {
           type: "menu",
@@ -275,13 +276,16 @@ export const createHighlightActionGroup = (includeRegularBackgrounds = false) =>
                       "Remove highlight",
                     ),
               value: null,
+              swatch: undefined as string | undefined,
             },
             ...colors,
-          ].map(({ id, label, value }) => {
+          ].map(({ id, label, value, ...rest }) => {
+            const swatch =
+              "swatch" in rest ? rest.swatch : (value ?? undefined);
             return {
               id,
               icon: id === "default" ? "ResetIcon" : undefined,
-              swatch: value ?? undefined,
+              swatch,
               label,
               run: () => update({ [key]: value }),
             };

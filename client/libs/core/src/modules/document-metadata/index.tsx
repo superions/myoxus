@@ -652,8 +652,7 @@ function MetadataValueControl({
           data={data}
           disabled={disabled}
           searchable
-          // Popovers keep options local; otherwise the Facade owns the modal layer.
-          comboboxProps={inPopover ? { withinPortal: false } : undefined}
+          embeddedDropdown={inPopover}
           onChange={(values) => onPatch(metadataKey, values.join(","))}
           value={Array.isArray(value) ? value : []}
         />
@@ -686,7 +685,7 @@ function MetadataValueControl({
         disabled={disabled}
         searchable
         allowDeselect={false}
-        comboboxProps={inPopover ? { withinPortal: false } : undefined}
+        embeddedDropdown={inPopover}
         onChange={(value) =>
           metadataKey === "status"
             ? onStatusChange(value)
@@ -821,7 +820,7 @@ function HeaderFieldPopover({
       opened={opened}
       onChange={setOpened}
       fitViewport
-      contentMeasure="reading"
+      contentMeasure="compact"
       trapFocus
       returnFocus
       position="bottom-start"

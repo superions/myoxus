@@ -6,10 +6,15 @@ import { signal, type Signal } from "@preact/signals-core";
 import { MermaidBlockSpec } from "@virgultum/block-mermaid/view";
 import { EdgelessCRUDExtension } from "@virgultum/editor/blocks/surface";
 import { ViewExtensionManagerIdentifier } from "@virgultum/core/extensions";
-import { ColorScheme, type MermaidBlockModel } from "@virgultum/core/models";
+import {
+  ColorScheme,
+  MermaidBlockSchema,
+  type MermaidBlockModel,
+} from "@virgultum/core/models";
 import type { Container } from "@virgultum/core/primitives/di";
 import {
   BlockStdScope,
+  BlockViewIdentifier,
   LifeCycleWatcher,
   StdIdentifier,
 } from "@virgultum/core/runtime";
@@ -153,6 +158,16 @@ export default function PageMermaid({
       patchMermaidFamilyReactHost(mountPortal),
       EdgelessCRUDExtension,
       ...MermaidBlockSpec,
+      // PageMermaid always mounts the Page Mermaid block shell, including when
+      // the underlying MermaidBlockModel is natively owned by `myoxus:surface`.
+      {
+        setup(di) {
+          di.override(
+            BlockViewIdentifier(MermaidBlockSchema.model.flavour),
+            () => () => "myoxus-mermaid",
+          );
+        },
+      },
     ];
 
     const std = new BlockStdScope({

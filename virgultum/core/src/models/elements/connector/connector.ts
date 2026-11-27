@@ -299,11 +299,12 @@ export class ConnectorElementModel extends GfxPrimitiveElementModel<ConnectorEle
     height: number,
     offset: ConnectorLabelOffsetProps = this.labelOffset,
   ): XYWH {
+    const LABEL_EDGE_GAP = 4;
     const anchorOffset =
       offset.anchor === ConnectorLabelOffsetAnchor.Top
-        ? -height
+        ? -(height / 2 + LABEL_EDGE_GAP)
         : offset.anchor === ConnectorLabelOffsetAnchor.Bottom
-          ? height
+          ? height / 2 + LABEL_EDGE_GAP
           : 0;
     const at = (distance: number): XYWH => {
       const [cx, cy] = this.getPointByOffsetDistance(distance);

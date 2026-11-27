@@ -12,6 +12,7 @@ import { getMermaidGfxFamilyHooks } from "../families/runtime/gfx-family-hooks-r
 import { readMermaidGfxMeta } from "../mermaid-gfx-metadata.js";
 import type { MermaidGfxObjectEditIntent } from "../families/runtime/editor-capabilities.js";
 import { batch } from "@preact/signals-core";
+import { EdgelessLegacySlotIdentifier } from "@virgultum/canvas-runtime/surface";
 import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import type { MermaidBlockModel } from "@virgultum/core/models";
 import {
@@ -299,7 +300,9 @@ export class MermaidEdgelessOwnerGfxSync extends GfxExtension {
         (target) =>
           target instanceof Element &&
           (target.tagName === "CANVAS" ||
-            target.classList.contains("edgeless-background")),
+            target.tagName === "EDGELESS-CONNECTOR-HANDLE" ||
+            target.classList.contains("edgeless-background") ||
+            target.classList.contains("line-controller")),
       )
     );
   }
@@ -601,6 +604,50 @@ export class MermaidEdgelessOwnerGfxSync extends GfxExtension {
               } else {
                 this._scheduleOwnerSync(owner);
               }
+            }
+          });
+        }),
+      );
+    }
+    const legacySlots = this.std.getOptional(EdgelessLegacySlotIdentifier);
+    if (legacySlots) {
+      this._disposables.add(
+        legacySlots.elementResizeStart.subscribe(() => {
+          const selectedIds = new Set(this.gfx.selection.selectedIds);
+          for (const owner of this._getNativeMermaidGfxOwners()) {
+            if (
+              !selectedIds.has(owner.id) &&
+              !owner.descendantElements.some((child) =>
+                selectedIds.has(child.id),
+              )
+            ) {
+              continue;
+            }
+            this._captureOwnerGestureVisualModel(owner, true);
+            this._hasOwnerInteraction = true;
+            this._interactingOwnerIds.add(owner.id);
+            const pendingSync = this._syncTimers.get(owner.id);
+            if (pendingSync) {
+              clearTimeout(pendingSync);
+              this._syncTimers.delete(owner.id);
+            }
+          }
+        }),
+      );
+      this._disposables.add(
+        legacySlots.elementResizeEnd.subscribe(() => {
+          if (!this._hasOwnerInteraction) return;
+          this._hasOwnerInteraction = false;
+          const completedOwnerIds = [...this._interactingOwnerIds];
+          queueMicrotask(() => {
+            if (!this._surfaceBindingsMounted) return;
+            const owners = this._getNativeMermaidGfxOwners();
+            for (const ownerId of completedOwnerIds) {
+              this._interactingOwnerIds.delete(ownerId);
+              const owner = owners.find(
+                (candidate) => candidate.id === ownerId,
+              );
+              if (owner) this._scheduleOwnerSync(owner);
             }
           });
         }),

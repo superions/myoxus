@@ -43,12 +43,26 @@ export function collectReadableBodyBlocks(
   const root = page.root;
   if (!root) return [];
   const result: BlockModel[] = [];
+  const surfaceDiagrams: BlockModel[] = [];
   const seen = new Set<string>([root.id]);
   const visit = (parent: BlockModel) => {
     for (const child of parent.children) {
       if (seen.has(child.id)) continue;
       seen.add(child.id);
-      if (child.flavour === "myoxus:surface") continue;
+      if (child.flavour === "myoxus:surface") {
+        for (const surfaceChild of child.children) {
+          if (seen.has(surfaceChild.id)) continue;
+          seen.add(surfaceChild.id);
+          if (
+            (surfaceChild.flavour === "myoxus:mermaid" ||
+              surfaceChild.flavour === "myoxus:bpmn") &&
+            (!allowedIds || allowedIds.has(surfaceChild.id))
+          ) {
+            surfaceDiagrams.push(surfaceChild);
+          }
+        }
+        continue;
+      }
       if (child.flavour === "myoxus:note") {
         const note = child as NoteBlockModel;
         if (note.props.hidden || note.props.displayMode === "edgeless")
@@ -63,6 +77,7 @@ export function collectReadableBodyBlocks(
     }
   };
   visit(root);
+  result.push(...surfaceDiagrams);
   return result;
 }
 

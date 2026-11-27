@@ -171,8 +171,11 @@ export abstract class MermaidHostSource extends MermaidHostLifecycle {
 
   protected _getVisualViewportHeight(autoHeight: number) {
     if (typeof this.model.props.viewportHeight !== "number") {
-      this._visualAutoViewportHeight ??=
-        this._clampVisualViewportHeight(autoHeight);
+      const clamped = this._clampVisualViewportHeight(autoHeight);
+      this._visualAutoViewportHeight =
+        this._visualAutoViewportHeight == null
+          ? clamped
+          : Math.max(this._visualAutoViewportHeight, clamped);
       return this._visualAutoViewportHeight;
     }
     return resolveMermaidVisualViewportHeight({
@@ -298,9 +301,16 @@ export abstract class MermaidHostSource extends MermaidHostLifecycle {
     if (typeof this._pauseProjectionOwnerSourceSync === "function") {
       this._pauseProjectionOwnerSourceSync();
     }
+    const previousDiagramType = this.model.props.diagramType;
     const sourceWrite = writeMermaidSourceModelState(this.model, value, {
       preserveSourceBytes,
     });
+    if (
+      typeof this.model.props.viewportHeight !== "number" &&
+      this.model.props.diagramType !== previousDiagramType
+    ) {
+      this._visualAutoViewportHeight = null;
+    }
     this._pendingVisualInsertShape = null;
     this._lastProjectionOwnerSelectionKey = "";
     // Source is the persisted semantic authority and already owns the user

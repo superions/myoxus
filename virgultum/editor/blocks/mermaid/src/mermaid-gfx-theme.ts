@@ -461,19 +461,20 @@ export function fitMermaidGfxLabelFontSize(
   const availableHeight = geometry.height - verticalPadding * 2;
   const availableWidth = geometry.width - horizontalPadding * 2;
   const minimumFontSize =
-    style.minimumFontSize ?? theme.typography.sectionFontSize;
+    style.minimumFontSize ?? theme.typography.minimumReadableFontSize;
   if (availableHeight <= 0 || availableWidth <= 0) return minimumFontSize;
 
   const step = Math.max(
-    theme.typography.fontSize - theme.typography.minimumReadableFontSize,
+    Math.min(
+      theme.typography.fontSize - theme.typography.minimumReadableFontSize,
+      2,
+    ),
     1,
   );
-  // Diagram labels are viewed through a camera and therefore need a bounded
-  // lift above the ordinary UI display size. One adjacent live-theme scale
-  // step keeps short labels legible without dominating the fixed shape
-  // geometry; explicit source font sizes remain authoritative.
-  const maximumFontSize =
-    style.maximumFontSize ?? theme.typography.displayFontSize + step;
+  // Keep 100%-zoom diagram labels aligned with body typography so shapes feel
+  // compact and balanced alongside document prose; explicit source font sizes
+  // remain authoritative.
+  const maximumFontSize = style.maximumFontSize ?? theme.typography.fontSize;
   for (
     let fontSize = maximumFontSize;
     fontSize >= minimumFontSize;

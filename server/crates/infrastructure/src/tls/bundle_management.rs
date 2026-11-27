@@ -437,13 +437,10 @@ mod tests {
   use std::process::Command;
 
   fn ca(name: &str) -> Vec<u8> {
-    let mut params = rcgen::CertificateParams::new(vec![name.to_owned()]);
+    let mut params = rcgen::CertificateParams::new(vec![name.to_owned()]).expect("CA params");
     params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-    rcgen::Certificate::from_params(params)
-      .expect("CA")
-      .serialize_pem()
-      .expect("PEM")
-      .into_bytes()
+    let key = rcgen::KeyPair::generate().expect("CA key");
+    params.self_signed(&key).expect("CA").pem().into_bytes()
   }
 
   fn child(root: &Path) -> Command {
@@ -534,10 +531,11 @@ mod tests {
     invalid.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
     invalid.not_before = rcgen::date_time_ymd(2000, 1, 1);
     invalid.not_after = rcgen::date_time_ymd(2001, 1, 1);
-    let expired = rcgen::Certificate::from_params(invalid)
+    let expired_key = rcgen::KeyPair::generate().expect("expired CA key");
+    let expired = invalid
+      .self_signed(&expired_key)
       .expect("expired CA")
-      .serialize_pem()
-      .expect("PEM")
+      .pem()
       .into_bytes();
     for input in [
       Vec::new(),

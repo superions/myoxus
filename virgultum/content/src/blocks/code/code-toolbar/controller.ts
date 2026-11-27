@@ -225,6 +225,8 @@ export function createCodeToolbarControls(
         recent.value,
       ),
       readonly,
+      floating:
+        std.getOptional(DocModeProvider)?.getEditorMode() === "edgeless",
       primary,
       more,
     };

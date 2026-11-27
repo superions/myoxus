@@ -7,13 +7,11 @@ use napi::{
 use napi_derive::napi;
 use rubato::{Resampler, SincFixedIn, SincInterpolationParameters, SincInterpolationType};
 use symphonia::core::{
-  audio::{AudioBuffer, Signal},
-  codecs::DecoderOptions,
+  codecs::{CodecParameters, audio::AudioDecoderOptions},
   errors::Error,
-  formats::FormatOptions,
+  formats::{FormatOptions, TrackType, probe::Hint},
   io::MediaSourceStream,
   meta::MetadataOptions,
-  probe::Hint,
 };
 
 fn decode<B: AsRef<[u8]> + Send + Sync + 'static>(
@@ -30,50 +28,50 @@ fn decode<B: AsRef<[u8]> + Send + Sync + 'static>(
     hint.with_extension(ext);
   }
 
-  let format_opts = FormatOptions {
-    enable_gapless: true,
-    ..Default::default()
-  };
+  let format_opts = FormatOptions::default();
   let metadata_opts = MetadataOptions::default();
-  let decoder_opts = DecoderOptions::default();
-  let probed = symphonia::default::get_probe().format(&hint, mss, &format_opts, &metadata_opts)?;
-
-  let mut format = probed.format;
+  let decoder_opts = AudioDecoderOptions::default();
+  let mut format = symphonia::default::get_probe().probe(&hint, mss, format_opts, metadata_opts)?;
 
   let track = format
-    .default_track()
+    .default_track(TrackType::Audio)
     .ok_or(Error::Unsupported("No default track found"))?;
 
-  let totol_samples = track
-    .codec_params
-    .n_frames
-    .ok_or(Error::Unsupported("No duration found"))?;
-  let sample_rate = track
-    .codec_params
+  let track_id = track.id;
+  let total_samples = track.duration.ok_or(Error::Unsupported("No duration found"))?;
+  let codec_params = match track.codec_params.as_ref() {
+    Some(CodecParameters::Audio(params)) => params,
+    _ => return Err(Error::Unsupported("No audio codec parameters found")),
+  };
+  let sample_rate = codec_params
     .sample_rate
     .ok_or(Error::Unsupported("No samplerate found"))?;
 
-  let mut decoder = symphonia::default::get_codecs().make(&track.codec_params, &decoder_opts)?;
+  let mut decoder = symphonia::default::get_codecs().make_audio_decoder(codec_params, &decoder_opts)?;
 
-  let mut output: Vec<f32> = Vec::with_capacity(totol_samples as usize);
+  let mut output: Vec<f32> = Vec::with_capacity(total_samples.get() as usize);
+  let mut planar: Vec<Vec<f32>> = Vec::new();
   // Decode loop
-  while let Ok(packet) = format.next_packet() {
+  while let Ok(Some(packet)) = format.next_packet() {
+    if packet.track_id != track_id {
+      continue;
+    }
     let decoded = decoder.decode(&packet)?;
-    let spec = decoded.spec();
-    let mut audio_buf: AudioBuffer<f32> = AudioBuffer::new(decoded.capacity() as u64, *spec);
-    decoded.convert(&mut audio_buf);
+    decoded.copy_to_vecs_planar(&mut planar);
 
-    if spec.channels.count() > 1 {
+    if planar.len() > 1 {
+      let channels = planar.len();
+      let frames = planar[0].len();
       // Mix all channels into mono
-      for i in 0..audio_buf.chan(0).len() {
-        let mut sample_sum = 0.0;
-        for ch in 0..spec.channels.count() {
-          sample_sum += audio_buf.chan(ch)[i];
+      for i in 0..frames {
+        let mut sample_sum = 0.0_f32;
+        for ch in &planar {
+          sample_sum += ch[i];
         }
-        output.push(sample_sum / spec.channels.count() as f32);
+        output.push(sample_sum / channels as f32);
       }
-    } else {
-      output.extend_from_slice(audio_buf.chan(0));
+    } else if let Some(mono) = planar.first() {
+      output.extend_from_slice(mono);
     }
   }
 

@@ -87,6 +87,8 @@ export function tableMenuActions(
       "doCopyOrCut" | "doPaste"
     >;
     pasteFailed: (error: unknown) => void;
+    onDistributeColumns?: () => void;
+    onToggleCaption?: () => void;
   },
   i18n: Parameters<typeof resolveEditorMessage>[1],
   target: TableMenuTarget,
@@ -136,15 +138,13 @@ export function tableMenuActions(
     sub(
       [message, "ColorPickerIcon"],
       [
-        { name: "Default", color: undefined },
+        { name: "Default", color: undefined, swatch: undefined },
         ...(cellColors ? cellColorList : colorList),
       ].map((option) =>
         action([colors[option.name]!], () => change(option.color), {
           active: current === option.color,
           disabled,
-          swatch: option.color?.startsWith("--")
-            ? cssVar(option.color)
-            : (option.color ?? cssVar("backgroundPrimaryColor")),
+          swatch: option.swatch ?? cssVar("backgroundPrimaryColor"),
         }),
       ),
       disabled,
@@ -173,10 +173,52 @@ export function tableMenuActions(
     const fixed = manager
       .getCellsBySelection(selected)
       .some((cell) => cell.textProtection === "fixed");
+    const canMerge = manager.canMergeCells(selected);
+    const canUnmerge = manager.canUnmergeCells(selected);
     return [
       ...cell.textProtectionActions(selected),
       ...cell.templateVariableActions(handoff),
       ...(!fixed ? [cellPalette()] : []),
+      ...(canMerge || canUnmerge
+        ? [
+            group("merge", [
+              ...(canMerge
+                ? [
+                    action(
+                      [
+                        editorMessage(
+                          "com.myoxus.editor.table.merge-cells",
+                          "Merge cells",
+                        ),
+                        "GroupIcon",
+                      ],
+                      () => {
+                        const cur = area();
+                        if (cur) manager.mergeCells(cur);
+                      },
+                    ),
+                  ]
+                : []),
+              ...(canUnmerge
+                ? [
+                    action(
+                      [
+                        editorMessage(
+                          "com.myoxus.editor.table.unmerge-cells",
+                          "Unmerge cells",
+                        ),
+                        "UngroupIcon",
+                      ],
+                      () => {
+                        const cur = area();
+                        if (cur) manager.unmergeCells(cur);
+                      },
+                    ),
+                  ]
+                : []),
+            ]),
+          ]
+        : []),
       group("clipboard", [
         action([editorMessage("Copy", "Copy"), "CopyIcon"], () => {
           const selected = area();
@@ -350,17 +392,34 @@ export function tableMenuActions(
         "SettingsIcon",
       ],
       [
-        group("header", headers),
-        group(
-          "appearance",
-          (["grid", "ruled", "plain"] as const).map((value) =>
+        group("header", [
+          ...headers,
+          choice(
+            editorMessage(
+              "com.myoxus.editor.table.header-column",
+              "Header column",
+            ),
+            () => manager.setHeaderColumn(!manager.headerColumn$.value),
+            manager.headerColumn$.value,
+          ),
+        ]),
+        group("appearance", [
+          ...(["grid", "ruled", "plain"] as const).map((value) =>
             choice(
               appearance[value],
               () => manager.setAppearance(value),
               manager.appearance$.value === value,
             ),
           ),
-        ),
+          choice(
+            editorMessage(
+              "com.myoxus.editor.table.striped-rows",
+              "Striped rows",
+            ),
+            () => manager.setStriped(!manager.striped$.value),
+            manager.striped$.value,
+          ),
+        ]),
         group(
           "density",
           (["normal", "compact"] as const).map((value) =>
@@ -371,10 +430,69 @@ export function tableMenuActions(
             ),
           ),
         ),
+        group("layout", [
+          ...(cell.onDistributeColumns
+            ? [
+                action(
+                  [
+                    editorMessage(
+                      "com.myoxus.editor.table.distribute-columns",
+                      "Distribute columns evenly",
+                    ),
+                    "DistributeHorizontalIcon",
+                  ],
+                  () => cell.onDistributeColumns?.(),
+                ),
+              ]
+            : []),
+          ...(cell.onToggleCaption
+            ? [
+                action(
+                  [
+                    editorMessage(
+                      "com.myoxus.editor.table.caption",
+                      "Table caption",
+                    ),
+                    "CaptionIcon",
+                  ],
+                  () => cell.onToggleCaption?.(),
+                  { active: Boolean(manager.caption$.value) },
+                ),
+              ]
+            : []),
+        ]),
       ],
     ),
     ...("area" in target && target.area ? [cellPalette()] : []),
     group("style", styles),
+    ...(column
+      ? [
+          group("sort", [
+            action(
+              [
+                editorMessage(
+                  "com.myoxus.editor.table.sort-ascending",
+                  "Sort ascending (A–Z)",
+                ),
+                "ArrowUpBigIcon",
+              ],
+              () => manager.sortByColumn(target.id, "asc"),
+              { disabled: fixed || !manager.canSortByColumn(target.id) },
+            ),
+            action(
+              [
+                editorMessage(
+                  "com.myoxus.editor.table.sort-descending",
+                  "Sort descending (Z–A)",
+                ),
+                "ArrowDownBigIcon",
+              ],
+              () => manager.sortByColumn(target.id, "desc"),
+              { disabled: fixed || !manager.canSortByColumn(target.id) },
+            ),
+          ]),
+        ]
+      : []),
     group("structure", [
       action([labels.before, icons[0]], () => insert(index() - 1)),
       action([labels.after, icons[1]], () => insert(index())),

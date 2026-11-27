@@ -274,7 +274,7 @@ export function createGitGraphEditorProps(
     visualModel: context.visualModel,
     selected,
     selectedKeys,
-    guidesVisible: host.getTransientState("gitgraph.guidesVisible") !== false,
+    guidesVisible: host.getTransientState("gitgraph.guidesVisible") === true,
     commentsVisible:
       host.getTransientState("gitgraph.commentsVisible") !== false,
     onVisibility: (kind, visible) => {
@@ -428,7 +428,7 @@ export const mermaidGitGraphHostAdapter: MermaidFamilyHostAdapter = {
                   host.getTransientState("gitgraph.commentsVisible") === false
               : b?.role === "statement" || p?.authoringGuide === true
                 ? displayOnly ||
-                  host.getTransientState("gitgraph.guidesVisible") === false
+                  host.getTransientState("gitgraph.guidesVisible") !== true
                 : false;
           })
           .map((n) => n.id),

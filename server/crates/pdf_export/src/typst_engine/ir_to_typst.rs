@@ -1236,7 +1236,19 @@ fn write_table(
   if rows.is_empty() {
     return;
   }
-  let col_count = rows.iter().map(|r| r.cells.len()).max().unwrap_or(1);
+  let col_count = column_widths
+    .map(<[f64]>::len)
+    .filter(|&len| len > 0)
+    .unwrap_or_else(|| {
+      rows
+        .iter()
+        .map(|r| r.cells.iter().map(|c| c.col_span.max(1) as usize).sum())
+        .max()
+        .unwrap_or(1)
+    });
+  let has_merges = rows
+    .iter()
+    .any(|r| r.cells.iter().any(|c| c.col_span > 1 || c.row_span > 1));
 
   // Rule and inset geometry belong to the PDF renderer. Source only selects a
   // semantic appearance/density; theme-owned `rule-color` remains authoritative.
@@ -1284,13 +1296,13 @@ fn write_table(
   if header_rows > 0 {
     let _ = writeln!(out, "  table.header(");
     for row in &rows[..header_rows] {
-      write_table_row_cells(out, row, col_count);
+      write_table_row_cells(out, row, col_count, has_merges, true);
     }
     let _ = writeln!(out, "  ),");
   }
 
   for row in &rows[header_rows..] {
-    write_table_row_cells(out, row, col_count);
+    write_table_row_cells(out, row, col_count, has_merges, false);
   }
   let _ = writeln!(out, ")\n]");
 
@@ -1304,7 +1316,7 @@ fn write_table(
   let _ = writeln!(out);
 }
 
-fn write_table_row_cells(out: &mut String, row: &TableRow, col_count: usize) {
+fn write_table_row_cells(out: &mut String, row: &TableRow, col_count: usize, has_merges: bool, in_header_row: bool) {
   for cell in &row.cells {
     let align = match cell.align.as_deref() {
       Some("center") => Some("center"),
@@ -1312,31 +1324,41 @@ fn write_table_row_cells(out: &mut String, row: &TableRow, col_count: usize) {
       _ => None,
     };
     let mut content = render_inline(&cell.content);
+    // Header rows are styled by template `table.header` rules; only body row-header
+    // cells (e.g. `headerColumn`) need explicit strong emphasis here.
+    if !in_header_row && cell.is_header && !content.is_empty() {
+      content = format!("#strong[{content}]");
+    }
     if let Some(foreground) = &cell.foreground {
       content = format!(
         "#text(fill: native-table-color(\"{}\"))[{content}]",
         escape_str(foreground)
       );
     }
-    if align.is_some() || cell.fill.is_some() {
-      let _ = write!(out, "  table.cell(");
-      if let Some(align) = align {
-        let _ = write!(out, "align: {align}");
-      }
-      if let Some(fill) = &cell.fill {
-        if align.is_some() {
-          let _ = write!(out, ", ");
-        }
-        let _ = write!(out, "fill: native-table-color(\"{}\")", escape_str(fill));
-      }
-      let _ = write!(out, ")[{content}], ");
+    let mut args = Vec::new();
+    if cell.col_span > 1 {
+      args.push(format!("colspan: {}", cell.col_span));
+    }
+    if cell.row_span > 1 {
+      args.push(format!("rowspan: {}", cell.row_span));
+    }
+    if let Some(align) = align {
+      args.push(format!("align: {align}"));
+    }
+    if let Some(fill) = &cell.fill {
+      args.push(format!("fill: native-table-color(\"{}\")", escape_str(fill)));
+    }
+    if !args.is_empty() {
+      let _ = write!(out, "  table.cell({})[{content}], ", args.join(", "));
     } else {
       let _ = write!(out, "  [{content}], ");
     }
   }
-  // Pad missing cells.
-  for _ in row.cells.len()..col_count {
-    let _ = write!(out, "  [], ");
+  // Pad missing cells only for non-merged grids (Typst auto-accounts for rowspan/colspan).
+  if !has_merges {
+    for _ in row.cells.len()..col_count {
+      let _ = write!(out, "  [], ");
+    }
   }
   let _ = writeln!(out);
 }

@@ -10,9 +10,17 @@ export function getMermaidVisualModel(model: MermaidBlockModel) {
   const source = getMermaidBlockSource(model.props);
   const parsed = parseMermaidSourceToGfxVisualModel(source).model;
   const familyData = parseMermaidVisualFamilyData(model.props.familyData);
+  const compatibleFamilyData =
+    familyData &&
+    (!parsed?.familyData || familyData.family === parsed.familyData.family)
+      ? familyData
+      : undefined;
   const visualModel =
-    parsed && familyData
-      ? readTypeOwnedMermaidSourceProjection(source, { ...parsed, familyData })
+    parsed && compatibleFamilyData
+      ? readTypeOwnedMermaidSourceProjection(source, {
+          ...parsed,
+          familyData: compatibleFamilyData,
+        })
       : parsed;
   if (visualModel)
     visualModel.diagramTitle = resolveMermaidEffectiveBlockTitle(model.props);

@@ -7,6 +7,7 @@ import {
   Button,
   CanvasOverlayToolbar,
   Group,
+  IconButton,
   ConfirmModal,
   Select,
   Stack,
@@ -29,6 +30,7 @@ import {
   type ClassReactHostProps,
   deleteClassSelection,
 } from "@virgultum/block-mermaid";
+import { MoreHorizontalIcon } from "@myoxus/icons/react";
 import { MermaidGfxEditorWorkbench } from "../mermaid-editor-workbench";
 import { MermaidEmbeddedActions } from "../mermaid-embedded-actions";
 import { ClassForm } from "./class-popover";
@@ -255,7 +257,11 @@ export function MermaidClassRuntimeEditor({
           </>
         }
       >
-        <Button>{m.visualMoreActions()}</Button>
+        <IconButton
+          aria-label={m.visualMoreActions()}
+          tooltip={m.visualMoreActions()}
+          icon={<MoreHorizontalIcon />}
+        />
       </Menu>
       {props.parentIntent && more.includes(props.parentIntent) ? (
         <ClassActionPopover props={props} action={props.parentIntent} />

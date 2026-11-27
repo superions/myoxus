@@ -84,8 +84,7 @@ export default function PageCode({
   const { text, language, wrap, lineNumber } = model.props,
     store = model.store,
     source = text.toString();
-  const [hover, setHover] = useState(false),
-    [active, setActive] = useState(false);
+  const [active, setActive] = useState(false);
   const [localPreview, setLocalPreview] = useState<boolean | null>(null);
   const previewLanguage =
     language === "html" || language === "mermaid" || language === "typst"
@@ -284,58 +283,80 @@ export default function PageCode({
         : []),
     ],
     more: [
-      action(
-        "wrap",
-        t["com.myoxus.editor.code.wrap"](),
-        "TextIcon",
-        () => toggle({ wrap: !wrap }),
-        wrap,
-      ),
-      action(
-        "line-number",
-        t["com.myoxus.editor.code.line-numbers"](),
-        "NumberedListIcon",
-        () => toggle({ lineNumber: !(lineNumber ?? true) }),
-        lineNumber ?? true,
-      ),
       {
-        ...action(
-          "copy-link-to-block",
-          t["com.myoxus.editor.toolbar.copy-link-to-block"](),
-          "LinkIcon",
-          () => {
-            if (
-              !field.current?.isConnected ||
-              store.getModelById(model.id) !== model
-            )
-              return;
-            void copyEditorBlockLink(
-              {
-                pageId: store.id,
-                workspaceId: store.workspace.id,
-                blockIds: [model.id],
-                mode: "page",
-                baseUrl: workspaceServer?.server?.baseUrl ?? location.origin,
-              },
-              model.flavour,
-            ).catch(console.error);
-          },
-        ),
-        disabled: false,
+        id: "code-display",
+        label: "code-display",
+        disabled: readonly,
+        actions: [
+          action(
+            "wrap",
+            t["com.myoxus.editor.code.wrap"](),
+            "TextIcon",
+            () => toggle({ wrap: !wrap }),
+            wrap,
+          ),
+          action(
+            "line-number",
+            t["com.myoxus.editor.code.line-numbers"](),
+            "NumberedListIcon",
+            () => toggle({ lineNumber: !(lineNumber ?? true) }),
+            lineNumber ?? true,
+          ),
+        ],
       },
-      action(
-        "duplicate",
-        t["com.myoxus.editor.keyboard.duplicate"](),
-        "DuplicateIcon",
-        () => {
-          if (writable()) duplicatePageBlock(model);
-        },
-      ),
       {
-        ...action("delete", t.Delete(), "DeleteIcon", () => {
-          if (writable()) store.deleteBlock(model);
-        }),
-        variant: "destructive",
+        id: "code-block-actions",
+        label: "code-block-actions",
+        disabled: false,
+        actions: [
+          {
+            ...action(
+              "copy-link-to-block",
+              t["com.myoxus.editor.toolbar.copy-link-to-block"](),
+              "LinkIcon",
+              () => {
+                if (
+                  !field.current?.isConnected ||
+                  store.getModelById(model.id) !== model
+                )
+                  return;
+                void copyEditorBlockLink(
+                  {
+                    pageId: store.id,
+                    workspaceId: store.workspace.id,
+                    blockIds: [model.id],
+                    mode: "page",
+                    baseUrl:
+                      workspaceServer?.server?.baseUrl ?? location.origin,
+                  },
+                  model.flavour,
+                ).catch(console.error);
+              },
+            ),
+            disabled: false,
+          },
+          action(
+            "duplicate",
+            t["com.myoxus.editor.keyboard.duplicate"](),
+            "DuplicateIcon",
+            () => {
+              if (writable()) duplicatePageBlock(model);
+            },
+          ),
+        ],
+      },
+      {
+        id: "code-danger",
+        label: "code-danger",
+        disabled: readonly,
+        actions: [
+          {
+            ...action("delete", t.Delete(), "DeleteIcon", () => {
+              if (writable()) store.deleteBlock(model);
+            }),
+            variant: "destructive",
+          },
+        ],
       },
     ],
   };
@@ -349,12 +370,11 @@ export default function PageCode({
     <div
       data-page-code={model.id}
       data-block-id={model.id}
+      data-toolbar-active={active ? "true" : undefined}
       contentEditable={false}
       tabIndex={-1}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
     >
-      {(hover || active) && (
+      <div data-code-frame="">
         <div data-code-toolbar="">
           <EditorCodeToolbar
             controls={{
@@ -379,163 +399,167 @@ export default function PageCode({
             }}
           />
         </div>
-      )}
-      <div
-        data-code-source=""
-        hidden={showPreview}
-        data-wrap={wrap || undefined}
-      >
-        {lineNumber !== false && (
-          <pre aria-hidden data-code-gutter="">
-            {source
-              .split("\n")
-              .map((_, i) => i + 1)
-              .join("\n")}
-          </pre>
-        )}
-        <div data-code-lines="">
-          <pre aria-hidden ref={paint} data-code-paint="">
-            {tokens
-              ? tokens.map((row, i) => (
-                  <span key={i}>
-                    {i ? "\n" : ""}
-                    {row.map((token, j) => (
-                      <span key={j} style={{ color: token.color }}>
-                        {token.content}
-                      </span>
-                    ))}
-                  </span>
-                ))
-              : source}
-            {"\n"}
-          </pre>
-          <textarea
-            ref={field}
-            aria-label={t["com.myoxus.editor.keyboard.code"]()}
-            readOnly={readonly}
-            defaultValue={source}
-            rows={1}
-            wrap={wrap ? "soft" : "off"}
-            onScroll={sync}
-            onKeyDown={(e) => {
-              if (e.nativeEvent.isComposing || !writable()) return;
-              const el = e.currentTarget,
-                a = el.selectionStart,
-                b = el.selectionEnd;
-              if (!e.metaKey && !e.ctrlKey && !e.altKey) {
-                const value = text.toString(),
-                  pair = BRACKET_PAIRS.find((p) => p.left === e.key),
-                  around = BRACKET_PAIRS.find(
-                    (p) => p.left === value[a - 1] && p.right === value[b],
-                  );
-                if (e.key === "Backspace" && a === b && around) {
-                  e.preventDefault();
-                  store.transact(() => text.delete(a - 1, 2));
-                  el.setSelectionRange(a - 1, a - 1);
-                  return;
-                }
-                if (pair) {
-                  e.preventDefault();
-                  store.transact(() => {
-                    text.insert(pair.right, b);
-                    text.insert(pair.left, a);
-                  });
-                  el.setSelectionRange(
-                    a + pair.left.length,
-                    b + pair.left.length,
-                  );
-                  return;
-                }
-                if (a === b && around?.right === e.key) {
-                  e.preventDefault();
-                  el.setSelectionRange(a + 1, a + 1);
-                  return;
-                }
-                if (e.key === "Enter") store.captureSync();
-              }
-              if (
-                (e.ctrlKey || e.metaKey) &&
-                ["z", "y"].includes(e.key.toLowerCase())
-              ) {
-                e.preventDefault();
-                e.key.toLowerCase() === "y" || e.shiftKey
-                  ? store.redo()
-                  : store.undo();
-                return;
-              }
-              if (
-                e.key === "Enter" &&
-                (e.ctrlKey || e.metaKey) &&
-                a === b &&
-                a === text.length &&
-                model.parent
-              ) {
-                e.preventDefault();
-                store.captureSync();
-                const id = store.addBlock(
-                  "myoxus:paragraph",
-                  {},
-                  model.parent,
-                  model.parent.children.indexOf(model) + 1,
-                );
-                store.captureSync();
-                requestAnimationFrame(() => {
-                  const root = el.closest("[data-page-renderer]"),
-                    target = root?.querySelector(
-                      `[data-page-text="${CSS.escape(id)}"]`,
+        <div
+          data-code-source=""
+          hidden={showPreview}
+          data-wrap={wrap || undefined}
+        >
+          {lineNumber !== false && (
+            <pre aria-hidden data-code-gutter="">
+              {source
+                .split("\n")
+                .map((_, i) => i + 1)
+                .join("\n")}
+            </pre>
+          )}
+          <div data-code-lines="">
+            <pre aria-hidden ref={paint} data-code-paint="">
+              {tokens
+                ? tokens.map((row, i) => (
+                    <span key={i}>
+                      {i ? "\n" : ""}
+                      {row.map((token, j) => (
+                        <span key={j} style={{ color: token.color }}>
+                          {token.content}
+                        </span>
+                      ))}
+                    </span>
+                  ))
+                : source}
+              {"\n"}
+            </pre>
+            <textarea
+              ref={field}
+              aria-label={t["com.myoxus.editor.keyboard.code"]()}
+              readOnly={readonly}
+              defaultValue={source}
+              rows={1}
+              wrap={wrap ? "soft" : "off"}
+              onScroll={sync}
+              onKeyDown={(e) => {
+                if (e.nativeEvent.isComposing || !writable()) return;
+                const el = e.currentTarget,
+                  a = el.selectionStart,
+                  b = el.selectionEnd;
+                if (!e.metaKey && !e.ctrlKey && !e.altKey) {
+                  const value = text.toString(),
+                    pair = BRACKET_PAIRS.find((p) => p.left === e.key),
+                    around = BRACKET_PAIRS.find(
+                      (p) => p.left === value[a - 1] && p.right === value[b],
                     );
-                  if (target) {
-                    root
-                      ?.querySelector<HTMLElement>("[data-page-body]")
-                      ?.focus();
-                    document.getSelection()?.collapse(target, 0);
+                  if (e.key === "Backspace" && a === b && around) {
+                    e.preventDefault();
+                    store.transact(() => text.delete(a - 1, 2));
+                    el.setSelectionRange(a - 1, a - 1);
+                    return;
                   }
-                });
-                return;
-              }
-              if (e.key === "Tab" && !e.metaKey && !e.ctrlKey && !e.altKey) {
-                e.preventDefault();
-                const content = text.toString(),
-                  starts = [a === 0 ? 0 : content.lastIndexOf("\n", a - 1) + 1];
-                for (let i = a; i < b; i++)
-                  if (content[i] === "\n") starts.push(i + 1);
-                let from = a,
-                  to = b;
-                store.captureSync();
-                store.transact(() => {
-                  for (const i of starts.reverse()) {
-                    if (e.shiftKey) {
-                      if (content.slice(i, i + 2) !== "  ") continue;
-                      text.delete(i, 2);
-                      from -= Math.min(2, Math.max(0, a - i));
-                      to -= Math.min(2, Math.max(0, b - i));
-                    } else {
-                      text.insert("  ", i);
-                      if (i <= a) from += 2;
-                      to += 2;
+                  if (pair) {
+                    e.preventDefault();
+                    store.transact(() => {
+                      text.insert(pair.right, b);
+                      text.insert(pair.left, a);
+                    });
+                    el.setSelectionRange(
+                      a + pair.left.length,
+                      b + pair.left.length,
+                    );
+                    return;
+                  }
+                  if (a === b && around?.right === e.key) {
+                    e.preventDefault();
+                    el.setSelectionRange(a + 1, a + 1);
+                    return;
+                  }
+                  if (e.key === "Enter") store.captureSync();
+                }
+                if (
+                  (e.ctrlKey || e.metaKey) &&
+                  ["z", "y"].includes(e.key.toLowerCase())
+                ) {
+                  e.preventDefault();
+                  e.key.toLowerCase() === "y" || e.shiftKey
+                    ? store.redo()
+                    : store.undo();
+                  return;
+                }
+                if (
+                  e.key === "Enter" &&
+                  (e.ctrlKey || e.metaKey) &&
+                  a === b &&
+                  a === text.length &&
+                  model.parent
+                ) {
+                  e.preventDefault();
+                  store.captureSync();
+                  const id = store.addBlock(
+                    "myoxus:paragraph",
+                    {},
+                    model.parent,
+                    model.parent.children.indexOf(model) + 1,
+                  );
+                  store.captureSync();
+                  requestAnimationFrame(() => {
+                    const root = el.closest("[data-page-renderer]"),
+                      target = root?.querySelector(
+                        `[data-page-text="${CSS.escape(id)}"]`,
+                      );
+                    if (target) {
+                      root
+                        ?.querySelector<HTMLElement>("[data-page-body]")
+                        ?.focus();
+                      document.getSelection()?.collapse(target, 0);
                     }
-                  }
-                });
-                store.captureSync();
-                el.setSelectionRange(from, to);
-              }
-            }}
-          />
+                  });
+                  return;
+                }
+                if (e.key === "Tab" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                  e.preventDefault();
+                  const content = text.toString(),
+                    starts = [
+                      a === 0 ? 0 : content.lastIndexOf("\n", a - 1) + 1,
+                    ];
+                  for (let i = a; i < b; i++)
+                    if (content[i] === "\n") starts.push(i + 1);
+                  let from = a,
+                    to = b;
+                  store.captureSync();
+                  store.transact(() => {
+                    for (const i of starts.reverse()) {
+                      if (e.shiftKey) {
+                        if (content.slice(i, i + 2) !== "  ") continue;
+                        text.delete(i, 2);
+                        from -= Math.min(2, Math.max(0, a - i));
+                        to -= Math.min(2, Math.max(0, b - i));
+                      } else {
+                        text.insert("  ", i);
+                        if (i <= a) from += 2;
+                        to += 2;
+                      }
+                    }
+                  });
+                  store.captureSync();
+                  el.setSelectionRange(from, to);
+                }
+              }}
+            />
+          </div>
         </div>
+        {previewLanguage && showPreview && (
+          <div data-code-preview="">
+            <Suspense fallback={null}>
+              <Preview
+                language={previewLanguage}
+                source={source}
+                convertMermaid={
+                  previewLanguage === "mermaid" && !readonly
+                    ? convertToMermaid
+                    : undefined
+                }
+              />
+            </Suspense>
+          </div>
+        )}
       </div>
-      {previewLanguage && showPreview && (
-        <Suspense fallback={null}>
-          <Preview
-            language={previewLanguage}
-            source={source}
-            convertMermaid={
-              previewLanguage === "mermaid" && !readonly
-                ? convertToMermaid
-                : undefined
-            }
-          />
-        </Suspense>
-      )}
       {captionEditor.field}
     </div>
   );

@@ -5,6 +5,8 @@
   display: grid;
   grid-template-rows: auto 240px auto auto;
   inline-size: max-content;
+  padding-inline: var(--mantine-spacing-sm);
+  column-gap: var(--mantine-spacing-xs);
   position: relative;
 }
 .myoxus-journey-section-track {
@@ -74,4 +76,5 @@
   grid-row: 1;
   grid-column: 1;
   align-self: end;
+  padding-inline: var(--mantine-spacing-xs);
 }

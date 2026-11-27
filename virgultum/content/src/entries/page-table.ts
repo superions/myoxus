@@ -7,14 +7,19 @@ export {
 export type { TableAreaSelection } from "../blocks/table/selection-schema";
 export {
   DefaultColumnWidth,
+  DefaultRowHeight,
   ColumnMinWidth,
   ColumnMaxWidth,
   TableCellPadding,
 } from "../blocks/table/consts";
+export { cellColorList, colorList } from "../blocks/table/color";
 export { tableContainer, tableWrapper } from "../blocks/table/table-block-css";
 export {
   cellContainerStyle,
   columnOptionsCellStyle,
   rowOptionsCellStyle,
+  columnLeftIndicatorStyle,
   columnRightIndicatorStyle,
+  rowTopIndicatorStyle,
+  rowBottomIndicatorStyle,
 } from "../blocks/table/table-cell-css";

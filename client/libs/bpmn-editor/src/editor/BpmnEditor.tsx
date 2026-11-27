@@ -548,8 +548,8 @@ export const BpmnEditor = React.forwardRef(
                 )
                   return;
                 const recovered: BpmnLatestModel =
-                  event.reason === "imperative-api"
-                    ? (event.args[0] ?? props.model)
+                  event.reason === "imperative-api" && event.args[0] != null
+                    ? (event.args[0] as BpmnLatestModel)
                     : props.model;
                 store.setState((state) => {
                   state.diagram = getDefaultStaticState().diagram;

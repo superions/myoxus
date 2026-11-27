@@ -10,10 +10,13 @@ import type {
   TemplateRepeatBinding,
 } from "@virgultum/core/models";
 import {
+  computeTableMergeMap,
   normalizeTableAppearance,
   normalizeTableDensity,
   normalizeTableHeaderRows,
+  normalizeTableSpan,
 } from "@virgultum/core/models";
+import { ColumnMinWidth } from "./consts";
 import { generateFractionalIndexingKeyBetween } from "@virgultum/core/utils";
 import { cloneTextWithDocumentFieldIdentities } from "@virgultum/core/types";
 import {
@@ -73,6 +76,14 @@ export class TableDataManager {
       : normalizeTableHeaderRows(value, this.rows$.value.length);
   });
 
+  readonly headerColumn$ = computed(() =>
+    Boolean(this.model.props.headerColumn$.value),
+  );
+
+  readonly striped$ = computed(() => Boolean(this.model.props.striped$.value));
+
+  readonly caption$ = computed(() => this.model.props.caption$.value);
+
   readonly appearance$ = computed(() =>
     normalizeTableAppearance(this.model.props.appearance$.value),
   );
@@ -84,6 +95,14 @@ export class TableDataManager {
   readonly columns$ = computed(() => {
     return Object.values(this.model.props.columns$.value).sort((a, b) =>
       compareTableOrder(a.order, a.columnId, b.order, b.columnId),
+    );
+  });
+
+  readonly mergeMap$ = computed(() => {
+    const rows = this.rows$.value;
+    const cols = this.columns$.value;
+    return computeTableMergeMap(rows.length, cols.length, (r, c) =>
+      this.getCell(rows[r]!.rowId, cols[c]!.columnId),
     );
   });
 
@@ -173,6 +192,283 @@ export class TableDataManager {
       return;
     this.model.store.captureSync();
     this.model.store.updateBlock(this.model, { density });
+    this.model.store.captureSync();
+  }
+
+  setHeaderColumn(enabled: boolean) {
+    if (this.readonly$.value || this.headerColumn$.value === enabled) return;
+    this.model.store.captureSync();
+    this.model.store.updateBlock(this.model, {
+      headerColumn: enabled ? true : undefined,
+    });
+    this.model.store.captureSync();
+  }
+
+  setStriped(enabled: boolean) {
+    if (this.readonly$.value || this.striped$.value === enabled) return;
+    this.model.store.captureSync();
+    this.model.store.updateBlock(this.model, {
+      striped: enabled ? true : undefined,
+    });
+    this.model.store.captureSync();
+  }
+
+  setCaption(caption: string | undefined) {
+    if (this.readonly$.value) return;
+    this.model.store.captureSync();
+    this.model.store.updateBlock(this.model, { caption });
+    this.model.store.captureSync();
+  }
+
+  distributeColumnWidths(totalWidth: number) {
+    if (this.readonly$.value) return;
+    const cols = this.columns$.value;
+    if (!cols.length || !Number.isFinite(totalWidth) || totalWidth <= 0) return;
+    const each = Math.max(ColumnMinWidth, Math.floor(totalWidth / cols.length));
+    this.model.store.captureSync();
+    this.model.store.transact(() => {
+      for (const col of cols) {
+        const entry = this.model.props.columns[col.columnId];
+        if (entry) entry.width = each;
+      }
+    });
+    this.model.store.captureSync();
+  }
+
+  canSortByColumn(columnId: string): boolean {
+    if (this.readonly$.value) return false;
+    const rows = this.rows$.value;
+    const cols = this.columns$.value;
+    const colIndex = cols.findIndex((c) => c.columnId === columnId);
+    if (colIndex < 0) return false;
+    const headerRows = this.headerRows$.value ?? 0;
+    const bodyRows = rows.slice(headerRows);
+    if (bodyRows.length < 2) return false;
+    if (bodyRows.some((row) => this.hasFixedRow(row.rowId))) return false;
+    // Do not scramble multi-row merged cells across body rows.
+    const mergeMap = this.mergeMap$.value;
+    for (let r = headerRows; r < rows.length; r++) {
+      for (let c = 0; c < cols.length; c++) {
+        const span = mergeMap.spans.get(`${r}:${c}`);
+        if (span && span.rowspan > 1) return false;
+      }
+    }
+    return true;
+  }
+
+  sortByColumn(columnId: string, direction: "asc" | "desc") {
+    if (!this.canSortByColumn(columnId)) return;
+    const rows = this.rows$.value;
+    const headerRows = this.headerRows$.value ?? 0;
+    const pinned = rows.slice(0, headerRows);
+    const body = rows.slice(headerRows);
+    const collator = new Intl.Collator(undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+    const sortedBody = [...body].sort((a, b) => {
+      const aText = (
+        this.getCell(a.rowId, columnId)?.text.toString() ?? ""
+      ).trim();
+      const bText = (
+        this.getCell(b.rowId, columnId)?.text.toString() ?? ""
+      ).trim();
+      // Always keep empty cells at the bottom, matching spreadsheet behavior.
+      if (!aText && !bText) return 0;
+      if (!aText) return 1;
+      if (!bText) return -1;
+      const cmp = collator.compare(aText, bText);
+      return direction === "asc" ? cmp : -cmp;
+    });
+    const nextOrdered = [...pinned, ...sortedBody];
+    let prevOrder: string | null = null;
+    const nextRows = { ...this.model.props.rows };
+    const assignments: Array<{ rowId: string; order: string }> = [];
+    for (const row of nextOrdered) {
+      const order = generateFractionalIndexingKeyBetween(prevOrder, null);
+      prevOrder = order;
+      assignments.push({ rowId: row.rowId, order });
+      const existing = nextRows[row.rowId];
+      if (existing) nextRows[row.rowId] = { ...existing, order };
+    }
+    if (!canChangeFixedTextProperty(this.model.yBlock, "prop:rows", nextRows))
+      return;
+    this.model.store.captureSync();
+    this.model.store.transact(() => {
+      for (const { rowId, order } of assignments) {
+        if (this.model.props.rows[rowId]) {
+          this.model.props.rows[rowId].order = order;
+        }
+      }
+    });
+    this.model.store.captureSync();
+  }
+
+  private expandAreaForMerges(
+    selection: TableAreaSelection,
+  ): TableAreaSelection {
+    const mergeMap = this.mergeMap$.value;
+    let r0 = selection.rowStartIndex;
+    let r1 = selection.rowEndIndex;
+    let c0 = selection.columnStartIndex;
+    let c1 = selection.columnEndIndex;
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (let r = r0; r <= r1; r++) {
+        for (let c = c0; c <= c1; c++) {
+          const anchor = mergeMap.coveredBy.get(`${r}:${c}`) ?? {
+            row: r,
+            col: c,
+          };
+          const span = mergeMap.spans.get(`${anchor.row}:${anchor.col}`) ?? {
+            colspan: 1,
+            rowspan: 1,
+          };
+          const nr0 = Math.min(r0, anchor.row);
+          const nr1 = Math.max(r1, anchor.row + span.rowspan - 1);
+          const nc0 = Math.min(c0, anchor.col);
+          const nc1 = Math.max(c1, anchor.col + span.colspan - 1);
+          if (nr0 !== r0 || nr1 !== r1 || nc0 !== c0 || nc1 !== c1) {
+            r0 = nr0;
+            r1 = nr1;
+            c0 = nc0;
+            c1 = nc1;
+            changed = true;
+          }
+        }
+      }
+    }
+    return {
+      type: "area",
+      rowStartIndex: r0,
+      rowEndIndex: r1,
+      columnStartIndex: c0,
+      columnEndIndex: c1,
+    };
+  }
+
+  canMergeCells(selection: TableAreaSelection): boolean {
+    if (this.readonly$.value) return false;
+    const expanded = this.expandAreaForMerges(selection);
+    const rowSpan = expanded.rowEndIndex - expanded.rowStartIndex + 1;
+    const colSpan = expanded.columnEndIndex - expanded.columnStartIndex + 1;
+    if (rowSpan * colSpan < 2) return false;
+    const headerRows = this.headerRows$.value ?? 0;
+    if (
+      headerRows > 0 &&
+      expanded.rowStartIndex < headerRows &&
+      expanded.rowEndIndex >= headerRows
+    ) {
+      return false;
+    }
+    const anchor = this.mergeMap$.value.spans.get(
+      `${expanded.rowStartIndex}:${expanded.columnStartIndex}`,
+    );
+    if (anchor && anchor.rowspan === rowSpan && anchor.colspan === colSpan) {
+      return false;
+    }
+    return !this.getCellsBySelection(expanded).some(
+      (cell) => cell.textProtection === "fixed",
+    );
+  }
+
+  canUnmergeCells(selection: TableAreaSelection): boolean {
+    if (this.readonly$.value) return false;
+    const expanded = this.expandAreaForMerges(selection);
+    const mergeMap = this.mergeMap$.value;
+    for (let r = expanded.rowStartIndex; r <= expanded.rowEndIndex; r++) {
+      for (
+        let c = expanded.columnStartIndex;
+        c <= expanded.columnEndIndex;
+        c++
+      ) {
+        const span = mergeMap.spans.get(`${r}:${c}`);
+        if (span && (span.colspan > 1 || span.rowspan > 1)) {
+          return !this.getCellsBySelection(expanded).some(
+            (cell) => cell.textProtection === "fixed",
+          );
+        }
+      }
+    }
+    return false;
+  }
+
+  mergeCells(selection: TableAreaSelection) {
+    if (!this.canMergeCells(selection)) return;
+    const expanded = this.expandAreaForMerges(selection);
+    const rows = this.rows$.value;
+    const cols = this.columns$.value;
+    const rowSpan = expanded.rowEndIndex - expanded.rowStartIndex + 1;
+    const colSpan = expanded.columnEndIndex - expanded.columnStartIndex + 1;
+    const anchorRow = rows[expanded.rowStartIndex];
+    const anchorCol = cols[expanded.columnStartIndex];
+    if (!anchorRow || !anchorCol) return;
+    const anchorCell = this.getCell(anchorRow.rowId, anchorCol.columnId);
+    if (!anchorCell) return;
+
+    this.model.store.captureSync();
+    this.model.store.transact(() => {
+      for (let r = expanded.rowStartIndex; r <= expanded.rowEndIndex; r++) {
+        for (
+          let c = expanded.columnStartIndex;
+          c <= expanded.columnEndIndex;
+          c++
+        ) {
+          if (r === expanded.rowStartIndex && c === expanded.columnStartIndex)
+            continue;
+          const cell = this.getCell(rows[r]!.rowId, cols[c]!.columnId);
+          if (!cell) continue;
+          const delta = cell.text.toDelta();
+          const hasContent = cell.text.length > 0;
+          if (hasContent) {
+            const targetYText = anchorCell.text.yText;
+            if (targetYText.length > 0) {
+              targetYText.insert(targetYText.length, "\n");
+            }
+            for (const op of delta) {
+              if (typeof op.insert === "string" && op.insert.length > 0) {
+                targetYText.insert(
+                  targetYText.length,
+                  op.insert,
+                  op.attributes,
+                );
+              }
+            }
+            cell.text.yText.delete(0, cell.text.yText.length);
+          }
+          delete cell.colspan;
+          delete cell.rowspan;
+        }
+      }
+      if (colSpan > 1) anchorCell.colspan = colSpan;
+      else delete anchorCell.colspan;
+      if (rowSpan > 1) anchorCell.rowspan = rowSpan;
+      else delete anchorCell.rowspan;
+    });
+    this.model.store.captureSync();
+  }
+
+  unmergeCells(selection: TableAreaSelection) {
+    if (!this.canUnmergeCells(selection)) return;
+    const expanded = this.expandAreaForMerges(selection);
+    const rows = this.rows$.value;
+    const cols = this.columns$.value;
+    this.model.store.captureSync();
+    this.model.store.transact(() => {
+      for (let r = expanded.rowStartIndex; r <= expanded.rowEndIndex; r++) {
+        for (
+          let c = expanded.columnStartIndex;
+          c <= expanded.columnEndIndex;
+          c++
+        ) {
+          const cell = this.getCell(rows[r]!.rowId, cols[c]!.columnId);
+          if (!cell) continue;
+          if (normalizeTableSpan(cell.colspan)) delete cell.colspan;
+          if (normalizeTableSpan(cell.rowspan)) delete cell.rowspan;
+        }
+      }
+    });
     this.model.store.captureSync();
   }
 
@@ -328,9 +624,25 @@ export class TableDataManager {
 
   deleteRow(rowId: string) {
     if (this.readonly$.value || this.hasFixedRow(rowId)) return;
-    const rowIndex = this.rows$.value.findIndex((row) => row.rowId === rowId);
+    const rows = this.rows$.value;
+    const cols = this.columns$.value;
+    const rowIndex = rows.findIndex((row) => row.rowId === rowId);
     const headerRows = this.headerRows$.value;
     this.model.store.transact(() => {
+      // Shrink or clear vertical merges intersecting the deleted row.
+      if (rowIndex >= 0) {
+        for (let r = 0; r <= rowIndex; r++) {
+          for (const col of cols) {
+            const cell = this.getCell(rows[r]!.rowId, col.columnId);
+            const span = normalizeTableSpan(cell?.rowspan);
+            if (!cell || !span) continue;
+            if (r < rowIndex && r + span > rowIndex) {
+              if (span - 1 >= 2) cell.rowspan = span - 1;
+              else delete cell.rowspan;
+            }
+          }
+        }
+      }
       Object.keys(this.model.props.rows).forEach((id) => {
         if (id === rowId) {
           delete this.model.props.rows[id];
@@ -349,7 +661,24 @@ export class TableDataManager {
 
   deleteColumn(columnId: string) {
     if (this.readonly$.value || this.hasFixedColumn(columnId)) return;
+    const rows = this.rows$.value;
+    const cols = this.columns$.value;
+    const colIndex = cols.findIndex((col) => col.columnId === columnId);
     this.model.store.transact(() => {
+      // Shrink or clear horizontal merges intersecting the deleted column.
+      if (colIndex >= 0) {
+        for (const row of rows) {
+          for (let c = 0; c <= colIndex; c++) {
+            const cell = this.getCell(row.rowId, cols[c]!.columnId);
+            const span = normalizeTableSpan(cell?.colspan);
+            if (!cell || !span) continue;
+            if (c < colIndex && c + span > colIndex) {
+              if (span - 1 >= 2) cell.colspan = span - 1;
+              else delete cell.colspan;
+            }
+          }
+        }
+      }
       Object.keys(this.model.props.columns).forEach((id) => {
         if (id === columnId) {
           delete this.model.props.columns[id];
@@ -505,27 +834,50 @@ export class TableDataManager {
   pasteArea(selection: TableAreaSelection, values: string[][]) {
     const height = values.length,
       width = Math.max(0, ...values.map((row) => row.length));
+    if (!height || !width || this.model.store.readonly) return;
+    const targetRowEnd = Math.max(
+      selection.rowEndIndex,
+      selection.rowStartIndex + height - 1,
+    );
+    const targetColEnd = Math.max(
+      selection.columnEndIndex,
+      selection.columnStartIndex + width - 1,
+    );
+    const existingRows = this.rows$.peek();
+    const existingCols = this.columns$.peek();
+    const boundedCheck: TableAreaSelection = {
+      type: "area",
+      rowStartIndex: selection.rowStartIndex,
+      rowEndIndex: Math.min(targetRowEnd, existingRows.length - 1),
+      columnStartIndex: selection.columnStartIndex,
+      columnEndIndex: Math.min(targetColEnd, existingCols.length - 1),
+    };
     if (
-      !height ||
-      !width ||
-      this.model.store.readonly ||
-      this.getCellsBySelection(selection).some(
+      this.getCellsBySelection(boundedCheck).some(
         (cell) => cell.textProtection === "fixed",
       )
     )
       return;
-    const rows = this.rows$.peek(),
-      columns = this.columns$.peek();
+    const extraRows = Math.max(0, targetRowEnd + 1 - existingRows.length);
+    const extraCols = Math.max(0, targetColEnd + 1 - existingCols.length);
     this.model.store.captureSync();
     this.model.store.transact(() => {
+      for (let i = 0; i < extraRows; i++) {
+        this.addRow(this.rows$.peek().length - 1);
+      }
+      for (let j = 0; j < extraCols; j++) {
+        this.addColumn(this.columns$.peek().length - 1);
+      }
+      const rows = this.rows$.peek(),
+        columns = this.columns$.peek();
       for (
         let i = selection.rowStartIndex;
-        i <= selection.rowEndIndex && i < rows.length;
+        i <= targetRowEnd && i < rows.length;
         i++
       ) {
         for (
           let j = selection.columnStartIndex;
-          j <= selection.columnEndIndex && j < columns.length;
+          j <= targetColEnd && j < columns.length;
           j++
         ) {
           const text = this.getCell(rows[i].rowId, columns[j].columnId)?.text;

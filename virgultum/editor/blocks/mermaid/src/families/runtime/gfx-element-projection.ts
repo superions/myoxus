@@ -608,16 +608,21 @@ export function toMermaidConnectorElementProps(
     labelXYWH,
     text: edge.displayLabel ?? edge.label,
     // Families may opt into straight or curved connectors for their semantic
-    // geometry; orthogonal remains the neutral readable default.
+    // geometry; orthogonal remains the neutral readable default with smooth
+    // rounded elbows.
     rough: false,
     roughness: DEFAULT_ROUGHNESS,
     rotate: 0,
+    routingCornerRadius:
+      edge.connectorMode === "curve" || edge.connectorMode === "straight"
+        ? 0
+        : 8,
     // Family adapters resolve semantic attachment geometry before projection.
     source: {
       id: sourceId,
       ...(sourcePosition ? { position: sourcePosition } : {}),
     },
-    stroke: gfxTheme.borderColor,
+    stroke: gfxTheme.secondaryTextColor,
     target: {
       id: targetId,
       ...(targetPosition ? { position: targetPosition } : {}),
@@ -693,24 +698,24 @@ export function resolveMermaidConnectorLabelXYWH({
   // only their measured glyph width after that inset and wraps the final
   // character on canvas. Keep one half line-height on each side so the
   // projection remains a single readable line without imposing a fixed width.
-  const inlineClearance = typography.lineHeight / 2;
-  const blockClearance = typography.lineHeight / 8;
+  const inlineClearance = Math.max(8, typography.lineHeight * 0.4);
+  const blockClearance = Math.max(2, typography.lineHeight * 0.14);
   const width = measuredLabel.width + inlineClearance * 2;
   const height = measuredLabel.height + blockClearance * 2;
   const distance = elementProjection?.labelOffsetDistance ?? 0.5;
   const centerX =
     sourceCenterX + (targetCenterX - sourceCenterX) * distance + labelOffset.x;
   // Native connector labels need an initial box before the connector manager
-  // can keep them attached to the generated path. Place the first projection
-  // just above the semantic edge center so labels are readable immediately
-  // after source materialization.
+  // can keep them attached to the generated path. Use the same tight offset
+  // contract as ConnectorElementModel.getLabelXYWHOnPath.
+  const LABEL_EDGE_GAP = 4;
   const centerY =
     (sourceCenterY + targetCenterY) / 2 +
     (edge.labelPlacement === "top"
-      ? -height
+      ? -(height / 2 + LABEL_EDGE_GAP)
       : edge.labelPlacement === "bottom"
-        ? height
-        : -height * 0.75) +
+        ? height / 2 + LABEL_EDGE_GAP
+        : 0) +
     labelOffset.y;
 
   return [centerX - width / 2, centerY - height / 2, width, height];

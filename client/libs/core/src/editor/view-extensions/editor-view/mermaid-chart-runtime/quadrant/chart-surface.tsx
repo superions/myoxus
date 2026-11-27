@@ -442,6 +442,7 @@ export function MermaidQuadrantChartSurface({
         },
       ]}
       plotPadding={Math.max(
+        28,
         config.quadrantPadding,
         config.pointRadius + config.pointTextPadding,
       )}
@@ -484,7 +485,7 @@ export function MermaidQuadrantChartSurface({
           y: index < 2 ? 1 : 0.5,
         })),
         {
-          anchor: "start",
+          anchor: "middle",
           decoration: commentsVisible ? (
             <MermaidQuadrantComments
               anchor={{ id: props.model.axes.x.id, kind: "axis" }}
@@ -500,11 +501,11 @@ export function MermaidQuadrantChartSurface({
               ? undefined
               : truncateLabel(props.model.xAxisStart, referenceLabelCapacity),
           labelStyle: { fontSize: config.xAxisLabelFontSize },
-          offsetX: config.xAxisLabelPadding,
+          offsetX: 0,
           offsetY:
             config.xAxisPosition === "bottom"
-              ? -config.xAxisLabelPadding
-              : config.xAxisLabelFontSize + config.xAxisLabelPadding,
+              ? config.xAxisLabelFontSize + config.xAxisLabelPadding
+              : -config.xAxisLabelPadding - 4,
           renderedLabel:
             props.model.axes.x.startForm === "markdown"
               ? renderSafeMarkdownLabel(
@@ -512,11 +513,11 @@ export function MermaidQuadrantChartSurface({
                   referenceLabelCapacity,
                 )
               : undefined,
-          x: 0,
+          x: 0.25,
           y: config.xAxisPosition === "bottom" ? 0 : 1,
         },
         {
-          anchor: "end",
+          anchor: "middle",
           id: "x-end",
           label: props.model.xAxisEnd,
           displayLabel:
@@ -524,11 +525,11 @@ export function MermaidQuadrantChartSurface({
               ? undefined
               : truncateLabel(props.model.xAxisEnd, referenceLabelCapacity),
           labelStyle: { fontSize: config.xAxisLabelFontSize },
-          offsetX: -config.xAxisLabelPadding,
+          offsetX: 0,
           offsetY:
             config.xAxisPosition === "bottom"
-              ? -config.xAxisLabelPadding
-              : config.xAxisLabelFontSize + config.xAxisLabelPadding,
+              ? config.xAxisLabelFontSize + config.xAxisLabelPadding
+              : -config.xAxisLabelPadding - 4,
           renderedLabel:
             props.model.axes.x.endForm === "markdown"
               ? renderSafeMarkdownLabel(
@@ -536,7 +537,7 @@ export function MermaidQuadrantChartSurface({
                   referenceLabelCapacity,
                 )
               : undefined,
-          x: 1,
+          x: 0.75,
           y: config.xAxisPosition === "bottom" ? 0 : 1,
         },
         {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type { MermaidFamilyRuntimeResolution } from "./contracts.js";
+import { readMermaidNativeValidation } from "./native-validation.js";
 import { resolveMermaidFamilyRuntime } from "./registry.js";
 
 export type MermaidSourceLifecycleState = {
@@ -61,9 +62,15 @@ export function resolveMermaidSourceLifecycle(
   const invalid =
     resolution.diagramType === "unknown" ||
     resolution.diagnostics.some(({ severity }) => severity === "error");
+  // When a family wires native async validation, do not overwrite lastValidSource
+  // with an unvalidated fallback source before validation settles as valid.
+  const awaitingNativeValidation = Boolean(
+    resolution.runtime?.validateSource &&
+    readMermaidNativeValidation(source, resolution.runtime)?.status !== "valid",
+  );
   return {
     canReconcileProjection: false,
-    canRetainAsLastValid: !invalid,
+    canRetainAsLastValid: !invalid && !awaitingNativeValidation,
     kind: invalid ? "invalid" : "source-first",
     reason: resolution.reason,
     resolution,

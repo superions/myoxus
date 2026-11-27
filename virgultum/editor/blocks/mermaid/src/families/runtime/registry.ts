@@ -118,7 +118,9 @@ export function resolveMermaidFamilyRuntime(
     };
   }
   const diagnostics = familyRuntime.sourceDiagnostics(source, diagramType);
-  const validation = readMermaidNativeValidation(source, familyRuntime);
+  const validation = familyRuntime.resolveStructured
+    ? readMermaidNativeValidation(source, familyRuntime)
+    : null;
   if (validation?.status === "invalid") {
     const reason = validation.message ?? mermaidMessages.mmdImportInvalid();
     return {
@@ -166,6 +168,25 @@ export function resolveMermaidFamilyRuntime(
     };
   }
   if (!parsedVisualModel) {
+    const fallbackValidation = readMermaidNativeValidation(
+      source,
+      familyRuntime,
+    );
+    if (fallbackValidation?.status === "invalid") {
+      const reason =
+        fallbackValidation.message ?? mermaidMessages.mmdImportInvalid();
+      return {
+        diagnostics: [
+          ...diagnostics,
+          { code: "mermaid.native-source", message: reason, severity: "error" },
+        ],
+        diagramType,
+        kind: "source-first",
+        reason: diagnostics[0]?.message ?? reason,
+        runtime: familyRuntime,
+        source,
+      };
+    }
     return {
       diagnostics,
       diagramType,

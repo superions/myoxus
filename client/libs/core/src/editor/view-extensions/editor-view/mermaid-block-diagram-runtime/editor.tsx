@@ -5,6 +5,7 @@ import {
   Box,
   Button,
   Group,
+  IconButton,
   Stack,
   MyoxusText,
   Menu,
@@ -24,6 +25,7 @@ import {
   type BlockReactHostProps,
   type BlockParentAction,
 } from "@virgultum/block-mermaid";
+import { MoreHorizontalIcon } from "@myoxus/icons/react";
 import { MermaidGfxEditorWorkbench } from "../mermaid-editor-workbench";
 import { MermaidEmbeddedActions } from "../mermaid-embedded-actions";
 import { useBlockSelection } from "./selection";
@@ -246,7 +248,11 @@ export function MermaidBlockRuntimeEditor({
           </>
         }
       >
-        <Button>{m.visualMoreActions()}</Button>
+        <IconButton
+          aria-label={m.visualMoreActions()}
+          tooltip={m.visualMoreActions()}
+          icon={<MoreHorizontalIcon />}
+        />
       </Menu>
       {props.parentIntent && more.includes(props.parentIntent) ? (
         <BlockActionPopover props={props} action={props.parentIntent} />

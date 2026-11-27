@@ -280,10 +280,8 @@ mod tests {
     let root = tempfile::tempdir().expect("temporary config");
     let mut params = rcgen::CertificateParams::default();
     params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-    let ca = rcgen::Certificate::from_params(params)
-      .expect("CA")
-      .serialize_pem()
-      .expect("PEM");
+    let key = rcgen::KeyPair::generate().expect("CA key");
+    let ca = params.self_signed(&key).expect("CA").pem();
     std::fs::write(root.path().join("global.pem"), &ca).expect("write global CA");
     let explicit_path = root.path().join("connection.pem");
     std::fs::write(&explicit_path, &ca).expect("write connection CA");

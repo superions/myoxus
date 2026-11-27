@@ -211,7 +211,7 @@ export function gitGraphModelToVisual(
       nodes.push({
         id: `${r.sourceKey}:head`,
         label: branch.name,
-        displayLabel: "◀",
+        displayLabel: "◆",
         shape: "text",
         x:
           (model.derivedGraph?.occurrences.find((c) => c.sourceKey === headKey)

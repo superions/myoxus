@@ -96,8 +96,8 @@ export const mermaidFlowchartGfxHookRegistration: MermaidGfxFamilyHookRegistrati
         reconcileFlowchartProjectionOwnerGeometry,
       normalizeNodeDimensions: (node) => ({
         ...node,
-        height: Math.max(56, Math.round(node.height)),
-        width: Math.max(96, Math.round(node.width)),
+        height: Math.max(44, Math.round(node.height)),
+        width: Math.max(92, Math.round(node.width)),
       }),
       reconnectEdge: reconnectFlowchartGfxEdge,
       reparentNodes: reparentFlowchartGfxNodes,

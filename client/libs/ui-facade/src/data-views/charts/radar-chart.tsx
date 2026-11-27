@@ -1324,7 +1324,9 @@ export function DataRadarChart({
         blockSize: "auto",
         inlineSize: geometry.useMaxWidth ? "100%" : `${totalWidth}px`,
         marginInline: "auto",
-        maxInlineSize: geometry.useMaxWidth ? `${totalWidth}px` : "none",
+        maxInlineSize: geometry.useMaxWidth
+          ? `${Math.min(totalWidth, 460)}px`
+          : "none",
       } satisfies CSSProperties)
     : undefined;
   const legend =

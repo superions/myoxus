@@ -79,6 +79,7 @@ impl Document {
             media_index: MediaIndex::default(),
             kept: Default::default(),
             missing_pictures: Default::default(),
+            fit_state: None,
         }
     }
 
@@ -158,6 +159,7 @@ impl Document {
             media_index: _,
             kept: _,
             missing_pictures: _,
+            fit_state: _,
         } = self;
         let Document {
             body: other_body,
@@ -180,6 +182,7 @@ impl Document {
             media_index: _,
             kept: _,
             missing_pictures: _,
+            fit_state: _,
         } = other;
         same_blocks(body, other_body)
             && same_parts(parts, other_parts)
@@ -816,11 +819,14 @@ impl Document {
         if self.svg_images.get(&raster).is_some_and(|existing| existing != &svg)
             && let Some(bytes) = self.media.get(&raster).cloned()
         {
-            let (stem, suffix) = raster.rsplit_once('.')
+            let (stem, suffix) = raster
+                .rsplit_once('.')
                 .map(|(s, e)| (s.to_string(), format!(".{e}")))
                 .unwrap_or((raster.clone(), String::new()));
             let mut n = self.media.len().saturating_add(1);
-            while self.media.contains_key(&format!("{stem}_svg{n}{suffix}")) { n += 1; }
+            while self.media.contains_key(&format!("{stem}_svg{n}{suffix}")) {
+                n += 1;
+            }
             raster = format!("{stem}_svg{n}{suffix}");
             self.media.insert(raster.clone(), bytes);
         }

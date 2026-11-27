@@ -9,39 +9,49 @@ import { cssVar } from "@virgultum/core/theme";
 type Color = {
   name: string;
   color: string;
+  /** Saturated preview token so background choices remain distinguishable in menus. */
+  swatch: string;
 };
 export const colorList: Color[] = [
   {
     name: "Blue",
     color: cssVar("tagBlue"),
+    swatch: "var(--myoxus-text-highlight-foreground-blue)",
   },
   {
     name: "Green",
     color: cssVar("tagGreen"),
+    swatch: "var(--myoxus-text-highlight-foreground-green)",
   },
   {
     name: "Grey",
     color: cssVar("tagGray"),
+    swatch: "var(--myoxus-text-highlight-foreground-grey)",
   },
   {
     name: "Orange",
     color: cssVar("tagOrange"),
+    swatch: "var(--myoxus-text-highlight-foreground-orange)",
   },
   {
     name: "Purple",
     color: cssVar("tagPurple"),
+    swatch: "var(--myoxus-text-highlight-foreground-purple)",
   },
   {
     name: "Red",
     color: cssVar("tagRed"),
+    swatch: "var(--myoxus-text-highlight-foreground-red)",
   },
   {
     name: "Teal",
     color: cssVar("tagTeal"),
+    swatch: "var(--myoxus-text-highlight-foreground-teal)",
   },
   {
     name: "Yellow",
     color: cssVar("tagYellow"),
+    swatch: "var(--myoxus-text-highlight-foreground-yellow)",
   },
 ];
 

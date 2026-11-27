@@ -19,6 +19,7 @@ import {
   type ComponentProps,
   type ForwardedRef,
 } from "react";
+import { cssVar } from "@myoxus/theme";
 import { reactNodeText } from "./helpers/accessibility";
 import {
   settingsControlWideWidth,
@@ -31,16 +32,80 @@ import { useModalPortalTarget } from "./modal";
 type SelectComboboxProps = NonNullable<SelectProps["comboboxProps"]> &
   Pick<PopoverProps, "clickOutsideEvents">;
 
-function useSelectComboboxProps(props?: SelectComboboxProps) {
+const pendingComboboxHeights = new WeakMap<HTMLElement, number>();
+const comboboxViewportMiddlewares: NonNullable<PopoverProps["middlewares"]> = {
+  flip: true,
+  shift: true,
+  size: {
+    padding: 5,
+    apply({ availableHeight, elements }) {
+      const element = elements.floating;
+      const pending = pendingComboboxHeights.has(element);
+      pendingComboboxHeights.set(element, availableHeight);
+      if (pending) return;
+      requestAnimationFrame(() => {
+        const height = pendingComboboxHeights.get(element)!;
+        pendingComboboxHeights.delete(element);
+        if (element.isConnected)
+          element.style.setProperty(
+            "--myoxus-combobox-available-height",
+            `${Math.max(0, height)}px`,
+          );
+      });
+    },
+  },
+};
+
+const COMBOBOX_AVAILABLE_HEIGHT =
+  "max(0px, calc(var(--myoxus-combobox-available-height, 100vh) - var(--combobox-padding) * 2))";
+
+function clampComboboxDropdownHeight(
+  maxDropdownHeight: SelectProps["maxDropdownHeight"],
+  embeddedDropdown: boolean,
+) {
+  if (embeddedDropdown) return maxDropdownHeight;
+  return maxDropdownHeight === undefined
+    ? COMBOBOX_AVAILABLE_HEIGHT
+    : `min(${rem(maxDropdownHeight)}, ${COMBOBOX_AVAILABLE_HEIGHT})`;
+}
+
+function useSelectComboboxProps(
+  props?: SelectComboboxProps,
+  embeddedDropdown = false,
+) {
   const target = useModalPortalTarget();
-  // Escape the content scroller while inheriting the owning ModalStack layer.
+  if (embeddedDropdown) {
+    return {
+      ...props,
+      withinPortal: false,
+      shadow: undefined,
+    };
+  }
+  // Escape the content scroller while inheriting the owning ModalStack or Popover layer.
   return {
+    shadow: "md" as const,
+    middlewares: comboboxViewportMiddlewares,
     ...(target
       ? { portalProps: { target }, zIndex: "var(--mb-z-index)" }
-      : undefined),
+      : { zIndex: `calc(${cssVar("zIndexPopover")} + 1)` }),
     ...props,
   };
 }
+
+const embeddedDropdownStyles = {
+  dropdown: {
+    position: "static" as const,
+    width: "100%",
+    marginTop: "var(--mantine-spacing-xs)",
+    border: "none",
+    boxShadow: "none",
+    padding: 0,
+    background: "transparent",
+  },
+  options: {
+    padding: 0,
+  },
+};
 
 export type MyoxusSelectProps = Omit<
   SelectProps,
@@ -62,15 +127,24 @@ export type FormSelectProps = Omit<
   data: ComboboxItem[];
   onChange: (value: string) => void;
   onClear?: () => void;
+  /** Keep the options list in-flow inside an owning Popover card instead of stacking a second floating frame. */
+  embeddedDropdown?: boolean;
 };
 
 export function FormSelect({
   data,
   onChange,
   onClear,
+  embeddedDropdown = false,
+  maxDropdownHeight = 280,
+  scrollAreaProps,
+  styles,
   ...props
 }: FormSelectProps) {
-  const comboboxProps = useSelectComboboxProps(props.comboboxProps);
+  const comboboxProps = useSelectComboboxProps(
+    props.comboboxProps,
+    embeddedDropdown,
+  );
   const ariaLabel =
     props["aria-label"] ??
     reactNodeText(props.label) ??
@@ -79,6 +153,19 @@ export function FormSelect({
     <MantineSelect
       {...props}
       comboboxProps={comboboxProps}
+      maxDropdownHeight={clampComboboxDropdownHeight(
+        maxDropdownHeight,
+        embeddedDropdown,
+      )}
+      scrollAreaProps={{ type: "auto", ...scrollAreaProps }}
+      styles={
+        embeddedDropdown
+          ? {
+              ...embeddedDropdownStyles,
+              ...(typeof styles === "object" ? styles : undefined),
+            }
+          : styles
+      }
       aria-label={ariaLabel}
       data={data}
       data-myoxus-ui-role="form-select"
@@ -98,9 +185,13 @@ export function MyoxusSelect({
   onClear,
   controlMaxWidth,
   wrapperProps,
+  maxDropdownHeight = 280,
+  scrollAreaProps,
+  styles,
   ...props
 }: MyoxusSelectProps) {
   const comboboxProps = useSelectComboboxProps(props.comboboxProps);
+  const callerStyles = typeof styles === "object" ? styles : undefined;
   const ariaLabel =
     props["aria-label"] ??
     reactNodeText(props.label) ??
@@ -109,11 +200,13 @@ export function MyoxusSelect({
     <MantineSelect
       {...props}
       aria-label={ariaLabel}
+      maxDropdownHeight={clampComboboxDropdownHeight(maxDropdownHeight, false)}
+      scrollAreaProps={{ type: "auto", ...scrollAreaProps }}
       comboboxProps={
         contentSized
           ? {
-              ...comboboxProps,
               width: "max-content",
+              ...comboboxProps,
             }
           : comboboxProps
       }
@@ -129,11 +222,13 @@ export function MyoxusSelect({
         else onChange(value);
       }}
       styles={{
+        ...callerStyles,
         input: contentSized
           ? {
               fieldSizing: "content",
+              ...callerStyles?.input,
             }
-          : undefined,
+          : callerStyles?.input,
         root: {
           width: contentSized ? "fit-content" : "100%",
           maxWidth: contentSized
@@ -141,6 +236,7 @@ export function MyoxusSelect({
             : block
               ? "100%"
               : (controlMaxWidth ?? settingsControlWideWidth),
+          ...callerStyles?.root,
         },
       }}
     />
@@ -196,33 +292,6 @@ export const TagsInput = forwardRef<
   );
 });
 
-// Coalesce Floating's measurements as in the Facade Popover: resizing a
-// ScrollArea during ResizeObserver delivery can otherwise create a resize loop.
-const pendingMultiSelectHeights = new WeakMap<HTMLElement, number>();
-const multiSelectViewportMiddlewares: NonNullable<PopoverProps["middlewares"]> =
-  {
-    flip: true,
-    shift: true,
-    size: {
-      padding: 5,
-      apply({ availableHeight, elements }) {
-        const element = elements.floating;
-        const pending = pendingMultiSelectHeights.has(element);
-        pendingMultiSelectHeights.set(element, availableHeight);
-        if (pending) return;
-        requestAnimationFrame(() => {
-          const height = pendingMultiSelectHeights.get(element)!;
-          pendingMultiSelectHeights.delete(element);
-          if (element.isConnected)
-            element.style.setProperty(
-              "--myoxus-combobox-available-height",
-              `${Math.max(0, height)}px`,
-            );
-        });
-      },
-    },
-  };
-
 export type MyoxusMultiSelectProps = Omit<
   MultiSelectProps,
   "onChange" | "data"
@@ -231,6 +300,7 @@ export type MyoxusMultiSelectProps = Omit<
   onChange?: (value: string[]) => void;
   block?: boolean;
   fitViewport?: boolean;
+  embeddedDropdown?: boolean;
   controlMaxWidth?: CSSProperties["maxWidth"];
 };
 
@@ -238,35 +308,40 @@ export const MultiSelect = forwardRef(function MultiSelect(
   {
     block = false,
     fitViewport = false,
+    embeddedDropdown = false,
     data,
     onChange,
     controlMaxWidth,
     wrapperProps,
     renderPill,
     readOnly,
+    scrollAreaProps,
     ...props
   }: MyoxusMultiSelectProps,
   ref: ForwardedRef<HTMLInputElement>,
 ) {
   const t = useI18n();
-  const comboboxProps = useSelectComboboxProps(props.comboboxProps);
-  const availableHeight =
-    "max(0px, calc(var(--myoxus-combobox-available-height, 100vh) - var(--combobox-padding) * 2))";
+  const comboboxProps = useSelectComboboxProps(
+    props.comboboxProps,
+    embeddedDropdown,
+  );
   return (
     <MantineMultiSelect
       {...props}
       // Match single-select layering without changing caller portal overrides.
-      comboboxProps={{
-        middlewares: fitViewport ? multiSelectViewportMiddlewares : undefined,
-        ...comboboxProps,
-      }}
+      comboboxProps={comboboxProps}
       maxDropdownHeight={
         fitViewport
-          ? props.maxDropdownHeight === undefined
-            ? availableHeight
-            : `min(${rem(props.maxDropdownHeight)}, ${availableHeight})`
-          : props.maxDropdownHeight
+          ? clampComboboxDropdownHeight(
+              props.maxDropdownHeight,
+              embeddedDropdown,
+            )
+          : clampComboboxDropdownHeight(
+              props.maxDropdownHeight ?? 280,
+              embeddedDropdown,
+            )
       }
+      scrollAreaProps={{ type: "auto", ...scrollAreaProps }}
       ref={ref}
       data={data}
       readOnly={readOnly}
@@ -297,6 +372,7 @@ export const MultiSelect = forwardRef(function MultiSelect(
       }}
       onChange={(value) => onChange?.(value)}
       styles={{
+        ...(embeddedDropdown ? embeddedDropdownStyles : undefined),
         root: {
           width: "100%",
           maxWidth: block

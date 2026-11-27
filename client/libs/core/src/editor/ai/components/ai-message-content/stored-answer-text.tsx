@@ -2,17 +2,19 @@
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import { useI18n } from "@myoxus/i18n";
+import { CodeIcon, CopyIcon, DoneIcon } from "@myoxus/icons/react";
 import {
   Alert,
-  Badge,
+  Button,
   CodeHighlight,
   CodeHighlightAdapterProvider,
+  CopyButton,
   createShikiAdapter,
   Group,
   MediaPreviewImage,
   MyoxusText,
   MyoxusTitle,
-  Stack,
+  Paper,
   Typography,
 } from "@myoxus/ui-facade";
 import {
@@ -120,33 +122,97 @@ export function HighlightedCode({
   const t = useI18n();
   const { resolvedTheme } = useMyoxusTheme();
   const displayLanguage = language?.trim() || undefined;
+  const matchedLanguage = resolveBundledLanguage(displayLanguage);
   const resolvedLanguage =
-    resolveBundledLanguage(displayLanguage)?.id ??
-    displayLanguage?.toLowerCase() ??
-    "plaintext";
+    matchedLanguage?.id ?? displayLanguage?.toLowerCase() ?? "plaintext";
+  const headerLanguage = matchedLanguage?.name ?? displayLanguage ?? t.Text();
 
   return (
     <CodeHighlightAdapterProvider adapter={aiShikiAdapter}>
-      <Stack gap="2xs" my="xs" data-myoxus-ui-role="ai-code-block">
-        {displayLanguage ? (
-          <Group justify="space-between" wrap="nowrap">
-            <Badge>{displayLanguage}</Badge>
+      <Paper
+        withBorder
+        radius="lg"
+        my="xs"
+        data-myoxus-ui-role="ai-code-block"
+        style={{
+          overflow: "hidden",
+          background: "var(--myoxus-background-code-block)",
+        }}
+      >
+        <Group
+          justify="space-between"
+          align="center"
+          wrap="nowrap"
+          data-myoxus-ui-role="code-block-header"
+          style={{
+            height: "36px",
+            minHeight: "36px",
+            padding: "0 8px 0 12px",
+            background: "var(--myoxus-background-secondary-color)",
+            borderBottom: "1px solid var(--myoxus-border-color)",
+          }}
+        >
+          <Group gap="xs" align="center" wrap="nowrap" miw={0}>
+            <CodeIcon
+              width={14}
+              height={14}
+              style={{
+                flexShrink: 0,
+                color: "var(--myoxus-icon-secondary)",
+              }}
+            />
+            <MyoxusText
+              component="span"
+              typographySlot="body-small"
+              tone="secondary"
+              truncate
+              style={{ fontWeight: 500 }}
+            >
+              {headerLanguage}
+            </MyoxusText>
           </Group>
-        ) : null}
+          <CopyButton value={source} timeout={2000}>
+            {({ copied, copy }) => (
+              <Button
+                variant="plain"
+                aria-label={copied ? t["Copied to clipboard"]() : t["Copy"]()}
+                tooltip={copied ? t["Copied to clipboard"]() : t["Copy"]()}
+                prefix={
+                  copied ? (
+                    <DoneIcon width={15} height={15} />
+                  ) : (
+                    <CopyIcon width={15} height={15} />
+                  )
+                }
+                style={{
+                  height: "28px",
+                  minHeight: "28px",
+                  paddingInline: "8px",
+                  fontSize: "var(--mantine-font-size-xs)",
+                  fontWeight: 500,
+                  color: copied
+                    ? "var(--myoxus-success-color)"
+                    : "var(--myoxus-text-secondary-color)",
+                }}
+                onClick={copy}
+              >
+                {t["Copy"]()}
+              </Button>
+            )}
+          </CopyButton>
+        </Group>
         <CodeHighlight
           code={source}
           language={resolvedLanguage}
           codeColorScheme={
             resolvedTheme === "dark" ? "dark-plus" : "light-plus"
           }
-          withBorder
-          radius="md"
-          withCopyButton
-          copyLabel={t["Copy"]()}
-          copiedLabel={t["Copied to clipboard"]()}
+          withBorder={false}
+          radius={0}
+          withCopyButton={false}
           withLineNumbers={showLineNumbers}
         />
-      </Stack>
+      </Paper>
     </CodeHighlightAdapterProvider>
   );
 }

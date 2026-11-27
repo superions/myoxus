@@ -307,6 +307,8 @@ export interface MyoxusI18nFunctions {
   ["admin.transcription.technical-limits"](): string;
   /** Transcription */
   ["admin.transcription.title"](): string;
+  /** State */
+  ["com.myoxus.editor.mermaid.state-node"](): string;
   /** Transition */
   ["com.myoxus.editor.mermaid.state-transition"](): string;
   /** Pseudostate */
@@ -927,6 +929,22 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.editor.table.paste"](): string;
   /** Clear contents */
   ["com.myoxus.editor.table.clear-contents"](): string;
+  /** Header column */
+  ["com.myoxus.editor.table.header-column"](): string;
+  /** Striped rows */
+  ["com.myoxus.editor.table.striped-rows"](): string;
+  /** Table caption */
+  ["com.myoxus.editor.table.caption"](): string;
+  /** Distribute columns evenly */
+  ["com.myoxus.editor.table.distribute-columns"](): string;
+  /** Sort ascending (A–Z) */
+  ["com.myoxus.editor.table.sort-ascending"](): string;
+  /** Sort descending (Z–A) */
+  ["com.myoxus.editor.table.sort-descending"](): string;
+  /** Merge cells */
+  ["com.myoxus.editor.table.merge-cells"](): string;
+  /** Unmerge cells */
+  ["com.myoxus.editor.table.unmerge-cells"](): string;
   /** The template repeat could not be applied. Check its binding and required member fields. */
   ["com.myoxus.template-application.error.repeat"](): string;
   /** The parent document is unavailable or cannot be read. */
@@ -11015,6 +11033,8 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.editor.mermaid.mode-visual"](): string;
   /** Center diagram */
   ["com.myoxus.editor.mermaid.page-center"](): string;
+  /** Snap to grid */
+  ["com.myoxus.editor.mermaid.page-snap-grid"](): string;
   /** Selection box */
   ["com.myoxus.editor.mermaid.page-selection-box"](): string;
   /** All diagram nodes */

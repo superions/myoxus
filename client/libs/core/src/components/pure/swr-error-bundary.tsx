@@ -13,7 +13,7 @@ import { useSWRConfig } from "swr";
  */
 export const SWRErrorBoundary = (props: ErrorBoundaryProps) => {
   const { onReset, onError } = props;
-  const errorsRef = useRef<Error[]>([]);
+  const errorsRef = useRef<unknown[]>([]);
   const { cache } = useSWRConfig();
 
   const clearErrorCache = React.useCallback(() => {
@@ -37,7 +37,7 @@ export const SWRErrorBoundary = (props: ErrorBoundaryProps) => {
   );
 
   const onErrorWithSWR = React.useCallback(
-    (error: Error, info: ErrorInfo) => {
+    (error: unknown, info: ErrorInfo) => {
       errorsRef.current.push(error);
       onError?.(error, info);
     },

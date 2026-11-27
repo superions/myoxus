@@ -593,6 +593,11 @@ class PanController extends DualDragControllerBase {
 
 export class PointerControl {
   private _cachedRect: DOMRect | null = null;
+  private _rectListenersAbort: AbortController | null = null;
+
+  private readonly _invalidateRect = () => {
+    this._cachedRect = null;
+  };
 
   private readonly _getRect = () => {
     if (this._cachedRect === null) {
@@ -637,10 +642,36 @@ export class PointerControl {
       clearInterval(this._pollingInterval);
       this._pollingInterval = null;
     }
+    this._rectListenersAbort?.abort();
+    this._rectListenersAbort = null;
   }
 
   listen() {
     this._startPolling();
+    this._rectListenersAbort?.abort();
+    const abort = new AbortController();
+    this._rectListenersAbort = abort;
+    // Scroll, resize, or layout shifts before a pointer gesture move the host
+    // immediately; waiting up to POLL_INTERVAL (1s) shifts box-selection and
+    // drag coordinates onto the wrong diagram row.
+    window.addEventListener("scroll", this._invalidateRect, {
+      capture: true,
+      passive: true,
+      signal: abort.signal,
+    });
+    window.addEventListener("resize", this._invalidateRect, {
+      passive: true,
+      signal: abort.signal,
+    });
+    this._dispatcher.host?.addEventListener(
+      "pointerdown",
+      this._invalidateRect,
+      {
+        capture: true,
+        passive: true,
+        signal: abort.signal,
+      },
+    );
     this.controllers.forEach((controller) => controller.listen());
   }
 }

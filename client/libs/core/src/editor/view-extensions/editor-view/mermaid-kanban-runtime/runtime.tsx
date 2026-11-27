@@ -29,7 +29,7 @@ import {
   type MermaidKanbanNode,
 } from "@virgultum/block-mermaid";
 import { isTouchPadPinchEvent } from "@virgultum/core/utils";
-import { CommentIcon } from "@myoxus/icons";
+import { CommentIcon, MoreHorizontalIcon } from "@myoxus/icons";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { renderSafeMarkdownLabel } from "../mermaid-markdown-label";
 import { MermaidEmbeddedActions } from "../mermaid-embedded-actions";
@@ -77,7 +77,7 @@ export function MermaidKanbanRuntime({
     "appearance" | "tickets" | "data" | "more"
   >();
   const [deleting, setDeleting] = useState<string>();
-  const [commentsVisible, setCommentsVisible] = useState(true);
+  const [commentsVisible, setCommentsVisible] = useState(false);
   const [notice, setNotice] = useState<string>();
   const basisRef = useRef(props.model.sourceDocument.source);
   const interactionRef = useRef<string | undefined>(undefined);
@@ -514,7 +514,12 @@ export function MermaidKanbanRuntime({
         }
         title={messages.visualMoreActions()}
       >
-        <Button variant="plain">{messages.visualMoreActions()}</Button>
+        <IconButton
+          aria-label={messages.visualMoreActions()}
+          tooltip={messages.visualMoreActions()}
+          variant="plain"
+          icon={<MoreHorizontalIcon />}
+        />
       </Menu>
     </Group>
   );
@@ -658,6 +663,7 @@ export function MermaidKanbanRuntime({
             labels={{
               actions: t["com.myoxus.actions"](),
               addCard: (label) => `${messages.kanbanAddCard()}: ${label}`,
+              addCardText: messages.kanbanAddCard(),
               addColumn: messages.kanbanAddColumn(),
               cardCount: (count) => String(count),
               deleteCard: (label) => `${messages.visualDelete()}: ${label}`,

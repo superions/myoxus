@@ -489,6 +489,7 @@ export function createFlowchartEdgelessToolbarConfig(
         })),
       {
         id: FLOWCHART_ACTION_IDS.connect,
+        icon: "LinkIcon" as const,
         label: mermaidMessages.visualConnect(),
         when: (context: ToolbarContext) => {
           const state = selectedFlowchartNode(context, registration);
@@ -533,6 +534,7 @@ export function createFlowchartEdgelessToolbarConfig(
       },
       {
         id: FLOWCHART_ACTION_IDS.shapes,
+        icon: "ShapesIcon" as const,
         label: editorMessage("com.myoxus.editor.toolbar.shape", "Shape"),
         when: (context: ToolbarContext) =>
           !context.readonly && Boolean(flowchartState(context, registration)),

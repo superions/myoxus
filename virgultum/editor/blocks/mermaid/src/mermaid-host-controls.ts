@@ -148,14 +148,27 @@ export abstract class MermaidHostControls extends MermaidHostSource {
       !event.altKey &&
       (normalizedKey === "z" || normalizedKey === "y"),
     );
-    // A dismissed menu returns focus to its trigger. That closed trigger still
-    // owns Enter/Arrow navigation, but it no longer owns Escape or the active
-    // Mermaid owner's history shortcuts.
+    const isMermaidPageZoomShortcut = Boolean(
+      (event.ctrlKey || event.metaKey) &&
+      !event.altKey &&
+      (normalizedKey === "+" ||
+        normalizedKey === "-" ||
+        normalizedKey === "0" ||
+        event.code === "Equal" ||
+        event.code === "NumpadAdd" ||
+        event.code === "NumpadSubtract" ||
+        event.code === "Numpad0"),
+    );
+    // A dismissed menu or select returns focus to its trigger. That closed
+    // trigger still owns Enter/Arrow navigation, but it no longer owns Escape,
+    // page zoom shortcuts, or the active Mermaid owner's history shortcuts.
     const hasEditableTarget = Boolean(
       editableTarget &&
       !(
         isClosedPopupTrigger &&
-        (event.key === "Escape" || isMermaidHistoryShortcut)
+        (event.key === "Escape" ||
+          isMermaidHistoryShortcut ||
+          isMermaidPageZoomShortcut)
       ),
     );
     const hasPageVisualWorkareaTarget =

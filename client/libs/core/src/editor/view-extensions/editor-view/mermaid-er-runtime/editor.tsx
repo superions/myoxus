@@ -6,6 +6,7 @@ import {
   Box,
   Button,
   Group,
+  IconButton,
   ConfirmModal,
   Stack,
   Alert,
@@ -26,6 +27,7 @@ import {
   type ErReactHostProps,
   deleteErSelection,
 } from "@virgultum/block-mermaid";
+import { MoreHorizontalIcon } from "@myoxus/icons/react";
 import { MermaidGfxEditorWorkbench } from "../mermaid-editor-workbench";
 import { MermaidEmbeddedActions } from "../mermaid-embedded-actions";
 import { ErEntityForm } from "./entity-popover";
@@ -239,12 +241,19 @@ export function MermaidErRuntimeEditor({
                     props.readonly &&
                     ["emptySubgraph", "deleteSelection"].includes(action)
                   }
-                  onSelect={() =>
-                    action === "comments"
-                      ? (setCommentsVisible(!commentsVisible),
-                        props.onParentIntent("comments"))
-                      : props.onParentIntent(action)
-                  }
+                  onSelect={() => {
+                    if (action === "comments") {
+                      const next = !commentsVisible;
+                      setCommentsVisible(next);
+                      props.onParentIntent(
+                        next && props.commentMarkers.length === 0
+                          ? "comments"
+                          : null,
+                      );
+                    } else {
+                      props.onParentIntent(action);
+                    }
+                  }}
                 >
                   {labels[action]()}
                 </MenuItem>
@@ -252,7 +261,11 @@ export function MermaidErRuntimeEditor({
           </>
         }
       >
-        <Button>{m.visualMoreActions()}</Button>
+        <IconButton
+          aria-label={m.visualMoreActions()}
+          tooltip={m.visualMoreActions()}
+          icon={<MoreHorizontalIcon />}
+        />
       </Menu>
       {props.parentIntent && more.includes(props.parentIntent) ? (
         <ErActionPopover props={props} action={props.parentIntent} />

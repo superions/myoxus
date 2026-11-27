@@ -150,6 +150,7 @@ test("BPMN source startup excludes the lazy modeller's emitted JS and CSS", asyn
     import { createBlankBpmnSource } from '@myoxus/bpmn-editor/source';
     export const source = () => createBlankBpmnSource();
     export const open = () => import(/* webpackChunkName: "bpmn-modeller" */ '@myoxus/bpmn-editor');
+    globalThis.__myoxusBpmnProbe = { source, open };
   `,
   );
   const compiler = rspack({
@@ -182,7 +183,7 @@ test("BPMN source startup excludes the lazy modeller's emitted JS and CSS", asyn
         { test: /\.(svg|png|woff2?|ttf|otf)$/, type: "asset/resource" },
       ],
     },
-    output: { path: root, filename: "main.js", chunkFilename: "[name].js" },
+    output: { path: root, filename: "[name].js", chunkFilename: "[name].js" },
     optimization: {
       minimize: false,
       splitChunks: {

@@ -2,6 +2,7 @@
 
 import { useI18n } from "@myoxus/i18n";
 import {
+  GridIcon,
   LocateIcon,
   RedoIcon,
   SelectAreaIcon,
@@ -1207,105 +1208,108 @@ export function MermaidBlockShell({
           readingSnapshot={readingSnapshot}
         />
         {props.showPageActions && !readingSnapshot ? (
-          <Scrollable.Viewport
-            autosize
-            scrollbars="x"
-            scrollbarVisibility="auto"
+          <Group
             aria-label={props.labels.controls}
+            data-myoxus-ui-role="mermaid-page-action-row"
+            justify="flex-start"
+            gap="xs"
+            p="sm"
+            role="toolbar"
+            wrap="wrap"
           >
-            <Group
-              aria-label={props.labels.controls}
-              data-myoxus-ui-role="mermaid-page-action-row"
-              justify="flex-start"
-              gap="xs"
-              p="sm"
-              role="toolbar"
-              wrap="nowrap"
-            >
-              {props.mode === "view" || props.readonly ? null : (
-                <IconButtonGroup
-                  aria-label={`${t["Undo"]()} / ${t["com.myoxus.editor.keyboard.redo"]()}`}
-                  data-myoxus-ui-role="mermaid-history-actions"
-                >
-                  <IconButton
-                    aria-label={t["Undo"]()}
-                    disabled={props.readonly || !props.canUndo}
-                    icon={<UndoIcon />}
-                    onClick={props.onUndo}
-                    tooltip={`${t["Undo"]()} (Mod-Z)`}
-                  />
-                  <IconButton
-                    aria-label={t["com.myoxus.editor.keyboard.redo"]()}
-                    disabled={props.readonly || !props.canRedo}
-                    icon={<RedoIcon />}
-                    onClick={props.onRedo}
-                    tooltip={`${t["com.myoxus.editor.keyboard.redo"]()} (Shift-Mod-Z / Mod-Y)`}
-                  />
-                </IconButtonGroup>
-              )}
-              {props.mode === "visual" && !props.readonly ? (
-                <IconButtonGroup
-                  aria-label={selectionAction?.label ?? t["Delete"]()}
-                  data-myoxus-ui-role="mermaid-selection-actions"
-                >
-                  <MermaidSelectionDeleteAction
-                    action={pageSelectionAction}
-                    onInvokerChange={
-                      showPageActions
-                        ? onSelectionActionInvokerChange
-                        : undefined
-                    }
-                  />
-                </IconButtonGroup>
-              ) : null}
-              {props.mode === "source" ? null : (
-                <IconButtonGroup
-                  aria-label={props.labels.pageCenter}
-                  data-myoxus-ui-role="mermaid-page-viewport-actions"
-                >
-                  <IconButton
-                    aria-label={props.labels.pageCenter}
-                    disabled={props.pageCenterDisabled}
-                    icon={<LocateIcon />}
-                    onClick={props.onPageCenter}
-                    tooltip={props.labels.pageCenter}
-                  />
-                </IconButtonGroup>
-              )}
-              {props.pageSelection ? (
-                <MermaidPageSelectionToolControls
-                  labels={props.labels}
-                  pageSelection={props.pageSelection}
+            {props.mode === "view" || props.readonly ? null : (
+              <IconButtonGroup
+                aria-label={`${t["Undo"]()} / ${t["com.myoxus.editor.keyboard.redo"]()}`}
+                data-myoxus-ui-role="mermaid-history-actions"
+              >
+                <IconButton
+                  aria-label={t["Undo"]()}
+                  disabled={props.readonly || !props.canUndo}
+                  icon={<UndoIcon />}
+                  onClick={props.onUndo}
+                  tooltip={`${t["Undo"]()} (Mod-Z)`}
                 />
-              ) : null}
-              {props.mode === "visual" && familyActionPortal ? (
-                <Box
-                  aria-label={familyActionPortal.actions[0]?.label}
-                  data-disabled={
-                    familyActionPortal.actions.every(
-                      (action) => action.disabled,
-                    ) || undefined
+                <IconButton
+                  aria-label={t["com.myoxus.editor.keyboard.redo"]()}
+                  disabled={props.readonly || !props.canRedo}
+                  icon={<RedoIcon />}
+                  onClick={props.onRedo}
+                  tooltip={`${t["com.myoxus.editor.keyboard.redo"]()} (Shift-Mod-Z / Mod-Y)`}
+                />
+              </IconButtonGroup>
+            )}
+            {props.mode === "visual" && !props.readonly ? (
+              <IconButtonGroup
+                aria-label={selectionAction?.label ?? t["Delete"]()}
+                data-myoxus-ui-role="mermaid-selection-actions"
+              >
+                <MermaidSelectionDeleteAction
+                  action={pageSelectionAction}
+                  onInvokerChange={
+                    showPageActions ? onSelectionActionInvokerChange : undefined
                   }
-                  data-myoxus-ui-role="mermaid-family-action-target"
-                  ref={props.onActionTargetChange}
-                  role="group"
                 />
-              ) : props.mode === "visual" && renderedFamilyActions ? (
-                <IconButtonGroup
-                  aria-label={renderedFamilyActions.actions
-                    .map((action) => action.label)
-                    .join(", ")}
-                  data-myoxus-ui-role="mermaid-family-actions"
-                >
-                  {renderedFamilyActions.actions.map((action) =>
-                    action.popoverProjection ? (
-                      <Box key={action.id}>{action.popoverProjection}</Box>
-                    ) : null,
-                  )}
-                </IconButtonGroup>
-              ) : null}
-            </Group>
-          </Scrollable.Viewport>
+              </IconButtonGroup>
+            ) : null}
+            {props.mode === "source" ? null : (
+              <IconButtonGroup
+                aria-label={props.labels.pageCenter}
+                data-myoxus-ui-role="mermaid-page-viewport-actions"
+              >
+                <IconButton
+                  aria-label={props.labels.pageCenter}
+                  disabled={props.pageCenterDisabled}
+                  icon={<LocateIcon />}
+                  onClick={props.onPageCenter}
+                  tooltip={props.labels.pageCenter}
+                />
+                {props.mode === "visual" &&
+                !props.readonly &&
+                props.snapToGrid ? (
+                  <IconButton
+                    aria-label={props.snapToGrid.label}
+                    aria-pressed={props.snapToGrid.enabled}
+                    icon={<GridIcon />}
+                    onClick={props.snapToGrid.onToggle}
+                    tooltip={props.snapToGrid.label}
+                    variant={props.snapToGrid.enabled ? "solid" : "plain"}
+                  />
+                ) : null}
+              </IconButtonGroup>
+            )}
+            {props.pageSelection ? (
+              <MermaidPageSelectionToolControls
+                labels={props.labels}
+                pageSelection={props.pageSelection}
+              />
+            ) : null}
+            {props.mode === "visual" && familyActionPortal ? (
+              <Box
+                aria-label={familyActionPortal.actions[0]?.label}
+                data-disabled={
+                  familyActionPortal.actions.every(
+                    (action) => action.disabled,
+                  ) || undefined
+                }
+                data-myoxus-ui-role="mermaid-family-action-target"
+                ref={props.onActionTargetChange}
+                role="group"
+              />
+            ) : props.mode === "visual" && renderedFamilyActions ? (
+              <IconButtonGroup
+                aria-label={renderedFamilyActions.actions
+                  .map((action) => action.label)
+                  .join(", ")}
+                data-myoxus-ui-role="mermaid-family-actions"
+              >
+                {renderedFamilyActions.actions.map((action) =>
+                  action.popoverProjection ? (
+                    <Box key={action.id}>{action.popoverProjection}</Box>
+                  ) : null,
+                )}
+              </IconButtonGroup>
+            ) : null}
+          </Group>
         ) : null}
         {props.bodyNotice ? (
           <MermaidEditorShellNotice props={props.bodyNotice} />

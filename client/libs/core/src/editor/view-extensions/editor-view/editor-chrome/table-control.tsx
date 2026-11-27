@@ -17,6 +17,8 @@ export function EditorTableControl({ controls }: { controls: Controls }) {
   return (
     <IconButton
       ref={setElement}
+      size="small"
+      variant="secondary"
       data-testid={action.id}
       data-range-sync-exclude="true"
       aria-label={action.label}

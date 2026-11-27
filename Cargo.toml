@@ -17,7 +17,7 @@ resolver = "3"
 
   [workspace.dependencies]
   # affine_common REMOVED (EE-licensed). Replaced by myoxus-crypto + myoxus-doc-indexer.
-  anyhow = "=1.0.104"
+  anyhow = "=1.0.105"
   base64-simd = "0.8"
   block2 = "0.6"
   chrono = "0.4"
@@ -38,7 +38,7 @@ resolver = "3"
   mimalloc = "0.1"
   myoxus-crypto = { path = "./client/libs/crypto" }
   myoxus-doc-indexer = { path = "./client/libs/doc-indexer" }
-  napi = { version = "=3.11.0", features = [
+  napi = { version = "=3.16.3", features = [
     "async",
     "chrono_date",
     "error_anyhow",
@@ -46,7 +46,7 @@ resolver = "3"
     "serde",
   ] }
   napi-build = { version = "2" }
-  napi-derive = { version = "=3.6.0" }
+  napi-derive = { version = "=3.7.2" }
   objc2 = "0.6"
   objc2-foundation = "0.3"
   rubato = "0.16"
@@ -60,7 +60,7 @@ resolver = "3"
     "runtime-tokio",
     "sqlite",
   ] }
-  symphonia = { version = "0.5", features = ["all", "opt-simd"] }
+  symphonia = { version = "0.6", features = ["all", "opt-simd"] }
   thiserror = "2"
   tokio = "1.45"
   uniffi = "0.29"

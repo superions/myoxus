@@ -418,7 +418,9 @@ async function typeSlashCommand(page: Page, command: string): Promise<void> {
 
   const option = page.getByRole("option", { name: "Event", exact: true });
   await expect(option).toBeVisible({ timeout: 5_000 });
-  await expect(option).toHaveAccessibleDescription(/Insert a workspace event/i);
+  await expect(option).toHaveAccessibleDescription(
+    /Insert a workspace event|Ein Workspace-Event einfügen/i,
+  );
 }
 
 // ---- test setup --------------------------------------------------------------

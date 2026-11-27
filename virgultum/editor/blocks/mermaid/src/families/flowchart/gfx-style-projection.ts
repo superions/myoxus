@@ -406,7 +406,7 @@ export function flowchartMinimumReadableZoom(
   const smallestVisibleFontSize =
     visibleFontSizes.length > 0
       ? Math.min(...visibleFontSizes)
-      : flowchartDefaultLabelFontSize(theme);
+      : flowchartDefaultEdgeLabelFontSize(theme);
   const typographyOwnedMinimum =
     theme.typography.minimumReadableFontSize / smallestVisibleFontSize;
   // A larger projected label must not lower the viewport floor and shrink the
@@ -588,11 +588,12 @@ function projectedFlowchartEdgeSemanticStyle(
   return "";
 }
 
-function flowchartDefaultLabelFontSize(theme: MermaidGfxTheme) {
-  return (
-    theme.typography.fontSize +
-    (theme.typography.fontSize - theme.typography.minimumReadableFontSize)
-  );
+function flowchartDefaultEdgeLabelFontSize(theme: MermaidGfxTheme) {
+  return theme.typography.minimumReadableFontSize;
+}
+
+function flowchartDefaultSubgraphLabelFontSize(theme: MermaidGfxTheme) {
+  return theme.typography.fontSize;
 }
 
 export function flowchartNodeElementStyle(
@@ -622,7 +623,11 @@ export function flowchartSubgraphElementStyle(
     labelProjection: null,
     ...style,
     ...(style.fontSize === undefined
-      ? { fontSize: flowchartDefaultLabelFontSize(resolveMermaidGfxTheme()) }
+      ? {
+          fontSize: flowchartDefaultSubgraphLabelFontSize(
+            resolveMermaidGfxTheme(),
+          ),
+        }
       : {}),
     padding: mermaidGfxLabelPadding(resolveMermaidGfxTheme()),
   };
@@ -641,7 +646,7 @@ export function flowchartEdgeElementStyle(
     style["stroke-dasharray"].toLowerCase() !== "none";
   const fontSize = stylePixelNumber(style["font-size"]);
   const projectedFontSize =
-    fontSize ?? flowchartDefaultLabelFontSize(resolveMermaidGfxTheme());
+    fontSize ?? flowchartDefaultEdgeLabelFontSize(resolveMermaidGfxTheme());
   return {
     stroke: resolveMermaidGfxProjectionTheme().secondaryTextColor,
     mermaidEdgeVisualStyle: projectedFlowchartEdgeSemanticStyle(

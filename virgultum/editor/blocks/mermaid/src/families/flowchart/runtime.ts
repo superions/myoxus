@@ -1,3 +1,4 @@
+import { validateMermaidSource } from "../../renderer.js";
 import { mermaidFlowchartFamily } from "./family.js";
 import { mermaidFlowchartHostAdapter } from "./host-adapter.js";
 import { mermaidFlowchartGfxHookRegistration } from "./runtime-hooks.js";
@@ -29,4 +30,5 @@ export const mermaidFlowchartRuntime = defineMermaidFamilyRuntime({
   renderSurface: () => "core-facade" as const,
   sourceDiagnostics: (source, diagramType) =>
     mermaidFlowchartFamily.parseSource(source, diagramType).diagnostics,
+  validateSource: validateMermaidSource,
 });

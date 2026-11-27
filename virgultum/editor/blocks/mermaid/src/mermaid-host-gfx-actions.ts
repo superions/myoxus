@@ -253,8 +253,10 @@ export abstract class MermaidHostGfxActions extends MermaidHostFamilyFields {
       createdSubgraph &&
       this._visualSelectionAnchorKey("subgraph") === createdSubgraph.editKey
     ) {
-      this._pendingVisualSelectionProjection = null;
       this._startInlineSubgraphTextEdit(null, createdSubgraph.editKey);
+      if (this._inlineShapeTextEditor.hasActiveEditor()) {
+        this._pendingVisualSelectionProjection = null;
+      }
     } else if (createdSubgraph) {
       this.requestUpdate();
     }

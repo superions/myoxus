@@ -375,14 +375,14 @@ mod tests {
 
   #[tokio::test]
   async fn connection_check_preserves_the_standard_tls_cause_without_destination_or_key() {
-    let certificate = rcgen::generate_simple_self_signed(vec!["localhost".into()]).unwrap();
+    let certified = rcgen::generate_simple_self_signed(vec!["localhost".into()]).unwrap();
     let mut acceptor = openssl::ssl::SslAcceptor::mozilla_intermediate_v5(openssl::ssl::SslMethod::tls()).unwrap();
     acceptor
-      .set_certificate(&openssl::x509::X509::from_der(&certificate.serialize_der().unwrap()).unwrap())
+      .set_certificate(&openssl::x509::X509::from_der(certified.cert.der()).unwrap())
       .unwrap();
     acceptor
       .set_private_key(
-        &openssl::pkey::PKey::private_key_from_pem(certificate.serialize_private_key_pem().as_bytes()).unwrap(),
+        &openssl::pkey::PKey::private_key_from_pem(certified.signing_key.serialize_pem().as_bytes()).unwrap(),
       )
       .unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();

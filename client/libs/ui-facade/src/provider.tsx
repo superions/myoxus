@@ -998,14 +998,23 @@ export const myoxusMantineTheme = createTheme({
       defaultProps: {
         radius: "md",
       },
-      styles: {
+      styles: (_, props) => ({
         description: controlDescriptionStyle,
         dropdown: controlDropdownStyle,
         error: controlDescriptionStyle,
-        input: controlInputStyle,
+        // Respect borderless inline selects inside framed toolbars/headers.
+        input:
+          props.variant === "unstyled"
+            ? {
+                ...controlInputStyle,
+                background: "transparent",
+                border: 0,
+                ...(props.size === "xs" ? buttonTextStyle : undefined),
+              }
+            : controlInputStyle,
         label: controlLabelStyle,
         option: controlOptionStyle,
-      },
+      }),
     }),
     Slider: Slider.extend({
       defaultProps: {

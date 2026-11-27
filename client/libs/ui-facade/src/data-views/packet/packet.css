@@ -3,16 +3,19 @@
 /* Packet bits, row height and padding are authored renderer geometry, not UI
  * density tokens. Chrome, typography, states and colors remain native Mantine. */
 [data-myoxus-ui-role="packet-bit-grid"] {
-  inline-size: max-content;
+  inline-size: 100%;
   min-inline-size: 100%;
 }
 [data-myoxus-ui-role="packet-bit-row"] {
   display: grid;
   grid-template-columns: repeat(
     var(--packet-column-count),
-    var(--packet-bit-width)
+    minmax(min(20px, var(--packet-bit-width)), 1fr)
   );
-  inline-size: calc(var(--packet-column-count) * var(--packet-bit-width));
+  inline-size: max(
+    100%,
+    calc(var(--packet-column-count) * min(20px, var(--packet-bit-width)))
+  );
   padding-block-end: var(--packet-padding-y);
 }
 [data-myoxus-ui-role="packet-bit-ruler"] {

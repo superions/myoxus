@@ -921,14 +921,14 @@ export function buildPageSlashItems(
           m,
           TableModelFlavour,
           {
-            headerRows: 0,
+            headerRows: 1,
             rows: {
               [r1]: { rowId: r1, order: ro1 },
               [r2]: { rowId: r2, order: ro2 },
             },
             columns: {
-              [c1]: { columnId: c1, order: co1 },
-              [c2]: { columnId: c2, order: co2 },
+              [c1]: { columnId: c1, order: co1, width: 280 },
+              [c2]: { columnId: c2, order: co2, width: 280 },
             },
             cells: {
               [`${r1}:${c1}`]: { text: new Text() },

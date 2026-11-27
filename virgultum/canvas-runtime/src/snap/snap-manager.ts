@@ -20,13 +20,46 @@ export class SnapExtension extends InteractivityExtension {
 
   private static readonly ALIGN_RECOVERY_COST_MS = 2;
 
+  private static readonly GRID_SNAP_STEP = 20;
+
+  private altBypass = false;
+
+  private cleanupAltListeners?: () => void;
+
   get snapOverlay() {
     return this.std.getOptional(
       OverlayIdentifier("snap-manager"),
     ) as SnapOverlay;
   }
 
+  override unmounted(): void {
+    this.cleanupAltListeners?.();
+    this.cleanupAltListeners = undefined;
+    this.altBypass = false;
+    super.unmounted();
+  }
+
   override mounted(): void {
+    if (typeof window !== "undefined") {
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key === "Alt") this.altBypass = true;
+      };
+      const onKeyUp = (event: KeyboardEvent) => {
+        if (event.key === "Alt") this.altBypass = false;
+      };
+      const onBlur = () => {
+        this.altBypass = false;
+      };
+      window.addEventListener("keydown", onKeyDown);
+      window.addEventListener("keyup", onKeyUp);
+      window.addEventListener("blur", onBlur);
+      this.cleanupAltListeners = () => {
+        window.removeEventListener("keydown", onKeyDown);
+        window.removeEventListener("keyup", onKeyUp);
+        window.removeEventListener("blur", onBlur);
+      };
+    }
+
     this.action.onDragInitialize(
       (initContext: DragExtensionInitializeContext) => {
         const snapOverlay = this.snapOverlay;
@@ -55,13 +88,18 @@ export class SnapExtension extends InteractivityExtension {
             );
             alignStride.reset();
           },
-          onDragMove(context: ExtensionDragMoveContext) {
+          onDragMove: (context: ExtensionDragMoveContext) => {
             if (
               context.elements.length === 0 ||
               !alignBound ||
               alignBound.w === 0 ||
               alignBound.h === 0
             ) {
+              return;
+            }
+
+            if (this.altBypass) {
+              snapOverlay.clear();
               return;
             }
 
@@ -75,8 +113,18 @@ export class SnapExtension extends InteractivityExtension {
             const alignCost = performance.now() - alignStart;
             alignStride.reportCost(alignCost);
 
-            context.dx = alignRst.dx + context.dx;
-            context.dy = alignRst.dy + context.dy;
+            const step = SnapExtension.GRID_SNAP_STEP;
+            const gridDx =
+              alignRst.dx !== 0
+                ? alignRst.dx
+                : Math.round(currentBound.x / step) * step - currentBound.x;
+            const gridDy =
+              alignRst.dy !== 0
+                ? alignRst.dy
+                : Math.round(currentBound.y / step) * step - currentBound.y;
+
+            context.dx = gridDx + context.dx;
+            context.dy = gridDy + context.dy;
           },
           clear() {
             alignBound = null;

@@ -1501,13 +1501,24 @@ impl<'a, R: AssetResolver> BuildContext<'a, R> {
         if let Some(header_rows) = header_rows {
           for (row_index, row) in rows.iter_mut().enumerate() {
             for cell in &mut row.cells {
-              cell.is_header = row_index < header_rows;
+              if row_index < header_rows {
+                cell.is_header = true;
+              }
             }
           }
         }
+        let caption = get_prop_string(bmap, self.txn, "caption")
+          .map(|s| s.trim().to_string())
+          .filter(|s| !s.is_empty())
+          .map(|text| {
+            vec![InlineSpan::Text {
+              text,
+              marks: TextMarks::default(),
+            }]
+          });
         Ok(Block::Table {
           rows,
-          caption: None,
+          caption,
           column_widths,
           header_rows,
           appearance: get_prop_string(bmap, self.txn, "appearance").and_then(|value| match value.as_str() {
@@ -1767,37 +1778,82 @@ impl<'a, R: AssetResolver> BuildContext<'a, R> {
       .any(|column| column.has_width)
       .then(|| columns.iter().map(|column| column.width.unwrap_or(120.0)).collect());
 
-    let rows = rows
-      .into_iter()
-      .map(|row| {
-        let cells = columns
-          .iter()
-          .map(|column| {
-            let text_key = format!("prop:cells.{}:{}.text", row.id, column.id);
-            let content = get_text_content_at_key(bmap, self.txn, &text_key);
-            // Flat tables persist alignment on the column, not on individual cells.
-            let align_key = format!("prop:columns.{}.textAlign", column.id);
-            let align = bmap
-              .get(self.txn, &align_key)
-              .and_then(|value| value_to_string(&value))
-              .filter(|value| matches!(value.as_str(), "left" | "center" | "right"));
-            // Match the native renderer: cell overrides column, which overrides row.
-            let paint = self.resolve_table_paint(bmap, &row.id, &column.id)?;
-            Ok(TableCell {
-              content,
-              is_header: false,
-              col_span: 1,
-              row_span: 1,
-              align,
-              fill: paint.as_ref().map(|paint| paint.fill.clone()),
-              foreground: paint.map(|paint| paint.foreground),
-            })
-          })
-          .collect::<Result<Vec<_>, IrBuildError>>()?;
-        Ok(TableRow { cells })
-      })
-      .collect::<Result<Vec<_>, IrBuildError>>()?;
-    Ok((rows, widths))
+    let header_column = matches!(bmap.get(self.txn, "prop:headerColumn"), Some(Out::Any(Any::Bool(true))));
+    let read_span = |key: &str, limit: usize| -> u16 {
+      match bmap.get(self.txn, key) {
+        Some(Out::Any(Any::Number(n))) => {
+          let v = n.as_f64().unwrap_or(1.0).trunc();
+          if v >= 2.0 {
+            (v as usize).min(limit).max(1) as u16
+          } else {
+            1
+          }
+        }
+        Some(Out::Any(Any::BigInt(n))) if n >= 2 => (n as usize).min(limit).max(1) as u16,
+        _ => 1,
+      }
+    };
+    let row_count = rows.len();
+    let col_count = columns.len();
+    let mut covered = std::collections::HashSet::<(usize, usize)>::new();
+    let mut built_rows = Vec::with_capacity(row_count);
+    for (r_idx, row) in rows.iter().enumerate() {
+      let mut cells = Vec::new();
+      for (c_idx, column) in columns.iter().enumerate() {
+        if covered.contains(&(r_idx, c_idx)) {
+          continue;
+        }
+        let col_key = format!("prop:cells.{}:{}.colspan", row.id, column.id);
+        let row_key = format!("prop:cells.{}:{}.rowspan", row.id, column.id);
+        let mut col_span = read_span(&col_key, col_count - c_idx) as usize;
+        let mut row_span = read_span(&row_key, row_count - r_idx) as usize;
+        if col_span > 1 || row_span > 1 {
+          let mut valid_cols = 1;
+          while valid_cols < col_span && !covered.contains(&(r_idx, c_idx + valid_cols)) {
+            valid_cols += 1;
+          }
+          col_span = valid_cols;
+          let mut valid_rows = 1;
+          'span_rows: while valid_rows < row_span {
+            for dc in 0..col_span {
+              if covered.contains(&(r_idx + valid_rows, c_idx + dc)) {
+                break 'span_rows;
+              }
+            }
+            valid_rows += 1;
+          }
+          row_span = valid_rows;
+          for dr in 0..row_span {
+            for dc in 0..col_span {
+              if dr != 0 || dc != 0 {
+                covered.insert((r_idx + dr, c_idx + dc));
+              }
+            }
+          }
+        }
+        let text_key = format!("prop:cells.{}:{}.text", row.id, column.id);
+        let content = get_text_content_at_key(bmap, self.txn, &text_key);
+        // Flat tables persist alignment on the column, not on individual cells.
+        let align_key = format!("prop:columns.{}.textAlign", column.id);
+        let align = bmap
+          .get(self.txn, &align_key)
+          .and_then(|value| value_to_string(&value))
+          .filter(|value| matches!(value.as_str(), "left" | "center" | "right"));
+        // Match the native renderer: cell overrides column, which overrides row.
+        let paint = self.resolve_table_paint(bmap, &row.id, &column.id)?;
+        cells.push(TableCell {
+          content,
+          is_header: header_column && c_idx == 0,
+          col_span: col_span as u16,
+          row_span: row_span as u16,
+          align,
+          fill: paint.as_ref().map(|paint| paint.fill.clone()),
+          foreground: paint.map(|paint| paint.foreground),
+        });
+      }
+      built_rows.push(TableRow { cells });
+    }
+    Ok((built_rows, widths))
   }
 
   fn resolve_table_paint(

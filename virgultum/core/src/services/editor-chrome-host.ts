@@ -36,6 +36,7 @@ export type EditorCodeToolbarState = Readonly<{
     aliases?: readonly string[];
   }[];
   readonly: boolean;
+  floating?: boolean;
   primary: SelectionAction[];
   more: SelectionAction[];
 }>;

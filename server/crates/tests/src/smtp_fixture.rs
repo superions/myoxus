@@ -86,12 +86,10 @@ impl SmtpFixture {
     // bootstrap has run in the test process. A prior Ring installation by
     // another fixture in the same process is an expected no-op.
     drop(rustls::crypto::ring::default_provider().install_default());
-    let certificate =
+    let certified =
       generate_simple_self_signed(vec!["localhost".to_string()]).expect("generate local SMTP fixture certificate");
-    let certificate_der = certificate
-      .serialize_der()
-      .expect("serialize local SMTP fixture certificate");
-    let private_key_der = certificate.serialize_private_key_der();
+    let certificate_der = certified.cert.der().to_vec();
+    let private_key_der = certified.signing_key.serialize_der();
     let tls_config = ServerConfig::builder()
       .with_no_client_auth()
       .with_single_cert(

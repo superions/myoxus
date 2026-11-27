@@ -13,7 +13,7 @@ use wordcraft_docx::{XmlKind, read_xml, sniff_xml, write_wordml2003};
 fn tiny_png() -> Vec<u8> {
     let img = image::RgbaImage::from_fn(3, 2, |x, y| image::Rgba([x as u8 * 80, y as u8 * 120, 200, 255]));
     let mut out = std::io::Cursor::new(Vec::new());
-    img.write_to(&mut out, image::ImageFormat::Png).unwrap();
+    image::DynamicImage::from(img).write_to(&mut out, image::ImageFormat::Png).unwrap();
     out.into_inner()
 }
 

@@ -50,7 +50,7 @@ export function flowchartLabelTypography(style: {
   return mermaidGfxTypographyForNode(
     {
       ...style,
-      fontSize: style.fontSize ?? theme.typography.sectionFontSize,
+      fontSize: style.fontSize ?? theme.typography.fontSize,
     },
     theme,
   );
@@ -63,7 +63,10 @@ function labelClearance(
   // The diamond's inscribed box already restricts both axes. A second full
   // inset needlessly splits short words inside otherwise sufficient contours.
   const scale = shape === "diamond" || shape === "diam" ? 0.5 : 1;
-  return { x: (type.lineHeight * scale) / 2, y: (type.lineHeight * scale) / 4 };
+  return {
+    x: type.lineHeight * 0.65 * scale,
+    y: type.lineHeight * 0.35 * scale,
+  };
 }
 
 export function measureFlowchartNode(
@@ -83,11 +86,11 @@ export function measureFlowchartNode(
   const clearance = labelClearance(type, node.shape);
   const [rx, ry] = innerRatio(node.shape);
   let width = Math.max(
-    type.lineHeight * 4,
+    type.lineHeight * 4.5,
     (Math.max(measured.width, inkWidth) + clearance.x * 2) / rx,
   );
   let height = Math.max(
-    type.lineHeight * 2,
+    type.lineHeight * 2.1,
     (measured.height + clearance.y * 2) / ry,
   );
   if (rx === Math.SQRT1_2) width = height = Math.max(width, height);

@@ -17,13 +17,13 @@
     "@myoxus/track": "workspace:*",
     "@myoxus/ui-facade": "workspace:*",
     "@sentry/react": "10.75.0",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "react-router": "7.18.4"
   },
   "devDependencies": {
-    "@types/react": "^19.0.1",
-    "@types/react-dom": "^19.0.2",
+    "@types/react": "^19.3.1",
+    "@types/react-dom": "^19.3.0",
     "cross-env": "^10.1.0",
     "typescript": "7.0.2"
   },

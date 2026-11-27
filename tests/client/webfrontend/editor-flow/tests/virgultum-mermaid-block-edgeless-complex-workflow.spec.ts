@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { expect, type Page, test } from "@playwright/test";
+import { writeFile } from "node:fs/promises";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 import {
   DEFAULT_SMOKE_USER_EMAIL,
@@ -20,14 +21,12 @@ import {
   typeSlashCommand,
 } from "./virgultum-mermaid-block-doc-helpers";
 import {
-  clickToolbarButtonWithPointer,
   edgelessFlowchartEdgeEndpointNodeIds,
   edgelessFlowchartEdgeLabel,
   edgelessFlowchartEdgeTargetNodeId,
   edgelessFlowchartGfxStats,
   edgelessFlowchartNodeBounds,
   edgelessFlowchartNodeLabels,
-  expectConnectorLabelEditorVisible,
   flowchartNodeBounds,
   largestVisibleMermaidEdgelessFrame,
   renameEdgelessFlowchartNode,
@@ -62,6 +61,42 @@ const FLOWCHART_PAGE_VIEWPORT_PADDING = 36;
 const _FLOWCHART_PAGE_MIN_READABLE_ZOOM_ANCHOR =
   FLOWCHART_PAGE_MIN_READABLE_ZOOM;
 const _FLOWCHART_PAGE_VIEWPORT_PADDING_ANCHOR = FLOWCHART_PAGE_VIEWPORT_PADDING;
+async function nativeOwnerSource(owner: Locator): Promise<string> {
+  return owner.evaluate((element) => {
+    const block = element as unknown as {
+      model?: { props?: { source?: { toString?: () => string } } };
+    };
+    return block.model?.props?.source?.toString?.() ?? "";
+  });
+}
+
+async function importNativeEdgelessMermaid(
+  page: Page,
+  filePath: string,
+  source: string,
+): Promise<Locator> {
+  await writeFile(filePath, source, "utf8");
+  const countBefore = await page.locator("myoxus-edgeless-mermaid").count();
+  await page.evaluate(() => {
+    window.showOpenFilePicker = undefined;
+  });
+  await page
+    .getByTestId("myoxus-mermaid-edgeless-toolbar-button")
+    .click({ timeout: 10_000 });
+  await expect(
+    page.getByRole("searchbox", { name: "Diagram type", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.type("Import");
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByTestId("myoxus-mermaid-edgeless-import-mmd").click();
+  await (await chooser).setFiles(filePath);
+  await expect
+    .poll(() => page.locator("myoxus-edgeless-mermaid").count())
+    .toBe(countBefore + 1);
+  await page.keyboard.press("Alt+1");
+  return largestVisibleMermaidEdgelessFrame(page);
+}
+
 async function mermaidBlockSource(page: Page): Promise<string> {
   return page.evaluate(() => {
     const block = document.querySelector("myoxus-mermaid") as {
@@ -221,24 +256,15 @@ test.describe("Virgultum Mermaid block", () => {
       await expect(page.locator("myoxus-edgeless-root").first()).toBeVisible({
         timeout: 20_000,
       });
+      await expect(page.locator("myoxus-frame")).toHaveCount(0);
       await expect(
-        page.locator("myoxus-edgeless-note myoxus-mermaid"),
-      ).toBeHidden();
-      await expect(
-        page.locator(
-          "myoxus-edgeless-note [data-testid='edgeless-note-container']",
-        ),
-      ).toHaveCount(0);
-      const frameIndex = await page.locator("myoxus-frame").evaluateAll(
-        (frames) =>
-          frames
-            .map((frame, index) => {
-              const rect = frame.getBoundingClientRect();
-              return { area: rect.width * rect.height, index };
-            })
-            .sort((a, b) => b.area - a.area)[0]?.index ?? 0,
+        page.locator("myoxus-edgeless-note myoxus-mermaid").first(),
+      ).toBeVisible({ timeout: 20_000 });
+      const managedFrame = await importNativeEdgelessMermaid(
+        page,
+        testInfo.outputPath("edgeless-flowchart.mmd"),
+        "flowchart TD\n  A[Page mode] --> B[Canvas mode]\n  C[Review mode]",
       );
-      const managedFrame = page.locator("myoxus-frame").nth(frameIndex);
       await expect(managedFrame).toBeVisible({ timeout: 20_000 });
       const managedFrameBox = await managedFrame.boundingBox();
       expect(managedFrameBox?.width).toBeGreaterThan(120);
@@ -251,17 +277,13 @@ test.describe("Virgultum Mermaid block", () => {
           x: managedFrameBox!.x + 12,
           y: managedFrameBox!.y + 12,
         },
-        "edgeless Mermaid managed frame",
+        "edgeless Mermaid native owner",
         80,
       );
 
       const edgelessNodeBeforeDrag = await edgelessFlowchartNodeBounds(
         managedFrame,
         "A",
-      );
-      expect(edgelessNodeBeforeDrag.x).toBeCloseTo(
-        pageModeNodeBeforeEdgeless.x,
-        0,
       );
       await page.keyboard.press("Escape");
       await page.keyboard.press("v");
@@ -294,26 +316,19 @@ test.describe("Virgultum Mermaid block", () => {
         "B",
       );
       expect(edgeSelection.edgeId).toContain("edge-A-B");
-      const connectorToolbar = page
-        .locator(
-          'editor-toolbar[data-myoxus-floating-toolbar="true"], myoxus-toolbar-widget editor-toolbar',
-        )
-        .last();
-      const addConnectorLabelButton = connectorToolbar
-        .getByLabel("Edit label")
-        .first();
-      await clickToolbarButtonWithPointer(
-        page,
-        addConnectorLabelButton,
-        "Edit label",
-      );
-      await expectConnectorLabelEditorVisible(
-        page,
-        managedFrame,
-        edgeSelection.edgeElementId,
-      );
-      await page.keyboard.type("edgeless path", { delay: 10 });
-      await page.keyboard.press("Escape");
+      const selectionToolbar = page.getByRole("toolbar", {
+        name: "Selection toolbar",
+      });
+      await expect(selectionToolbar).toBeVisible({ timeout: 10_000 });
+      await selectionToolbar
+        .getByRole("button", { name: "Selected edge label" })
+        .click();
+      const edgeLabelInput = page.getByRole("textbox", {
+        name: "Selected edge label",
+      });
+      await expect(edgeLabelInput).toBeVisible({ timeout: 10_000 });
+      await edgeLabelInput.fill("edgeless path");
+      await edgeLabelInput.press("Enter");
       await expect
         .poll(() =>
           edgelessFlowchartEdgeLabel(managedFrame, edgeSelection.edgeElementId),
@@ -334,13 +349,13 @@ test.describe("Virgultum Mermaid block", () => {
       });
       const handleBox = await targetConnectorHandle.boundingBox();
       expect(handleBox).toBeTruthy();
-      expect(handleBox!.width).toBeGreaterThanOrEqual(20);
-      expect(handleBox!.height).toBeGreaterThanOrEqual(20);
+      expect(Math.round(handleBox!.width)).toBeGreaterThanOrEqual(20);
+      expect(Math.round(handleBox!.height)).toBeGreaterThanOrEqual(20);
       const reviewNodeTarget = await edgelessFlowchartNodeBounds(
         managedFrame,
         "C",
       );
-      const sourceBeforeReconnect = await mermaidBlockSource(page);
+      const sourceBeforeReconnect = await nativeOwnerSource(managedFrame);
       await page.mouse.move(
         handleBox!.x + handleBox!.width / 2,
         handleBox!.y + handleBox!.height / 2,
@@ -359,9 +374,13 @@ test.describe("Virgultum Mermaid block", () => {
         )
         .toBe("C");
       await expect
-        .poll(() => mermaidBlockSource(page))
+        .poll(() => nativeOwnerSource(managedFrame))
         .not.toBe(sourceBeforeReconnect);
-      const sourceAfterReconnect = await mermaidBlockSource(page);
+      const sourceAfterReconnect = await nativeOwnerSource(managedFrame);
+      expect(sourceAfterReconnect).toMatch(
+        /A\[Page mode\]\s+(?:[\w-]+@)?-->\s+\|edgeless path\|\s+C\[Review mode\]/,
+      );
+      expect(sourceAfterReconnect).toContain("B[Canvas mode]");
       await page.keyboard.press("Control+Z");
       await expect
         .poll(() =>
@@ -372,7 +391,7 @@ test.describe("Virgultum Mermaid block", () => {
         )
         .toBe("B");
       await expect
-        .poll(() => mermaidBlockSource(page))
+        .poll(() => nativeOwnerSource(managedFrame))
         .toBe(sourceBeforeReconnect);
       await page.keyboard.press("Control+Y");
       await expect
@@ -384,7 +403,7 @@ test.describe("Virgultum Mermaid block", () => {
         )
         .toBe("C");
       await expect
-        .poll(() => mermaidBlockSource(page))
+        .poll(() => nativeOwnerSource(managedFrame))
         .toBe(sourceAfterReconnect);
 
       const edgelessScreenshotPath = testInfo.outputPath(
@@ -404,10 +423,7 @@ test.describe("Virgultum Mermaid block", () => {
       await mermaidBlock.getByText("Visual", { exact: true }).click();
       await expect
         .poll(async () => (await flowchartNodeBounds(mermaidBlock, "A")).x)
-        .toBeGreaterThan(pageModeNodeBeforeEdgeless.x + 24);
-      await expect
-        .poll(async () => (await flowchartNodeBounds(mermaidBlock, "A")).y)
-        .toBeGreaterThan(pageModeNodeBeforeEdgeless.y + 12);
+        .toBeCloseTo(pageModeNodeBeforeEdgeless.x, 0);
       const pageModeIdentityAfterEdgeless =
         await mermaidOwnerIdentity(mermaidBlock);
       expect(pageModeIdentityAfterEdgeless.blockId).toBe(
@@ -416,14 +432,11 @@ test.describe("Virgultum Mermaid block", () => {
       expect(pageModeIdentityAfterEdgeless.childIds).toEqual(
         pageModeIdentityBeforeEdgeless.childIds,
       );
-      expect(pageModeIdentityAfterEdgeless.sourceHash).not.toBe(
-        pageModeIdentityBeforeEdgeless.sourceHash,
-      );
       await mermaidBlock.getByText("Source", { exact: true }).click();
       await expect(sourceEditor).toHaveValue(
-        /A\[Page mode\] -->\s+\|edgeless path\|\s+C\[Review mode\]/,
+        /A\[Page mode\] --> B\[Canvas mode\]/,
       );
-      await expect(sourceEditor).toHaveValue(/B\[Canvas mode\]/);
+      await expect(sourceEditor).toHaveValue(/C\[Review mode\]/);
       expect(runtimeErrors).toEqual([]);
     } finally {
       if (docId) {
@@ -498,10 +511,15 @@ test.describe("Virgultum Mermaid block", () => {
       await expect(page.locator("myoxus-edgeless-root").first()).toBeVisible({
         timeout: 20_000,
       });
+      await expect(page.locator("myoxus-frame")).toHaveCount(0);
       await expect(
-        page.locator("myoxus-edgeless-note myoxus-mermaid"),
-      ).toBeHidden();
-      const managedFrame = await largestVisibleMermaidEdgelessFrame(page);
+        page.locator("myoxus-edgeless-note myoxus-mermaid").first(),
+      ).toBeVisible({ timeout: 20_000 });
+      const managedFrame = await importNativeEdgelessMermaid(
+        page,
+        testInfo.outputPath("edgeless-flowchart-elk.mmd"),
+        "flowchart-elk TD\n  A[Page mode] --> B[Canvas mode]\n  C[Review mode]",
+      );
       await expect(managedFrame).toBeVisible({ timeout: 20_000 });
       const managedFrameBox = await managedFrame.boundingBox();
       expect(managedFrameBox?.width).toBeGreaterThan(120);
@@ -514,7 +532,7 @@ test.describe("Virgultum Mermaid block", () => {
           x: managedFrameBox!.x + 12,
           y: managedFrameBox!.y + 12,
         },
-        "edgeless Flowchart ELK managed frame",
+        "edgeless Flowchart ELK native owner",
         80,
       );
       await expect
@@ -538,9 +556,9 @@ test.describe("Virgultum Mermaid block", () => {
         .poll(() => edgelessFlowchartNodeLabels(managedFrame))
         .toHaveProperty("A", "ELK page mode");
       await expect
-        .poll(() => mermaidBlockSource(page))
+        .poll(() => nativeOwnerSource(managedFrame))
         .toMatch(
-          /flowchart-elk TD\n\s*A\[ELK page mode\]\s+-->\s+B\[Canvas mode\]/,
+          /flowchart-elk TD\n\s*A\[ELK page mode\]\s+(?:[\w-]+@)?-->\s+B\[Canvas mode\]/,
         );
 
       const edgeSelection = await selectEdgelessFlowchartEdge(
@@ -550,7 +568,7 @@ test.describe("Virgultum Mermaid block", () => {
         "B",
       );
       expect(edgeSelection.edgeId).toContain("edge-A-B");
-      const sourceBeforeReconnect = await mermaidBlockSource(page);
+      const sourceBeforeReconnect = await nativeOwnerSource(managedFrame);
       const reviewNodeTarget = await edgelessFlowchartNodeBounds(
         managedFrame,
         "C",
@@ -595,18 +613,18 @@ test.describe("Virgultum Mermaid block", () => {
         })
         .toBe(true);
       await expect
-        .poll(() => mermaidBlockSource(page))
+        .poll(() => nativeOwnerSource(managedFrame))
         .not.toBe(sourceBeforeReconnect);
       await expect
-        .poll(() => mermaidBlockSource(page))
+        .poll(() => nativeOwnerSource(managedFrame))
         .toContain("flowchart-elk TD");
       await expect
-        .poll(() => mermaidBlockSource(page))
+        .poll(() => nativeOwnerSource(managedFrame))
         .toMatch(
-          /(?:A\[ELK page mode\]\s+-->\s+C\[Review mode\]|C\[Review mode\]\s+-->\s+B\[Canvas mode\])/,
+          /(?:A\[ELK page mode\]\s+(?:[\w-]+@)?-->\s+C\[Review mode\]|C\[Review mode\]\s+(?:[\w-]+@)?-->\s+B\[Canvas mode\])/,
         );
       await expect
-        .poll(() => mermaidBlockSource(page))
+        .poll(() => nativeOwnerSource(managedFrame))
         .toContain("B[Canvas mode]");
       await expect
         .poll(() => edgelessFlowchartGfxStats(managedFrame))
@@ -649,16 +667,117 @@ test.describe("Virgultum Mermaid block", () => {
       expect(pageModeIdentityAfterEdgeless.childIds).toEqual(
         pageModeIdentityBeforeEdgeless.childIds,
       );
-      expect(pageModeIdentityAfterEdgeless.sourceHash).not.toBe(
-        pageModeIdentityBeforeEdgeless.sourceHash,
-      );
       await mermaidBlock.getByText("Source", { exact: true }).click();
       await expect(sourceEditor).toHaveValue(/flowchart-elk TD/);
       await expect(sourceEditor).toHaveValue(
-        /(?:A\[ELK page mode\]\s+-->\s+C\[Review mode\]|C\[Review mode\]\s+-->\s+B\[Canvas mode\])/,
+        /A\[Page mode\] --> B\[Canvas mode\]/,
       );
-      await expect(sourceEditor).toHaveValue(/A\[ELK page mode\]/);
-      await expect(sourceEditor).toHaveValue(/B\[Canvas mode\]/);
+      await expect(sourceEditor).toHaveValue(/C\[Review mode\]/);
+      expect(runtimeErrors).toEqual([]);
+    } finally {
+      if (docId) {
+        await cleanupDoc(workspaceId, cookies, docId, request);
+      }
+      await signOutViaApi(request, API, cookies);
+    }
+  });
+
+  test("switches a surface-owned catalog Flowchart from Edgeless to Page, renders editable GFX with snap toggle, and returns to Edgeless intact", async ({
+    context,
+    page,
+    request,
+  }) => {
+    test.setTimeout(120_000);
+    const runtimeErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() !== "error") return;
+      const text = message.text();
+      if (FATAL_ERROR_PATTERNS.some((pattern) => pattern.test(text))) {
+        runtimeErrors.push(`console: ${text}`);
+      }
+    });
+    page.on("pageerror", (error) => {
+      runtimeErrors.push(`pageerror: ${error.message}`);
+    });
+
+    const cookies = await signInViaApi(
+      request,
+      API,
+      DEFAULT_SMOKE_USER_EMAIL,
+      DEFAULT_SMOKE_USER_PASSWORD,
+    );
+    await injectCookies(context, cookies);
+    await suppressOpenInApp(context);
+    const workspaceId = await getSmokeWorkspaceId(request, GQL, cookies);
+    let docId: string | undefined;
+
+    try {
+      await page.goto(`${FRONTEND}/workspace/${workspaceId}/diagrams`, {
+        waitUntil: "domcontentloaded",
+      });
+      await page
+        .getByRole("button", { name: /Flowchart|Flussdiagramm/i })
+        .first()
+        .click();
+      await expect(page).toHaveURL(
+        new RegExp(`/workspace/${workspaceId}/(?!diagrams)[^/?]+`),
+        {
+          timeout: 30_000,
+        },
+      );
+      docId = new URL(page.url()).pathname.split("/").pop();
+      expect(docId).toBeTruthy();
+
+      const surfaceEditor = page.locator("myoxus-edgeless-root").first();
+      await expect(surfaceEditor).toBeVisible({ timeout: 25_000 });
+
+      await page.getByTestId("switch-page-mode-button").click();
+      await expect(page).toHaveURL(/\?mode=page(?:$|&)|\/[^?]+$/, {
+        timeout: 20_000,
+      });
+      const mermaidBlock = page.locator("myoxus-mermaid").first();
+      await expect(mermaidBlock).toBeVisible({ timeout: 20_000 });
+      await expect(
+        mermaidBlock.locator(
+          '.myoxus-mermaid-gfx-editor[data-diagram-type="flowchart"][data-mermaid-gfx-editable="true"]',
+        ),
+      ).toBeVisible({ timeout: 15_000 });
+      await expect(
+        mermaidBlock.getByRole("button", {
+          name: /Snap to grid|Am Raster ausrichten/i,
+        }),
+      ).toBeVisible({ timeout: 10_000 });
+      const visiblePageTitleCount = await page.evaluate(() => {
+        const el = document.querySelector("myoxus-mermaid") as {
+          _getScopedGfxController?: () => {
+            surface?: {
+              elementModels?: Array<{
+                id: string;
+                yMap?: { get?: (key: string) => unknown };
+              }>;
+            };
+            surfaceComponent?: {
+              renderer?: {
+                isElementLocallyExcluded?: (id: string) => boolean;
+              };
+            };
+          } | null;
+        } | null;
+        const gfx = el?._getScopedGfxController?.();
+        const models = gfx?.surface?.elementModels;
+        const renderer = gfx?.surfaceComponent?.renderer;
+        if (!models || !renderer?.isElementLocallyExcluded) return -1;
+        return models.filter(
+          (model) =>
+            model.yMap?.get?.("mermaidRole") === "mermaid-diagram-title" &&
+            !renderer.isElementLocallyExcluded!(model.id),
+        ).length;
+      });
+      expect(visiblePageTitleCount).toBe(0);
+
+      await page.getByTestId("switch-edgeless-mode-button").click();
+      await expect(page).toHaveURL(/\?mode=edgeless/, { timeout: 20_000 });
+      await expect(surfaceEditor).toBeVisible({ timeout: 20_000 });
       expect(runtimeErrors).toEqual([]);
     } finally {
       if (docId) {

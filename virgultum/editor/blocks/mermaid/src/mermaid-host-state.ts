@@ -64,6 +64,7 @@ import type { MermaidGfxObjectEditIntent } from "./families/runtime/editor-capab
 import { readMermaidGfxMeta } from "./mermaid-gfx-metadata.js";
 import { resolveMermaidGfxProjection } from "./presentation/gfx-projection-owner.js";
 import { Bound } from "@virgultum/core/primitives/gfx";
+import type { MermaidGfxSnapGuide } from "./mermaid-gfx-snap.js";
 export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlockModel> {
   protected _objectEditIntent:
     ((intent: MermaidGfxObjectEditIntent) => boolean) | undefined;
@@ -325,6 +326,7 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
     nodeId: string,
     dx: number,
     dy: number,
+    bypassSnap?: boolean,
   ): void;
   protected abstract _moveSelectedVisualNode(dx: number, dy: number): void;
   protected abstract _duplicateSelectedVisualNodes(
@@ -725,8 +727,8 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
       isEditableEventTarget: (event) =>
         Boolean(this._getEditableEventTarget(event)),
       isReadonly: () => this.store.readonly,
-      moveVisualNode: (nodeId, dx, dy) =>
-        this._moveVisualNodeByDrag(nodeId, dx, dy),
+      moveVisualNode: (nodeId, dx, dy, bypassSnap) =>
+        this._moveVisualNodeByDrag(nodeId, dx, dy, bypassSnap),
       onVisualNodeDragEnd: (
         nodeId,
         didMove,
@@ -827,6 +829,12 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
       this._visualSelectionAnchorKey("subgraph"),
     getStd: () => this.std,
     getViewportResizeStep: () => MERMAID_SCOPED_GFX_PAGE_VIEWPORT_RESIZE_STEP,
+    getViewportZoom: () => this._getScopedGfxController()?.viewport?.zoom ?? 1,
+    isSnapToGridEnabled: () => this._snapToGridEnabled,
+    setSnapGuides: (guides, hud) => {
+      this._activeSnapGuides = guides;
+      this._activeGeometryHud = hud ?? null;
+    },
     refreshRenderer: () => this._refreshScopedGfxRenderer(),
     getVisualNodeConnectionHandles: (nodeId) =>
       this._getVisualNodeConnectionHandles(nodeId),
@@ -884,6 +892,14 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
   protected _visualAutoViewportHeight: number | null = null;
   protected _visualNodeDragModel: MermaidVisualModel | null = null;
   protected _visualNodePointerSessionActive = false;
+  protected _snapToGridEnabled = true;
+  protected _activeSnapGuides: readonly MermaidGfxSnapGuide[] = [];
+  protected _activeGeometryHud: {
+    readonly x: number;
+    readonly y: number;
+    readonly text: string;
+  } | null = null;
+  protected _hoveredVisualNodeId = "";
   protected _visualContextMenu: { left: number; top: number } | null = null;
   // Alignment guides have no native GFX element identity. Keep only the
   // currently invoked guide so two legal alignments over the same members can

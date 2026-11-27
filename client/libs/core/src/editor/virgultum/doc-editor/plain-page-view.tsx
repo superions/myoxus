@@ -8,6 +8,7 @@ import { pageTextRun } from "./page-text-run";
 import type { ReferenceInfo } from "@virgultum/core/models";
 import type { ParagraphBlockModel } from "@virgultum/core/models";
 import { calculateCollapsedSiblings } from "@virgultum/core/utils/collapsed";
+import { getNumberPrefix } from "@virgultum/core/utils";
 import { ChevronDownIcon, ChevronRightIcon } from "@myoxus/icons/react";
 import { ServerFeature } from "@myoxus/graphql";
 import {
@@ -147,6 +148,18 @@ const DatabaseReference = lazy(async () => ({
     await import("../../../modules/database/database-block-adapter/server-database-block")
   ).PageDatabaseReference,
 }));
+
+const BULLET_GLYPHS = ["•", "◦", "▪"] as const;
+
+function listNestingDepth(model: PageLine["model"]): number {
+  let depth = 0;
+  let parent = model.store.getParent(model);
+  while (parent?.flavour === "myoxus:list") {
+    depth++;
+    parent = model.store.getParent(parent);
+  }
+  return depth;
+}
 
 function headingStyle(
   heading: NonNullable<PageLine["heading"]>,
@@ -537,8 +550,10 @@ export function VirgultumPageEditor(props: PageViewProps) {
               initialDiagram.claim,
             );
           } else {
-            const { prepareMermaidFamilySource } =
-              await import("@virgultum/block-mermaid");
+            const {
+              createMermaidBlockInsertProps,
+              prepareMermaidFamilySource,
+            } = await import("@virgultum/block-mermaid");
             await prepareMermaidFamilySource(initialDiagram.source ?? "");
             if (
               canceled ||
@@ -566,14 +581,16 @@ export function VirgultumPageEditor(props: PageViewProps) {
               const parent = target?.parent ?? fallbackNote;
               if (parent) {
                 let insertedId: string | undefined;
+                const { flavour: _flavour, ...mermaidProps } =
+                  createMermaidBlockInsertProps({
+                    source: initialDiagram.source ?? "",
+                    title: initialDiagram.title,
+                  });
                 page.captureSync();
                 page.transact(() => {
                   insertedId = page.addBlock(
                     "myoxus:mermaid",
-                    {
-                      source: initialDiagram.source ?? "",
-                      title: initialDiagram.title ?? "",
-                    },
+                    mermaidProps,
                     parent,
                     target ? target.index + 1 : parent.children.length,
                   );
@@ -1400,6 +1417,16 @@ function PageView({
               data-callout-text={
                 line.model.flavour === "myoxus:callout" || undefined
               }
+              data-list-kind={
+                line.kind === "bulleted" ||
+                line.kind === "numbered" ||
+                line.kind === "todo"
+                  ? line.kind
+                  : undefined
+              }
+              data-list-checked={
+                line.kind === "todo" && line.checked ? "true" : undefined
+              }
               role={line.heading ? "heading" : undefined}
               aria-level={line.heading ? Number(line.heading[1]) : undefined}
               data-heading={line.heading}
@@ -1414,7 +1441,7 @@ function PageView({
               style={{
                 textAlign: line.alignment,
                 ...(line.heading ? headingStyle(line.heading) : {}),
-                paddingInlineStart: `calc(${line.depth} * var(--mantine-spacing-xl))`,
+                marginInlineStart: `calc(${line.depth} * var(--mantine-spacing-xl))`,
               }}
             >
               {expandable.has(line.model.id) && (
@@ -1449,10 +1476,12 @@ function PageView({
                   />
                 </span>
               )}
-              {["bulleted", "numbered", "todo"].includes(line.kind) && (
-                <span contentEditable={false}>
+              {(line.kind === "bulleted" ||
+                line.kind === "numbered" ||
+                line.kind === "todo") && (
+                <span data-list-marker={line.kind} contentEditable={false}>
                   {line.kind === "numbered" ? (
-                    `${line.ordinal}.`
+                    getNumberPrefix(line.ordinal, listNestingDepth(line.model))
                   ) : line.kind === "todo" ? (
                     <Checkbox
                       size="sm"
@@ -1468,8 +1497,8 @@ function PageView({
                       }}
                     />
                   ) : (
-                    "•"
-                  )}{" "}
+                    BULLET_GLYPHS[listNestingDepth(line.model) % 3]
+                  )}
                 </span>
               )}
               <TextField

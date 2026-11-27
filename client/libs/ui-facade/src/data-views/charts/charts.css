@@ -21,9 +21,11 @@
     60cqi,
     calc(var(--mantine-spacing-2xl) * 16)
   );
+  box-sizing: border-box;
   container-type: inline-size;
   inline-size: 100%;
   min-inline-size: 0;
+  padding: var(--mantine-spacing-sm);
 }
 
 .myoxus-data-sankey-chart-surface[data-compact="true"] {
@@ -185,9 +187,11 @@
     60cqi,
     calc(var(--mantine-spacing-2xl) * 16)
   );
+  box-sizing: border-box;
   container-type: inline-size;
   inline-size: 100%;
   min-inline-size: 0;
+  padding: var(--mantine-spacing-sm);
   position: relative;
 }
 
@@ -227,6 +231,30 @@
   fill: color-mix(
     in srgb,
     var(--myoxus-accent-primary) 18%,
+    var(--mantine-color-body)
+  );
+}
+
+.myoxus-data-treemap-leaf[data-leaf-tone="1"] {
+  fill: color-mix(
+    in srgb,
+    var(--myoxus-sem-status-info) 18%,
+    var(--mantine-color-body)
+  );
+}
+
+.myoxus-data-treemap-leaf[data-leaf-tone="2"] {
+  fill: color-mix(
+    in srgb,
+    var(--myoxus-sem-status-success) 18%,
+    var(--mantine-color-body)
+  );
+}
+
+.myoxus-data-treemap-leaf[data-leaf-tone="3"] {
+  fill: color-mix(
+    in srgb,
+    var(--myoxus-sem-status-warning) 18%,
     var(--mantine-color-body)
   );
 }
@@ -550,11 +578,13 @@
   --myoxus-data-pie-preferred-size: calc(var(--mantine-spacing-2xl) * 12);
 
   align-items: center;
+  box-sizing: border-box;
   display: flex;
   flex-wrap: wrap;
   gap: var(--mantine-spacing-lg);
   inline-size: 100%;
   justify-content: center;
+  padding: var(--mantine-spacing-md);
 }
 
 .myoxus-data-pie-chart-surface {

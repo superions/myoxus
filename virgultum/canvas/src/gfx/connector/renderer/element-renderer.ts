@@ -81,7 +81,7 @@ export const connector: ElementRenderer<
 
     const path = new Path2D();
     path.rect(-offset / 2, -offset / 2, w + offset, h + offset);
-    path.rect(dx - 3 - 0.5, dy - 3 - 0.5, lw + 6 + 1, lh + 6 + 1);
+    path.rect(dx - 1, dy - 1, lw + 2, lh + 2);
     ctx.clip(path, "evenodd");
   }
 
@@ -356,6 +356,33 @@ function renderLabel(
     ctx.fillRect(0, 0, w, h);
     return; // Skip actual label rendering
   }
+
+  // Paint a compact, theme-projected pill backing behind edge labels so text
+  // remains crisp over or beside connectors without raw color literals.
+  const pillRadius = Math.min(6, h / 2, w / 2);
+  const pillFill = renderer.getColorValue(
+    DefaultTheme.noteBackgrounColor,
+    DefaultTheme.noteBackgrounColor,
+    true,
+  );
+  const pillBorder = renderer.getColorValue(
+    "--myoxus-border-color",
+    DefaultTheme.connectorColor,
+    true,
+  );
+  ctx.save();
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") {
+    ctx.roundRect(0.5, 0.5, Math.max(0, w - 1), Math.max(0, h - 1), pillRadius);
+  } else {
+    ctx.rect(0.5, 0.5, Math.max(0, w - 1), Math.max(0, h - 1));
+  }
+  ctx.fillStyle = pillFill;
+  ctx.fill();
+  ctx.strokeStyle = pillBorder;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
 
   const deltas = wrapTextDeltas(text!, font, w);
   const lines = deltaInsertsToChunks(deltas);

@@ -73,8 +73,17 @@ export const tableBlockHtmlAdapterMatcher: BlockHtmlAdapterMatcher = {
   fromBlockSnapshot: {
     enter: (o, context) => {
       const { walkerContext } = context;
-      const { columns, rows, cells, headerRows, appearance, density } = o.node
-        .props as unknown as TableBlockPropsSerialized;
+      const {
+        columns,
+        rows,
+        cells,
+        headerRows,
+        headerColumn,
+        striped,
+        caption,
+        appearance,
+        density,
+      } = o.node.props as unknown as TableBlockPropsSerialized;
       const table = processTable(columns, rows, cells);
       const widths = table.widths.some((width) => width !== undefined)
         ? table.widths.map((width) => width ?? DefaultColumnWidth)
@@ -94,12 +103,14 @@ export const tableBlockHtmlAdapterMatcher: BlockHtmlAdapterMatcher = {
         children: InlineHtmlAST[],
         isHeader: boolean,
         column: number,
+        span: { colspan: number; rowspan: number },
         fill?: string,
       ): InlineHtmlAST => {
         if (fill && !theme)
           throw new Error("Native table paint export requires ThemeService");
+        const isRowHeader = !isHeader && Boolean(headerColumn) && column === 0;
         const paint =
-          theme && (fill || isHeader)
+          theme && (fill || isHeader || isRowHeader)
             ? resolveTableColors(
                 theme,
                 fill ?? cssVar("backgroundSecondaryColor"),
@@ -122,9 +133,15 @@ export const tableBlockHtmlAdapterMatcher: BlockHtmlAdapterMatcher = {
           .join(";");
         return {
           type: "element",
-          tagName: isHeader ? "th" : "td",
+          tagName: isHeader || isRowHeader ? "th" : "td",
           properties: {
-            ...(isHeader ? { scope: "col" } : {}),
+            ...(isHeader
+              ? { scope: "col" }
+              : isRowHeader
+                ? { scope: "row" }
+                : {}),
+            ...(span.colspan > 1 ? { colSpan: span.colspan } : {}),
+            ...(span.rowspan > 1 ? { rowSpan: span.rowspan } : {}),
             ...(style ? { style } : {}),
           },
           children: [
@@ -149,11 +166,12 @@ export const tableBlockHtmlAdapterMatcher: BlockHtmlAdapterMatcher = {
       const sections = tableHtmlSections(
         table,
         headerRows,
-        (cell, header, column) =>
+        (cell, header, column, span) =>
           createAstTableCell(
             deltaConverter.deltaToAST(cell.value.delta),
             header,
             column,
+            span,
             cell.backgroundColor,
           ),
       );
@@ -177,6 +195,8 @@ export const tableBlockHtmlAdapterMatcher: BlockHtmlAdapterMatcher = {
             ...(headerRows === undefined
               ? {}
               : { dataMyoxusTableHeaderRows: normalizedHeaderRows }),
+            ...(headerColumn ? { dataMyoxusTableHeaderColumn: "true" } : {}),
+            ...(striped ? { dataMyoxusTableStriped: "true" } : {}),
             ...(normalizedAppearance === undefined
               ? {}
               : { dataMyoxusTableAppearance: normalizedAppearance }),
@@ -185,6 +205,16 @@ export const tableBlockHtmlAdapterMatcher: BlockHtmlAdapterMatcher = {
               : { dataMyoxusTableDensity: normalizedDensity }),
           },
           children: [
+            ...(caption?.trim()
+              ? [
+                  {
+                    type: "element" as const,
+                    tagName: "caption",
+                    properties: {},
+                    children: [{ type: "text" as const, value: caption }],
+                  },
+                ]
+              : []),
             ...(widths && totalWidth
               ? [
                   {

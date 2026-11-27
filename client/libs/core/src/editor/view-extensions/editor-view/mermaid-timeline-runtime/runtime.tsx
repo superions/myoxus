@@ -254,12 +254,13 @@ export function MermaidTimelineRuntime({
         }
       >
         <Stack>
-          <Group>
+          <Group align="flex-end" gap="sm" px="sm" pt="xs">
             <NumberInput
               label={messages.timelineDensity()}
               value={density}
               min={8}
               max={120}
+              w={140}
               onChange={(value) => {
                 if (typeof value === "number") {
                   setDensity(value);
@@ -267,7 +268,7 @@ export function MermaidTimelineRuntime({
                 }
               }}
             />
-            <Button variant="plain" onClick={() => setFitWidth(true)}>
+            <Button variant="secondary" onClick={() => setFitWidth(true)}>
               {messages.ganttFitToWidth()}
             </Button>
           </Group>

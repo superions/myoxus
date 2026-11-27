@@ -271,13 +271,24 @@ function TextControl({
       <PopoverTarget>
         <ActionButton action={{ ...action, run: () => open(!opened) }} />
       </PopoverTarget>
-      <PopoverContent>
+      <PopoverContent
+        onKeyDown={(event) => {
+          if (event.key === "Enter") event.stopPropagation();
+        }}
+      >
         <Stack>
           <Input
             aria-label={action.label}
             value={value}
             placeholder={c.placeholder}
             error={error || undefined}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.stopPropagation();
+                event.nativeEvent.stopPropagation();
+              }
+            }}
             onChange={(value) => {
               setValue(value);
               setError(null);

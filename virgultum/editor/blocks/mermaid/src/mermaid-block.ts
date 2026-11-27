@@ -673,6 +673,16 @@ export class MermaidBlockComponent extends MermaidHostFamilyRender {
       showView: Boolean(source.trim()) && !sourceFirst,
       showPageActions: !isInEdgelessMode,
       showPageViewportControls: !isInEdgelessMode,
+      snapToGrid: !isInEdgelessMode
+        ? {
+            enabled: this._snapToGridEnabled,
+            label: mermaidMessages.pageSnapGrid(),
+            onToggle: () => {
+              this._snapToGridEnabled = !this._snapToGridEnabled;
+              this.requestUpdate();
+            },
+          }
+        : undefined,
       source,
       sourceFirst,
       sourceState: sourceLifecycle.kind,

@@ -693,7 +693,8 @@ export async function edgelessFlowchartGfxStats(
         return (
           candidate.type === "shape" &&
           role !== "mermaid-flowchart-subgraph" &&
-          role !== "mermaid-relationship-detail"
+          role !== "mermaid-relationship-detail" &&
+          role !== "mermaid-diagram-title"
         );
       })
       .map((candidate) =>
@@ -959,16 +960,17 @@ export async function edgelessFlowchartNodeVisualProps(
 export async function largestVisibleMermaidEdgelessFrame(
   page: Page,
 ): Promise<Locator> {
-  const frameIndex = await page.locator("myoxus-frame").evaluateAll(
-    (frames) =>
-      frames
-        .map((frame, index) => {
-          const rect = frame.getBoundingClientRect();
+  const ownerSelector = "myoxus-edgeless-mermaid";
+  const ownerIndex = await page.locator(ownerSelector).evaluateAll(
+    (owners) =>
+      owners
+        .map((owner, index) => {
+          const rect = owner.getBoundingClientRect();
           return { area: rect.width * rect.height, index };
         })
         .sort((a, b) => b.area - a.area)[0]?.index ?? 0,
   );
-  return page.locator("myoxus-frame").nth(frameIndex);
+  return page.locator(ownerSelector).nth(ownerIndex);
 }
 
 export async function selectEdgelessFlowchartNode(

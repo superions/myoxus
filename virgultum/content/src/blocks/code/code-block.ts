@@ -465,6 +465,11 @@ export class CodeBlockComponent extends NativeContainerBlock<CodeBlockModel> {
     const container = doc.createElement("div");
     container.className = "myoxus-code-block-container";
     container.classList.toggle("mobile", IS_MOBILE);
+    const header = doc.createElement("div");
+    header.className = "myoxus-code-block-header";
+    header.setAttribute("aria-hidden", "true");
+    const body = doc.createElement("div");
+    body.className = "myoxus-code-block-body";
     const input = doc.createElement("rich-text");
     input.inlineEventSource = this.topContenteditableElement ?? undefined;
     input.undoManager = this.store.history.undoManager;
@@ -478,7 +483,8 @@ export class CodeBlockComponent extends NativeContainerBlock<CodeBlockModel> {
     const preview = doc.createElement("div");
     preview.className = "myoxus-code-block-preview";
     preview.contentEditable = "false";
-    container.append(input, preview);
+    body.append(input, preview);
+    container.append(header, body);
     const frame = selectionFrame(this, container, true);
     frame.style.margin = "18px 0";
     const caption = doc.createElement("block-caption-editor");
@@ -486,6 +492,11 @@ export class CodeBlockComponent extends NativeContainerBlock<CodeBlockModel> {
     caption.std = this.std;
     container.after(caption);
     const config = this.std.getOptional(CodeBlockConfigExtension.identifier);
+    this.disposables.add(
+      effect(() => {
+        header.dataset.language = this.languageName$.value;
+      }),
+    );
     this.disposables.add(
       effect(() => {
         const props = this.model.props;

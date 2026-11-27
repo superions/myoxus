@@ -216,6 +216,7 @@ export const mermaidArchitectureGfxHookRegistration: MermaidGfxFamilyHookRegistr
       hasValidGeometry: hasValidArchitectureGfxProjection,
       graphEditor: true,
       keepsFamilyDisplaySurface: true,
+      minimumReadableZoom: (_model, minimum) => Math.max(1, minimum),
       projectionOwnerAppearanceMatchesTheme:
         architectureProjectionOwnerAppearanceMatchesTheme,
       nodeInlineRename: renameArchitectureGfxNodeInline,

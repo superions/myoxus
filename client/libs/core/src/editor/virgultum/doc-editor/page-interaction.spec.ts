@@ -3,11 +3,15 @@
 // @vitest-environment happy-dom
 
 import type { FrameworkProvider } from "@myoxus/infra";
+import { SurfaceBlockSchemaExtension } from "@virgultum/editor/blocks/surface";
 import {
+  BpmnBlockSchemaExtension,
   CalloutBlockSchemaExtension,
   CodeBlockSchemaExtension,
   DividerBlockSchemaExtension,
+  FrameBlockSchemaExtension,
   ListBlockSchemaExtension,
+  MermaidBlockSchemaExtension,
   NoteBlockSchemaExtension,
   ParagraphBlockSchemaExtension,
   RootBlockSchemaExtension,
@@ -243,5 +247,59 @@ describe("PageInteraction native commands (SPE-06)", () => {
     } finally {
       h.cleanup();
     }
+  });
+
+  test("projects surface-owned Mermaid diagrams into Page without leaking frames or mutating parent", () => {
+    const workspace = new TestWorkspace({ id: "surface-diagram-page-spec" });
+    workspace.meta.initialize();
+    const doc = workspace.createDoc("surface-doc");
+    doc.load();
+    const store = doc.getStore({
+      extensions: [
+        RootBlockSchemaExtension,
+        SurfaceBlockSchemaExtension,
+        FrameBlockSchemaExtension,
+        MermaidBlockSchemaExtension,
+        BpmnBlockSchemaExtension,
+        NoteBlockSchemaExtension,
+        ParagraphBlockSchemaExtension,
+      ],
+    });
+    const rootId = store.addBlock("myoxus:page", {
+      title: new Text("Flowchart"),
+    });
+    const surfaceId = store.addBlock("myoxus:surface", {}, rootId);
+    const mermaidId = store.addBlock(
+      "myoxus:mermaid",
+      { source: "flowchart TD\n  A[Start] --> B[End]" },
+      surfaceId,
+    );
+    store.addBlock("myoxus:frame", {}, surfaceId);
+
+    const surfaceOnlyContent = readPageContent(store);
+    expect(surfaceOnlyContent).not.toBeNull();
+    expect(
+      surfaceOnlyContent!.body.map((item) => [item.kind, item.model.id]),
+    ).toEqual([["mermaid", mermaidId]]);
+    // Native Store ownership remains directly on myoxus:surface for Edgeless.
+    expect(store.getParent(mermaidId)?.flavour).toBe("myoxus:surface");
+
+    // Mixed document: Note content + surface-owned Mermaid project deterministically without duplicates.
+    const noteId = store.addBlock("myoxus:note", {}, rootId);
+    const paraId = store.addBlock(
+      "myoxus:paragraph",
+      { text: new Text("Notes") },
+      noteId,
+    );
+    const bpmnId = store.addBlock("myoxus:bpmn", {}, noteId);
+    const mixedContent = readPageContent(store);
+    expect(
+      mixedContent!.body.map((item) => [item.kind, item.model.id]),
+    ).toEqual([
+      ["text", paraId],
+      ["bpmn", bpmnId],
+      ["mermaid", mermaidId],
+    ]);
+    expect(store.getParent(mermaidId)?.flavour).toBe("myoxus:surface");
   });
 });

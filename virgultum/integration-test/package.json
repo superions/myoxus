@@ -23,8 +23,8 @@
     "@myoxus/ui-facade": "workspace:*",
     "@preact/signals-core": "^1.14.5",
     "@virgultum/editor": "workspace:*",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "rxjs": "^7.8.2",
     "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch",
     "zod": "4.6.7"
@@ -43,7 +43,7 @@
     "!dist/__tests__"
   ],
   "devDependencies": {
-    "vite": "8.3.6",
+    "vite": "8.3.8",
     "vite-plugin-wasm": "3.6.0",
     "vitest": "4.1.12"
   },

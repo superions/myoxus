@@ -134,7 +134,10 @@ export function resolveMermaidPageZoomStep(
   autoScale: number,
   intent: MermaidPageZoomStepIntent,
 ): MermaidPageFixedZoom {
-  const currentPercent = resolveMermaidPageZoomScale(zoom, autoScale) * 100;
+  const currentPercent =
+    zoom !== "auto"
+      ? zoom
+      : Math.round(resolveMermaidPageZoomScale(zoom, autoScale) * 10000) / 100;
   if (intent.direction > 0) {
     return (
       MERMAID_PAGE_FIXED_ZOOMS.find((value) => value > currentPercent) ?? 150

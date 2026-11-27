@@ -18,16 +18,16 @@
     "@virgultum/content": "workspace:*",
     "@virgultum/core": "workspace:*",
     "dayjs": "^1.11.23",
-    "dompurify": "3.4.17",
+    "dompurify": "3.5.0",
     "marked": "^16.3.0",
     "mermaid": "patch:mermaid@npm%3A11.17.2#~/.yarn/patches/mermaid-npm-11.17.2-97875ab19c.patch",
-    "react": "19.3.0",
+    "react": "19.3.1",
     "ts-dedent": "^2.2.0",
     "yaml": "2.9.1"
   },
   "devDependencies": {
-    "@types/react-dom": "^19.0.2",
-    "react-dom": "19.3.0"
+    "@types/react-dom": "^19.3.0",
+    "react-dom": "19.3.1"
   },
   "exports": {
     ".": "./src/index.ts",

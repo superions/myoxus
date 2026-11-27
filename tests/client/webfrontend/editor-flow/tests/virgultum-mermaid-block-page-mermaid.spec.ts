@@ -627,7 +627,9 @@ test.describe("Virgultum Mermaid block", () => {
         mermaidBlock.getByRole("button", { exact: true, name: "Add node" }),
       ).toBeEnabled();
       await expect(
-        mermaidBlock.getByRole("button", { exact: true, name: "Decision" }),
+        mermaidBlock
+          .getByRole("toolbar", { name: "Mermaid diagram controls" })
+          .getByRole("button", { exact: true, name: "Decision" }),
       ).toHaveCount(0);
       await expect(
         mermaidBlock
@@ -726,7 +728,7 @@ test.describe("Virgultum Mermaid block", () => {
           insertedDecisionModelPoint.y - decisionPlacementModelPoint.y,
         ),
       ).toBeLessThan(48);
-      await mermaidBlock.getByRole("button", { name: "Close" }).click();
+      await page.keyboard.press("Escape");
       await mermaidBlock.getByText("Source", { exact: true }).click();
       await expect(sourceEditor).toHaveValue(
         new RegExp(`${insertedNodeId}\\{Decision \\d+\\}`),
@@ -797,9 +799,7 @@ test.describe("Virgultum Mermaid block", () => {
       await page.keyboard.press("Escape");
       await selectFlowchartNode(mermaidBlock, visualCanvas, "A");
       await expect(
-        mermaidBlock.locator(
-          '[data-myoxus-ui-role="mermaid-flowchart-inspector"]',
-        ),
+        mermaidBlock.locator(".myoxus-mermaid-gfx-selection-outline").first(),
       ).toBeVisible();
       await expect
         .poll(
@@ -871,12 +871,10 @@ test.describe("Virgultum Mermaid block", () => {
         "review path",
       );
       await selectFlowchartEdge(mermaidBlock, visualCanvas, "A", "B");
-      await selectFacadeOption(
-        page,
-        mermaidBlock,
-        "Selected edge type",
-        "Cross",
-      );
+      await mermaidBlock
+        .getByRole("button", { name: "Selected edge type" })
+        .click();
+      await page.getByRole("menuitem", { exact: true, name: "Cross" }).click();
 
       const visualBox = await mermaidBlock
         .locator(".myoxus-mermaid-gfx-viewport")
@@ -5348,6 +5346,9 @@ flowchart LR
       ).toContainText("end");
       const invalid = await currentSource();
       await page.getByTestId("switch-edgeless-mode-button").click();
+      await expect(page.locator("myoxus-edgeless-root").first()).toBeVisible({
+        timeout: 20_000,
+      });
       await expect.poll(currentSource).toBe(invalid);
       await expect(source).toHaveCount(0);
       await page.getByTestId("switch-page-mode-button").click();
@@ -7172,12 +7173,26 @@ flowchart LR
           ),
         )
         .toEqual([native.id]);
-      await page
-        .locator("myoxus-edgeless-root")
-        .press("Control+c", { noWaitAfter: true });
-      await page
-        .locator("myoxus-edgeless-root")
-        .press("Control+v", { noWaitAfter: true });
+      const clipboardSnapshot = () =>
+        page.evaluate(async () => {
+          const entries = await navigator.clipboard.read();
+          const item = entries.find((entry) =>
+            entry.types.includes("text/html"),
+          );
+          return item ? (await item.getType("text/html")).text() : "";
+        });
+      const previousClipboard = await clipboardSnapshot();
+      await page.locator("myoxus-edgeless-root").press("Control+c");
+      await expect
+        .poll(async () => {
+          const clipboard = await clipboardSnapshot();
+          return (
+            clipboard !== previousClipboard &&
+            clipboard.includes("data-virgultum-snapshot")
+          );
+        })
+        .toBe(true);
+      await page.locator("myoxus-edgeless-root").press("Control+v");
       await expect
         .poll(async () => (await mermaidOwnerInventory(page)).length)
         .toBe(3);

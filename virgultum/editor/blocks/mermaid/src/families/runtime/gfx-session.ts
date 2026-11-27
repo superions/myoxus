@@ -70,6 +70,12 @@ import {
   resolveMermaidVisualViewportResizePointerStart,
 } from "./gfx-interaction.js";
 import { mermaidMessages } from "../../i18n.js";
+import {
+  resolveMermaidGfxMoveSnap,
+  resolveMermaidGfxResizeSnap,
+  type MermaidGfxSnapGuide,
+  type MermaidGfxSnapRect,
+} from "../../mermaid-gfx-snap.js";
 
 export type MermaidGfxSessionHost = {
   /** True consumes the gesture into a family-local draft, without history. */
@@ -111,6 +117,16 @@ export type MermaidGfxSessionHost = {
   getSelectedVisualSubgraphId(): string;
   getStd(): BlockStdScope;
   getViewportResizeStep(): number;
+  getViewportZoom?(): number;
+  isSnapToGridEnabled?(): boolean;
+  setSnapGuides?(
+    guides: readonly MermaidGfxSnapGuide[],
+    hud?: {
+      readonly x: number;
+      readonly y: number;
+      readonly text: string;
+    } | null,
+  ): void;
   getVisualNodeConnectionHandles(
     nodeId: string,
   ): readonly MermaidGfxConnectionPortPoint[];
@@ -842,6 +858,28 @@ export class MermaidGfxSessionController {
     this.applyVisualConnectionResultSelection(edgeId);
   };
 
+  private collectSurfaceSnapCandidates(
+    excludeId: string,
+  ): MermaidGfxSnapRect[] {
+    const visualModel = this.host.getMermaidVisualModelForEditing();
+    if (!visualModel) return [];
+    const rects: MermaidGfxSnapRect[] = [];
+    for (const node of visualModel.nodes) {
+      if (node.id === excludeId) continue;
+      const model = this.host.getVisualNodeGfxModel(node.id);
+      if (!model?.xywh) continue;
+      const bound = Bound.deserialize(model.xywh);
+      rects.push({
+        id: node.id,
+        x: bound.x,
+        y: bound.y,
+        width: bound.w,
+        height: bound.h,
+      });
+    }
+    return rects;
+  }
+
   private readonly handleVisualGfxNodeResize = (event: PointerEvent) => {
     if (!this.validateGeometryPreview()) return;
     if (!this.resizeVisualNodeId || !this.resizeVisualNodeStart) return;
@@ -851,10 +889,42 @@ export class MermaidGfxSessionController {
       event.clientY,
     );
     if (!pointer) return;
-    const { height, width } = resizeMermaidGfxBoundFromDrag({
+    const raw = resizeMermaidGfxBoundFromDrag({
       pointer,
       start: this.resizeVisualNodeStart,
     });
+    const currentModel = this.host.getVisualNodeGfxModel(
+      this.resizeVisualNodeId,
+    );
+    const currentBound = currentModel?.xywh
+      ? Bound.deserialize(currentModel.xywh)
+      : null;
+    const snapped = currentBound
+      ? resolveMermaidGfxResizeSnap({
+          rect: {
+            x: currentBound.x,
+            y: currentBound.y,
+            width: raw.width,
+            height: raw.height,
+          },
+          candidates: this.collectSurfaceSnapCandidates(
+            this.resizeVisualNodeId,
+          ),
+          minWidth: 40,
+          minHeight: 28,
+          gridEnabled: this.host.isSnapToGridEnabled?.() ?? true,
+          zoom: this.host.getViewportZoom?.() ?? 1,
+          bypass: event.altKey,
+        })
+      : { width: raw.width, height: raw.height, guides: [] };
+    const { width, height } = snapped;
+    if (currentBound) {
+      this.host.setSnapGuides?.(snapped.guides, {
+        x: currentBound.x + width,
+        y: currentBound.y + height,
+        text: `${Math.round(width)} × ${Math.round(height)}`,
+      });
+    }
     if (this.geometryPreview) {
       previewMermaidNodeSize(
         this.geometryPreview,
@@ -906,10 +976,39 @@ export class MermaidGfxSessionController {
       event.clientY,
     );
     if (!pointer) return;
-    const { x, y } = moveMermaidGfxBoundFromDrag({
+    const raw = moveMermaidGfxBoundFromDrag({
       pointer,
       start: this.moveVisualSubgraphStart,
     });
+    const currentSubgraph = this.host.getVisualSubgraphGfxModel(
+      this.moveVisualSubgraphId,
+    );
+    const currentBound = currentSubgraph?.xywh
+      ? Bound.deserialize(currentSubgraph.xywh)
+      : null;
+    const snap = currentBound
+      ? resolveMermaidGfxMoveSnap({
+          movingRect: {
+            x: raw.x,
+            y: raw.y,
+            width: currentBound.w,
+            height: currentBound.h,
+          },
+          candidates: [],
+          gridEnabled: this.host.isSnapToGridEnabled?.() ?? true,
+          zoom: this.host.getViewportZoom?.() ?? 1,
+          bypass: event.altKey,
+        })
+      : { dx: 0, dy: 0, guides: [] };
+    const x = raw.x + snap.dx;
+    const y = raw.y + snap.dy;
+    if (currentBound) {
+      this.host.setSnapGuides?.(snap.guides, {
+        x: x + currentBound.w,
+        y: y + currentBound.h,
+        text: `${Math.round(x)}, ${Math.round(y)}`,
+      });
+    }
     if (this.geometryPreview) {
       previewMermaidSubgraphBound(
         this.geometryPreview,
@@ -1030,10 +1129,40 @@ export class MermaidGfxSessionController {
       event.clientY,
     );
     if (!pointer) return;
-    const { height, width } = resizeMermaidGfxBoundFromDrag({
+    const raw = resizeMermaidGfxBoundFromDrag({
       pointer,
       start: this.resizeVisualSubgraphStart,
     });
+    const currentSubgraph = this.host.getVisualSubgraphGfxModel(
+      this.resizeVisualSubgraphId,
+    );
+    const currentBound = currentSubgraph?.xywh
+      ? Bound.deserialize(currentSubgraph.xywh)
+      : null;
+    const snapped = currentBound
+      ? resolveMermaidGfxResizeSnap({
+          rect: {
+            x: currentBound.x,
+            y: currentBound.y,
+            width: raw.width,
+            height: raw.height,
+          },
+          candidates: [],
+          minWidth: 120,
+          minHeight: 80,
+          gridEnabled: this.host.isSnapToGridEnabled?.() ?? true,
+          zoom: this.host.getViewportZoom?.() ?? 1,
+          bypass: event.altKey,
+        })
+      : { width: raw.width, height: raw.height, guides: [] };
+    const { width, height } = snapped;
+    if (currentBound) {
+      this.host.setSnapGuides?.(snapped.guides, {
+        x: currentBound.x + width,
+        y: currentBound.y + height,
+        text: `${Math.round(width)} × ${Math.round(height)}`,
+      });
+    }
     if (this.geometryPreview) {
       previewMermaidSubgraphBound(
         this.geometryPreview,
@@ -1325,6 +1454,7 @@ export class MermaidGfxSessionController {
   }
 
   private stopVisualGfxNodeResize() {
+    this.host.setSnapGuides?.([], null);
     this.cancelGeometryPreview();
     this.resizeVisualNodeId = "";
     this.resizeVisualNodeStart = null;
@@ -1333,6 +1463,7 @@ export class MermaidGfxSessionController {
   }
 
   private stopVisualGfxSubgraphMove() {
+    this.host.setSnapGuides?.([], null);
     this.cancelGeometryPreview();
     this.moveVisualSubgraphId = "";
     this.moveVisualSubgraphTargetId = null;
@@ -1346,6 +1477,7 @@ export class MermaidGfxSessionController {
   }
 
   private stopVisualGfxSubgraphResize() {
+    this.host.setSnapGuides?.([], null);
     this.cancelGeometryPreview();
     this.resizeVisualSubgraphId = "";
     this.resizeVisualSubgraphStart = null;

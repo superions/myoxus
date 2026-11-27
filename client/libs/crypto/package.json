@@ -23,7 +23,7 @@
     ]
   },
   "devDependencies": {
-    "@napi-rs/cli": "3.7.4"
+    "@napi-rs/cli": "3.11.1"
   },
   "license": "AGPL-3.0-or-later"
 }

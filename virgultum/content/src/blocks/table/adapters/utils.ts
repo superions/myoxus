@@ -8,10 +8,12 @@ import type {
   TableRow,
 } from "@virgultum/core/models";
 import {
+  computeTableMergeMap,
   normalizeTableAppearance,
   normalizeTableColumnTextAlign,
   normalizeTableDensity,
   normalizeTableHeaderRows,
+  normalizeTableSpan,
 } from "@virgultum/core/models";
 import {
   HastUtils,
@@ -79,6 +81,8 @@ type Row = {
 type Cell = {
   value: { delta: DeltaInsert[] };
   backgroundColor?: string;
+  colspan?: number;
+  rowspan?: number;
 };
 export const processTable = (
   columns: Record<string, TableColumn>,
@@ -112,9 +116,13 @@ export const processTable = (
       const cell = cells[`${r.rowId}:${col.columnId}`];
       const backgroundColor =
         cell?.backgroundColor ?? col.backgroundColor ?? r.backgroundColor;
+      const colspan = normalizeTableSpan(cell?.colspan);
+      const rowspan = normalizeTableSpan(cell?.rowspan);
       row.cells.push({
         value: cell?.text ?? { delta: [] },
         ...(backgroundColor === undefined ? {} : { backgroundColor }),
+        ...(colspan === undefined ? {} : { colspan }),
+        ...(rowspan === undefined ? {} : { rowspan }),
       });
     });
     table.rows.push(row);
@@ -126,31 +134,57 @@ export const processTable = (
 export const tableHtmlSections = (
   table: Table,
   headerRows: number | undefined,
-  cell: (cell: Cell, header: boolean, column: number) => InlineHtmlAST,
+  cell: (
+    cell: Cell,
+    header: boolean,
+    column: number,
+    span: { colspan: number; rowspan: number },
+  ) => InlineHtmlAST,
 ): Element[] => {
   const count =
     headerRows === undefined
       ? 0
       : normalizeTableHeaderRows(headerRows, table.rows.length);
+  const colCount = table.align.length;
+  const mergeMap = computeTableMergeMap(
+    table.rows.length,
+    colCount,
+    (r, c) => table.rows[r]?.cells[c],
+  );
   const section = (
     tagName: "thead" | "tbody",
     rows: Row[],
     header: boolean,
+    rowOffset: number,
   ): Element => ({
     type: "element",
     tagName,
     properties: {},
-    children: rows.map((row) => ({
-      type: "element",
-      tagName: "tr",
-      properties: {},
-      children: row.cells.map((value, column) => cell(value, header, column)),
-    })),
+    children: rows.map((row, localRowIndex) => {
+      const r = rowOffset + localRowIndex;
+      const cells: InlineHtmlAST[] = [];
+      row.cells.forEach((value, column) => {
+        if (mergeMap.coveredBy.has(`${r}:${column}`)) return;
+        const span = mergeMap.spans.get(`${r}:${column}`) ?? {
+          colspan: 1,
+          rowspan: 1,
+        };
+        cells.push(cell(value, header, column, span));
+      });
+      return {
+        type: "element",
+        tagName: "tr",
+        properties: {},
+        children: cells,
+      };
+    }),
   });
   return [
-    ...(count > 0 ? [section("thead", table.rows.slice(0, count), true)] : []),
+    ...(count > 0
+      ? [section("thead", table.rows.slice(0, count), true, 0)]
+      : []),
     ...(count < table.rows.length
-      ? [section("tbody", table.rows.slice(count), false)]
+      ? [section("tbody", table.rows.slice(count), false, count)]
       : []),
   ];
 };
@@ -319,20 +353,51 @@ export const parseTableFromHtml = (
   astToDelta: (ast: HtmlAST) => RichTextType,
 ): TableBlockPropsSerialized => {
   const sections = directElements(element);
+  const captionEl = sections.find((section) => section.tagName === "caption");
+  const captionText = captionEl
+    ? HastUtils.getTextContent(captionEl).trim() || undefined
+    : undefined;
   const rowSections = sections.filter((section) =>
     ["tr", "thead", "tbody", "tfoot"].includes(section.tagName),
   );
   const allRows = rowSections.flatMap((section) =>
     section.tagName === "tr" ? [section] : directRows(section),
   );
-  const rowTextLists: RichTextType[][] = [];
-  allRows.forEach((tableRow) => {
-    const row: RichTextType[] = [];
+  // Expand HTML colSpan/rowSpan onto a rectangular grid so merged cells
+  // roundtrip losslessly into Myoxus's anchor+covered representation.
+  const occupied = new Set<string>();
+  const placements: Array<{
+    rowIndex: number;
+    columnIndex: number;
+    cell: Element;
+    colspan: number;
+    rowspan: number;
+  }> = [];
+  let maxCols = 0;
+  allRows.forEach((tableRow, rowIndex) => {
+    let col = 0;
     rowCells(tableRow).forEach((cell) => {
-      row.push(astToDelta(cell));
+      while (occupied.has(`${rowIndex}:${col}`)) col++;
+      const colspan = normalizeTableSpan(Number(cell.properties.colSpan)) ?? 1;
+      const rowspan = normalizeTableSpan(Number(cell.properties.rowSpan)) ?? 1;
+      placements.push({ rowIndex, columnIndex: col, cell, colspan, rowspan });
+      for (let dr = 0; dr < rowspan; dr++) {
+        for (let dc = 0; dc < colspan; dc++) {
+          occupied.add(`${rowIndex + dr}:${col + dc}`);
+        }
+      }
+      col += colspan;
+      if (col > maxCols) maxCols = col;
     });
-    rowTextLists.push(row);
   });
+  const rowTextLists: RichTextType[][] = allRows.map(() =>
+    Array.from({ length: maxCols }, () => [] as RichTextType),
+  );
+  for (const p of placements) {
+    if (rowTextLists[p.rowIndex]) {
+      rowTextLists[p.rowIndex]![p.columnIndex] = astToDelta(p.cell);
+    }
+  }
 
   const explicit = Object.hasOwn(
     element.properties,
@@ -359,18 +424,15 @@ export const parseTableFromHtml = (
       headerRows += 1;
     }
   }
-  const align = Array.from(
-    { length: Math.max(0, ...allRows.map((row) => rowCells(row).length)) },
-    (_, column) => {
-      for (const row of allRows) {
-        const cell = rowCells(row)[column];
-        const value = cell && cellStyle(cell, "text-align")?.toLowerCase();
-        if (value) return normalizeTableColumnTextAlign(value) ?? null;
-      }
-      return null;
-    },
-  );
-  const props = createTableProps(
+  const align = Array.from({ length: maxCols }, (_, column) => {
+    for (const p of placements) {
+      if (p.columnIndex !== column) continue;
+      const value = cellStyle(p.cell, "text-align")?.toLowerCase();
+      if (value) return normalizeTableColumnTextAlign(value) ?? null;
+    }
+    return null;
+  });
+  const props: TableBlockPropsSerialized = createTableProps(
     rowTextLists,
     headerRows,
     {
@@ -381,16 +443,26 @@ export const parseTableFromHtml = (
     },
     align,
   );
+  if (element.properties.dataMyoxusTableHeaderColumn === "true") {
+    props.headerColumn = true;
+  }
+  if (element.properties.dataMyoxusTableStriped === "true") {
+    props.striped = true;
+  }
+  if (captionText) {
+    props.caption = captionText;
+  }
   const rows = Object.keys(props.rows);
   const columns = Object.keys(props.columns);
-  allRows.forEach((row, rowIndex) => {
-    rowCells(row).forEach((cell, columnIndex) => {
-      const fill = normalizeTableCellFill(cellStyle(cell, "background-color"));
-      const nativeCell =
-        props.cells[`${rows[rowIndex]}:${columns[columnIndex]}`];
-      if (fill && nativeCell) nativeCell.backgroundColor = fill;
-    });
-  });
+  for (const p of placements) {
+    const nativeCell =
+      props.cells[`${rows[p.rowIndex]}:${columns[p.columnIndex]}`];
+    if (!nativeCell) continue;
+    const fill = normalizeTableCellFill(cellStyle(p.cell, "background-color"));
+    if (fill) nativeCell.backgroundColor = fill;
+    if (p.colspan > 1) nativeCell.colspan = p.colspan;
+    if (p.rowspan > 1) nativeCell.rowspan = p.rowspan;
+  }
   return props;
 };
 

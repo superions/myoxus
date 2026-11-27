@@ -53,7 +53,7 @@ export function layoutMeasuredFlowchart(
   );
   const nodes = layoutFlowchartNodes(model.nodes, edges, model.direction, {
     sizes,
-    nodeGap: line * 2,
+    nodeGap: Math.round(line * 3.2),
     layerGap: line * 3,
   });
   const groups = (model.subgraphs ?? []).map((group) => ({
@@ -79,7 +79,7 @@ export function layoutMeasuredFlowchart(
       ] as const;
     }),
   );
-  for (const node of nodes) node.x += line * 4;
+  for (const node of nodes) node.x += line;
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const horizontal = model.direction === "LR" || model.direction === "RL";
   const descendants = (id: string): Set<string> =>

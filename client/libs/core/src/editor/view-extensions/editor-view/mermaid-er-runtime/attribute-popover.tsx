@@ -321,7 +321,7 @@ export function ErAttributeReorderHandle({
         style={{
           left: anchor.left,
           top: anchor.top,
-          transform: "translate(0, -50%)",
+          transform: "translate(50%, -50%)",
           zIndex: "var(--myoxus-z-index-popover)",
         }}
         onPointerDown={(event) => event.stopPropagation()}

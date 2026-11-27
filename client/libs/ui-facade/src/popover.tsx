@@ -87,8 +87,8 @@ export function Popover({
   /** Run after the native dropdown releases its focus trap. */
   onExitTransitionEnd?: () => void;
   width?: number | string;
-  /** Literal document text uses half the themed document column; native size middleware still clips it. */
-  contentMeasure?: "reading";
+  /** Literal document text uses half the themed document column; compact fits narrow field pickers. */
+  contentMeasure?: "reading" | "compact";
   position?: MantineCorePopoverProps["position"];
   offset?: MantineCorePopoverProps["offset"];
   content?: ReactNode;
@@ -136,7 +136,9 @@ export function Popover({
         width ??
         (contentMeasure === "reading"
           ? "calc(var(--myoxus-editor-width) / 2)"
-          : undefined)
+          : contentMeasure === "compact"
+            ? "18rem"
+            : undefined)
       }
       position={position}
       offset={offset}

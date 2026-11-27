@@ -196,17 +196,22 @@ test.describe("Virgultum Mermaid source-first host", () => {
 
       await expect(
         mermaidBlock.getByRole("status", {
-          name: "Last valid Mermaid preview",
+          name: /Last valid Mermaid preview/i,
         }),
       ).toBeVisible({ timeout: 10_000 });
       await expect(
-        mermaidBlock.locator('[data-editor-surface="source-first"]'),
+        mermaidBlock.locator(
+          '[data-editor-surface="visual-capable"][data-stale-projection="true"]',
+        ),
       ).toBeVisible();
       await expect(sourceEditor).toBeVisible();
       await expect(sourceEditor).toHaveValue(["info", "  showInfo"].join("\n"));
       await expect(
+        mermaidBlock.getByText("Visual", { exact: true }),
+      ).toBeVisible();
+      await expect(
         mermaidBlock.getByRole("radio", { name: "Visual" }),
-      ).toHaveCount(0);
+      ).toHaveCount(1);
       await expect(
         mermaidBlock.getByRole("radio", { name: "Source" }),
       ).toBeChecked();
@@ -215,9 +220,11 @@ test.describe("Virgultum Mermaid source-first host", () => {
           '[data-myoxus-ui-role="mermaid-editor-mode-control"]',
         ),
       ).toHaveCount(1);
+      // GFX-only families retain their last-valid owner projection and omit
+      // duplicating a second preview pane beneath the Source editor.
       await expect(
         mermaidBlock.getByRole("group", { name: "Mermaid source preview" }),
-      ).toBeVisible();
+      ).toHaveCount(0);
       await expect(
         mermaidBlock.locator(".myoxus-mermaid-visual-canvas"),
       ).toHaveCount(0);
@@ -237,24 +244,24 @@ test.describe("Virgultum Mermaid source-first host", () => {
       ).toHaveCount(0);
       await expect(mermaidBlock.getByLabel("Palette")).toHaveCount(0);
 
-      await expect(
-        mermaidBlock
-          .getByRole("group", { name: "Mermaid source preview" })
-          .locator("svg")
-          .first(),
-      ).toBeVisible({ timeout: 10_000 });
       await sourceEditor.fill("flowchart TD\n  A[Valid] --> {");
-      const renderAlert = mermaidBlock.getByRole("alert");
-      await expect(renderAlert).toBeVisible({ timeout: 10_000 });
-      await expect(renderAlert).toContainText("Diagram could not be rendered");
-      await expect(renderAlert).toContainText(/Parse error on line \d+/i);
       await expect(
-        mermaidBlock.getByLabel("Last valid Mermaid preview"),
-      ).toBeVisible();
+        mermaidBlock.locator(
+          '[data-source-state="invalid"][data-stale-projection="true"]',
+        ),
+      ).toBeVisible({ timeout: 10_000 });
+      await expect(
+        mermaidBlock.getByRole("status", {
+          name: /Last valid Mermaid preview/i,
+        }),
+      ).toBeVisible({ timeout: 10_000 });
       await expect(sourceEditor).toHaveValue("flowchart TD\n  A[Valid] --> {");
       await expect(
+        mermaidBlock.getByText("Visual", { exact: true }),
+      ).toBeVisible();
+      await expect(
         mermaidBlock.getByRole("radio", { name: "Visual" }),
-      ).toHaveCount(0);
+      ).toHaveCount(1);
 
       const screenshotPath = testInfo.outputPath(
         "web-mermaid-source-first-host.png",

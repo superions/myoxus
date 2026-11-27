@@ -88,14 +88,18 @@ export function computeDataSankeyLayout(input: {
       value: allZero ? 1 : link.value,
     })),
   };
+  const inset = 12;
   const projected = sankey<LayoutNode, LayoutLink>()
     .nodeId((node) => node.id)
     .nodeAlign(alignments[input.alignment])
     .nodeWidth(Math.max(1, input.nodeWidth))
     .nodePadding(Math.max(0, input.nodePadding))
     .extent([
-      [0, 0],
-      [Math.max(1, input.width), Math.max(1, input.height)],
+      [inset, inset],
+      [
+        Math.max(inset + 1, input.width - inset),
+        Math.max(inset + 1, input.height - inset),
+      ],
     ])(graph);
   const linkPath = sankeyLinkHorizontal<LayoutNode, LayoutLink>();
   const linksById = new Map(input.links.map((link) => [link.id, link]));

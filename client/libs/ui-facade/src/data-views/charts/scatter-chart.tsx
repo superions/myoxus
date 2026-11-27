@@ -752,6 +752,7 @@ export function DataScatterChart({
           {referenceAreas.map((area) => (
             <ReferenceArea
               fill={area.fill}
+              fillOpacity={area.fill ? 1 : undefined}
               ifOverflow="hidden"
               key={area.id}
               label={

@@ -138,6 +138,11 @@ export type MermaidBlockShellReactHostProps = {
   readonly readonly: boolean;
   readonly showView: boolean;
   readonly showPageActions: boolean;
+  readonly snapToGrid?: {
+    readonly enabled: boolean;
+    readonly label: string;
+    readonly onToggle: () => void;
+  };
   readonly showPageViewportControls: boolean;
   readonly source: string;
   readonly typeLabel: string;

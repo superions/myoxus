@@ -10,20 +10,20 @@ import { mermaidGraphLayers } from "../families/runtime/graph-layout.js";
 import type { PendingFlowchartSubgraph } from "./flowchart-model.js";
 
 const FLOWCHART_LAYOUT = {
-  emphasizedNodeHeight: 108,
+  emphasizedNodeHeight: 76,
   estimatedGlyphWidth: 7,
-  horizontalLayerGap: 300,
-  horizontalNodeGap: 80,
-  horizontalSubgraphBandGap: 320,
+  horizontalLayerGap: 160,
+  horizontalNodeGap: 48,
+  horizontalSubgraphBandGap: 160,
   horizontalWrapLimit: 560,
-  maxNodeWidth: 300,
-  minNodeWidth: 160,
-  nodeHeight: 88,
-  nodeTextInset: 104,
-  primaryAxisOrigin: 96,
-  verticalLayerGap: 190,
-  verticalNodeGap: 88,
-  verticalSubgraphBandGap: 260,
+  maxNodeWidth: 260,
+  minNodeWidth: 108,
+  nodeHeight: 48,
+  nodeTextInset: 48,
+  primaryAxisOrigin: 24,
+  verticalLayerGap: 112,
+  verticalNodeGap: 48,
+  verticalSubgraphBandGap: 204,
   verticalWrapLimit: 760,
 } as const;
 

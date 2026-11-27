@@ -389,6 +389,9 @@ export function createMermaidScopedGfxEditorExtension({
       // A new scope needs an initial camera even when the outgoing Page scope
       // was user-positioned. Its ready callback restores a retained camera;
       // later automatic fits still respect the user's navigation.
+      if (gfx.viewport.width > 0 && gfx.viewport.height > 0) {
+        refreshViewport(true);
+      }
       scheduleViewportRefresh(true);
       if (!retainAutomaticViewportFit) scheduleLateViewportRefreshes();
       const viewportReadyRaf = requestAnimationFrame(projectViewportReady);

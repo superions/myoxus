@@ -559,77 +559,137 @@ export async function selectFlowchartEdge(
   ) {
     return;
   }
+  const initialBox = await visualCanvas.boundingBox();
+  const isInside = (p: { x: number; y: number }) =>
+    Boolean(
+      initialBox &&
+      p.x >= 8 &&
+      p.x <= initialBox.width - 8 &&
+      p.y >= 8 &&
+      p.y <= initialBox.height - 8,
+    );
+  const orderedPoints = [
+    ...edgeProbe.viewPoints.filter(isInside),
+    ...edgeProbe.viewPoints.filter((p) => !isInside(p)),
+  ];
+  const projectModelPoint = (modelX: number, modelY: number) =>
+    mermaidBlock.evaluate(
+      (element, coords) => {
+        const block = element as unknown as {
+          _gfxViewportBridge?: {
+            toViewPoint?: (
+              x: number,
+              y: number,
+            ) => { left: number; top: number };
+          };
+        };
+        const gfx = (
+          element as unknown as MermaidScopedViewportProbe
+        )._getScopedGfxController?.();
+        const projected = block._gfxViewportBridge?.toViewPoint?.(
+          coords.modelX,
+          coords.modelY,
+        );
+        if (
+          projected &&
+          Number.isFinite(projected.left) &&
+          Number.isFinite(projected.top)
+        ) {
+          return { x: projected.left, y: projected.top };
+        }
+        const view = gfx?.viewport?.toViewCoord?.(coords.modelX, coords.modelY);
+        if (view && Number.isFinite(view[0]) && Number.isFinite(view[1])) {
+          return { x: view[0], y: view[1] };
+        }
+        return null;
+      },
+      { modelX, modelY },
+    );
   const debugSamples: unknown[] = [];
-  for (const point of edgeProbe.viewPoints) {
+  for (const point of orderedPoints) {
+    let livePoint = (await projectModelPoint(point.modelX, point.modelY)) ?? {
+      x: point.x,
+      y: point.y,
+    };
+    await ensureFlowchartPointReachable(
+      mermaidBlock,
+      visualCanvas,
+      livePoint,
+    ).catch(() => undefined);
+    livePoint =
+      (await projectModelPoint(point.modelX, point.modelY)) ?? livePoint;
     await visualCanvas.click({
       force: true,
-      position: { x: point.x, y: point.y },
+      position: livePoint,
     });
-    const debug = await mermaidBlock.evaluate((element, args) => {
-      const block = element as unknown as {
-        _findVisualEdgeByModelPoint?: (x: number, y: number) => string;
-        _findVisualNodeByClientPoint?: (
-          clientX: number,
-          clientY: number,
-        ) => string;
-        _getScopedModelPointFromClient?: (
-          clientX: number,
-          clientY: number,
-        ) => { x: number; y: number } | null;
-        _scopedGfxNestedListenerElements?: EventTarget[];
-        _scopedGfxViewportElement?: Element | null;
-        querySelector: Element["querySelector"];
-      };
-      const viewport = block.querySelector(".myoxus-mermaid-gfx-viewport");
-      const rect = viewport?.getBoundingClientRect();
-      if (!rect) return { ...args, reason: "viewport-missing" };
-      const clientX = rect.left + args.x;
-      const clientY = rect.top + args.y;
-      const modelPoint = block._getScopedModelPointFromClient?.(
-        clientX,
-        clientY,
-      );
-      const target = document.elementFromPoint(
-        clientX,
-        clientY,
-      ) as HTMLElement | null;
-      return {
-        ...args,
-        clientX,
-        clientY,
-        edgeHit: modelPoint
-          ? block._findVisualEdgeByModelPoint?.(modelPoint.x, modelPoint.y)
-          : "",
-        elementFromPoint: target
-          ? {
-              ariaLabel: target.getAttribute("aria-label"),
-              className: String(target.className ?? ""),
-              closestViewport: Boolean(
-                target.closest(".myoxus-mermaid-gfx-viewport"),
-              ),
-              tagName: target.tagName,
-              testId: target.dataset?.testid,
-              viewportContainsTarget: Boolean(viewport?.contains(target)),
-            }
-          : null,
-        modelPoint,
-        nodeHit: block._findVisualNodeByClientPoint?.(clientX, clientY),
-        scopedViewportAttached: block._scopedGfxViewportElement === viewport,
-        listenerTargets:
-          block._scopedGfxNestedListenerElements?.map((target) => ({
-            isShadowRoot: target instanceof ShadowRoot,
-            tagName: target instanceof Element ? target.tagName : "",
-          })) ?? [],
-        selectedEdgeId:
-          (
-            element as unknown as MermaidSelectionProbe
-          )._visualSelectionAnchorKey("edge") ?? "",
-        selectedNodeId:
-          (
-            element as unknown as MermaidSelectionProbe
-          )._visualSelectionAnchorKey("node") ?? "",
-      };
-    }, point);
+    const debug = await mermaidBlock.evaluate(
+      (element, args) => {
+        const block = element as unknown as {
+          _findVisualEdgeByModelPoint?: (x: number, y: number) => string;
+          _findVisualNodeByClientPoint?: (
+            clientX: number,
+            clientY: number,
+          ) => string;
+          _getScopedModelPointFromClient?: (
+            clientX: number,
+            clientY: number,
+          ) => { x: number; y: number } | null;
+          _scopedGfxNestedListenerElements?: EventTarget[];
+          _scopedGfxViewportElement?: Element | null;
+          querySelector: Element["querySelector"];
+        };
+        const viewport = block.querySelector(".myoxus-mermaid-gfx-viewport");
+        const rect = viewport?.getBoundingClientRect();
+        if (!rect) return { ...args, reason: "viewport-missing" };
+        const clientX = rect.left + args.x;
+        const clientY = rect.top + args.y;
+        const modelPoint = block._getScopedModelPointFromClient?.(
+          clientX,
+          clientY,
+        );
+        const target = document.elementFromPoint(
+          clientX,
+          clientY,
+        ) as HTMLElement | null;
+        return {
+          ...args,
+          clientX,
+          clientY,
+          edgeHit: modelPoint
+            ? block._findVisualEdgeByModelPoint?.(modelPoint.x, modelPoint.y)
+            : "",
+          elementFromPoint: target
+            ? {
+                ariaLabel: target.getAttribute("aria-label"),
+                className: String(target.className ?? ""),
+                closestViewport: Boolean(
+                  target.closest(".myoxus-mermaid-gfx-viewport"),
+                ),
+                tagName: target.tagName,
+                testId: target.dataset?.testid,
+                viewportContainsTarget: Boolean(viewport?.contains(target)),
+              }
+            : null,
+          modelPoint,
+          nodeHit: block._findVisualNodeByClientPoint?.(clientX, clientY),
+          scopedViewportAttached: block._scopedGfxViewportElement === viewport,
+          listenerTargets:
+            block._scopedGfxNestedListenerElements?.map((target) => ({
+              isShadowRoot: target instanceof ShadowRoot,
+              tagName: target instanceof Element ? target.tagName : "",
+            })) ?? [],
+          selectedEdgeId:
+            (
+              element as unknown as MermaidSelectionProbe
+            )._visualSelectionAnchorKey("edge") ?? "",
+          selectedNodeId:
+            (
+              element as unknown as MermaidSelectionProbe
+            )._visualSelectionAnchorKey("node") ?? "",
+        };
+      },
+      { ...point, x: livePoint.x, y: livePoint.y },
+    );
     debugSamples.push(debug);
     const selectedEdgeId =
       (debug as { selectedEdgeId?: string }).selectedEdgeId ?? "";

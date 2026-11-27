@@ -29,7 +29,7 @@ import {
   type MermaidJourneyStep,
   type MermaidJourneySection,
 } from "@virgultum/block-mermaid";
-import { CommentIcon } from "@myoxus/icons";
+import { CommentIcon, MoreHorizontalIcon } from "@myoxus/icons";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { MermaidEmbeddedActions } from "../mermaid-embedded-actions";
 import {
@@ -105,7 +105,7 @@ export function MermaidJourneyRuntime({
     "appearance" | "accessibility" | "actors" | "data" | "more"
   >();
   const [deleting, setDeleting] = useState<string>();
-  const [commentsVisible, setCommentsVisible] = useState(true);
+  const [commentsVisible, setCommentsVisible] = useState(false);
   const [preview, setPreview] = useState<MermaidJourneyModel>();
   const [highlight, setHighlight] = useState<string>();
   const [notice, setNotice] = useState<string>();
@@ -617,7 +617,7 @@ export function MermaidJourneyRuntime({
     </Popover>
   );
   const toolbar = props.displayOnly ? null : (
-    <Group wrap="nowrap">
+    <Group wrap="wrap" gap="xs">
       {!readonly && !props.model.ambiguous ? (
         <Button onClick={() => add("section")}>
           {messages.journeyAddSection()}
@@ -711,7 +711,12 @@ export function MermaidJourneyRuntime({
         }
         title={messages.visualMoreActions()}
       >
-        <Button variant="plain">{messages.visualMoreActions()}</Button>
+        <IconButton
+          aria-label={messages.visualMoreActions()}
+          tooltip={messages.visualMoreActions()}
+          variant="plain"
+          icon={<MoreHorizontalIcon />}
+        />
       </Menu>
     </Group>
   );

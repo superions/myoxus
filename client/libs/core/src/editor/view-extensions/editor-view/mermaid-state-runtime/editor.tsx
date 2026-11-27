@@ -6,6 +6,7 @@ import {
   Box,
   Button,
   Group,
+  IconButton,
   ConfirmModal,
   Stack,
   Alert,
@@ -26,6 +27,7 @@ import {
   type StateReactHostProps,
   deleteStateSelection,
 } from "@virgultum/block-mermaid";
+import { MoreHorizontalIcon } from "@myoxus/icons/react";
 import { MermaidGfxEditorWorkbench } from "../mermaid-editor-workbench";
 import { MermaidEmbeddedActions } from "../mermaid-embedded-actions";
 import { StateForm, StateDescriptionForm } from "./state-popover";
@@ -302,7 +304,11 @@ export function MermaidStateRuntimeEditor({
           </>
         }
       >
-        <Button>{m.visualMoreActions()}</Button>
+        <IconButton
+          aria-label={m.visualMoreActions()}
+          tooltip={m.visualMoreActions()}
+          icon={<MoreHorizontalIcon />}
+        />
       </Menu>
       {props.parentIntent && more.includes(props.parentIntent) ? (
         <StateActionPopover props={props} action={props.parentIntent} />

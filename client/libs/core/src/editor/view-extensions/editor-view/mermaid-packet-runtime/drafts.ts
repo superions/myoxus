@@ -148,7 +148,7 @@ export function usePacketDraftSession(
   const [overlay, setOverlay] = useState<Overlay>();
   const [commentAnchor, setCommentAnchor] = useState<PacketCommentTarget>();
   const [geometryActive, setGeometryActive] = useState(false);
-  const [commentsVisible, setCommentsVisible] = useState(true);
+  const [commentsVisible, setCommentsVisible] = useState(false);
   const [previewModel, setPreviewModel] = useState<MermaidPacketModel>();
   const [notice, setNotice] = useState<string>();
   const entry = useRef<HTMLElement | undefined>(undefined);

@@ -46,9 +46,10 @@ export function TextFormatControl({
       <Select
         aria-label={action.label}
         label={labelled ? action.label : undefined}
+        placeholder={action.label}
         contentSized
         data={c.options.map((option) => ({ ...option, label: option.label }))}
-        value={c.value}
+        value={c.value || null}
         disabled={action.disabled}
         leftSection={selectionGlyph(
           c.options.find((option) => option.value === c.value)?.icon ??

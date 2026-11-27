@@ -8,10 +8,6 @@ import {
 } from "./commands.js";
 import { SurfaceBlockComponent } from "@virgultum/canvas-runtime/surface";
 import { mountShapeTextEditor } from "@virgultum/canvas/gfx";
-import {
-  readMermaidGfxNodeId,
-  readMermaidGfxEdgeId,
-} from "./mermaid-gfx-metadata.js";
 import { getMermaidGfxFamilyHooks } from "./families/runtime/gfx-family-hooks-registry.js";
 import { readMermaidGfxMeta } from "./mermaid-gfx-metadata.js";
 import { Bound } from "@virgultum/core/primitives/gfx";
@@ -41,7 +37,10 @@ import {
 import { MermaidFamilyReactHostIdentifier } from "./families/runtime/react-host.js";
 import type { MermaidSelectionActionModel } from "./families/runtime/shell-contract.js";
 import { mermaidMessages } from "./i18n.js";
-import { resolveMermaidGfxProjection } from "./presentation/gfx-projection-owner.js";
+import {
+  projectMermaidGfxForPageViewport,
+  resolveMermaidGfxProjection,
+} from "./presentation/gfx-projection-owner.js";
 import { exportMermaidMmdOwner } from "./edgeless-toolbar/mmd-file-actions.js";
 
 import { createMermaidOwnerGfxSemanticStateKey } from "./mermaid-owner-gfx-store.js";
@@ -53,7 +52,12 @@ import { selectMermaidGfxNodesPatch } from "./mermaid-gfx-selection-state.js";
 
 export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
   private _resolveVisualAlignmentGuides(visualModel: MermaidVisualModel) {
+    const selectedNodeIds = new Set(this._visualSelectionKeys("node"));
+    if (selectedNodeIds.size === 0) return [];
     return typeOwnedMermaidAlignmentGuides(visualModel).flatMap((guide) => {
+      if (!guide.members.some((memberId) => selectedNodeIds.has(memberId))) {
+        return [];
+      }
       const rects = guide.members.flatMap((memberId) => {
         const model = this._getVisualNodeGfxModel(memberId);
         const rect = model?.xywh
@@ -296,17 +300,11 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
       currentDisplayMode === (displayOnly ? "display" : "edit")
         ? this._gfxViewportBridge.captureViewport()
         : null;
-    const hiddenKeys = new Set(hiddenObjectKeys),
-      visibleProjection = {
-        ...resolution,
-        childElementIds: resolution.childElementIds.filter((id) => {
-          const element = resolution.getElementById(id);
-          return (
-            !hiddenKeys.has(readMermaidGfxNodeId(element)) &&
-            !hiddenKeys.has(readMermaidGfxEdgeId(element))
-          );
-        }),
-      };
+    const hiddenKeys = new Set(hiddenObjectKeys);
+    const visibleProjection = projectMermaidGfxForPageViewport(resolution, {
+      hiddenObjectKeys: hiddenKeys,
+      visualModel,
+    });
     const gfxStore = this._ownerGfx.getOwnerGfxStore(
       visibleProjection,
       projectionOwnerStateKey,
@@ -338,6 +336,58 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
           this._gfxSession.handleVisualConnectorHandleKeydown,
         onConnectorHandlePointerDown:
           this._gfxSession.handleVisualConnectorHandlePointerDown,
+        onHoverConnectorHandlePointerDown: (event, portId) => {
+          const hoveredId = this._hoveredVisualNodeId;
+          if (!hoveredId) return;
+          this._hoveredVisualNodeId = "";
+          this._selectVisualNode(hoveredId);
+          this._gfxSession.handleVisualConnectorHandlePointerDown(
+            event,
+            portId,
+          );
+        },
+        onViewportPointerMove: (event) => {
+          if (
+            displayOnly ||
+            readonly ||
+            this._visualNodePointerSessionActive ||
+            this._gfxSession.isConnectingVisualNodes ||
+            this._gfxSession.hasTransientGeometryPreview ||
+            this._pendingVisualInsertShape ||
+            this._pageSelectionState.tool !== "pointer"
+          ) {
+            if (this._hoveredVisualNodeId) {
+              this._hoveredVisualNodeId = "";
+              this.requestUpdate();
+            }
+            return;
+          }
+          const pointerEvent = event as PointerEvent;
+          if (
+            pointerEvent.target instanceof Element &&
+            pointerEvent.target.closest(
+              ".myoxus-mermaid-gfx-hover-connect-handle, .myoxus-mermaid-gfx-connect-handle",
+            )
+          ) {
+            return;
+          }
+          const hit = this._findVisualNodeByClientPoint(
+            pointerEvent.clientX,
+            pointerEvent.clientY,
+          );
+          const nextHover =
+            hit && !this._visualSelectionKeys("node").includes(hit) ? hit : "";
+          if (nextHover !== this._hoveredVisualNodeId) {
+            this._hoveredVisualNodeId = nextHover;
+            this.requestUpdate();
+          }
+        },
+        onViewportPointerLeave: () => {
+          if (this._hoveredVisualNodeId) {
+            this._hoveredVisualNodeId = "";
+            this.requestUpdate();
+          }
+        },
         onContextConnect: this._handleConnectSelectedVisualNodesFromContext,
         onCloseContextMenu: () => {
           this._visualContextMenu = null;
@@ -386,21 +436,48 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
           }
         },
         onProjectionOwnerViewportReady: () => {
+          const completePendingCreatedSubgraphEdit = () => {
+            const pendingSubgraph =
+              this._pendingVisualSelectionProjection?.items.length === 1 &&
+              this._pendingVisualSelectionProjection.items[0]?.kind ===
+                "subgraph"
+                ? this._pendingVisualSelectionProjection.items[0]
+                : null;
+            if (
+              !pendingSubgraph ||
+              this._visualSelectionAnchorKey("subgraph") !==
+                pendingSubgraph.editKey ||
+              this._inlineShapeTextEditor.hasActiveEditor()
+            ) {
+              return;
+            }
+            this._ensureScopedGfxSelectionVisible();
+            this._startInlineSubgraphTextEdit(null, pendingSubgraph.editKey);
+            if (this._inlineShapeTextEditor.hasActiveEditor()) {
+              this._pendingVisualSelectionProjection = null;
+            }
+          };
           // Structural insertion keeps the existing camera/focus intent until
           // this mounted scoped viewport, rather than the outgoing projection,
           // is ready to host the stable inline editor.
           if (this._completePendingInsertedNodeProjection()) return;
           if (replacedViewport) {
             this._gfxViewportBridge.restoreViewport(replacedViewport);
+            completePendingCreatedSubgraphEdit();
             return;
           }
-          if (embedded) return;
-          if (!this._scopedGfxViewportUserPositioned) return;
-          const mode = displayOnly ? "view" : "visual";
-          this._gfxViewportBridge.applyPageScroll(
-            this._pageViewportState.positions[mode],
-            this._pageViewportState.resolvedScales[mode],
-          );
+          if (embedded) {
+            completePendingCreatedSubgraphEdit();
+            return;
+          }
+          if (this._scopedGfxViewportUserPositioned) {
+            const mode = displayOnly ? "view" : "visual";
+            this._gfxViewportBridge.applyPageScroll(
+              this._pageViewportState.positions[mode],
+              this._pageViewportState.resolvedScales[mode],
+            );
+          }
+          completePendingCreatedSubgraphEdit();
         },
         onNodeResizeKeydown: (event) =>
           this._gfxSession.handleVisualGfxResizeHandleKeydown(event, "node"),
@@ -507,6 +584,8 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
             viewportHeight,
           ),
       },
+      hasStoredViewportHeight:
+        typeof this.model.props.viewportHeight === "number",
       inspector,
       projectShell:
         renderSurface === "core-facade" && (!embedded || embeddedFacadeSurface)
@@ -828,7 +907,7 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
                 resolveVisualAnchor: (kind, id, visible = false) => {
                   const anchor = this._resolveVisualAnchor(
                     visualModel,
-                    resolution.ownerXYWH,
+                    visibleProjection.ownerXYWH,
                     kind,
                     id,
                   );
@@ -850,7 +929,9 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
                         ? this._getVisualNodeGfxModel(id)
                         : this._getVisualSubgraphGfxModel(id);
                   const xywh =
-                    kind === "diagram" ? resolution.ownerXYWH : element?.xywh;
+                    kind === "diagram"
+                      ? visibleProjection.ownerXYWH
+                      : element?.xywh;
                   const rect = xywh
                     ? this._gfxViewportBridge.getModelViewRect(xywh)
                     : null;
@@ -998,10 +1079,14 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
       pageSelectionTools,
       pendingShape: this._pendingVisualInsertShape,
       readonly,
-      resolution,
+      resolution: visibleProjection,
       resolveFrameXYWH: () => {
         const current = resolveMermaidGfxProjection(this.model);
-        return current?.ownerXYWH ?? resolution.ownerXYWH;
+        if (!current) return visibleProjection.ownerXYWH;
+        return projectMermaidGfxForPageViewport(current, {
+          hiddenObjectKeys: hiddenKeys,
+          visualModel: this._getMermaidVisualModelForEditing() ?? visualModel,
+        }).ownerXYWH;
       },
       resolvePageSelectionTool: () => this._pageSelectionState.tool,
       resolveViewportPadding: () =>
@@ -1021,6 +1106,68 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
         alignmentGuides: readonly
           ? []
           : this._resolveVisualAlignmentGuides(visualModel),
+        snapGuides: readonly
+          ? []
+          : this._activeSnapGuides.flatMap((guide) => {
+              const bound =
+                guide.axis === "x"
+                  ? new Bound(
+                      guide.position,
+                      guide.start,
+                      0,
+                      Math.max(1, guide.end - guide.start),
+                    )
+                  : new Bound(
+                      guide.start,
+                      guide.position,
+                      Math.max(1, guide.end - guide.start),
+                      0,
+                    );
+              const rect = this._gfxViewportBridge.getModelViewRect(
+                bound.serialize(),
+              );
+              return rect
+                ? [
+                    {
+                      axis: guide.axis,
+                      kind: guide.kind,
+                      left: rect.left,
+                      top: rect.top,
+                      width: guide.axis === "x" ? 1 : rect.width,
+                      height: guide.axis === "y" ? 1 : rect.height,
+                      spacingGap: guide.spacingGap,
+                    },
+                  ]
+                : [];
+            }),
+        geometryHud:
+          readonly || !this._activeGeometryHud
+            ? null
+            : (() => {
+                const rect = this._gfxViewportBridge.getModelViewRect(
+                  new Bound(
+                    this._activeGeometryHud.x,
+                    this._activeGeometryHud.y,
+                    0,
+                    0,
+                  ).serialize(),
+                );
+                return rect
+                  ? {
+                      left: rect.left,
+                      top: rect.top,
+                      text: this._activeGeometryHud.text,
+                    }
+                  : null;
+              })(),
+        hoverConnectHandles:
+          suppressObjectHandles ||
+          readonly ||
+          displayOnly ||
+          !this._hoveredVisualNodeId ||
+          this._visualSelectionKeys("node").includes(this._hoveredVisualNodeId)
+            ? []
+            : this._getVisualNodeConnectionHandles(this._hoveredVisualNodeId),
         connectionPreview: this._gfxSession.connectionPreview,
         contextMenu: this._visualContextMenu,
         contextMenuLabel: this._selectedVisualNodeContextLabel(visualModel),

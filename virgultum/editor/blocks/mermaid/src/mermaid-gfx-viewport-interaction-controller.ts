@@ -91,7 +91,12 @@ export type MermaidGfxViewportInteractionHost = {
   isConnectingVisualNodes(): boolean;
   isEditableEventTarget(event: Event): boolean;
   isReadonly(): boolean;
-  moveVisualNode(nodeId: string, dx: number, dy: number): void;
+  moveVisualNode(
+    nodeId: string,
+    dx: number,
+    dy: number,
+    bypassSnap?: boolean,
+  ): void;
   onVisualNodeDragEnd(
     nodeId: string,
     didMove: boolean,
@@ -777,6 +782,7 @@ export class MermaidGfxViewportInteractionController {
           this._dragNodeId,
           modelDelta.dx,
           modelDelta.dy,
+          event.altKey && !this._duplicateNodeDrag,
         );
       }
     }
