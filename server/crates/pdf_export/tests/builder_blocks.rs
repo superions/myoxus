@@ -1254,3 +1254,121 @@ async fn block_database_with_columns_and_rows() {
   assert_eq!(join_text(&table.rows[1][0]), "Q3 retro");
   assert_eq!(join_text(&table.rows[1][1]), "In progress");
 }
+
+#[tokio::test]
+async fn block_table_of_contents_links_host_headings_without_embed_leakage() {
+  let blocks = vec![
+    yjs::PortableSnapshotBlock {
+      id: "page".into(),
+      flavour: "myoxus:page".into(),
+      version: None,
+      props: serde_json::json!({ "title": "Runbook" }).as_object().unwrap().clone(),
+      children: vec!["note".into()],
+    },
+    yjs::PortableSnapshotBlock {
+      id: "note".into(),
+      flavour: "myoxus:note".into(),
+      version: None,
+      props: Default::default(),
+      children: vec![
+        "toc".into(),
+        "h1".into(),
+        "h2".into(),
+        "h4".into(),
+        "embed1:embed:h2-ext".into(),
+      ],
+    },
+    yjs::PortableSnapshotBlock {
+      id: "toc".into(),
+      flavour: "myoxus:table-of-contents".into(),
+      version: None,
+      props: serde_json::json!({ "title": "Navigation", "minLevel": 1, "maxLevel": 2 })
+        .as_object()
+        .unwrap()
+        .clone(),
+      children: vec![],
+    },
+    yjs::PortableSnapshotBlock {
+      id: "h1".into(),
+      flavour: "myoxus:paragraph".into(),
+      version: None,
+      props: serde_json::json!({ "type": "h1", "text": "Service Overview" })
+        .as_object()
+        .unwrap()
+        .clone(),
+      children: vec![],
+    },
+    yjs::PortableSnapshotBlock {
+      id: "h2".into(),
+      flavour: "myoxus:paragraph".into(),
+      version: None,
+      props: serde_json::json!({ "type": "h2", "text": "Deployment" })
+        .as_object()
+        .unwrap()
+        .clone(),
+      children: vec![],
+    },
+    yjs::PortableSnapshotBlock {
+      id: "h4".into(),
+      flavour: "myoxus:paragraph".into(),
+      version: None,
+      props: serde_json::json!({ "type": "h4", "text": "Too Deep" })
+        .as_object()
+        .unwrap()
+        .clone(),
+      children: vec![],
+    },
+    yjs::PortableSnapshotBlock {
+      id: "embed1:embed:h2-ext".into(),
+      flavour: "myoxus:paragraph".into(),
+      version: None,
+      props: serde_json::json!({ "type": "h2", "text": "Embedded External" })
+        .as_object()
+        .unwrap()
+        .clone(),
+      children: vec![],
+    },
+  ];
+  let payload = yjs::snapshot_blocks_to_yjs(&blocks).expect("toc snapshot");
+  let mut builder = YjsIrBuilder::new(NullAssetResolver);
+  let ir = builder
+    .build(
+      &payload,
+      DocumentMetadata {
+        doc_id: uuid::Uuid::nil(),
+        workspace_id: uuid::Uuid::nil(),
+        title: None,
+        author: None,
+        created_at: None,
+        updated_at: None,
+        workspace_name: None,
+        branding: myoxus_pdf_export::ir::Branding::default(),
+      },
+      ExportOptions {
+        theme_fonts: myoxus_pdf_export::ir::ThemeFontSelection {
+          heading: Some("Inter".into()),
+          body: Some("Inter".into()),
+          mono: Some("Inter".into()),
+          symbol: Some("Inter".into()),
+          eyebrow: None,
+        },
+        ..ExportOptions::default()
+      },
+    )
+    .await
+    .expect("build PDF IR with TOC");
+  assert_eq!(builder.diagnostics(), serde_json::json!([]));
+  let source = myoxus_pdf_export::typst_engine::ir_to_typst::ir_to_typst_source_v2(
+    &ir,
+    &HashMap::from([("theme.typ".into(), Vec::new()), ("preamble.typ".into(), Vec::new())]),
+  )
+  .expect("generate Typst source")
+  .source;
+  assert!(source.contains("Navigation"));
+  assert!(source.contains("#link(<mx-toc-h-1>)"));
+  assert!(source.contains("#link(<mx-toc-h-2>)"));
+  assert!(source.contains("<mx-toc-h-1>"));
+  assert!(source.contains("<mx-toc-h-2>"));
+  assert!(!source.contains("#link(<mx-toc-h-3>)"));
+  assert!(!source.contains("#link(<mx-toc-h-4>)"));
+}

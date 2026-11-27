@@ -621,6 +621,21 @@ impl PageSvgRenderer<'_> {
           ));
           self.y += 12.0;
         }
+        Block::TableOfContents { title, .. } => {
+          let label = if title.trim().is_empty() {
+            "Table of contents"
+          } else {
+            title.trim()
+          };
+          self.render_text_lines(
+            label,
+            BODY_SIZE,
+            true,
+            570.0,
+            28.0 + indent as f32 * INDENT as f32,
+            "body",
+          );
+        }
         Block::Image { block_id, asset } => self.render_asset(block_id, &asset.source, indent),
         Block::Mermaid {
           block_id,

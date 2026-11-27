@@ -20,6 +20,30 @@ on:
         description: Accepted Admin manifest digest
         required: true
         type: string
+      server_asset_id:
+        description: Optional staged OCI layout asset ID for server
+        required: false
+        type: string
+      server_asset_sha256:
+        description: Optional staged OCI layout SHA-256 for server
+        required: false
+        type: string
+      web_asset_id:
+        description: Optional staged OCI layout asset ID for Web
+        required: false
+        type: string
+      web_asset_sha256:
+        description: Optional staged OCI layout SHA-256 for Web
+        required: false
+        type: string
+      admin_asset_id:
+        description: Optional staged OCI layout asset ID for Admin
+        required: false
+        type: string
+      admin_asset_sha256:
+        description: Optional staged OCI layout SHA-256 for Admin
+        required: false
+        type: string
 
 permissions: {}
 
@@ -33,6 +57,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
+      contents: write
       packages: write
     steps:
       - name: Load the copy script and pinned registry tool
@@ -52,4 +77,10 @@ jobs:
           SERVER_DIGEST: ${{ inputs.server }}
           WEB_DIGEST: ${{ inputs.web }}
           ADMIN_DIGEST: ${{ inputs.admin }}
+          SERVER_ASSET_ID: ${{ inputs.server_asset_id }}
+          SERVER_ASSET_SHA256: ${{ inputs.server_asset_sha256 }}
+          WEB_ASSET_ID: ${{ inputs.web_asset_id }}
+          WEB_ASSET_SHA256: ${{ inputs.web_asset_sha256 }}
+          ADMIN_ASSET_ID: ${{ inputs.admin_asset_id }}
+          ADMIN_ASSET_SHA256: ${{ inputs.admin_asset_sha256 }}
         run: node "$RUNNER_TEMP/github-container-registry.mjs"

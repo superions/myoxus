@@ -14,7 +14,7 @@ import {
   RootBlockModel,
 } from "../models/index";
 import type { EditorOutlineEntry } from "../services/editor-chrome-host";
-import type { BlockModel, Store } from "../store/index";
+import type { BlockModel, BlockSnapshot, Store } from "../store/index";
 import type { MyoxusTextAttributes } from "../types/index";
 import { matchModels } from "./model/index";
 
@@ -298,4 +298,154 @@ export function describeOutlineBlockFromStore(
   }
 
   return { id: block.id, label, level: 0, icon };
+}
+
+export interface SnapshotTocEntry {
+  id: string;
+  level: number;
+  label: string;
+  slug: string;
+}
+
+/**
+ * Deterministic ASCII heading slug matching `yjs::table_of_contents::unique_heading_slug`
+ * and `public_render` HTML anchors.
+ */
+export function slugifyHeadingText(title: string): string {
+  let base = "";
+  let prevDash = false;
+  for (const ch of title.trim().toLowerCase()) {
+    if ((ch >= "a" && ch <= "z") || (ch >= "0" && ch <= "9")) {
+      base += ch;
+      prevDash = false;
+    } else if (!prevDash && base.length > 0) {
+      base += "-";
+      prevDash = true;
+    }
+  }
+  while (base.endsWith("-")) {
+    base = base.slice(0, -1);
+  }
+  return base || "section";
+}
+
+export function createHeadingSlugAssigner(): (title: string) => string {
+  const counts = new Map<string, number>();
+  return (title: string) => {
+    const base = slugifyHeadingText(title);
+    const next = (counts.get(base) ?? 0) + 1;
+    counts.set(base, next);
+    return next === 1 ? base : `${base}-${next}`;
+  };
+}
+
+function extractSnapshotHeadingLabel(
+  props: Record<string, unknown>,
+  resolveReference?: (
+    pageId: string,
+    workspaceId?: string,
+  ) => string | undefined,
+): string {
+  const text = props.text as
+    | { delta?: Array<{ insert?: unknown; attributes?: MyoxusTextAttributes }> }
+    | undefined;
+  const delta = Array.isArray(text?.delta) ? text.delta : [];
+  let label = "";
+  for (const op of delta) {
+    const reference = op.attributes?.reference;
+    if (reference?.pageId) {
+      // Never disclose unverified cached reference titles during static export.
+      label +=
+        resolveReference?.(reference.pageId, reference.workspaceId) ??
+        "Target unavailable";
+    } else if (typeof op.insert === "string") {
+      label += op.insert;
+    }
+  }
+  return label.trim();
+}
+
+/**
+ * Collect readable Page headings and deterministic unique slugs from a `BlockSnapshot` tree,
+ * matching `getReadablePageHeadingBlocksFromStore` and Rust `public_render` / `yjs::markdown`.
+ * Slugs are assigned across all readable heading levels (1..6) before filtering by
+ * `minLevel..=maxLevel` so TOC links always match emitted `<h1..h6 id="...">` anchors.
+ */
+export function collectSnapshotTocEntries(
+  rootSnapshot: BlockSnapshot,
+  options?: {
+    minLevel?: number;
+    maxLevel?: number;
+    resolveReference?: (
+      pageId: string,
+      workspaceId?: string,
+    ) => string | undefined;
+  },
+): SnapshotTocEntry[] {
+  const { minLevel, maxLevel } = normalizeTocLevelRange(
+    options?.minLevel ?? 1,
+    options?.maxLevel ?? 6,
+  );
+  const assignSlug = createHeadingSlugAssigner();
+  const allEntries: SnapshotTocEntry[] = [];
+  const visited = new Set<string>();
+
+  const visit = (node: BlockSnapshot) => {
+    if (visited.has(node.id)) return;
+    visited.add(node.id);
+    if (shouldStopOutlineTraversal(node.flavour)) return;
+    if (node.flavour === "myoxus:note") {
+      if (
+        node.props?.hidden === true ||
+        node.props?.displayMode === "edgeless"
+      ) {
+        return;
+      }
+      for (const child of node.children ?? []) {
+        visit(child);
+      }
+      return;
+    }
+    if (node.flavour === "myoxus:page") {
+      for (const child of node.children ?? []) {
+        if (child.flavour === "myoxus:note") {
+          visit(child);
+        }
+      }
+      return;
+    }
+    if (
+      node.flavour === "myoxus:paragraph" &&
+      typeof node.props?.type === "string" &&
+      /^h[1-6]$/.test(node.props.type)
+    ) {
+      const level = Number(node.props.type.slice(1));
+      const label = extractSnapshotHeadingLabel(
+        node.props,
+        options?.resolveReference,
+      );
+      if (label.length > 0) {
+        allEntries.push({
+          id: node.id,
+          level,
+          label,
+          slug: assignSlug(label),
+        });
+      }
+    }
+    if (
+      Array.isArray(node.children) &&
+      node.children.length > 0 &&
+      READABLE_OUTLINE_CONTAINER_FLAVOURS.has(node.flavour)
+    ) {
+      for (const child of node.children) {
+        visit(child);
+      }
+    }
+  };
+
+  visit(rootSnapshot);
+  return allEntries.filter(
+    (entry) => entry.level >= minLevel && entry.level <= maxLevel,
+  );
 }

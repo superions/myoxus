@@ -1513,7 +1513,9 @@ impl Encoder {
           )?;
           self.push(paragraph);
         }
-        Block::TablePlaceholder { .. } | Block::UnsupportedBlock { .. } => self.warn("unsupported_block_omitted"),
+        Block::TablePlaceholder { .. } | Block::UnsupportedBlock { .. } | Block::TableOfContents { .. } => {
+          self.warn("unsupported_block_omitted")
+        }
       }
     }
     Ok(())

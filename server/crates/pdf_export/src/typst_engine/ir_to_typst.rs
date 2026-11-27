@@ -71,7 +71,25 @@ struct RenderState {
   leading_document_title: Option<String>,
   locale: String,
   inside_footnote: bool,
+  inside_local_note: bool,
   monochrome: bool,
+  emit_toc_heading_labels: bool,
+  heading_counter: usize,
+}
+
+fn has_toc_block(block: &Block) -> bool {
+  match block {
+    Block::TableOfContents { .. } => true,
+    Block::Page { children, .. }
+    | Block::Note { children }
+    | Block::EdgelessText { children, .. }
+    | Block::Paragraph { children, .. }
+    | Block::Quote { children, .. }
+    | Block::Heading { children, .. }
+    | Block::List { children, .. }
+    | Block::Callout { children, .. } => children.iter().any(has_toc_block),
+    _ => false,
+  }
 }
 
 impl RenderState {
@@ -146,6 +164,7 @@ pub fn ir_to_typst_source_v2(
     template_handles_diagram_fit: preamble.contains(TEMPLATE_HANDLES_DIAGRAM_FIT_MARKER),
     locale: doc.options.locale.clone(),
     monochrome: doc.options.color_variant.as_deref() == Some("mono"),
+    emit_toc_heading_labels: has_toc_block(&doc.root),
     ..Default::default()
   };
 
@@ -780,6 +799,14 @@ fn write_block(state: &mut RenderState, block: &Block, depth: usize) {
       .is_some_and(|title| inline_plain_text(content).trim() == title);
     state.leading_document_title = None;
     if repeats_document_title {
+      if state.emit_toc_heading_labels && !state.inside_footnote && !state.inside_local_note {
+        state.heading_counter += 1;
+        let _ = writeln!(
+          state.out,
+          "#metadata(\"toc-anchor\") <mx-toc-h-{}>",
+          state.heading_counter
+        );
+      }
       for child in children {
         write_block(state, child, depth + 1);
       }
@@ -820,9 +847,12 @@ fn write_block(state: &mut RenderState, block: &Block, depth: usize) {
         "#block(sticky: true)[#text(weight: \"bold\")[{}]{returns}]<{label}>\n",
         escape_content(&name)
       );
+      let previous_local_note = state.inside_local_note;
+      state.inside_local_note = true;
       for child in children {
         write_block(state, child, depth);
       }
+      state.inside_local_note = previous_local_note;
       let _ = writeln!(state.out);
     }
 
@@ -891,7 +921,12 @@ fn write_block(state: &mut RenderState, block: &Block, depth: usize) {
     } => {
       let prefix = "=".repeat(*level as usize);
       let text = render_inline_heading(content);
-      let _ = writeln!(state.out, "{prefix} {text}");
+      if state.emit_toc_heading_labels && !state.inside_footnote && !state.inside_local_note {
+        state.heading_counter += 1;
+        let _ = writeln!(state.out, "{prefix} {text} <mx-toc-h-{}>", state.heading_counter);
+      } else {
+        let _ = writeln!(state.out, "{prefix} {text}");
+      }
       let _ = writeln!(state.out);
       for child in children {
         write_block(state, child, depth + 1);
@@ -940,6 +975,43 @@ fn write_block(state: &mut RenderState, block: &Block, depth: usize) {
 
     Block::Divider => {
       let _ = writeln!(state.out, "#line(length: 100%)");
+      let _ = writeln!(state.out);
+    }
+
+    Block::TableOfContents { title, entries, .. } => {
+      let heading = if title.trim().is_empty() {
+        match state.locale.split(['-', '_']).next().unwrap_or("en") {
+          "de" => "Inhaltsverzeichnis",
+          "fr" => "Table des matières",
+          "es" => "Tabla de contenidos",
+          _ => "Table of contents",
+        }
+      } else {
+        title.trim()
+      };
+      let _ = writeln!(
+        state.out,
+        "#block(width: 100%, inset: 0.75em, radius: 4pt, fill: neutral-surface-fill, stroke: 0.75pt + structural-stroke, breakable: true)["
+      );
+      let _ = writeln!(
+        state.out,
+        "  #text(weight: \"semibold\", size: body-meta-size)[{}]",
+        escape_content(heading)
+      );
+      if !entries.is_empty() {
+        let base_level = entries.iter().map(|entry| entry.level).min().unwrap_or(1);
+        let _ = writeln!(state.out, "  #v(0.35em)");
+        for entry in entries {
+          let indent_em = f64::from(entry.level.saturating_sub(base_level)) * 1.1;
+          let _ = writeln!(
+            state.out,
+            "  #block(above: 0.2em, below: 0.2em, inset: (left: {indent_em:.1}em))[#link(<mx-toc-h-{}>)[#text(size: body-meta-size)[{}]]]",
+            entry.heading_index,
+            escape_content(&entry.title)
+          );
+        }
+      }
+      let _ = writeln!(state.out, "]");
       let _ = writeln!(state.out);
     }
 

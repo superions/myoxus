@@ -31,6 +31,7 @@ import {
   RootBlockSchema,
   SurfaceRefBlockSchema,
   TableBlockSchema,
+  TableOfContentsBlockSchema,
 } from "@virgultum/core/models";
 import type { BlockSchema } from "@virgultum/core/store";
 import type { z } from "zod";
@@ -66,5 +67,6 @@ export const MyoxusSchemas: z.infer<typeof BlockSchema>[] = [
   EdgelessTextBlockSchema,
   LatexBlockSchema,
   TableBlockSchema,
+  TableOfContentsBlockSchema,
   CalloutBlockSchema,
 ];

@@ -215,8 +215,9 @@ Explicit opt-outs, pins, manual choices and detached sources are preserved.
 ## Workspace-purpose document sources
 
 The release base also declares the native `knowledge-home`, `research-note`,
-`team-wiki-home`, `procedure` and `decision-record` bundles at version `1.0.0`,
-with English, German, French and Spanish documents. Personal Knowledge and Team
+`procedure` and `decision-record` bundles at version `1.0.0`, and
+`team-wiki-home` at version `1.1.0` (retaining `1.0.0` as an immutable pinned
+component), with English, German, French and Spanish documents. Personal Knowledge and Team
 Wiki reference these admitted Registry sources through the existing assistant
 catalog. Their selected documents are ordinary working copies, not Registry
 assignments; future publication or source editing does not rewrite those copies.

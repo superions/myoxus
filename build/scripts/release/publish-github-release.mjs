@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import { request as httpsRequest } from "node:https";
+import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
@@ -14,8 +15,10 @@ import { gzipSync } from "node:zlib";
 import { readSourceProvenance } from "./source-correspondence.mjs";
 import {
   containersFromRelease,
+  exportContainerOciTar,
   githubContainerLine,
   githubContainers,
+  missingGithubContainers,
   verifyGithubContainers,
 } from "./github-container-registry.mjs";
 import { renderContainerReleaseNotes } from "./github-release-notes.mjs";
@@ -773,40 +776,162 @@ async function writePublicHomebrewCask(plan, fetchImpl, token) {
     );
 }
 
+function uploadFileStream(url, filePath, token) {
+  const parsed = new URL(url);
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password)
+    throw new Error("Release requests require credential-free HTTPS URLs");
+  const size = fs.statSync(filePath).size;
+  return new Promise((resolve, reject) => {
+    const upload = httpsRequest(
+      parsed,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/vnd.github+json",
+          "User-Agent": "Myoxus-release-publisher",
+          "X-GitHub-Api-Version": "2022-11-28",
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/octet-stream",
+          "Content-Length": size,
+        },
+        signal: AbortSignal.timeout(900000),
+      },
+      (response) => {
+        const chunks = [];
+        response.on("data", (chunk) => chunks.push(chunk));
+        response.on("error", reject);
+        response.on("end", () => {
+          if (response.statusCode < 200 || response.statusCode >= 300) {
+            reject(
+              new Error(`Release asset upload HTTP ${response.statusCode}`),
+            );
+          } else {
+            try {
+              resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+            } catch (error) {
+              reject(error);
+            }
+          }
+        });
+      },
+    );
+    upload.on("error", reject);
+    const stream = fs.createReadStream(filePath);
+    stream.on("error", (error) => {
+      upload.destroy(error);
+      reject(error);
+    });
+    stream.pipe(upload);
+  });
+}
+
+async function cleanupStagingDrafts(version, token, fetchImpl) {
+  const stagingName = `myoxus-ghcr-staging-${version}`;
+  for (let page = 1; page <= 5; page++) {
+    const releases = await request(
+      fetchImpl,
+      `${API}/releases?per_page=100&page=${page}`,
+      { token },
+    );
+    for (const r of releases) {
+      if (r.draft && r.name === stagingName) {
+        await request(fetchImpl, `${API}/releases/${r.id}`, {
+          method: "DELETE",
+          token,
+        });
+      }
+    }
+    if (releases.length < 100) return;
+  }
+}
+
 async function dispatchContainerCopy(containers, version, token, fetchImpl) {
   const inputs = {
     version,
     ...Object.fromEntries(containers.map(({ role, digest }) => [role, digest])),
   };
-  const dispatch = await request(
-    fetchImpl,
-    `${API}/actions/workflows/copy-release-containers.yml/dispatches`,
-    {
-      method: "POST",
-      apiVersion: "2026-03-10",
-      token,
-      body: { ref: "main", inputs },
-    },
-  );
-  const id = dispatch?.workflow_run_id;
-  if (!Number.isSafeInteger(id) || id <= 0)
-    throw new Error("GitHub did not return a GHCR copy run ID");
-  const url = `https://github.com/${REPOSITORY}/actions/runs/${id}`;
-  console.log(`GHCR copy: ${url}`);
-  const deadline = Date.now() + 35 * 60_000;
-  while (Date.now() < deadline) {
-    const run = await request(fetchImpl, `${API}/actions/runs/${id}`, {
-      token,
-    });
-    if (run.status === "completed") {
-      if (run.conclusion !== "success")
-        throw new Error(`GHCR copy ended with ${run.conclusion}: ${url}`);
-      verifyGithubContainers(containers, version);
-      return;
+  const missing = missingGithubContainers(containers, version);
+  let staging;
+  const stageDir = missing.length
+    ? fs.mkdtempSync(path.join(os.tmpdir(), "myoxus-ghcr-stage-"))
+    : undefined;
+  try {
+    if (missing.length) {
+      await cleanupStagingDrafts(version, token, fetchImpl);
+      staging = await request(fetchImpl, `${API}/releases`, {
+        method: "POST",
+        token,
+        body: {
+          tag_name: `ghcr-staging-${version}`,
+          name: `myoxus-ghcr-staging-${version}`,
+          body: "Temporary OCI staging draft for GHCR publication; deleted automatically.",
+          draft: true,
+          prerelease: true,
+        },
+      });
+      for (const entry of missing) {
+        const tarPath = path.join(stageDir, `oci-${entry.role}.tar`);
+        try {
+          const { size, sha256 } = await exportContainerOciTar(entry, tarPath);
+          console.log(
+            `Staged ${entry.role} OCI archive (${(size / 1048576).toFixed(1)} MiB, sha256:${sha256.slice(0, 12)})`,
+          );
+          const asset = await uploadFileStream(
+            `https://uploads.github.com/repos/${REPOSITORY}/releases/${staging.id}/assets?name=${encodeURIComponent(`oci-${entry.role}.tar`)}`,
+            tarPath,
+            token,
+          );
+          inputs[`${entry.role}_asset_id`] = String(asset.id);
+          inputs[`${entry.role}_asset_sha256`] = sha256;
+        } finally {
+          fs.rmSync(tarPath, { force: true });
+        }
+      }
     }
-    await delay(10_000);
+    const dispatch = await request(
+      fetchImpl,
+      `${API}/actions/workflows/copy-release-containers.yml/dispatches`,
+      {
+        method: "POST",
+        apiVersion: "2026-03-10",
+        token,
+        body: { ref: "main", inputs },
+      },
+    );
+    const id = dispatch?.workflow_run_id;
+    if (!Number.isSafeInteger(id) || id <= 0)
+      throw new Error("GitHub did not return a GHCR copy run ID");
+    const url = `https://github.com/${REPOSITORY}/actions/runs/${id}`;
+    console.log(`GHCR copy: ${url}`);
+    const deadline = Date.now() + 35 * 60_000;
+    while (Date.now() < deadline) {
+      const run = await request(fetchImpl, `${API}/actions/runs/${id}`, {
+        token,
+        missing: true,
+      });
+      if (!run) {
+        await delay(5_000);
+        continue;
+      }
+      if (run.status === "completed") {
+        if (run.conclusion !== "success")
+          throw new Error(`GHCR copy ended with ${run.conclusion}: ${url}`);
+        verifyGithubContainers(containers, version);
+        return;
+      }
+      await delay(10_000);
+    }
+    throw new Error(`Timed out waiting for GHCR copy: ${url}`);
+  } finally {
+    if (stageDir) fs.rmSync(stageDir, { recursive: true, force: true });
+    if (staging?.id) {
+      await request(fetchImpl, `${API}/releases/${staging.id}`, {
+        method: "DELETE",
+        token,
+        missing: true,
+      });
+    }
   }
-  throw new Error(`Timed out waiting for GHCR copy: ${url}`);
 }
 
 export async function publishPreparedRelease({

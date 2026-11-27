@@ -650,12 +650,17 @@ impl<R: AssetResolver> YjsIrBuilder<R> {
       local_definitions: Vec::new(),
       definition_ids: HashSet::new(),
       inside_definition: false,
+      in_readable_toc_container: true,
+      heading_counter: 0,
+      toc_headings: Vec::new(),
+      toc_scopes: Vec::new(),
       table_palette: options.native_table_palette.as_ref(),
       table_canvas: metadata.branding.background.clone(),
     };
 
     // Find the root myoxus:page block.
     let mut root = ctx.build_root_block().await?;
+    populate_table_of_contents(&mut root, &ctx.toc_headings, &ctx.toc_scopes);
     bind_local_notes(&mut root, &mut ctx.local_definitions, &options.locale)?;
     resolve_content_paint(&mut root, options.native_table_palette.as_ref(), &mut ctx.diagnostics);
     // Use the same revision as the body, including historical exports. Explicit
@@ -682,6 +687,13 @@ impl<R: AssetResolver> YjsIrBuilder<R> {
 
 // ─── Build context ───────────────────────────────────────────────────────────
 
+struct RecordedTocHeading {
+  block_id: String,
+  level: u8,
+  title: String,
+  heading_index: usize,
+}
+
 struct BuildContext<'a, R: AssetResolver> {
   txn: &'a yrs::Transaction<'a>,
   blocks_map: &'a yrs::MapRef,
@@ -693,8 +705,56 @@ struct BuildContext<'a, R: AssetResolver> {
   local_definitions: Vec<LocalDefinition>,
   definition_ids: HashSet<String>,
   inside_definition: bool,
+  in_readable_toc_container: bool,
+  heading_counter: usize,
+  toc_headings: Vec<RecordedTocHeading>,
+  toc_scopes: Vec<Option<String>>,
   table_palette: Option<&'a NativeTablePalette>,
   table_canvas: Option<String>,
+}
+
+fn populate_table_of_contents(root: &mut Block, headings: &[RecordedTocHeading], scopes: &[Option<String>]) {
+  fn visit(block: &mut Block, headings: &[RecordedTocHeading], scopes: &[Option<String>], cursor: &mut usize) {
+    match block {
+      Block::TableOfContents {
+        min_level,
+        max_level,
+        entries,
+        ..
+      } => {
+        let scope = scopes.get(*cursor).and_then(|s| s.as_deref());
+        *cursor += 1;
+        *entries = headings
+          .iter()
+          .filter(|h| {
+            h.level >= *min_level
+              && h.level <= *max_level
+              && yjs::table_of_contents::embed_scope_prefix(&h.block_id) == scope
+          })
+          .map(|h| TableOfContentsEntry {
+            level: h.level,
+            title: h.title.clone(),
+            heading_index: h.heading_index,
+          })
+          .collect();
+      }
+      Block::Page { children, .. }
+      | Block::Note { children }
+      | Block::EdgelessText { children, .. }
+      | Block::Paragraph { children, .. }
+      | Block::Quote { children, .. }
+      | Block::Heading { children, .. }
+      | Block::List { children, .. }
+      | Block::Callout { children, .. } => {
+        for child in children {
+          visit(child, headings, scopes, cursor);
+        }
+      }
+      _ => {}
+    }
+  }
+  let mut cursor = 0;
+  visit(root, headings, scopes, &mut cursor);
 }
 
 struct LocalDefinition {
@@ -1139,12 +1199,19 @@ impl<'a, R: AssetResolver> BuildContext<'a, R> {
       }
 
       "myoxus:note" => {
+        let prev_readable = self.in_readable_toc_container;
+        let hidden = get_prop_bool(bmap, self.txn, "hidden").unwrap_or(false);
+        let edgeless_only = get_prop_string(bmap, self.txn, "displayMode").as_deref() == Some("edgeless");
+        if hidden || edgeless_only {
+          self.in_readable_toc_container = false;
+        }
         let mut children = Vec::new();
         for child_id in &children_ids {
           if let Some(child_map) = all_blocks.get(child_id) {
             children.push(self.build_block(child_map, all_blocks).await?);
           }
         }
+        self.in_readable_toc_container = prev_readable;
         Ok(Block::Note { children })
       }
 
@@ -1191,51 +1258,57 @@ impl<'a, R: AssetResolver> BuildContext<'a, R> {
 
       "myoxus:paragraph" => {
         let content = get_text_content(bmap, self.txn, "text");
+        let heading_level = match para_type.as_deref() {
+          Some("h1") => Some((HeadingLevel::H1, 1u8)),
+          Some("h2") => Some((HeadingLevel::H2, 2u8)),
+          Some("h3") => Some((HeadingLevel::H3, 3u8)),
+          Some("h4") => Some((HeadingLevel::H4, 4u8)),
+          Some("h5") => Some((HeadingLevel::H5, 5u8)),
+          Some("h6") => Some((HeadingLevel::H6, 6u8)),
+          _ => None,
+        };
+        // Record heading in exact pre-order before recursing into children so
+        // `heading_counter` matches `ir_to_typst::write_block` visit order 1:1.
+        if let Some((_, level_num)) = heading_level
+          && !self.inside_definition
+        {
+          self.heading_counter += 1;
+          let heading_index = self.heading_counter;
+          if self.in_readable_toc_container {
+            let plain_title = crate::ir::inline::inline_plain_text(&content);
+            if !plain_title.trim().is_empty() {
+              let block_id = get_any_string(bmap, self.txn, "sys:id").unwrap_or_default();
+              self.toc_headings.push(RecordedTocHeading {
+                block_id,
+                level: level_num,
+                title: plain_title.trim().to_string(),
+                heading_index,
+              });
+            }
+          }
+        }
         let mut children = Vec::new();
         for child_id in &children_ids {
           if let Some(child_map) = all_blocks.get(child_id) {
             children.push(self.build_block(child_map, all_blocks).await?);
           }
         }
-        match para_type.as_deref() {
-          Some("h1") => Ok(Block::Heading {
-            level: HeadingLevel::H1,
+        if let Some((level, _)) = heading_level {
+          Ok(Block::Heading {
+            level,
             content,
             children,
-          }),
-          Some("h2") => Ok(Block::Heading {
-            level: HeadingLevel::H2,
-            content,
-            children,
-          }),
-          Some("h3") => Ok(Block::Heading {
-            level: HeadingLevel::H3,
-            content,
-            children,
-          }),
-          Some("h4") => Ok(Block::Heading {
-            level: HeadingLevel::H4,
-            content,
-            children,
-          }),
-          Some("h5") => Ok(Block::Heading {
-            level: HeadingLevel::H5,
-            content,
-            children,
-          }),
-          Some("h6") => Ok(Block::Heading {
-            level: HeadingLevel::H6,
-            content,
-            children,
-          }),
-          Some("quote") => Ok(Block::Quote { content, children }),
-          _ => Ok(Block::Paragraph {
+          })
+        } else if para_type.as_deref() == Some("quote") {
+          Ok(Block::Quote { content, children })
+        } else {
+          Ok(Block::Paragraph {
             content,
             children,
             alignment: get_prop_string(bmap, self.txn, "textAlign")
               .filter(|v| matches!(v.as_str(), "left" | "center" | "right" | "justify")),
             eyebrow: get_prop_string(bmap, self.txn, "presentation").as_deref() == Some("eyebrow"),
-          }),
+          })
         }
       }
 
@@ -1318,6 +1391,23 @@ impl<'a, R: AssetResolver> BuildContext<'a, R> {
       }
 
       "myoxus:divider" => Ok(Block::Divider),
+
+      "myoxus:table-of-contents" => {
+        let title = get_prop_string(bmap, self.txn, "title").unwrap_or_default();
+        let (min_level, max_level) = yjs::table_of_contents::normalize_level_range(
+          get_prop_u64(bmap, self.txn, "minLevel").map(|n| n.clamp(1, 6) as u8),
+          get_prop_u64(bmap, self.txn, "maxLevel").map(|n| n.clamp(1, 6) as u8),
+        );
+        let block_id = get_any_string(bmap, self.txn, "sys:id").unwrap_or_default();
+        let scope = yjs::table_of_contents::embed_scope_prefix(&block_id).map(str::to_string);
+        self.toc_scopes.push(scope);
+        Ok(Block::TableOfContents {
+          title,
+          min_level,
+          max_level,
+          entries: Vec::new(),
+        })
+      }
 
       "myoxus:callout" => {
         let mut content = get_text_content(bmap, self.txn, "text");

@@ -1,6 +1,6 @@
 formatVersion: 1
 id: myoxus.features.base
-version: 1.0.37
+version: 1.0.39
 capabilities:
   artwork: 1
   assistant: 1
@@ -332,6 +332,9 @@ components:
   - id: document.team-wiki-home.1.0.0
     kind: documentTemplate
     path: documents/team-wiki-home/1.0.0.zip
+  - id: document.team-wiki-home.1.1.0
+    kind: documentTemplate
+    path: documents/team-wiki-home/1.1.0.zip
   - id: document.procedure.1.0.0
     kind: documentTemplate
     path: documents/procedure/1.0.0.zip
@@ -827,6 +830,9 @@ components:
   - id: document.block-technical-profile.1.1.0
     kind: documentTemplate
     path: documents/block-technical-profile/1.1.0.zip
+  - id: document.block-technical-profile.1.2.0
+    kind: documentTemplate
+    path: documents/block-technical-profile/1.2.0.zip
   - id: document.block-architecture-comparison.1.1.0
     kind: documentTemplate
     path: documents/block-architecture-comparison/1.1.0.zip
@@ -3050,8 +3056,8 @@ exports:
       newWorkspaceDefault: false
   - id: document.team-wiki-home
     source:
-      component: document.team-wiki-home.1.0.0
-      export: team-wiki-home@1.0.0
+      component: document.team-wiki-home.1.1.0
+      export: team-wiki-home@1.1.0
     document:
       newWorkspaceDefault: false
   - id: document.procedure
@@ -3514,8 +3520,8 @@ exports:
       newWorkspaceDefault: true
   - id: document.block-technical-profile
     source:
-      component: document.block-technical-profile.1.1.0
-      export: block-technical-profile@1.1.0
+      component: document.block-technical-profile.1.2.0
+      export: block-technical-profile@1.2.0
     document:
       newWorkspaceDefault: true
   - id: document.block-architecture-comparison

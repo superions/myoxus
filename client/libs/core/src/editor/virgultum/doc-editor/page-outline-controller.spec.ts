@@ -14,7 +14,10 @@ import {
   RootBlockSchemaExtension,
   TableOfContentsBlockSchemaExtension,
 } from "@virgultum/core/models";
-import { getReadablePageHeadingBlocksFromStore } from "@virgultum/core/utils";
+import {
+  collectSnapshotTocEntries,
+  getReadablePageHeadingBlocksFromStore,
+} from "@virgultum/core/utils";
 import { Text } from "@virgultum/core/store";
 import { TestWorkspace } from "@virgultum/core/store/test";
 import { describe, expect, test, vi } from "vitest";
@@ -218,6 +221,106 @@ describe("createPageOutlineController", () => {
         maxLevel: 2,
       });
       expect(narrowed.map((b) => b.id)).toEqual([nestedH2]);
+
+      const snapshotEntries = collectSnapshotTocEntries(
+        {
+          type: "block",
+          id: "page",
+          flavour: "myoxus:page",
+          props: {},
+          children: [
+            {
+              type: "block",
+              id: "note",
+              flavour: "myoxus:note",
+              props: {},
+              children: [
+                {
+                  type: "block",
+                  id: "h1",
+                  flavour: "myoxus:paragraph",
+                  props: {
+                    type: "h1",
+                    text: { delta: [{ insert: "Overview" }] },
+                  },
+                  children: [],
+                },
+                {
+                  type: "block",
+                  id: "callout",
+                  flavour: "myoxus:callout",
+                  props: {},
+                  children: [
+                    {
+                      type: "block",
+                      id: "h2",
+                      flavour: "myoxus:paragraph",
+                      props: {
+                        type: "h2",
+                        text: { delta: [{ insert: "Overview" }] },
+                      },
+                      children: [],
+                    },
+                  ],
+                },
+                {
+                  type: "block",
+                  id: "h2-ref",
+                  flavour: "myoxus:paragraph",
+                  props: {
+                    type: "h2",
+                    text: {
+                      delta: [
+                        { insert: "See " },
+                        {
+                          insert: " ",
+                          attributes: {
+                            reference: {
+                              type: "LinkedPage",
+                              pageId: "private-doc",
+                              title: "Secret Cached Title",
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                  children: [],
+                },
+                {
+                  type: "block",
+                  id: "fn",
+                  flavour: "myoxus:footnote-definition",
+                  props: {},
+                  children: [
+                    {
+                      type: "block",
+                      id: "fn-h2",
+                      flavour: "myoxus:paragraph",
+                      props: {
+                        type: "h2",
+                        text: { delta: [{ insert: "Excluded" }] },
+                      },
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        { minLevel: 1, maxLevel: 2 },
+      );
+      expect(snapshotEntries).toEqual([
+        { id: "h1", level: 1, label: "Overview", slug: "overview" },
+        { id: "h2", level: 2, label: "Overview", slug: "overview-2" },
+        {
+          id: "h2-ref",
+          level: 2,
+          label: "See Target unavailable",
+          slug: "see-target-unavailable",
+        },
+      ]);
     } finally {
       workspace.dispose();
     }

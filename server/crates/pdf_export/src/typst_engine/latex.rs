@@ -261,6 +261,7 @@ impl Formulas {
         text_fallback: None, ..
       }
       | Block::Divider
+      | Block::TableOfContents { .. }
       | Block::Attachment { .. }
       | Block::Bookmark(_)
       | Block::Embed(_) => {}

@@ -408,7 +408,7 @@ fn render_public_blocks_as_notion_html(blocks: &[Block], document_page_filenames
         html.push_str(&format!("<p>[^{label}]</p>\n", label = escape_html(label)));
         html.push_str(&render_public_blocks_as_notion_html(children, document_page_filenames));
       }
-      Block::TablePlaceholder { .. } | Block::UnsupportedBlock { .. } => {}
+      Block::TablePlaceholder { .. } | Block::UnsupportedBlock { .. } | Block::TableOfContents { .. } => {}
     }
   }
   html

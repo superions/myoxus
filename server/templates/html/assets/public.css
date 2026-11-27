@@ -297,6 +297,58 @@ img {
   margin-block-end: 0;
 }
 
+.mx-public-body-toc {
+  box-sizing: border-box;
+  margin-block: 0 1.25rem;
+  padding: var(--myoxus-spacing-sm, 0.75rem) var(--myoxus-spacing-md, 1rem);
+  border: 1px solid var(--myoxus-sem-border-default);
+  border-radius: var(--myoxus-radius-md, 0.5rem);
+  background: var(--myoxus-sem-surface-card);
+}
+
+.mx-public-body-toc .mx-public-body-toc-title {
+  margin-block: 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--myoxus-sem-text-primary);
+}
+
+.mx-public-body-toc .mx-public-body-toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mx-public-body-toc .mx-public-body-toc-item[data-toc-depth="1"] {
+  padding-inline-start: 1rem;
+}
+
+.mx-public-body-toc .mx-public-body-toc-item[data-toc-depth="2"] {
+  padding-inline-start: 2rem;
+}
+
+.mx-public-body-toc .mx-public-body-toc-item[data-toc-depth="3"] {
+  padding-inline-start: 3rem;
+}
+
+.mx-public-body-toc .mx-public-body-toc-item[data-toc-depth="4"],
+.mx-public-body-toc .mx-public-body-toc-item[data-toc-depth="5"] {
+  padding-inline-start: 4rem;
+}
+
+.mx-public-body-toc .mx-public-body-toc-item a {
+  color: var(--myoxus-sem-text-primary);
+  text-decoration: none;
+}
+
+.mx-public-body-toc .mx-public-body-toc-item a:hover {
+  color: var(--myoxus-sem-accent-primary);
+  text-decoration: underline;
+}
+
 .mx-public-table-wrap {
   overflow-x: auto;
 }

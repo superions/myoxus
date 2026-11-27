@@ -74,6 +74,130 @@ struct RenderedBody {
   toc: Vec<TocEntry>,
 }
 
+struct HeadingAnchor {
+  block_id: String,
+  id: String,
+  level: u8,
+  title: String,
+}
+
+struct HtmlBodyContext {
+  heading_anchors: Vec<HeadingAnchor>,
+  heading_ids: Vec<String>,
+  heading_cursor: usize,
+  in_footnote: bool,
+}
+
+impl HtmlBodyContext {
+  fn next_heading_id(&mut self, fallback_title: &str) -> String {
+    if let Some(id) = self.heading_ids.get(self.heading_cursor) {
+      self.heading_cursor += 1;
+      return id.clone();
+    }
+    let mut counts = HashMap::new();
+    yjs::table_of_contents::unique_heading_slug(fallback_title, &mut counts)
+  }
+}
+
+fn collect_document_headings(blocks: &[Block]) -> (Vec<HeadingAnchor>, Vec<String>) {
+  fn visit_blocks(
+    blocks: &[Block],
+    slug_counts: &mut HashMap<String, usize>,
+    anchors: &mut Vec<HeadingAnchor>,
+    ids: &mut Vec<String>,
+  ) {
+    for block in blocks {
+      match block {
+        Block::Heading { block_id, level, text } => {
+          let level = (*level).clamp(1, 6);
+          let title = plain_inline(text);
+          let id = yjs::table_of_contents::unique_heading_slug(&title, slug_counts);
+          ids.push(id.clone());
+          if !title.trim().is_empty() {
+            anchors.push(HeadingAnchor {
+              block_id: block_id.clone(),
+              id,
+              level,
+              title,
+            });
+          }
+        }
+        Block::Callout { children, .. } => visit_blocks(children, slug_counts, anchors, ids),
+        Block::List { list, .. } => {
+          for item in &list.items {
+            visit_blocks(&item.children, slug_counts, anchors, ids);
+          }
+        }
+        // Footnote definitions and non-readable blocks never contribute headings to the in-body TOC.
+        Block::FootnoteDefinition { .. }
+        | Block::Paragraph { .. }
+        | Block::Quote { .. }
+        | Block::Code { .. }
+        | Block::Mermaid { .. }
+        | Block::Divider { .. }
+        | Block::TableOfContents { .. }
+        | Block::Image { .. }
+        | Block::BookmarkCard { .. }
+        | Block::Table { .. }
+        | Block::TablePlaceholder { .. }
+        | Block::UnsupportedBlock { .. } => {}
+      }
+    }
+  }
+  let mut slug_counts = HashMap::new();
+  let mut anchors = Vec::new();
+  let mut ids = Vec::new();
+  visit_blocks(blocks, &mut slug_counts, &mut anchors, &mut ids);
+  (anchors, ids)
+}
+
+fn render_table_of_contents(
+  block_id: &str,
+  title: &str,
+  min_level: u8,
+  max_level: u8,
+  heading_anchors: &[HeadingAnchor],
+  options: &HtmlRenderOptions,
+  renderer: &HtmlRenderer,
+) -> String {
+  let (min_level, max_level) = yjs::table_of_contents::normalize_level_range(Some(min_level), Some(max_level));
+  let scope_prefix = yjs::table_of_contents::embed_scope_prefix(block_id);
+  let entries: Vec<&HeadingAnchor> = heading_anchors
+    .iter()
+    .filter(|anchor| {
+      anchor.level >= min_level
+        && anchor.level <= max_level
+        && yjs::table_of_contents::embed_scope_prefix(&anchor.block_id) == scope_prefix
+    })
+    .collect();
+  let heading_label = if title.trim().is_empty() {
+    renderer.labels(&options.locale).contents.as_str()
+  } else {
+    title.trim()
+  };
+  let mut html = format!(
+    "<nav class=\"mx-public-body-toc\" data-myoxus-role=\"public-toc\" data-toc-min-level=\"{min_level}\" data-toc-max-level=\"{max_level}\" aria-label=\"{}\"><p class=\"mx-public-body-toc-title\">{}</p>",
+    esc_attr(heading_label),
+    esc(heading_label)
+  );
+  if !entries.is_empty() {
+    let base_level = entries.iter().map(|entry| entry.level).min().unwrap_or(min_level);
+    html.push_str("<ul class=\"mx-public-body-toc-list\">");
+    for entry in entries {
+      let depth = entry.level.saturating_sub(base_level);
+      html.push_str(&format!(
+        "<li class=\"mx-public-body-toc-item\" data-toc-level=\"{}\" data-toc-depth=\"{depth}\"><a href=\"#{}\">{}</a></li>",
+        entry.level,
+        esc_attr(&entry.id),
+        esc(&entry.title)
+      ));
+    }
+    html.push_str("</ul>");
+  }
+  html.push_str("</nav>");
+  html
+}
+
 pub fn render_document_html(
   renderer: &HtmlRenderer,
   ir: &PublicDocIr,
@@ -387,7 +511,13 @@ fn render_shell(
 fn render_document_body(ir: &PublicDocIr, options: &HtmlRenderOptions, renderer: &HtmlRenderer) -> RenderedBody {
   let mut html = String::new();
   let mut toc = Vec::new();
-  let mut slug_counts = HashMap::new();
+  let (heading_anchors, heading_ids) = collect_document_headings(&ir.document.blocks);
+  let mut body_ctx = HtmlBodyContext {
+    heading_anchors,
+    heading_ids,
+    heading_cursor: 0,
+    in_footnote: false,
+  };
   html.push_str("<article data-myoxus-role=\"public-document\" class=\"mx-public-document\" data-pagefind-body>");
   for block in &ir.document.blocks {
     match block {
@@ -395,7 +525,7 @@ fn render_document_body(ir: &PublicDocIr, options: &HtmlRenderOptions, renderer:
       Block::Heading { level, text, .. } => {
         let level = (*level).clamp(1, 6);
         let title = plain_inline(text);
-        let id = unique_slug(&title, &mut slug_counts);
+        let id = body_ctx.next_heading_id(&title);
         if options.site_shell.toc_enabled && level <= options.site_shell.max_toc_depth {
           toc.push(TocEntry {
             id: id.clone(),
@@ -410,8 +540,8 @@ fn render_document_body(ir: &PublicDocIr, options: &HtmlRenderOptions, renderer:
         ));
       }
       Block::FootnoteDefinition { block_id, label, placement, number, children, backlinks, .. } =>
-        render_footnote_definition(&mut html, block_id, label, *placement, *number, children, backlinks, options, renderer),
-      Block::List { list, .. } => render_list(&mut html, list, options, renderer),
+        render_footnote_definition(&mut html, block_id, label, *placement, *number, children, backlinks, options, renderer, &mut body_ctx),
+      Block::List { list, .. } => render_list(&mut html, list, options, renderer, &mut body_ctx),
       Block::Quote { text, .. } => html.push_str(&format!("<blockquote>{}</blockquote>", render_inline(text, &options.locale))),
       Block::Callout {
         title,
@@ -419,7 +549,7 @@ fn render_document_body(ir: &PublicDocIr, options: &HtmlRenderOptions, renderer:
         appearance,
         children,
         ..
-      } => render_callout(&mut html, title.as_deref(), text, *appearance, children, options, renderer),
+      } => render_callout(&mut html, title.as_deref(), text, *appearance, children, options, renderer, &mut body_ctx),
       Block::Code { language, text, .. } => html.push_str(&render_code_block(language.as_deref(), text, options, renderer)),
       Block::Mermaid {
         block_id,
@@ -428,6 +558,20 @@ fn render_document_body(ir: &PublicDocIr, options: &HtmlRenderOptions, renderer:
         caption,
       } => html.push_str(&render_mermaid(block_id, source, title, caption)),
       Block::Divider { .. } => html.push_str("<hr />"),
+      Block::TableOfContents {
+        block_id,
+        title,
+        min_level,
+        max_level,
+      } => html.push_str(&render_table_of_contents(
+        block_id,
+        title,
+        *min_level,
+        *max_level,
+        &body_ctx.heading_anchors,
+        options,
+        renderer,
+      )),
       Block::Image { asset, .. } => html.push_str(&render_image(asset, options.snapshot_relative_links)),
       Block::BookmarkCard { url, title, .. } => html.push_str(&render_link_card(url, title)),
       Block::Table {
@@ -449,7 +593,13 @@ fn render_document_body(ir: &PublicDocIr, options: &HtmlRenderOptions, renderer:
   RenderedBody { html, toc }
 }
 
-fn render_list(html: &mut String, list: &PublicList, options: &HtmlRenderOptions, renderer: &HtmlRenderer) {
+fn render_list(
+  html: &mut String,
+  list: &PublicList,
+  options: &HtmlRenderOptions,
+  renderer: &HtmlRenderer,
+  body_ctx: &mut HtmlBodyContext,
+) {
   let (tag, list_type) = match list.kind {
     PublicListKind::Bulleted => ("ul", "bulleted"),
     PublicListKind::Numbered => ("ol", "numbered"),
@@ -459,7 +609,7 @@ fn render_list(html: &mut String, list: &PublicList, options: &HtmlRenderOptions
     "<{tag} class=\"mx-public-list mx-public-list--{list_type}\" data-myoxus-role=\"public-list\" data-list-type=\"{list_type}\">"
   ));
   for item in &list.items {
-    render_list_item(html, list.kind, item, options, renderer);
+    render_list_item(html, list.kind, item, options, renderer, body_ctx);
   }
   html.push_str(&format!("</{tag}>"));
 }
@@ -470,6 +620,7 @@ fn render_list_item(
   item: &PublicListItem,
   options: &HtmlRenderOptions,
   renderer: &HtmlRenderer,
+  body_ctx: &mut HtmlBodyContext,
 ) {
   html.push_str("<li data-myoxus-role=\"public-list-item\">");
   if kind == PublicListKind::Todo {
@@ -486,16 +637,22 @@ fn render_list_item(
     html.push_str(&render_inline(&item.text, &options.locale));
   }
   for child in &item.children {
-    render_nested_block(html, child, options, renderer);
+    render_nested_block(html, child, options, renderer, body_ctx);
   }
   html.push_str("</li>");
 }
 
-fn render_nested_block(html: &mut String, block: &Block, options: &HtmlRenderOptions, renderer: &HtmlRenderer) {
+fn render_nested_block(
+  html: &mut String,
+  block: &Block,
+  options: &HtmlRenderOptions,
+  renderer: &HtmlRenderer,
+  body_ctx: &mut HtmlBodyContext,
+) {
   match block {
     Block::FootnoteDefinition { block_id, label, placement, number, children, backlinks, .. } =>
-      render_footnote_definition(html, block_id, label, *placement, *number, children, backlinks, options, renderer),
-    Block::List { list, .. } => render_list(html, list, options, renderer),
+      render_footnote_definition(html, block_id, label, *placement, *number, children, backlinks, options, renderer, body_ctx),
+    Block::List { list, .. } => render_list(html, list, options, renderer, body_ctx),
     Block::Paragraph { text, .. } => html.push_str(&format!("<p>{}</p>", render_inline(text, &options.locale))),
     Block::Quote { text, .. } => html.push_str(&format!("<blockquote>{}</blockquote>", render_inline(text, &options.locale))),
     Block::Callout {
@@ -504,7 +661,7 @@ fn render_nested_block(html: &mut String, block: &Block, options: &HtmlRenderOpt
       appearance,
       children,
       ..
-    } => render_callout(html, title.as_deref(), text, *appearance, children, options, renderer),
+    } => render_callout(html, title.as_deref(), text, *appearance, children, options, renderer, body_ctx),
     Block::Code { language, text, .. } => html.push_str(&render_code_block(language.as_deref(), text, options, renderer)),
     Block::Mermaid {
       block_id,
@@ -513,9 +670,33 @@ fn render_nested_block(html: &mut String, block: &Block, options: &HtmlRenderOpt
       caption,
     } => html.push_str(&render_mermaid(block_id, source, title, caption)),
     Block::Divider { .. } => html.push_str("<hr />"),
+    Block::TableOfContents {
+      block_id,
+      title,
+      min_level,
+      max_level,
+    } => html.push_str(&render_table_of_contents(
+      block_id,
+      title,
+      *min_level,
+      *max_level,
+      &body_ctx.heading_anchors,
+      options,
+      renderer,
+    )),
     Block::Heading { level, text, .. } => {
       let level = (*level).clamp(1, 6);
-      html.push_str(&format!("<h{level}>{}</h{level}>", render_inline(text, &options.locale)));
+      if body_ctx.in_footnote {
+        html.push_str(&format!("<h{level}>{}</h{level}>", render_inline(text, &options.locale)));
+      } else {
+        let title = plain_inline(text);
+        let id = body_ctx.next_heading_id(&title);
+        html.push_str(&format!(
+          "<h{level} id=\"{}\">{}</h{level}>",
+          esc_attr(&id),
+          render_inline(text, &options.locale)
+        ));
+      }
     }
     Block::Image { asset, .. } => html.push_str(&render_image(asset, options.snapshot_relative_links)),
     Block::BookmarkCard { url, title, .. } => html.push_str(&render_link_card(url, title)),
@@ -543,6 +724,7 @@ fn render_callout(
   children: &[Block],
   options: &HtmlRenderOptions,
   renderer: &HtmlRenderer,
+  body_ctx: &mut HtmlBodyContext,
 ) {
   let appearance = match appearance {
     CalloutAppearance::Soft => "soft",
@@ -571,7 +753,7 @@ fn render_callout(
     ));
   }
   for child in children {
-    render_nested_block(html, child, options, renderer);
+    render_nested_block(html, child, options, renderer, body_ctx);
   }
   html.push_str("</aside>");
 }
@@ -785,35 +967,6 @@ fn render_link_card(url: &str, title: &str) -> String {
   )
 }
 
-fn unique_slug(title: &str, slug_counts: &mut HashMap<String, usize>) -> String {
-  let base = slugify(title);
-  let count = slug_counts.entry(base.clone()).or_insert(0);
-  *count += 1;
-  if *count == 1 {
-    base
-  } else {
-    format!("{base}-{}", *count)
-  }
-}
-
-fn slugify(title: &str) -> String {
-  let mut slug = String::new();
-  let mut previous_dash = false;
-  for ch in title.chars().flat_map(char::to_lowercase) {
-    if ch.is_ascii_alphanumeric() {
-      slug.push(ch);
-      previous_dash = false;
-    } else if !previous_dash && !slug.is_empty() {
-      slug.push('-');
-      previous_dash = true;
-    }
-  }
-  while slug.ends_with('-') {
-    slug.pop();
-  }
-  if slug.is_empty() { "section".to_string() } else { slug }
-}
-
 fn is_allowed_external_link(value: &str) -> bool {
   Url::parse(value)
     .ok()
@@ -855,6 +1008,7 @@ fn render_footnote_definition(
   backlinks: &[String],
   options: &HtmlRenderOptions,
   renderer: &HtmlRenderer,
+  body_ctx: &mut HtmlBodyContext,
 ) {
   let name = local_note_name(placement, number, &options.locale);
   let kind = match placement {
@@ -866,9 +1020,12 @@ fn render_footnote_definition(
     "<section id=\"myoxus-footnote-{}\" role=\"doc-{}\" data-myoxus-footnote-definition=\"{}\" data-myoxus-footnote-label=\"{}\" data-myoxus-footnote-placement=\"{}\" aria-label=\"{}\"><header data-myoxus-footnote-navigation=\"true\">{}</header>",
     esc_attr(id), kind, esc_attr(id), esc_attr(label), kind, esc_attr(&name), esc(&name),
   ));
+  let previous_in_footnote = body_ctx.in_footnote;
+  body_ctx.in_footnote = true;
   for child in children {
-    render_nested_block(html, child, options, renderer);
+    render_nested_block(html, child, options, renderer, body_ctx);
   }
+  body_ctx.in_footnote = previous_in_footnote;
   if !backlinks.is_empty() {
     html.push_str("<footer data-myoxus-footnote-navigation=\"true\">");
     for (index, reference) in backlinks.iter().enumerate() {

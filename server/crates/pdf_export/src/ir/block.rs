@@ -298,6 +298,15 @@ pub struct AiChatMessage {
 
 // ─── Block ───────────────────────────────────────────────────────────────────
 
+/// Resolved entry for an authored `myoxus:table-of-contents` block.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TableOfContentsEntry {
+  pub level: u8,
+  pub title: String,
+  /// 1-based sequential heading index in rendered body order (`<mx-toc-h-{heading_index}>`).
+  pub heading_index: usize,
+}
+
 /// Every block variant in the Virgultum/Myoxus document model that the IR must handle.
 ///
 /// Flavour strings (e.g. `myoxus:paragraph`) are the canonical Yjs block
@@ -368,6 +377,16 @@ pub enum Block {
 
   /// `myoxus:divider`.
   Divider,
+
+  /// `myoxus:table-of-contents` — authored in-body table of contents.
+  TableOfContents {
+    #[serde(default)]
+    title: String,
+    min_level: u8,
+    max_level: u8,
+    #[serde(default)]
+    entries: Vec<TableOfContentsEntry>,
+  },
 
   /// `myoxus:callout` — callout box with variant styling.
   Callout {
@@ -467,6 +486,7 @@ impl Block {
       Block::Code(_) => "myoxus:code",
       Block::Mermaid(_) => "myoxus:mermaid",
       Block::Divider => "myoxus:divider",
+      Block::TableOfContents { .. } => "myoxus:table-of-contents",
       Block::Callout { .. } => "myoxus:callout",
       Block::LatexBlock { .. } => "myoxus:latex",
       Block::Image(_) => "myoxus:image",

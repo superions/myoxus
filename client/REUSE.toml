@@ -6009,3 +6009,25 @@ path = [
   "libs/core/src/editor/virgultum/doc-editor/page-table-cell.spec.ts",
   "libs/core/src/editor/virgultum/doc-editor/page-table-cell.tsx",
 ]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/public/document-bundles/payloads/3bdf047257b9977de3fd4de384ae4b829e60f48ac191cea92bfc67a0bb164b35.snapshot.json",
+  "libs/core/public/document-bundles/payloads/4cef45ad3ab9f1462cd3a3097b1be511c1f865248da76e2316beadc09c51ac57.snapshot.json",
+  "libs/core/public/document-bundles/payloads/c5750d11bcaca64cd596e59675ad65b53e8955a116601f8ae85f9c39147685cf.snapshot.json",
+  "libs/core/public/document-bundles/payloads/cd6b2a6b33a6dc1f39dbed07205d6b1d8f9b12d80f3a556c54e9a3602aff12d4.snapshot.json",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/public/document-bundles/payloads/48b642649dc1a2b3d6054411998649632b8b89ce6871657d77543fa0eef41b1b.snapshot.json",
+  "libs/core/public/document-bundles/payloads/61e617905b6b907db642e9cab1d60998455daf2315880a8265f742782e717916.snapshot.json",
+  "libs/core/public/document-bundles/payloads/8c837329b8f262ac2de597bc89c39684347d0cda73f99ee514df012a0bd18c21.snapshot.json",
+  "libs/core/public/document-bundles/payloads/fe309a7c6353cab310e054ae9d470fb9b7dea3d2657e15125b4e2de9363f9825.snapshot.json",
+]

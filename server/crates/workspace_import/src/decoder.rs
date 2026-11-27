@@ -222,6 +222,7 @@ fn validate_document_index(decoded: &DecodedWorkspace) -> Result<(), WorkspaceIm
         "workspace import document uses an unsupported mode",
       ));
     }
+    validate_document_table_of_contents(&document.content)?;
     if let Some(parent_id) = document.parent_source_id.as_deref()
       && !ids.contains(parent_id)
     {
@@ -241,6 +242,62 @@ fn validate_document_index(decoded: &DecodedWorkspace) -> Result<(), WorkspaceIm
       }
       current = parents.get(source_id).copied().flatten();
     }
+  }
+  Ok(())
+}
+
+fn validate_document_table_of_contents(
+  content: &crate::DecodedDocumentContent,
+) -> Result<(), WorkspaceImportDiagnostic> {
+  let invalid = |reason: &str| {
+    WorkspaceImportDiagnostic::blocking(WorkspaceImportDiagnosticCode::MixWorkspaceImportDocumentInvalid, reason)
+  };
+  match content {
+    crate::DecodedDocumentContent::YjsV1(bytes) => {
+      yjs::table_of_contents::validate_snapshot(bytes)
+        .map_err(|_| invalid("workspace import contains an invalid table-of-contents block"))?;
+    }
+    crate::DecodedDocumentContent::SnapshotBlocks(blocks) => {
+      for block in blocks {
+        if yjs::resolve_flavour(&block.flavour) != "myoxus:table-of-contents" {
+          continue;
+        }
+        if !block.children.is_empty() {
+          return Err(invalid(
+            "workspace import table-of-contents block must not contain children",
+          ));
+        }
+        if let Some(title) = block.props.get("title")
+          && !title.is_string()
+          && !title.is_null()
+        {
+          return Err(invalid("workspace import table-of-contents block has an invalid title"));
+        }
+        let read_level = |key: &str, default: u8| -> Result<u8, WorkspaceImportDiagnostic> {
+          match block.props.get(key) {
+            None | Some(serde_json::Value::Null) => Ok(default),
+            Some(serde_json::Value::Number(n)) => {
+              let value = n.as_i64().or_else(|| {
+                n.as_f64()
+                  .filter(|f| f.is_finite() && f.fract() == 0.0)
+                  .map(|f| f as i64)
+              });
+              match value {
+                Some(v) if (1..=6).contains(&v) => Ok(v as u8),
+                _ => Err(invalid("workspace import table-of-contents level is out of range")),
+              }
+            }
+            _ => Err(invalid("workspace import table-of-contents level is invalid")),
+          }
+        };
+        let min_level = read_level("minLevel", 1)?;
+        let max_level = read_level("maxLevel", 3)?;
+        if min_level > max_level {
+          return Err(invalid("workspace import table-of-contents minLevel exceeds maxLevel"));
+        }
+      }
+    }
+    crate::DecodedDocumentContent::MarkdownUtf8(_) => {}
   }
   Ok(())
 }

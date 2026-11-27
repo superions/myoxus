@@ -1389,6 +1389,8 @@ fn render_plain_text_blocks(blocks: &[Block], purpose: PlainTextPurpose) -> Stri
       Block::Code { text, .. } => push_line(&mut output, text),
       Block::Mermaid { source, .. } => push_line(&mut output, source),
       Block::Divider { .. } => push_line(&mut output, ""),
+      Block::TableOfContents { title, .. } if !title.trim().is_empty() => push_line(&mut output, title.trim()),
+      Block::TableOfContents { .. } => {}
       Block::Image { asset, .. } if !asset.alt.is_empty() => push_line(&mut output, &asset.alt),
       Block::Image { .. } => {}
       Block::BookmarkCard { url, title, .. } => {

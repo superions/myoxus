@@ -49,6 +49,7 @@ pub mod footnote;
 pub mod markdown;
 pub mod native_snapshot;
 pub mod native_text;
+pub mod table_of_contents;
 pub use native_snapshot::document_to_snapshot;
 pub mod order_key;
 pub use document_restore::{DocumentRestoreError, restore_document_snapshot};

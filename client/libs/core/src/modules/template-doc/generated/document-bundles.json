@@ -3025,49 +3025,49 @@
     },
     {
       "template_id": "block-technical-profile",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "title": "Systemsteckbrief",
-      "description": "Die wichtigsten Eigenschaften eines Systems kompakt bündeln.",
+      "description": "Die wichtigsten Eigenschaften und Live-Metadaten eines Systems kompakt bündeln.",
       "locale": "de",
       "kind": "page",
       "purpose": "template",
       "title_policy": "template",
       "category": "building-blocks",
       "tags": ["technical-projects"],
-      "checksum": "0eeb13c53c05a33285aa4844e26c382e2410775562225b89bd66a27b01f3a49d",
+      "checksum": "410925dba2e3c849b3badb64891b6dcab9f1be8c836c4c3370172e546f16d3f2",
       "defaultLocale": "de",
       "contents": {
         "de": {
           "kind": "snapshot",
-          "asset": "payloads/57e68c590af9ceda4af0cea5ef2ce71951e8bccd855d7362030dbfd7fd3645cc.snapshot.json",
-          "sha256": "57e68c590af9ceda4af0cea5ef2ce71951e8bccd855d7362030dbfd7fd3645cc",
+          "asset": "payloads/c5750d11bcaca64cd596e59675ad65b53e8955a116601f8ae85f9c39147685cf.snapshot.json",
+          "sha256": "c5750d11bcaca64cd596e59675ad65b53e8955a116601f8ae85f9c39147685cf",
           "assets": [],
           "title": "Systemsteckbrief",
-          "description": "Die wichtigsten Eigenschaften eines Systems kompakt bündeln."
+          "description": "Die wichtigsten Eigenschaften und Live-Metadaten eines Systems kompakt bündeln."
         },
         "en": {
           "kind": "snapshot",
-          "asset": "payloads/daccc8686d4796e282ec51be64b164e51dc3b068efb27585f2c54601136d2d6f.snapshot.json",
-          "sha256": "daccc8686d4796e282ec51be64b164e51dc3b068efb27585f2c54601136d2d6f",
+          "asset": "payloads/3bdf047257b9977de3fd4de384ae4b829e60f48ac191cea92bfc67a0bb164b35.snapshot.json",
+          "sha256": "3bdf047257b9977de3fd4de384ae4b829e60f48ac191cea92bfc67a0bb164b35",
           "assets": [],
           "title": "System profile",
-          "description": "Bring a system’s essential characteristics together."
+          "description": "Bring a system’s essential characteristics and live document facts together."
         },
         "fr": {
           "kind": "snapshot",
-          "asset": "payloads/52f742774820111e95fc299efbf6a4952e284e587644143ec59cf082c517051a.snapshot.json",
-          "sha256": "52f742774820111e95fc299efbf6a4952e284e587644143ec59cf082c517051a",
+          "asset": "payloads/4cef45ad3ab9f1462cd3a3097b1be511c1f865248da76e2316beadc09c51ac57.snapshot.json",
+          "sha256": "4cef45ad3ab9f1462cd3a3097b1be511c1f865248da76e2316beadc09c51ac57",
           "assets": [],
           "title": "Fiche système",
-          "description": "Rassembler les caractéristiques essentielles d’un système."
+          "description": "Rassembler les caractéristiques essentielles et les métadonnées en direct d’un système."
         },
         "es": {
           "kind": "snapshot",
-          "asset": "payloads/c9d8d5ddd874a1ca0f3d7fda77b41d9fb898ba5459552ef7190b92e2e6f91479.snapshot.json",
-          "sha256": "c9d8d5ddd874a1ca0f3d7fda77b41d9fb898ba5459552ef7190b92e2e6f91479",
+          "asset": "payloads/cd6b2a6b33a6dc1f39dbed07205d6b1d8f9b12d80f3a556c54e9a3602aff12d4.snapshot.json",
+          "sha256": "cd6b2a6b33a6dc1f39dbed07205d6b1d8f9b12d80f3a556c54e9a3602aff12d4",
           "assets": [],
           "title": "Ficha de sistema",
-          "description": "Reunir las características esenciales de un sistema."
+          "description": "Reunir las características esenciales y los metadatos en vivo de un sistema."
         }
       }
     },
@@ -4257,45 +4257,49 @@
     },
     {
       "template_id": "team-wiki-home",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "title": "Team Wiki home",
-      "description": "An editable team entry point for procedures, decisions and useful references.",
+      "description": "An editable team entry point combining navigation, live facts, dynamic directories, metadata reports and section embedding guidance.",
       "category": "team",
       "tags": ["team-wiki-home"],
       "locale": "en",
       "kind": "page",
-      "checksum": "b0c00a96d9fab18544e7c825c3ddc385f525741d968f5c190a10f32c2ef7b353",
+      "checksum": "264c6ad294ac164daacf564684ecbbace9175652e29b6e668a121cf07bb4b2ea",
       "title_policy": "template",
       "purpose": "template",
       "defaultLocale": "en",
       "contents": {
         "en": {
-          "kind": "yjs",
-          "asset": "payloads/b0c00a96d9fab18544e7c825c3ddc385f525741d968f5c190a10f32c2ef7b353.yjs",
-          "sha256": "b0c00a96d9fab18544e7c825c3ddc385f525741d968f5c190a10f32c2ef7b353",
+          "kind": "snapshot",
+          "asset": "payloads/61e617905b6b907db642e9cab1d60998455daf2315880a8265f742782e717916.snapshot.json",
+          "sha256": "61e617905b6b907db642e9cab1d60998455daf2315880a8265f742782e717916",
+          "assets": [],
           "title": "Team Wiki home",
-          "description": "An editable team entry point for procedures, decisions and useful references."
+          "description": "An editable team entry point combining navigation, live facts, dynamic directories, metadata reports and section embedding guidance."
         },
         "de": {
-          "kind": "yjs",
-          "asset": "payloads/3aebcf849ce1b83cea0d7c60c8893293251221065bb56345868bc05c5249905d.yjs",
-          "sha256": "3aebcf849ce1b83cea0d7c60c8893293251221065bb56345868bc05c5249905d",
+          "kind": "snapshot",
+          "asset": "payloads/48b642649dc1a2b3d6054411998649632b8b89ce6871657d77543fa0eef41b1b.snapshot.json",
+          "sha256": "48b642649dc1a2b3d6054411998649632b8b89ce6871657d77543fa0eef41b1b",
+          "assets": [],
           "title": "Team-Wiki-Start",
-          "description": "Ein bearbeitbarer Teameinstieg für Abläufe, Entscheidungen und hilfreiche Verweise."
+          "description": "Ein bearbeitbarer Teameinstieg mit Inhaltsverzeichnis, Live-Faktenbox, dynamischem Seitenverzeichnis, Metadatenbericht und Hinweisen zum Einbetten von Abschnitten."
         },
         "fr": {
-          "kind": "yjs",
-          "asset": "payloads/33e3b7578db032a84cc6c02586ac5099b9a37c5e98ae7ffbf709c24a829e9014.yjs",
-          "sha256": "33e3b7578db032a84cc6c02586ac5099b9a37c5e98ae7ffbf709c24a829e9014",
+          "kind": "snapshot",
+          "asset": "payloads/fe309a7c6353cab310e054ae9d470fb9b7dea3d2657e15125b4e2de9363f9825.snapshot.json",
+          "sha256": "fe309a7c6353cab310e054ae9d470fb9b7dea3d2657e15125b4e2de9363f9825",
+          "assets": [],
           "title": "Accueil du Wiki d’équipe",
-          "description": "Un point d’entrée modifiable pour les procédures, décisions et références de l’équipe."
+          "description": "Un point d’entrée modifiable réunissant sommaire, fiche en direct, répertoire dynamique, rapport de métadonnées et guide d’intégration de sections."
         },
         "es": {
-          "kind": "yjs",
-          "asset": "payloads/39dc97e40399579c94c5512fa2aed50c19ee5f0198a8b4e768e2dd31dfc1bc4b.yjs",
-          "sha256": "39dc97e40399579c94c5512fa2aed50c19ee5f0198a8b4e768e2dd31dfc1bc4b",
+          "kind": "snapshot",
+          "asset": "payloads/8c837329b8f262ac2de597bc89c39684347d0cda73f99ee514df012a0bd18c21.snapshot.json",
+          "sha256": "8c837329b8f262ac2de597bc89c39684347d0cda73f99ee514df012a0bd18c21",
+          "assets": [],
           "title": "Inicio del Wiki de equipo",
-          "description": "Una entrada editable para procedimientos, decisiones y referencias del equipo."
+          "description": "Una entrada editable que reúne tabla de contenidos, ficha en vivo, directorio dinámico, informe de metadatos y guía para insertar secciones."
         }
       }
     },

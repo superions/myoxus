@@ -4,7 +4,7 @@
     "generator": "build/scripts/ci/generate-virgultum-source-provenance.mjs",
     "sourceInventory": {
       "path": "virgultum/provenance/sources.json",
-      "sha256": "8ab01a18ed5814293bfdf708b813e0cb5e1465485b6298a990f3800c50bf439f"
+      "sha256": "3b2a4611162fbdde541d96de921873ce81e9b6092b750721e5f5fa181b4fd190"
     },
     "trackedPathCount": 3210,
     "trackedPathSha256": "ee0b1bfc83263137ee9b9f907ebde316375000262e3bde42059c4f78456bede5",

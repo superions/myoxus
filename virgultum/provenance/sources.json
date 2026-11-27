@@ -2017,7 +2017,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/paragraph/adapters/html.ts",
-          "sha256": "02721085b48be0055a5ef12843273f2fec16f68e64b7e8ad20c14656afd620a0",
+          "sha256": "265d047e6ff5bad7cd1f7b578ceb98dbdddd0338b539683b4ede46226cb68218",
           "originalPath": "blocksuite/affine/blocks/paragraph/src/adapters/html.ts",
           "originalGitBlob": "7dc12c14fae94785e419cf28bf004126b7776e9b"
         },
@@ -6739,7 +6739,7 @@
         },
         {
           "path": "virgultum/editor/all/src/schemas.ts",
-          "sha256": "d09b18d5c197f23dc72c7dee711a48cf6769e6b1e5904e306712b5613bacbde7",
+          "sha256": "5df9c0bdcd09cd0f60a1763ee5db999ad9a65858ca018b2035cfdfa433b47fcd",
           "originalPath": "blocksuite/affine/all/src/schemas.ts",
           "originalGitBlob": "91dc3e33b663e18a97b1473ed006e23483e31e7a"
         },
@@ -9420,7 +9420,7 @@
         },
         {
           "path": "virgultum/core/src/utils/outline.ts",
-          "sha256": "56576be39d7428fb3a632f4254ac8e293212269fda87c43264e91f0109d00c0d"
+          "sha256": "14c5dc998997c75f256d684822919598d6578f26bc962f97a54f81fdc5b36fbc"
         },
         {
           "path": "virgultum/core/src/view/icons/reference.ts",
@@ -13528,7 +13528,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/table-of-contents/adapters.ts",
-          "sha256": "3f046478d66b9ecca45d1a845216c7438c38e5ff48bbb1696cb5b946bc8c19e2"
+          "sha256": "eff8740ff01053bbf2169d4b8cd781860f16c07ed49dbb5c3a783db3bd904130"
         },
         {
           "path": "virgultum/content/src/blocks/table-of-contents/index.ts",

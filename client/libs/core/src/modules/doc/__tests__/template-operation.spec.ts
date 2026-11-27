@@ -24,6 +24,7 @@ import {
   ImageBlockSchemaExtension,
   BpmnBlockSchemaExtension,
   DocumentIndexBlockSchemaExtension,
+  TableOfContentsBlockSchemaExtension,
   type TableBlockModel,
   type DocumentIndexBlockModel,
   type ListBlockModel,
@@ -116,6 +117,7 @@ function setup(workspaceId = "template-operation") {
         ImageBlockSchemaExtension,
         BpmnBlockSchemaExtension,
         DocumentIndexBlockSchemaExtension,
+        TableOfContentsBlockSchemaExtension,
       ],
     });
     stores.set(id, store);
@@ -420,6 +422,11 @@ test("document duplication retains exact BPMN heads and rejects failed content c
     },
   };
   source.addBlock("myoxus:document-index", directoryDefinition, note.id);
+  source.addBlock(
+    "myoxus:table-of-contents",
+    { title: "On this page", minLevel: 2, maxLevel: 3 },
+    note.id,
+  );
   const targetId = await fixture.service.duplicate("source");
   const target = fixture.stores.get(targetId)!;
   const sourceText = (fixture.paragraph("source") as unknown as { text: Text })
@@ -448,6 +455,13 @@ test("document duplication retains exact BPMN heads and rejects failed content c
     workspaceId: copiedDirectory.props.workspaceId,
     query: JSON.parse(JSON.stringify(copiedDirectory.props.query)),
   }).toEqual(directoryDefinition);
+  const copiedToc = target.getBlocksByFlavour("myoxus:table-of-contents")[0]
+    .model as { props: { title: string; minLevel: number; maxLevel: number } };
+  expect({
+    title: copiedToc.props.title,
+    minLevel: copiedToc.props.minLevel,
+    maxLevel: copiedToc.props.maxLevel,
+  }).toEqual({ title: "On this page", minLevel: 2, maxLevel: 3 });
   const copy = target.getBlocksByFlavour("myoxus:bpmn")[0].model;
   expect(copy.id).not.toBe(id);
   expect(

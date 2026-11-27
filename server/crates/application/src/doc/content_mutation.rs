@@ -358,7 +358,7 @@ fn fragment_blocks_from_ir(
         .map(|row| row.iter().map(|cell| text(cell)).collect())
         .collect(),
     }],
-    Block::TablePlaceholder { .. } | Block::UnsupportedBlock { .. } => Vec::new(),
+    Block::TablePlaceholder { .. } | Block::UnsupportedBlock { .. } | Block::TableOfContents { .. } => Vec::new(),
   }
 }
 

@@ -1412,6 +1412,22 @@ pub fn extract_text_from_yjs_with_references_and_images(
           normalized_endnotes += 1;
         }
       }
+      let (toc_min_level, toc_max_level) = if canonical_flavour == "myoxus:table-of-contents" {
+        crate::table_of_contents::normalize_level_range(
+          get_prop_number(&block_map, &txn, "minLevel").map(|n| n.clamp(1, 6) as u8),
+          get_prop_number(&block_map, &txn, "maxLevel").map(|n| n.clamp(1, 6) as u8),
+        )
+      } else {
+        (1, 3)
+      };
+      let toc_title = if canonical_flavour == "myoxus:table-of-contents" {
+        get_prop_string(&block_map, &txn, "title").unwrap_or_default()
+      } else {
+        String::new()
+      };
+      let note_readable = canonical_flavour != "myoxus:note"
+        || (!get_prop_bool(&block_map, &txn, "hidden").unwrap_or(false)
+          && get_prop_string(&block_map, &txn, "displayMode").as_deref() != Some("edgeless"));
       block_data.insert(
         key.to_string(),
         BlockInfo {
@@ -1441,6 +1457,10 @@ pub fn extract_text_from_yjs_with_references_and_images(
           callout_foldable: get_prop_bool(&block_map, &txn, "foldable").unwrap_or(false),
           callout_default_open: get_prop_bool(&block_map, &txn, "defaultOpen").unwrap_or(true),
           embed_source,
+          toc_title,
+          toc_min_level,
+          toc_max_level,
+          note_readable,
         },
       );
     }
@@ -1568,10 +1588,101 @@ pub fn extract_text_from_yjs_with_references_and_images(
       .keys()
       .filter(|label| !cited_labels.contains(*label))
       .count();
+  struct MarkdownTocHeading {
+    block_id: String,
+    level: u8,
+    label: String,
+    slug: String,
+  }
+
+  fn plain_heading_label(markdown: &str) -> String {
+    let mut out = String::new();
+    for event in pulldown_cmark::Parser::new(markdown) {
+      match event {
+        pulldown_cmark::Event::Text(text) | pulldown_cmark::Event::Code(text) => out.push_str(&text),
+        pulldown_cmark::Event::SoftBreak | pulldown_cmark::Event::HardBreak => out.push(' '),
+        _ => {}
+      }
+    }
+    let trimmed = out.trim();
+    if trimmed.is_empty() {
+      markdown.trim().to_string()
+    } else {
+      trimmed.to_string()
+    }
+  }
+
+  fn collect_markdown_toc_headings(
+    block_data: &std::collections::HashMap<String, BlockInfo>,
+    root_id: Option<&str>,
+  ) -> Vec<MarkdownTocHeading> {
+    fn visit(
+      id: &str,
+      depth: usize,
+      block_data: &std::collections::HashMap<String, BlockInfo>,
+      visited: &mut std::collections::HashSet<String>,
+      slug_counts: &mut std::collections::HashMap<String, usize>,
+      headings: &mut Vec<MarkdownTocHeading>,
+    ) {
+      if depth > super::MAX_BLOCK_DEPTH || !visited.insert(id.to_string()) {
+        return;
+      }
+      let Some(block) = block_data.get(id) else {
+        return;
+      };
+      let flavour = resolve_flavour(block.flavour.as_str());
+      if flavour == "myoxus:note" && !block.note_readable {
+        return;
+      }
+      if flavour == "myoxus:paragraph" && block.list_type.starts_with('h') {
+        if let Ok(level) = block.list_type[1..].parse::<u8>()
+          && (1..=6).contains(&level)
+        {
+          let label = plain_heading_label(&block.text_content);
+          if !label.is_empty() {
+            let slug = crate::table_of_contents::unique_heading_slug(&label, slug_counts);
+            headings.push(MarkdownTocHeading {
+              block_id: id.to_string(),
+              level,
+              label,
+              slug,
+            });
+          }
+        }
+      }
+      let descend = matches!(
+        flavour,
+        "myoxus:page" | "myoxus:note" | "myoxus:callout" | "myoxus:paragraph" | "myoxus:list"
+      );
+      if !descend {
+        return;
+      }
+      for child_id in &block.children_ids {
+        visit(child_id, depth + 1, block_data, visited, slug_counts, headings);
+      }
+    }
+    let mut visited = std::collections::HashSet::new();
+    let mut slug_counts = std::collections::HashMap::new();
+    let mut headings = Vec::new();
+    if let Some(root) = root_id {
+      visit(root, 0, block_data, &mut visited, &mut slug_counts, &mut headings);
+    } else {
+      let mut ids: Vec<&String> = block_data.keys().collect();
+      ids.sort();
+      for id in ids {
+        visit(id, 0, block_data, &mut visited, &mut slug_counts, &mut headings);
+      }
+    }
+    headings
+  }
+
+  let toc_headings = collect_markdown_toc_headings(&block_data, root_id.as_deref());
+
   // Find root block (affine:page or block without parent)
   // Walk the tree depth-first to preserve document order
   struct RenderContext<'a> {
     block_data: &'a std::collections::HashMap<String, BlockInfo>,
+    toc_headings: &'a [MarkdownTocHeading],
     lines: &'a mut Vec<String>,
     title: &'a mut Option<String>,
     blocks_visited: &'a mut u32,
@@ -1937,6 +2048,38 @@ pub fn extract_text_from_yjs_with_references_and_images(
         ctx.lines.push(format!("{prefix}---"));
         ctx.lines.push(String::new());
       }
+      "myoxus:table-of-contents" => {
+        let scope_prefix = crate::table_of_contents::embed_scope_prefix(id);
+        let entries: Vec<&MarkdownTocHeading> = ctx
+          .toc_headings
+          .iter()
+          .filter(|entry| {
+            entry.level >= block.toc_min_level
+              && entry.level <= block.toc_max_level
+              && crate::table_of_contents::embed_scope_prefix(&entry.block_id) == scope_prefix
+          })
+          .collect();
+        let heading_title = block.toc_title.trim();
+        if !heading_title.is_empty() {
+          ctx
+            .lines
+            .push(format!("{prefix}**{}**", escape_markdown_literal_text(heading_title)));
+          ctx.lines.push(String::new());
+        }
+        if !entries.is_empty() {
+          let base_level = entries.iter().map(|entry| entry.level).min().unwrap_or(1);
+          for entry in entries {
+            let indent = "  ".repeat(entry.level.saturating_sub(base_level) as usize);
+            ctx.lines.push(format!(
+              "{prefix}{indent}- [{}](#{})",
+              escape_markdown_label(&entry.label),
+              entry.slug
+            ));
+          }
+          ctx.lines.push(String::new());
+        }
+        return;
+      }
       // A document export has no independent Task grant. Never trust cached titles.
       "myoxus:database" if block.database_row_reference => {
         ctx.lines.push(format!("{prefix}Target unavailable"));
@@ -2140,6 +2283,7 @@ pub fn extract_text_from_yjs_with_references_and_images(
   let mut local_citations = Vec::new();
   let mut render_ctx = RenderContext {
     block_data: &block_data,
+    toc_headings: &toc_headings,
     lines: &mut lines,
     title: &mut title,
     blocks_visited: &mut blocks_visited,
@@ -2312,4 +2456,10 @@ struct BlockInfo {
   table_alignments: Vec<Option<String>>,
   /// Absence designates no Markdown header; HTML/PDF legacy fallback is separate.
   table_header_rows: Option<usize>,
+  /// Authored properties for `myoxus:table-of-contents`.
+  toc_title: String,
+  toc_min_level: u8,
+  toc_max_level: u8,
+  /// Whether a `myoxus:note` is visible in Page reading order (not hidden, not `edgeless` only).
+  note_readable: bool,
 }

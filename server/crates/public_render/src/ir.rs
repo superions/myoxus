@@ -193,6 +193,12 @@ pub enum Block {
   Divider {
     block_id: String,
   },
+  TableOfContents {
+    block_id: String,
+    title: String,
+    min_level: u8,
+    max_level: u8,
+  },
   Image {
     block_id: String,
     asset: AssetRef,
@@ -234,6 +240,7 @@ impl Block {
       | Self::Code { block_id, .. }
       | Self::Mermaid { block_id, .. }
       | Self::Divider { block_id }
+      | Self::TableOfContents { block_id, .. }
       | Self::Image { block_id, .. }
       | Self::BookmarkCard { block_id, .. }
       | Self::Table { block_id, .. }
@@ -445,6 +452,9 @@ struct BlockRecord {
   native_callout: NativeCalloutProperties,
   native_citation: bool,
   footnote_label: String,
+  toc_title: String,
+  toc_min_level: u8,
+  toc_max_level: u8,
   footnote_placement: Option<yjs::footnote::FootnotePlacement>,
 }
 
@@ -1005,6 +1015,20 @@ fn project_preview_block(id: &str, depth: usize, ctx: &mut PreviewProjectionCont
     "myoxus:divider" => ctx.blocks.push(Block::Divider {
       block_id: id.to_string(),
     }),
+    "myoxus:table-of-contents" => {
+      let title = get_prop_string(&source.map, ctx.txn, "title").unwrap_or_default();
+      let (min_level, max_level) = yjs::table_of_contents::normalize_level_range(
+        get_prop_number(&source.map, ctx.txn, "minLevel").map(|n| n.clamp(1, 6) as u8),
+        get_prop_number(&source.map, ctx.txn, "maxLevel").map(|n| n.clamp(1, 6) as u8),
+      );
+      ctx.blocks.push(Block::TableOfContents {
+        block_id: id.to_string(),
+        title,
+        min_level,
+        max_level,
+      });
+      return;
+    }
     other => {
       ctx.diagnostics.push(RenderDiagnostic {
         code: "preview_unsupported_block".to_string(),
@@ -1252,6 +1276,17 @@ fn project_public_document_from_yjs(
               title
             }
           }),
+        toc_title: get_prop_string(&block_map, &txn, "title").unwrap_or_default(),
+        toc_min_level: yjs::table_of_contents::normalize_level_range(
+          get_prop_number(&block_map, &txn, "minLevel").map(|n| n.clamp(1, 6) as u8),
+          get_prop_number(&block_map, &txn, "maxLevel").map(|n| n.clamp(1, 6) as u8),
+        )
+        .0,
+        toc_max_level: yjs::table_of_contents::normalize_level_range(
+          get_prop_number(&block_map, &txn, "minLevel").map(|n| n.clamp(1, 6) as u8),
+          get_prop_number(&block_map, &txn, "maxLevel").map(|n| n.clamp(1, 6) as u8),
+        )
+        .1,
       },
     );
   }
@@ -1482,6 +1517,15 @@ fn render_block(id: &str, depth: usize, ctx: &mut RenderContext<'_>) {
     "myoxus:divider" => ctx.blocks.push(Block::Divider {
       block_id: id.to_string(),
     }),
+    "myoxus:table-of-contents" => {
+      ctx.blocks.push(Block::TableOfContents {
+        block_id: id.to_string(),
+        title: block.toc_title.clone(),
+        min_level: block.toc_min_level,
+        max_level: block.toc_max_level,
+      });
+      return;
+    }
     "myoxus:database" if block.opaque_database_reference => {
       ctx.blocks.push(Block::Paragraph {
         block_id: id.to_string(),

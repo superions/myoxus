@@ -10,11 +10,13 @@ import {
   type HtmlAST,
 } from "@virgultum/core/adapters";
 import {
+  type BlockSnapshot,
   type DeltaInsert,
   nanoid,
   type NodeProps,
 } from "@virgultum/core/store";
 import type { MyoxusTextAttributes } from "@virgultum/core/types";
+import { collectSnapshotTocEntries } from "@virgultum/core/utils";
 
 type ParagraphDelta = DeltaInsert<MyoxusTextAttributes>;
 
@@ -174,6 +176,28 @@ const openParagraphBlocks = (
 
 const MULTI_PARAGRAPH_EMITTED_NODES_CONTEXT_KEY =
   "myoxus:paragraph:multi-emitted-nodes";
+const HEADING_SLUG_MAP_CONTEXT_KEY = "myoxus:html:heading-slug-map";
+
+const resolveHeadingSlug = (
+  o: NodeProps<BlockSnapshot>,
+  walkerContext: any,
+): string | undefined => {
+  let slugMap = walkerContext.getGlobalContext(HEADING_SLUG_MAP_CONTEXT_KEY) as
+    Map<string, string> | undefined;
+  if (!slugMap) {
+    let root: NodeProps<BlockSnapshot> = o;
+    while (root.parent) {
+      root = root.parent;
+    }
+    slugMap = new Map(
+      collectSnapshotTocEntries(root.node, { minLevel: 1, maxLevel: 6 }).map(
+        (entry) => [entry.id, entry.slug],
+      ),
+    );
+    walkerContext.setGlobalContext(HEADING_SLUG_MAP_CONTEXT_KEY, slugMap);
+  }
+  return slugMap.get(o.node.id);
+};
 
 const markMultiParagraphEmitted = (walkerContext: any, node: HtmlAST) => {
   const emittedNodes =
@@ -463,6 +487,7 @@ export const paragraphBlockHtmlAdapterMatcher: BlockHtmlAdapterMatcher = {
         case "h4":
         case "h5":
         case "h6": {
+          const headingId = resolveHeadingSlug(o, walkerContext);
           walkerContext
             .openNode(
               {
@@ -479,7 +504,7 @@ export const paragraphBlockHtmlAdapterMatcher: BlockHtmlAdapterMatcher = {
               {
                 type: "element",
                 tagName: o.node.props.type,
-                properties: {},
+                properties: headingId ? { id: headingId } : {},
                 children: deltaConverter.deltaToAST(text.delta),
               },
               "children",

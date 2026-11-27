@@ -957,6 +957,109 @@ fn public_social_card_renders_png_without_browser_runtime() {
   assert!(png.len() > 1024, "social card should not be an empty placeholder");
 }
 
+#[test]
+fn public_html_renders_table_of_contents_with_nested_heading_ids_and_embed_scope_isolation() {
+  let blocks = vec![
+    yjs::PortableSnapshotBlock {
+      id: "page".into(),
+      flavour: "myoxus:page".into(),
+      version: None,
+      props: serde_json::json!({ "title": "Wiki Home" }).as_object().unwrap().clone(),
+      children: vec!["note".into()],
+    },
+    yjs::PortableSnapshotBlock {
+      id: "note".into(),
+      flavour: "myoxus:note".into(),
+      version: None,
+      props: Default::default(),
+      children: vec![
+        "toc".into(),
+        "h1".into(),
+        "callout".into(),
+        "embed1:embed:h2-ext".into(),
+      ],
+    },
+    yjs::PortableSnapshotBlock {
+      id: "toc".into(),
+      flavour: "myoxus:table-of-contents".into(),
+      version: None,
+      props: serde_json::json!({ "title": "On this page", "minLevel": 1, "maxLevel": 2 })
+        .as_object()
+        .unwrap()
+        .clone(),
+      children: vec![],
+    },
+    yjs::PortableSnapshotBlock {
+      id: "h1".into(),
+      flavour: "myoxus:paragraph".into(),
+      version: None,
+      props: serde_json::json!({ "type": "h1", "text": "Architecture" })
+        .as_object()
+        .unwrap()
+        .clone(),
+      children: vec![],
+    },
+    yjs::PortableSnapshotBlock {
+      id: "callout".into(),
+      flavour: "myoxus:callout".into(),
+      version: None,
+      props: serde_json::json!({ "appearance": "soft" }).as_object().unwrap().clone(),
+      children: vec!["h2-nested".into(), "h3-nested".into()],
+    },
+    yjs::PortableSnapshotBlock {
+      id: "h2-nested".into(),
+      flavour: "myoxus:paragraph".into(),
+      version: None,
+      props: serde_json::json!({ "type": "h2", "text": "Architecture" })
+        .as_object()
+        .unwrap()
+        .clone(),
+      children: vec![],
+    },
+    yjs::PortableSnapshotBlock {
+      id: "h3-nested".into(),
+      flavour: "myoxus:paragraph".into(),
+      version: None,
+      props: serde_json::json!({ "type": "h3", "text": "Out of range" })
+        .as_object()
+        .unwrap()
+        .clone(),
+      children: vec![],
+    },
+    yjs::PortableSnapshotBlock {
+      id: "embed1:embed:h2-ext".into(),
+      flavour: "myoxus:paragraph".into(),
+      version: None,
+      props: serde_json::json!({ "type": "h2", "text": "Embedded Section" })
+        .as_object()
+        .unwrap()
+        .clone(),
+      children: vec![],
+    },
+  ];
+  let payload = yjs::snapshot_blocks_to_yjs(&blocks).expect("toc snapshot");
+  let ir = document_from_yjs(Uuid::new_v4(), Uuid::new_v4(), "Wiki Home", "Page", &payload).expect("toc IR");
+  assert!(
+    !ir.diagnostics.iter().any(|d| d.code == "unsupported_block"),
+    "native TOC must not trigger unsupported_block"
+  );
+  let html = render_document_html(&renderer(), &ir, &options())
+    .expect("render TOC HTML")
+    .html;
+  assert!(html.contains("class=\"mx-public-body-toc\""));
+  assert!(html.contains("data-myoxus-role=\"public-toc\""));
+  assert!(html.contains("<p class=\"mx-public-body-toc-title\">On this page</p>"));
+  assert!(html.contains("<a href=\"#architecture\">Architecture</a>"));
+  assert!(html.contains("<a href=\"#architecture-2\">Architecture</a>"));
+  assert!(html.contains("<h1 id=\"architecture\">Architecture</h1>"));
+  assert!(html.contains("<h2 id=\"architecture-2\">Architecture</h2>"));
+  let toc_start = html.find("data-myoxus-role=\"public-toc\"").unwrap();
+  let toc_end = html[toc_start..].find("</nav>").unwrap() + toc_start;
+  let toc_fragment = &html[toc_start..toc_end];
+  assert!(!toc_fragment.contains("Out of range"));
+  assert!(!toc_fragment.contains("Embedded Section"));
+}
+
 fn renderer() -> &'static myoxus_public_render::HtmlRenderer {
   static CAPTURED: std::sync::OnceLock<myoxus_public_render::HtmlRenderer> = std::sync::OnceLock::new();
   CAPTURED.get_or_init(|| {
