@@ -10,9 +10,11 @@ import path from "node:path";
 import test from "node:test";
 import { writeReleaseMetadata } from "./write-desktop-release-metadata.mjs";
 import {
+  dispatchContainerCopy,
   prepareRelease,
   publishPreparedRelease,
 } from "../release/publish-github-release.mjs";
+import { githubContainers } from "../release/github-container-registry.mjs";
 
 const revision = "1".repeat(40),
   commit = "2".repeat(40),
@@ -531,4 +533,116 @@ test("publication rejects a different reviewed plan, changed local bytes and an 
     /Prepared bytes changed/,
   );
   assert.equal(f.state.writes.length, 0);
+});
+
+test("GHCR dispatch stages only missing OCI images in an ephemeral draft and cleans up on success or failure", async () => {
+  const containers = githubContainers([
+    {
+      role: "server",
+      coordinate: `git.blume29.de/myoxus/myoxus@sha256:${"a".repeat(64)}`,
+    },
+    {
+      role: "web",
+      coordinate: `git.blume29.de/myoxus/myoxus-web-frontend@sha256:${"b".repeat(64)}`,
+    },
+    {
+      role: "admin",
+      coordinate: `git.blume29.de/myoxus/myoxus-admin-frontend@sha256:${"c".repeat(64)}`,
+    },
+  ]);
+
+  const runScenario = async ({ conclusion }) => {
+    const drafts = [
+      { id: 90, draft: true, name: `myoxus-ghcr-staging-${version}` },
+      { id: 91, draft: true, name: `Myoxus ${version}` },
+    ];
+    let nextId = 100;
+    let nextAssetId = 500;
+    let dispatchedInputs;
+    let polls = 0;
+    let verified = false;
+    const uploadedPaths = [];
+
+    const fetchImpl = async (url, options = {}) => {
+      const u = new URL(url);
+      const method = options.method ?? "GET";
+      if (u.pathname.endsWith("/releases") && method === "GET")
+        return response([...drafts]);
+      if (u.pathname.endsWith("/releases") && method === "POST") {
+        const body = JSON.parse(options.body);
+        assert.equal(body.draft, true);
+        const created = { id: nextId++, ...body };
+        drafts.push(created);
+        return response(created, 201);
+      }
+      if (/\/releases\/\d+$/.test(u.pathname) && method === "DELETE") {
+        const id = Number(u.pathname.split("/").at(-1));
+        const idx = drafts.findIndex((d) => d.id === id);
+        if (idx >= 0) drafts.splice(idx, 1);
+        return new Response(null, { status: 204 });
+      }
+      if (
+        u.pathname.endsWith(
+          "/actions/workflows/copy-release-containers.yml/dispatches",
+        ) &&
+        method === "POST"
+      ) {
+        const body = JSON.parse(options.body);
+        assert.equal(body.ref, "main");
+        dispatchedInputs = body.inputs;
+        return response({ workflow_run_id: 777 }, 200);
+      }
+      if (u.pathname.endsWith("/actions/runs/777") && method === "GET") {
+        polls += 1;
+        if (polls === 1) return response({}, 404);
+        return response({ status: "completed", conclusion });
+      }
+      throw new Error(`Unexpected GHCR staging request ${method} ${url}`);
+    };
+
+    const call = () =>
+      dispatchContainerCopy(containers, version, token, fetchImpl, {
+        findMissing: (all) => all.filter((c) => c.role !== "admin"),
+        exportOci: async (entry, tarPath) => {
+          const payload = Buffer.from(`oci-${entry.role}`);
+          fs.writeFileSync(tarPath, payload);
+          uploadedPaths.push(tarPath);
+          return { size: payload.length, sha256: digest(payload) };
+        },
+        uploadAsset: async (uploadUrl, filePath) => {
+          assert.ok(fs.existsSync(filePath));
+          assert.match(uploadUrl, /\/releases\/100\/assets\?name=oci-/);
+          return { id: nextAssetId++ };
+        },
+        verifyContainers: () => {
+          verified = true;
+        },
+        sleep: async () => {},
+      });
+
+    if (conclusion === "success") {
+      await call();
+      assert.equal(verified, true);
+    } else {
+      await assert.rejects(call, /GHCR copy ended with failure/);
+      assert.equal(verified, false);
+    }
+    assert.deepEqual(
+      drafts.map((d) => d.id),
+      [91],
+      "stale and ephemeral staging drafts must be removed while unrelated drafts remain",
+    );
+    for (const p of uploadedPaths) assert.equal(fs.existsSync(p), false);
+    return dispatchedInputs;
+  };
+
+  const inputs = await runScenario({ conclusion: "success" });
+  assert.equal(inputs.server_asset_id, "500");
+  assert.equal(inputs.server_asset_sha256, digest(Buffer.from("oci-server")));
+  assert.equal(inputs.web_asset_id, "501");
+  assert.equal(inputs.web_asset_sha256, digest(Buffer.from("oci-web")));
+  assert.equal(inputs.admin_asset_id, undefined);
+  assert.equal(inputs.admin_asset_sha256, undefined);
+
+  await runScenario({ conclusion: "failure" });
 });

@@ -231,16 +231,23 @@ container release template adds the Myoxus wordmark and illustrations from
 the matching public source commit, installation links, verified OCI references,
 and a collapsible source and provenance section.
 
-Publication copies the accepted Server, Web and Admin manifests and layers
+Publication mirrors the accepted Server, Web and Admin manifests and layers
 from Forgejo to `ghcr.io/superions` via Crane, using the existing product version
-as the tag. The publisher checks each tag and manifest by digest with anonymous
-registry access before advertising the GHCR coordinates in the public release.
-Forgejo dispatches the public `copy-release-containers.yml` workflow on
-`main` using the release API credential with Actions write access. The
-single copy job uses a short-lived `GITHUB_TOKEN` with Packages write access.
-Forgejo waits for that exact run and checks the public registry independently.
-GitHub initially creates packages as private. Set the three packages to public
-in GitHub Packages and retry the same dispatch to finish the first publication.
+as the tag. For any image not yet present on GHCR with its exact accepted digest,
+the Forgejo publisher exports its digest-bound OCI image layout locally via
+`crane pull --format=oci` and uploads the archive to an ephemeral private GitHub
+draft release (`myoxus-ghcr-staging-<version>`, without creating a Git tag).
+Forgejo then dispatches the public `copy-release-containers.yml` workflow on
+`main` with the expected manifest digests and staged asset IDs/SHA-256 values
+using the release API credential with Actions write access. The single copy job
+uses a short-lived `GITHUB_TOKEN` (`contents: write` to read the private draft
+assets and `packages: write` for GHCR), verifies each archive SHA-256 and OCI
+manifest digest, and pushes the exact manifest graph via `crane push`. Forgejo
+waits for that exact run, deletes the ephemeral staging draft unconditionally in
+cleanup, and checks each public GHCR tag and manifest digest anonymously before
+advertising the GHCR coordinates in the public release. GitHub initially creates
+packages as private. Set the three packages to public in GitHub Packages and
+retry the same dispatch to finish the first publication.
 
 Use `mode: backfill-containers` and the existing `version` to mirror an already
 published release. It uses the three digest references recorded in that

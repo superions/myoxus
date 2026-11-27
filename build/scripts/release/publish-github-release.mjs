@@ -845,12 +845,24 @@ async function cleanupStagingDrafts(version, token, fetchImpl) {
   }
 }
 
-async function dispatchContainerCopy(containers, version, token, fetchImpl) {
+export async function dispatchContainerCopy(
+  containers,
+  version,
+  token,
+  fetchImpl = fetch,
+  {
+    findMissing = missingGithubContainers,
+    exportOci = exportContainerOciTar,
+    verifyContainers = verifyGithubContainers,
+    uploadAsset = uploadFileStream,
+    sleep = delay,
+  } = {},
+) {
   const inputs = {
     version,
     ...Object.fromEntries(containers.map(({ role, digest }) => [role, digest])),
   };
-  const missing = missingGithubContainers(containers, version);
+  const missing = findMissing(containers, version);
   let staging;
   const stageDir = missing.length
     ? fs.mkdtempSync(path.join(os.tmpdir(), "myoxus-ghcr-stage-"))
@@ -872,11 +884,11 @@ async function dispatchContainerCopy(containers, version, token, fetchImpl) {
       for (const entry of missing) {
         const tarPath = path.join(stageDir, `oci-${entry.role}.tar`);
         try {
-          const { size, sha256 } = await exportContainerOciTar(entry, tarPath);
+          const { size, sha256 } = await exportOci(entry, tarPath);
           console.log(
             `Staged ${entry.role} OCI archive (${(size / 1048576).toFixed(1)} MiB, sha256:${sha256.slice(0, 12)})`,
           );
-          const asset = await uploadFileStream(
+          const asset = await uploadAsset(
             `https://uploads.github.com/repos/${REPOSITORY}/releases/${staging.id}/assets?name=${encodeURIComponent(`oci-${entry.role}.tar`)}`,
             tarPath,
             token,
@@ -910,16 +922,16 @@ async function dispatchContainerCopy(containers, version, token, fetchImpl) {
         missing: true,
       });
       if (!run) {
-        await delay(5_000);
+        await sleep(5_000);
         continue;
       }
       if (run.status === "completed") {
         if (run.conclusion !== "success")
           throw new Error(`GHCR copy ended with ${run.conclusion}: ${url}`);
-        verifyGithubContainers(containers, version);
+        verifyContainers(containers, version);
         return;
       }
-      await delay(10_000);
+      await sleep(10_000);
     }
     throw new Error(`Timed out waiting for GHCR copy: ${url}`);
   } finally {

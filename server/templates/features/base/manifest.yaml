@@ -1,6 +1,6 @@
 formatVersion: 1
 id: myoxus.features.base
-version: 1.0.39
+version: 1.0.40
 capabilities:
   artwork: 1
   assistant: 1
@@ -2531,8 +2531,8 @@ links:
     to:
       scope: local
       reference:
-        component: document.team-wiki-home.1.0.0
-        export: team-wiki-home@1.0.0
+        component: document.team-wiki-home.1.1.0
+        export: team-wiki-home@1.1.0
   - kind: documentComponent
     from:
       component: assistants
