@@ -12,6 +12,7 @@ import { EdgelessTextStoreExtension } from "@virgultum/canvas/store";
 import { EmbedStoreExtension } from "@virgultum/embeds/store";
 import { EmbedDocStoreExtension } from "@virgultum/embeds/store";
 import { DocumentIndexStoreExtension } from "@virgultum/content/store";
+import { TableOfContentsStoreExtension } from "@virgultum/content/store";
 import { EventStoreExtension } from "@virgultum/embeds/store";
 import { FrameStoreExtension } from "@virgultum/canvas/store";
 import { ImageStoreExtension } from "@virgultum/embeds/store";
@@ -62,6 +63,7 @@ export const internalStoreExtensionsByFeature: ReadonlyMap<
   [featureManifestId("divider"), DividerStoreExtension],
   [featureManifestId("event"), EventStoreExtension],
   [featureManifestId("document-index"), DocumentIndexStoreExtension],
+  [featureManifestId("table-of-contents"), TableOfContentsStoreExtension],
   [featureManifestId("edgeless-text"), EdgelessTextStoreExtension],
   [featureManifestId("embed"), EmbedStoreExtension],
   [featureManifestId("embed-doc"), EmbedDocStoreExtension],

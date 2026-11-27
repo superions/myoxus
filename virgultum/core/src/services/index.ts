@@ -17,6 +17,7 @@ export * from "./file-size-limit-service";
 export * from "./font-loader";
 export * from "./generate-url-service";
 export * from "./document-index";
+export * from "./table-of-contents";
 export * from "./host";
 export * from "./icon-picker-service";
 export * from "./i18n-service";

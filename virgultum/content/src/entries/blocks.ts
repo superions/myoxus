@@ -120,3 +120,4 @@ export {
   ParagraphLayoutPainterExtension,
 } from "../blocks/paragraph/index";
 export { DocumentIndexViewExtension } from "../blocks/document-index/index";
+export { TableOfContentsViewExtension } from "../blocks/table-of-contents/index";

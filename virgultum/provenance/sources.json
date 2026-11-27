@@ -3481,7 +3481,7 @@
         },
         {
           "path": "virgultum/core/src/models/blocks/index.ts",
-          "sha256": "ce6ed52d082333ce6b6a6fcaf3873fc7019f22271366f065f4b2d847f4dae96f",
+          "sha256": "e4725111194175b3e42ff72d926fd7aeab3c6bdf2b341dcf416bdd3c0108d231",
           "originalPath": "blocksuite/affine/model/src/blocks/index.ts",
           "originalGitBlob": "0bc0e23afcaf82388ed1ec1cc58264de8545b72d"
         },
@@ -4639,7 +4639,7 @@
         },
         {
           "path": "virgultum/core/src/services/index.ts",
-          "sha256": "29fcf5718be3e2d6bae6c62f1f961a15a5074e1bee460f4b9e31579189c073be",
+          "sha256": "93ac5c673b0e0b2167865107a9ed93948ee904a2d10f6c091ce23f7aa64c3888",
           "originalPath": "blocksuite/affine/shared/src/services/index.ts",
           "originalGitBlob": "c8f7f6ab0c06def81c43a477e198f777cf5dc691"
         },
@@ -6319,7 +6319,7 @@
         },
         {
           "path": "virgultum/editor/all/src/extensions/store.ts",
-          "sha256": "59293cceb36e0663fd50bea9638584ef436fa3ad7b30d58b63e970c1d9abae75",
+          "sha256": "fc139d535b47e6245a7759dbadd375a3359e9edc31df65c9b951d016719a82fa",
           "originalPath": "blocksuite/affine/all/src/extensions/store.ts",
           "originalGitBlob": "6fa7e679aae28913f59cd5939eec5fad2c610297"
         },
@@ -7537,7 +7537,7 @@
         },
         {
           "path": "virgultum/embeds/src/embed-doc/embed-synced-doc-block/configs/toolbar.ts",
-          "sha256": "6c1c0e01e6deddf1d49ac75d4a2a32447f362e1525abf53ed2546be7cfbfed73",
+          "sha256": "63426aa28d8012d097a272d6b3e190cb0ed2988c895dbf62be980b6d62e7c13c",
           "originalPath": "blocksuite/affine/blocks/embed-doc/src/embed-synced-doc-block/configs/toolbar.ts",
           "originalGitBlob": "80071ea64ede94e8483103f1b740fa6cf148e1fd"
         },
@@ -8884,7 +8884,7 @@
         },
         {
           "path": "virgultum/content/src/entries/blocks.ts",
-          "sha256": "f05d5aea518de101f76a1f42358e5e76f840724db048cf0ce9570eb90902751a"
+          "sha256": "92ecb61595ce2cd94ce83500c667b32044fc2b9dee4ec940c991d742f4918b34"
         },
         {
           "path": "virgultum/content/src/entries/data.ts",
@@ -8900,7 +8900,7 @@
         },
         {
           "path": "virgultum/content/src/entries/manifests.ts",
-          "sha256": "cc35c57c790bb5266145fb1c4060ad1ce86ae703cedf0323164eb657d1169b39"
+          "sha256": "23a115431d5b17129adef543d5afbf87f3af71878dcec594f1cd11a68969c4c6"
         },
         {
           "path": "virgultum/content/src/entries/page-table.ts",
@@ -8924,7 +8924,7 @@
         },
         {
           "path": "virgultum/content/src/entries/store.ts",
-          "sha256": "f252f503fc0f3c3006309ef91b83b881742d20fd0a3016fd52e592931e16bdf0"
+          "sha256": "742874ec6eebf1684489f44e6a8d377d8581beeda32d6946bac58a7f701c72dc"
         },
         {
           "path": "virgultum/content/src/entries/title.ts",
@@ -8932,7 +8932,7 @@
         },
         {
           "path": "virgultum/content/src/entries/view.ts",
-          "sha256": "6cb259644dcf7a0e3a68e4b3ca39ed9a87493237e3327d1fefc0e5d92562768f"
+          "sha256": "45882766711fd0824c2f77c00cc6ad0feb6ef997b28f31663f412f1bb398ce5c"
         },
         {
           "path": "virgultum/content/src/index.ts",
@@ -9112,7 +9112,7 @@
         },
         {
           "path": "virgultum/core/src/adapters/middlewares/document-reference.ts",
-          "sha256": "99d611e2cec6f24096962a7583857da9f09bc081e818b25451cde47f2dd68b9f"
+          "sha256": "be24cf325ac3533958c296a1db9d669311e5ee12d41a1a88f0cf9380629f03c3"
         },
         {
           "path": "virgultum/core/src/adapters/utils/document-field-output.ts",
@@ -9316,7 +9316,7 @@
         },
         {
           "path": "virgultum/core/src/services/editor-chrome-host.ts",
-          "sha256": "692ddaed36e08d3a977b2b6adaf397455ede7fe9be381d10b69a8f3e67899fdd"
+          "sha256": "d6f080fc543c8305596ddccc72f9b0ca5bfb2d6f2577107a8002a3770d6f4651"
         },
         {
           "path": "virgultum/core/src/services/footnote-react-host.ts",
@@ -9420,7 +9420,7 @@
         },
         {
           "path": "virgultum/core/src/utils/outline.ts",
-          "sha256": "240894a4b17618f3f9cf84d25ab4068f0444746d5ebf828855ad7e1a5238cb52"
+          "sha256": "56576be39d7428fb3a632f4254ac8e293212269fda87c43264e91f0109d00c0d"
         },
         {
           "path": "virgultum/core/src/view/icons/reference.ts",
@@ -9556,7 +9556,7 @@
         },
         {
           "path": "virgultum/editor/all/src/extensions/__tests__/manifest-consistency.unit.spec.ts",
-          "sha256": "ad72c108a766427f5f178f93b47ea6ddf9cf3f594476873e3a50e4185613dea0"
+          "sha256": "93e6ca4e9d2e2f5859b724e37fc61d40f6dcbdf0c474e3f03a4fef08d0315c8c"
         },
         {
           "path": "virgultum/editor/all/src/extensions/__tests__/manifest-imports.unit.spec.ts",
@@ -9580,7 +9580,7 @@
         },
         {
           "path": "virgultum/editor/all/src/extensions/manifest-registry.ts",
-          "sha256": "f64970d91ecde26843a6367c5c611cdc7281fb48477e42ba1c0e30d227b828b5"
+          "sha256": "2518151012e6e2f6eb76130a1fa96ddd2c4c697811a05d37f23b7e8d68c0e23a"
         },
         {
           "path": "virgultum/editor/all/src/extensions/manifest.ts",
@@ -13517,6 +13517,34 @@
         {
           "path": "virgultum/scripts/vitest-global.js",
           "sha256": "eb5b5c1d4db3ba71edcc14910d816c13b4bc84c5234766beafadcc3c6ecbc3bc"
+        },
+        {
+          "path": "virgultum/core/src/models/blocks/table-of-contents/index.ts",
+          "sha256": "38f9c6b074b536ef8c8143586f85f6081e591d3e728f0bcdd6aa6e1bf20f3c8f"
+        },
+        {
+          "path": "virgultum/core/src/services/table-of-contents.ts",
+          "sha256": "746f6b33dc19788659df1bd190a6a68293e4730c9af033d49d72e650644ac695"
+        },
+        {
+          "path": "virgultum/content/src/blocks/table-of-contents/adapters.ts",
+          "sha256": "3f046478d66b9ecca45d1a845216c7438c38e5ff48bbb1696cb5b946bc8c19e2"
+        },
+        {
+          "path": "virgultum/content/src/blocks/table-of-contents/index.ts",
+          "sha256": "d003e57bff517bc13e48b55ce85ef4bdc103bc06c35e9afc74e7dddeb3701cf4"
+        },
+        {
+          "path": "virgultum/content/src/blocks/table-of-contents/manifest.ts",
+          "sha256": "363654a600a4e4c5b9779ba2307f58f8a54f4c947fd8ad97dfe887efb465c69c"
+        },
+        {
+          "path": "virgultum/content/src/blocks/table-of-contents/store.ts",
+          "sha256": "f2017688fcce03e14a4de2a11cadfa5fa69c9b713bc6fcbe40a2763b7f6d0f6d"
+        },
+        {
+          "path": "virgultum/content/src/blocks/table-of-contents/view.ts",
+          "sha256": "037a341470807f067f8cf63c350daf43abf14a39853eadd55bde51082be5959d"
         }
       ]
     },

@@ -18,7 +18,10 @@ import { dividerManifest } from "@virgultum/content/manifests";
 import { EdgelessTextViewExtension } from "@virgultum/canvas/view";
 import { EmbedViewExtension } from "@virgultum/embeds/view";
 import { EmbedDocViewExtension } from "@virgultum/embeds/view";
-import { documentIndexManifest } from "@virgultum/content/manifests";
+import {
+  documentIndexManifest,
+  tableOfContentsManifest,
+} from "@virgultum/content/manifests";
 import { eventManifest } from "@virgultum/embeds/manifests";
 import { FrameViewExtension } from "@virgultum/canvas/view";
 import { ImageViewExtension } from "@virgultum/embeds/view";
@@ -129,6 +132,7 @@ const INTERNAL_MANIFESTS: ReadonlyArray<FeatureManifest> = [
   dividerManifest,
   eventManifest,
   documentIndexManifest,
+  tableOfContentsManifest,
   {
     id: featureManifestId("edgeless-text"),
     view: [EdgelessTextViewExtension],
@@ -342,6 +346,7 @@ const INTERNAL_VIEW_ORDER: ReadonlyArray<FeatureManifestId> = [
   featureManifestId("embed-doc"),
   featureManifestId("event"),
   featureManifestId("document-index"),
+  featureManifestId("table-of-contents"),
   featureManifestId("frame"),
   featureManifestId("image"),
   featureManifestId("latex"),

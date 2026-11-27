@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import {
+  describeSelectedEmbedTarget,
   hasDocumentReferenceSelection,
   projectDocumentReferenceSelection,
+  type SelectedEmbedTargetSummary,
 } from "@virgultum/core/adapters";
 import type { NoteBlockModel } from "@virgultum/core/models";
 import type { BlockModel, BlockSnapshot, Store } from "@virgultum/core/store";
@@ -90,6 +92,7 @@ export type SyncedDocProjectionResult =
   | {
       status: "ok";
       selected: boolean;
+      selectionSummary: SelectedEmbedTargetSummary | null;
       content: PageContent | null;
       fallbackLines: BlockModel[];
       empty: boolean;
@@ -110,6 +113,7 @@ export function projectSyncedDocContent(
   page: Store,
   params: unknown,
   mode: string | undefined,
+  authorizedTitles?: ReadonlyMap<string, string>,
 ): SyncedDocProjectionResult {
   let selected = false;
   try {
@@ -123,6 +127,7 @@ export function projectSyncedDocContent(
   }
 
   let allowedIds: Set<string> | undefined;
+  let selectionSummary: SelectedEmbedTargetSummary | null = null;
   if (selected) {
     if (mode === "edgeless") {
       return {
@@ -157,6 +162,11 @@ export function projectSyncedDocContent(
           reason: "Embedded selection target missing",
         };
       }
+      selectionSummary = describeSelectedEmbedTarget(
+        snapshot.blocks,
+        params,
+        authorizedTitles,
+      );
     } catch (error) {
       return {
         status: "error",
@@ -173,6 +183,7 @@ export function projectSyncedDocContent(
     return {
       status: "ok",
       selected,
+      selectionSummary,
       content,
       fallbackLines: [],
       empty: isPageContentEmpty(content),
@@ -187,6 +198,7 @@ export function projectSyncedDocContent(
   return {
     status: "ok",
     selected,
+    selectionSummary,
     content: null,
     fallbackLines,
     empty: fallbackLines.length === 0,

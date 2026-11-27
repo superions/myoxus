@@ -50,6 +50,8 @@ import { EmbedDocStoreExtension } from "@virgultum/embeds/store";
 import { EmbedDocViewExtension } from "@virgultum/embeds/view";
 import { DocumentIndexStoreExtension } from "@virgultum/content/store";
 import { DocumentIndexViewExtension } from "@virgultum/content/view";
+import { TableOfContentsStoreExtension } from "@virgultum/content/store";
+import { TableOfContentsViewExtension } from "@virgultum/content/view";
 import { EventStoreExtension } from "@virgultum/embeds/store";
 import { EventViewExtension } from "@virgultum/embeds/view";
 import { FrameStoreExtension } from "@virgultum/canvas/store";
@@ -151,6 +153,7 @@ const LEGACY_STORE = [
   DividerStoreExtension,
   EventStoreExtension,
   DocumentIndexStoreExtension,
+  TableOfContentsStoreExtension,
   EdgelessTextStoreExtension,
   EmbedStoreExtension,
   EmbedDocStoreExtension,
@@ -202,6 +205,7 @@ const LEGACY_VIEW = [
   EmbedDocViewExtension,
   EventViewExtension,
   DocumentIndexViewExtension,
+  TableOfContentsViewExtension,
   FrameViewExtension,
   ImageViewExtension,
   LatexViewExtension,

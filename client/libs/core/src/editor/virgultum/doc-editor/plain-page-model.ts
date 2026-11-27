@@ -6,6 +6,7 @@ import type {
   ParagraphBlockModel,
   ListBlockModel,
   DocumentIndexBlockModel,
+  TableOfContentsBlockModel,
   LatexBlockModel,
   DatabaseBlockModel,
   EventBlockModel,
@@ -169,6 +170,7 @@ export function readPageContent(
     | PageLine
     | { kind: "divider"; model: BlockModel; depth: number }
     | { kind: "directory"; model: DocumentIndexBlockModel; depth: number }
+    | { kind: "toc"; model: TableOfContentsBlockModel; depth: number }
     | { kind: "equation"; model: LatexBlockModel; depth: number }
     | { kind: "database"; model: DatabaseBlockModel; depth: number }
     | { kind: "event"; model: EventBlockModel; depth: number }
@@ -293,6 +295,16 @@ export function readPageContent(
         body.push({
           kind: "directory",
           model: child as DocumentIndexBlockModel,
+          depth,
+        });
+        ordinal = 0;
+        if (child.children.length && !children(child, depth + 1)) return false;
+        continue;
+      }
+      if (child.flavour === "myoxus:table-of-contents" && parent !== root) {
+        body.push({
+          kind: "toc",
+          model: child as TableOfContentsBlockModel,
           depth,
         });
         ordinal = 0;

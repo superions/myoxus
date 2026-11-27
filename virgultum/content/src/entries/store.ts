@@ -7,6 +7,7 @@ export { ListStoreExtension } from "../blocks/list/store";
 export { ParagraphStoreExtension } from "../blocks/paragraph/store";
 export { TableStoreExtension } from "../blocks/table/store";
 export { DocumentIndexStoreExtension } from "../blocks/document-index/store";
+export { TableOfContentsStoreExtension } from "../blocks/table-of-contents/store";
 export { FootnoteStoreExtension } from "../inlines/footnote/store";
 export { LatexStoreExtension as InlineLatexStoreExtension } from "../inlines/latex/store";
 export { LinkStoreExtension } from "../inlines/link/store";

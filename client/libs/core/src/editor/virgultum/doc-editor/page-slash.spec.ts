@@ -83,6 +83,7 @@ function createHost(
     openAttachmentUpload: vi.fn(),
     openEventDialog: vi.fn(),
     openDirectoryModal: vi.fn(),
+    openEmbedSectionModal: vi.fn(),
     openFootnoteMenu: vi.fn(),
     openTemplateVariablePicker: vi.fn(),
     openBuildingBlockPicker: vi.fn(),

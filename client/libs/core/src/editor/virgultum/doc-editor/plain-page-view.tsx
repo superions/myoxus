@@ -110,6 +110,10 @@ const Directory = lazy(async () => ({
   default: (await import("../../view-extensions/editor-view/document-index"))
     .Directory,
 }));
+const TableOfContents = lazy(async () => ({
+  default: (await import("../../view-extensions/editor-view/table-of-contents"))
+    .TableOfContentsBlock,
+}));
 const Equation = lazy(() => import("./page-equation"));
 const EventCard = lazy(() => import("./page-event"));
 const Attachment = lazy(() => import("./page-attachment"));
@@ -1394,6 +1398,22 @@ function PageView({
                 <Directory
                   model={line.model}
                   readonly={readonly || page.readonly}
+                />
+              </Suspense>
+            </div>
+          ) : line.kind === "toc" ? (
+            <div
+              key={line.model.id}
+              data-page-toc={line.model.id}
+              data-block-id={line.model.id}
+              tabIndex={-1}
+              contentEditable={false}
+            >
+              <Suspense fallback={null}>
+                <TableOfContents
+                  model={line.model}
+                  readonly={readonly || page.readonly}
+                  embedded={embedded}
                 />
               </Suspense>
             </div>

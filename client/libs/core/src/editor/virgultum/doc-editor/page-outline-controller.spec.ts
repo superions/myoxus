@@ -4,10 +4,17 @@
 
 import { LiveData } from "@myoxus/infra";
 import {
+  AnnotationBlockSchemaExtension,
+  CalloutBlockSchemaExtension,
+  FootnoteDefinitionBlockSchemaExtension,
+  ListBlockSchemaExtension,
   NoteBlockSchemaExtension,
+  NoteDisplayMode,
   ParagraphBlockSchemaExtension,
   RootBlockSchemaExtension,
+  TableOfContentsBlockSchemaExtension,
 } from "@virgultum/core/models";
+import { getReadablePageHeadingBlocksFromStore } from "@virgultum/core/utils";
 import { Text } from "@virgultum/core/store";
 import { TestWorkspace } from "@virgultum/core/store/test";
 import { describe, expect, test, vi } from "vitest";
@@ -121,6 +128,96 @@ describe("createPageOutlineController", () => {
       } finally {
         unsubscribe();
       }
+    } finally {
+      workspace.dispose();
+    }
+  });
+
+  test("projects readable Page headings deterministically with container allowlist, stop-list, level range, and duplicate IDs", () => {
+    const workspace = new TestWorkspace({ id: "toc-scanner-spec" });
+    workspace.meta.initialize();
+    try {
+      const doc = workspace.createDoc("toc-doc");
+      doc.load();
+      const store = doc.getStore({
+        extensions: [
+          RootBlockSchemaExtension,
+          NoteBlockSchemaExtension,
+          ParagraphBlockSchemaExtension,
+          ListBlockSchemaExtension,
+          CalloutBlockSchemaExtension,
+          AnnotationBlockSchemaExtension,
+          FootnoteDefinitionBlockSchemaExtension,
+          TableOfContentsBlockSchemaExtension,
+        ],
+      });
+      const rootId = store.addBlock("myoxus:page", {
+        title: new Text("TOC Spec"),
+      });
+      const visibleNote = store.addBlock("myoxus:note", {}, rootId);
+      const h1 = store.addBlock(
+        "myoxus:paragraph",
+        { type: "h1", text: new Text("Overview") },
+        visibleNote,
+      );
+      const callout = store.addBlock("myoxus:callout", {}, visibleNote);
+      const nestedH2 = store.addBlock(
+        "myoxus:paragraph",
+        { type: "h2", text: new Text("Overview") },
+        callout,
+      );
+      const list = store.addBlock(
+        "myoxus:list",
+        { type: "bulleted", text: new Text("Item") },
+        visibleNote,
+      );
+      const nestedH3 = store.addBlock(
+        "myoxus:paragraph",
+        { type: "h3", text: new Text("Deep Detail") },
+        list,
+      );
+      const emptyH2 = store.addBlock(
+        "myoxus:paragraph",
+        { type: "h2", text: new Text("") },
+        visibleNote,
+      );
+      void emptyH2;
+      store.addBlock("myoxus:table-of-contents", {}, visibleNote);
+
+      const footnote = store.addBlock(
+        "myoxus:footnote-definition",
+        { label: "1" },
+        visibleNote,
+      );
+      const footnoteHeading = store.addBlock(
+        "myoxus:paragraph",
+        { type: "h2", text: new Text("Footnote Heading") },
+        footnote,
+      );
+      const edgelessNote = store.addBlock(
+        "myoxus:note",
+        { displayMode: NoteDisplayMode.EdgelessOnly },
+        rootId,
+      );
+      const edgelessHeading = store.addBlock(
+        "myoxus:paragraph",
+        { type: "h1", text: new Text("Canvas Only") },
+        edgelessNote,
+      );
+
+      const all = getReadablePageHeadingBlocksFromStore(store, {
+        minLevel: 1,
+        maxLevel: 3,
+      });
+      expect(all.map((b) => b.id)).toEqual([h1, nestedH2, nestedH3]);
+      expect(all.some((b) => b.id === footnoteHeading)).toBe(false);
+      expect(all.some((b) => b.id === edgelessHeading)).toBe(false);
+
+      const narrowed = getReadablePageHeadingBlocksFromStore(store, {
+        minLevel: 2,
+        maxLevel: 2,
+      });
+      expect(narrowed.map((b) => b.id)).toEqual([nestedH2]);
     } finally {
       workspace.dispose();
     }

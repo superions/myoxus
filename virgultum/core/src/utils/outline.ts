@@ -9,6 +9,7 @@ import {
   ListBlockModel,
   NoteBlockModel,
   NoteDisplayMode,
+  normalizeTocLevelRange,
   ParagraphBlockModel,
   RootBlockModel,
 } from "../models/index";
@@ -107,6 +108,103 @@ export function getOutlineHeadingBlocksFromNote(
     }
   };
   visit(note.children);
+  return headings;
+}
+
+const PAGE_READABLE_NOTE_MODES: readonly NoteDisplayMode[] = [
+  NoteDisplayMode.DocAndEdgeless,
+  NoteDisplayMode.DocOnly,
+];
+
+const READABLE_OUTLINE_CONTAINER_FLAVOURS = new Set([
+  "myoxus:callout",
+  "myoxus:paragraph",
+  "myoxus:list",
+]);
+
+const STOP_OUTLINE_FLAVOURS = new Set([
+  "myoxus:annotation",
+  "myoxus:footnote-definition",
+  "myoxus:database",
+  "myoxus:table",
+  "myoxus:code",
+  "myoxus:table-of-contents",
+  "myoxus:document-index",
+  "myoxus:surface",
+]);
+
+function shouldStopOutlineTraversal(flavour: string): boolean {
+  return (
+    STOP_OUTLINE_FLAVOURS.has(flavour) || flavour.startsWith("myoxus:embed-")
+  );
+}
+
+export function getOutlineHeadingLevel(
+  block: ParagraphBlockModel,
+): number | undefined {
+  const type = block.props.type$.value;
+  return /^h[1-6]$/.test(type) ? Number(type.slice(1)) : undefined;
+}
+
+/**
+ * Deterministic readable Page heading traversal shared by the in-body TOC block.
+ * Visits only visible Page notes (`DocAndEdgeless`/`DocOnly`, `!hidden`),
+ * descends strictly into readable container children (`callout`, `paragraph`,
+ * `list`), and stops at annotations, footnote definitions, embeds, databases,
+ * tables, code blocks, canvas-only notes, and TOC blocks themselves.
+ */
+export function getReadablePageHeadingBlocksFromStore(
+  store: Store,
+  options?: {
+    minLevel?: number;
+    maxLevel?: number;
+    ignoreEmpty?: boolean;
+  },
+): ParagraphBlockModel[] {
+  const rootModel = store.root;
+  if (!rootModel) return [];
+  const { minLevel, maxLevel } = normalizeTocLevelRange(
+    options?.minLevel ?? 1,
+    options?.maxLevel ?? 6,
+  );
+  const ignoreEmpty = options?.ignoreEmpty ?? true;
+  const headings: ParagraphBlockModel[] = [];
+  const visited = new Set<string>([rootModel.id]);
+
+  const visit = (children: readonly BlockModel[]) => {
+    for (const block of children) {
+      if (visited.has(block.id)) continue;
+      visited.add(block.id);
+      if (shouldStopOutlineTraversal(block.flavour)) continue;
+      if (isOutlineHeadingBlock(block)) {
+        const level = getOutlineHeadingLevel(block);
+        if (
+          level !== undefined &&
+          level >= minLevel &&
+          level <= maxLevel &&
+          (!ignoreEmpty || (block.text && block.text.length > 0))
+        ) {
+          headings.push(block);
+        }
+      }
+      if (
+        block.children.length > 0 &&
+        READABLE_OUTLINE_CONTAINER_FLAVOURS.has(block.flavour)
+      ) {
+        visit(block.children);
+      }
+    }
+  };
+
+  for (const child of rootModel.children) {
+    if (!matchModels(child, [NoteBlockModel])) continue;
+    if (child.props.hidden$.value) continue;
+    if (!PAGE_READABLE_NOTE_MODES.includes(child.props.displayMode$.value)) {
+      continue;
+    }
+    visited.add(child.id);
+    visit(child.children);
+  }
   return headings;
 }
 

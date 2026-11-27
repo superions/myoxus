@@ -3,7 +3,13 @@ import { describe, expect, it } from "vitest";
 import { Text } from "@virgultum/core/store";
 import { TestWorkspace } from "@virgultum/core/store/test";
 import {
+  listSelectableEmbedTargets,
+  projectDocumentReferenceSelection,
+} from "@virgultum/core/adapters";
+import {
+  AnnotationBlockSchemaExtension,
   CalloutBlockSchemaExtension,
+  FootnoteDefinitionBlockSchemaExtension,
   ListBlockSchemaExtension,
   NoteBlockSchemaExtension,
   ParagraphBlockSchemaExtension,
@@ -23,6 +29,8 @@ function createTestDoc() {
       ParagraphBlockSchemaExtension,
       ListBlockSchemaExtension,
       CalloutBlockSchemaExtension,
+      AnnotationBlockSchemaExtension,
+      FootnoteDefinitionBlockSchemaExtension,
     ],
   });
   const rootId = store.addBlock("myoxus:page", {
@@ -189,5 +197,100 @@ describe("projectSyncedDocContent (SPE-05b / OBS-14)", () => {
         "edgeless",
       ).status,
     ).toBe("error");
+  });
+
+  it("lists only readable embed targets accepted by projectDocumentReferenceSelection and updates selectionSummary on heading rename", () => {
+    const { store, noteId } = createTestDoc();
+    const h1Id = store.addBlock(
+      "myoxus:paragraph",
+      { type: "h1", text: new Text("Overview") },
+      noteId,
+    );
+    const h2Text = new Text([
+      { insert: "Architecture " },
+      {
+        insert: " ",
+        attributes: {
+          reference: { type: "LinkedPage", pageId: "private-doc" },
+        } as never,
+      },
+    ]);
+    const h2Id = store.addBlock(
+      "myoxus:paragraph",
+      { type: "h2", text: h2Text },
+      noteId,
+    );
+    const paraId = store.addBlock(
+      "myoxus:paragraph",
+      { type: "text", text: new Text("Core service notes") },
+      noteId,
+    );
+    const edgelessNote = store.addBlock(
+      "myoxus:note",
+      { displayMode: "edgeless" },
+      store.root!.id,
+    );
+    const hiddenHeadingId = store.addBlock(
+      "myoxus:paragraph",
+      { type: "h2", text: new Text("Canvas-only secret") },
+      edgelessNote,
+    );
+    const annotationId = store.addBlock(
+      "myoxus:annotation",
+      { text: new Text("Private margin note") },
+      noteId,
+    );
+
+    const transformer = store.getTransformer([]);
+    const snapshot = transformer.docToSnapshot(store)!;
+    transformer[Symbol.dispose]();
+
+    const targets = listSelectableEmbedTargets(snapshot.blocks, new Map());
+    expect(targets.map((t) => [t.blockId, t.selectionKind, t.label])).toEqual([
+      [h1Id, "section", "Overview"],
+      [h2Id, "section", "Architecture"],
+      [paraId, "subtree", "Core service notes"],
+    ]);
+    expect(targets.some((t) => t.blockId === hiddenHeadingId)).toBe(false);
+    expect(targets.some((t) => t.blockId === annotationId)).toBe(false);
+    for (const target of targets) {
+      expect(() =>
+        projectDocumentReferenceSelection(snapshot, {
+          mode: "page",
+          blockIds: [target.blockId],
+          blockSelection: target.selectionKind,
+        }),
+      ).not.toThrow();
+    }
+
+    const beforeRename = projectSyncedDocContent(
+      store,
+      { mode: "page", blockIds: [h2Id], blockSelection: "section" },
+      "page",
+      new Map(),
+    );
+    expect(beforeRename.status).toBe("ok");
+    if (beforeRename.status === "ok") {
+      expect(beforeRename.selectionSummary?.selectionKind).toBe("section");
+      expect(beforeRename.selectionSummary?.headingPath).toEqual([
+        "Overview",
+        "Architecture",
+      ]);
+    }
+
+    store.getModelById(h2Id)!.text!.insert(" v2", 12);
+    const afterRename = projectSyncedDocContent(
+      store,
+      { mode: "page", blockIds: [h2Id], blockSelection: "section" },
+      "page",
+      new Map(),
+    );
+    expect(afterRename.status).toBe("ok");
+    if (afterRename.status === "ok") {
+      expect(afterRename.selectionSummary?.headingPath).toEqual([
+        "Overview",
+        "Architecture v2",
+      ]);
+    }
   });
 });

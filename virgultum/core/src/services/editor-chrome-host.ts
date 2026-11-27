@@ -6,7 +6,11 @@ import type { ReadonlySignal } from "@preact/signals-core";
 import type { SelectionAction } from "./toolbar-service/presentation";
 
 import type { MyoxusIconExportName } from "@myoxus/icons/names";
-import type { EventBlockModel, NoteDisplayMode } from "../models/index";
+import type {
+  EventBlockModel,
+  NoteDisplayMode,
+  ReferenceParams,
+} from "../models/index";
 import { createIdentifier } from "../primitives/di/index";
 import type { ExtensionType } from "../store/index";
 import type { MyoxusHostService } from "./host/myoxus-host-service";
@@ -627,6 +631,10 @@ export type EditorChromeHost = {
     anchor: HTMLElement,
     controls: EditorEmbedCardEditControls,
   ) => () => void;
+  mountEmbedTargetPicker?: (
+    anchor: HTMLElement,
+    controls: EditorEmbedTargetPickerControls,
+  ) => () => void;
   mountEmbedCardCreate: (
     anchor: HTMLElement,
     controls: EditorEmbedCardCreateControls,
@@ -801,6 +809,13 @@ export type EditorEmbedCardEditControls = EditorInlinePopupControls & {
   canReset: boolean;
   confirm: (title: string, description: string) => void;
   reset: () => void;
+};
+
+export type EditorEmbedTargetPickerControls = EditorInlinePopupControls & {
+  pageId: string;
+  workspaceId?: string;
+  params?: ReferenceParams;
+  apply: (params: ReferenceParams | undefined) => void;
 };
 
 export type EditorActionMenuControls = EditorInlinePopupControls & {

@@ -5,12 +5,15 @@ import type {
   EditorDocumentPickerControls,
   EditorDocumentPickerState,
 } from "@virgultum/core/services";
+import type { BlockModel } from "@virgultum/core/store";
 import type { LinkedMenuGroup } from "@virgultum/editor/widgets/linked-doc";
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { AtMenuConfigService } from "../../../modules/at-menu-config/services";
 import { EditorDocumentPicker } from "../../view-extensions/editor-view/editor-chrome/document-picker";
+import { EmbedSectionInsertModal } from "../../view-extensions/editor-view/embed-target-picker";
 import { bindFloatingAnchor } from "./page-floating-anchor";
 import type { PageInteraction, PickerStart } from "./page-interaction";
+import { resolveInsertParent } from "./page-slash-registry";
 
 export default function PagePicker({
   owner,
@@ -25,6 +28,8 @@ export default function PagePicker({
 }) {
   const config = useService(AtMenuConfigService);
   const [controls, setControls] = useState<EditorDocumentPickerControls>();
+  const [embedAnchor, setEmbedAnchor] = useState<BlockModel | null>(null);
+  const holdingModalRef = useRef(false);
   useLayoutEffect(() => {
     const input = root.querySelector<HTMLElement>("[data-page-body]")!;
     const stop = new AbortController();
@@ -89,11 +94,17 @@ export default function PagePicker({
     const cancel = () => {
       if (!stop.signal.aborted) {
         stop.abort();
-        close();
+        if (!holdingModalRef.current) close();
       }
     };
     const refresh = () => {
-      if (stop.signal.aborted || composing || owner.isComposing || pending)
+      if (
+        stop.signal.aborted ||
+        holdingModalRef.current ||
+        composing ||
+        owner.isComposing ||
+        pending
+      )
         return;
       const current = owner.pickerRange(start);
       if (!current || current.query.startsWith(" ")) {
@@ -118,6 +129,20 @@ export default function PagePicker({
         {
           anchorRect: rect,
           insertDocument: (id) => insert?.(id),
+          openEmbedSection: () => {
+            if (stop.signal.aborted) return;
+            const currentRange = owner.pickerRange(start);
+            if (!currentRange) {
+              cancel();
+              return;
+            }
+            const anchorModel = currentRange.line.model;
+            holdingModalRef.current = true;
+            owner.consumePicker(start, captured);
+            stop.abort();
+            setControls(undefined);
+            setEmbedAnchor(anchorModel);
+          },
           insertMember: (id) => {
             accept();
             return insert?.(id, "mention");
@@ -214,5 +239,43 @@ export default function PagePicker({
       keys.clear();
     };
   }, [owner, start, root, close, config]);
+  if (embedAnchor) {
+    const store = embedAnchor.store;
+    return (
+      <EmbedSectionInsertModal
+        currentDocId={store.id}
+        insert={(pageId, params) => {
+          const target = resolveInsertParent(
+            store,
+            embedAnchor,
+            "myoxus:embed-synced-doc",
+          );
+          if (target && !store.readonly) {
+            store.captureSync();
+            store.transact(() => {
+              store.addBlock(
+                "myoxus:embed-synced-doc",
+                {
+                  pageId,
+                  ...(params ? { params } : {}),
+                },
+                target.parent,
+                target.index + 1,
+              );
+            });
+            store.captureSync();
+          }
+          holdingModalRef.current = false;
+          setEmbedAnchor(null);
+          close();
+        }}
+        close={() => {
+          holdingModalRef.current = false;
+          setEmbedAnchor(null);
+          close();
+        }}
+      />
+    );
+  }
   return controls ? <EditorDocumentPicker controls={controls} /> : null;
 }

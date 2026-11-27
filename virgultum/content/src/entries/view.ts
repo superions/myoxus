@@ -7,6 +7,7 @@ export { ListViewExtension } from "../blocks/list/view";
 export { ParagraphViewExtension } from "../blocks/paragraph/view";
 export { TableViewExtension } from "../blocks/table/view";
 export { DocumentIndexViewExtension } from "../blocks/document-index/view";
+export { TableOfContentsViewExtension } from "../blocks/table-of-contents/view";
 export { InlineCommentViewExtension } from "../inlines/comment/view";
 export { FootnoteViewExtension } from "../inlines/footnote/view";
 export { LatexViewExtension as InlineLatexViewExtension } from "../inlines/latex/view";

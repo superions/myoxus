@@ -52,6 +52,7 @@ import { ViewService } from "../../../modules/workbench";
 import { WorkspaceService } from "../../../modules/workspace";
 import { DatabasePagesService } from "../../../modules/workspace-pages/database-pages-service";
 import { Configuration as DocumentIndexConfiguration } from "../../view-extensions/editor-view/document-index";
+import { EmbedSectionInsertModal } from "../../view-extensions/editor-view/embed-target-picker";
 import { EditorEmbedCardCreate } from "../../view-extensions/editor-view/editor-chrome/embed-card-create";
 import { EditorLinkEditor } from "../../view-extensions/editor-view/editor-chrome/link-editor";
 import { EditorSlashMenu } from "../../view-extensions/editor-view/editor-chrome/slash-menu";
@@ -92,6 +93,10 @@ type ActiveSlashModal =
     }
   | {
       kind: "directory";
+      model: BlockModel;
+    }
+  | {
+      kind: "embed-section";
       model: BlockModel;
     }
   | {
@@ -422,6 +427,10 @@ export default function PageSlash({
         openDirectoryModal: () => {
           hasModalRef.current = true;
           setModal({ kind: "directory", model });
+        },
+        openEmbedSectionModal: () => {
+          hasModalRef.current = true;
+          setModal({ kind: "embed-section", model });
         },
         openFootnoteMenu: (placement) => {
           hasModalRef.current = true;
@@ -993,6 +1002,19 @@ export default function PageSlash({
           value={defaultDocumentIndexProps()}
           apply={(value: DocumentIndexProps) => {
             insertBlockAfter(modal.model, "myoxus:document-index", value);
+            finishAll();
+          }}
+          close={finishAll}
+        />
+      ) : null}
+      {modal?.kind === "embed-section" ? (
+        <EmbedSectionInsertModal
+          currentDocId={page.id}
+          insert={(pageId, params) => {
+            insertBlockAfter(modal.model, "myoxus:embed-synced-doc", {
+              pageId,
+              ...(params ? { params } : {}),
+            });
             finishAll();
           }}
           close={finishAll}

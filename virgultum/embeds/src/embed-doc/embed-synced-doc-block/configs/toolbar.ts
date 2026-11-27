@@ -3,8 +3,10 @@ import {
   resolveToolbarChoice,
   ActionPlacement,
   DocDisplayMetaProvider,
+  EditorChromeHostIdentifier,
   EditorSettingProvider,
   type LinkEventType,
+  mountInlinePopup,
   type OpenDocMode,
   type ToolbarAction,
   type ToolbarActionGroup,
@@ -207,9 +209,65 @@ const editAliasAction = {
   },
 } as const satisfies ToolbarAction;
 
+const selectContentAction = {
+  id: "a.select-content",
+  label: editorMessage(
+    "com.myoxus.wiki.embed.select-content",
+    "Select content",
+  ),
+  tooltip: editorMessage(
+    "com.myoxus.wiki.embed.select-content",
+    "Select content",
+  ),
+  icon: "BlockLinkIcon",
+  when: (ctx) =>
+    !ctx.store.readonly &&
+    !!ctx.std.getOptional(EditorChromeHostIdentifier)?.mountEmbedTargetPicker,
+  run(ctx) {
+    const block = ctx.getCurrentBlockByType(EmbedSyncedDocBlockComponent);
+    const chrome = ctx.std.getOptional(EditorChromeHostIdentifier);
+    if (!block || !chrome?.mountEmbedTargetPicker || ctx.store.readonly) return;
+    const model = block.model;
+    const abort = new AbortController();
+    mountInlinePopup(
+      ctx.std,
+      () =>
+        block.isConnected &&
+        !ctx.store.readonly &&
+        ctx.store.getBlock(model.id)?.model === model
+          ? block
+          : null,
+      (anchor, controls) =>
+        chrome.mountEmbedTargetPicker!(anchor, {
+          ...controls,
+          pageId: model.props.pageId,
+          workspaceId: model.props.workspaceId,
+          params: model.props.params,
+          apply: (nextParams) => {
+            if (
+              abort.signal.aborted ||
+              ctx.store.readonly ||
+              ctx.store.getBlock(model.id)?.model !== model
+            ) {
+              controls.close();
+              return;
+            }
+            ctx.store.captureSync();
+            ctx.store.updateBlock(model, { params: nextParams });
+            ctx.store.captureSync();
+            controls.close();
+          },
+        }),
+      abort,
+      () => block.focus?.(),
+    );
+  },
+} as const satisfies ToolbarAction;
+
 const builtinToolbarConfig = {
   actions: [
     openDocActionGroup,
+    selectContentAction,
     conversionsActionGroup,
     editAliasAction,
     captionAction,
@@ -280,6 +338,7 @@ const builtinToolbarConfig = {
 const builtinSurfaceToolbarConfig = {
   actions: [
     openDocActionGroup,
+    selectContentAction,
     conversionsActionGroup,
     editAliasAction,
     {

@@ -7,6 +7,7 @@ import { localFootnoteInsertionNote } from "@virgultum/core/commands";
 import { REFERENCE_NODE } from "@virgultum/core/consts";
 import {
   calloutPresentation,
+  defaultTableOfContentsProps,
   ListBlockModel,
   ParagraphBlockModel,
   TableModelFlavour,
@@ -49,6 +50,7 @@ export type PageSlashHostCallbacks = {
   readonly openAttachmentUpload: (pdfOnly: boolean) => void;
   readonly openEventDialog: () => void;
   readonly openDirectoryModal: () => void;
+  readonly openEmbedSectionModal: () => void;
   readonly openFootnoteMenu: (placement: FootnotePlacement) => void;
   readonly openTemplateVariablePicker: () => void;
   readonly openBuildingBlockPicker: () => void;
@@ -1112,6 +1114,74 @@ export function buildPageSlashItems(
         runAsync: () => host.insertNamedBuildingBlock("block-page-report"),
       },
     );
+  }
+
+  if (hasFlavour("myoxus:embed-synced-doc")) {
+    items.push({
+      id: "block-embed-section-insert",
+      label: t["com.myoxus.wiki.embed.title"](),
+      description: t["com.myoxus.wiki.embed.description"](),
+      icon: "BlockLinkIcon",
+      group: contentGroup,
+      groupOrder: 4,
+      itemOrder: 12.5,
+      aliases: [
+        "wiki",
+        "embed",
+        "section",
+        "block",
+        "include",
+        "Abschnitt",
+        "einbetten",
+      ],
+      runAsync: () => host.openEmbedSectionModal(),
+    });
+  }
+
+  if (hasFlavour("myoxus:table-of-contents")) {
+    items.push({
+      id: "block-table-of-contents-insert",
+      label: t["com.myoxus.wiki.toc.title"](),
+      description: t["com.myoxus.wiki.toc.description"](),
+      icon: "TocIcon",
+      group: contentGroup,
+      groupOrder: 4,
+      itemOrder: 12.75,
+      aliases: [
+        "wiki",
+        "toc",
+        "contents",
+        "table of contents",
+        "outline",
+        "Inhaltsverzeichnis",
+        "Gliederung",
+      ],
+      runSync: (s, m) => {
+        const tocId = insertSiblingBlock(
+          s,
+          m,
+          "myoxus:table-of-contents",
+          defaultTableOfContentsProps(),
+          true,
+        );
+        if (!tocId) return;
+        const toc = s.getModelById(tocId);
+        const parent = toc ? s.getParent(toc) : null;
+        if (!toc || !parent) return;
+        const index = parent.children.indexOf(toc);
+        const next = parent.children[index + 1];
+        if (next?.text) {
+          return { id: next.id, offset: 0 };
+        }
+        const trailingId = s.addBlock(
+          "myoxus:paragraph",
+          { type: "text" },
+          parent,
+          index + 1,
+        );
+        return { id: trailingId, offset: 0 };
+      },
+    });
   }
 
   if (hasFlavour("myoxus:latex")) {

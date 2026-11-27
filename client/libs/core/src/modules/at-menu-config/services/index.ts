@@ -48,6 +48,7 @@ const RESERVED_ITEM_KEYS = {
 };
 export interface PagePickerTarget {
   insertDocument(id: string): void;
+  openEmbedSection?(): void;
   insertMember(id: string): MentionOccurrence | undefined;
   anchorRect(): DOMRect;
 }
@@ -322,11 +323,28 @@ export class AtMenuConfigService extends Service {
       const isJournal = !!this.journalService.getJournalDate(item.key);
       return !isJournal;
     };
+    const embedSectionItem: LinkedMenuItem | null =
+      "openEmbedSection" in inlineEditor && inlineEditor.openEmbedSection
+        ? {
+            key: "embed-section",
+            icon: "BlockLinkIcon",
+            name: I18n.t("com.myoxus.wiki.embed.title"),
+            action: () => {
+              inlineEditor.openEmbedSection?.();
+            },
+          }
+        : null;
     const items = result.items;
     if (Array.isArray(items)) {
-      result.items = items.filter(filterItem);
+      result.items = [
+        ...items.filter(filterItem),
+        ...(embedSectionItem ? [embedSectionItem] : []),
+      ];
     } else {
-      result.items = computed(() => items.value.filter(filterItem));
+      result.items = computed(() => [
+        ...items.value.filter(filterItem),
+        ...(embedSectionItem ? [embedSectionItem] : []),
+      ]);
     }
     return result;
   }

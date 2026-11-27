@@ -55,6 +55,7 @@ import { EditorAttachmentRename } from "./attachment-rename";
 import { EditorActionMenu } from "./action-menu";
 import { EditorEmbedCardCreate } from "./embed-card-create";
 import { EditorEmbedCardEdit } from "./embed-card-edit";
+import { EmbedTargetPickerModal } from "../embed-target-picker";
 import { EditorEquation } from "./equation-editor";
 import { RegisteredBlockCaption } from "./block-caption";
 import { EditorCitationPreview } from "./citation-preview";
@@ -193,6 +194,17 @@ export function patchEditorChromeHost(mountPortal: MountReactPortal) {
       mountPortal(anchor, <RegisteredBlockCaption state={state} />),
     mountEquation: mountControl(EditorEquation),
     mountEmbedCardEdit: mountControl(EditorEmbedCardEdit),
+    mountEmbedTargetPicker: (anchor, controls) =>
+      mountPortal(
+        anchor,
+        <EmbedTargetPickerModal
+          pageId={controls.pageId}
+          workspaceId={controls.workspaceId}
+          params={controls.params}
+          apply={controls.apply}
+          close={controls.close}
+        />,
+      ),
     mountEmbedCardCreate: mountControl(EditorEmbedCardCreate),
     mountActionMenu: mountControl(EditorActionMenu),
     mountAttachmentRename: mountControl(EditorAttachmentRename),

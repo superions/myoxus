@@ -22281,6 +22281,54 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.wiki.directory.before"](): string;
   /** After */
   ["com.myoxus.wiki.directory.after"](): string;
+  /** Embed section or block */
+  ["com.myoxus.wiki.embed.title"](): string;
+  /** Include a live heading section or block from another document. */
+  ["com.myoxus.wiki.embed.description"](): string;
+  /** Select content */
+  ["com.myoxus.wiki.embed.select-content"](): string;
+  /** Whole document */
+  ["com.myoxus.wiki.embed.whole-document"](): string;
+  /** Embed the entire readable content of this document. */
+  ["com.myoxus.wiki.embed.whole-document-hint"](): string;
+  /** All items */
+  ["com.myoxus.wiki.embed.scope-all"](): string;
+  /** Heading sections */
+  ["com.myoxus.wiki.embed.scope-sections"](): string;
+  /** Single blocks */
+  ["com.myoxus.wiki.embed.scope-blocks"](): string;
+  /** Heading section */
+  ["com.myoxus.wiki.embed.badge-section"](): string;
+  /** Content block */
+  ["com.myoxus.wiki.embed.badge-block"](): string;
+  /** Filter headings and blocks… */
+  ["com.myoxus.wiki.embed.filter-placeholder"](): string;
+  /** Choose source document */
+  ["com.myoxus.wiki.embed.choose-source"](): string;
+  /** Change document */
+  ["com.myoxus.wiki.embed.change-source"](): string;
+  /** No selectable sections or blocks found in this document. */
+  ["com.myoxus.wiki.embed.empty-targets"](): string;
+  /** This document cannot be loaded or you do not have read access. */
+  ["com.myoxus.wiki.embed.unavailable"](): string;
+  /** Search documents… */
+  ["com.myoxus.wiki.embed.search-documents"](): string;
+  /** Table of contents */
+  ["com.myoxus.wiki.toc.title"](): string;
+  /** Insert a live table of contents for this document. */
+  ["com.myoxus.wiki.toc.description"](): string;
+  /** Configure table of contents */
+  ["com.myoxus.wiki.toc.configure"](): string;
+  /** From heading level */
+  ["com.myoxus.wiki.toc.min-level"](): string;
+  /** To heading level */
+  ["com.myoxus.wiki.toc.max-level"](): string;
+  /** No headings in this level range yet. Add headings to populate the table of contents. */
+  ["com.myoxus.wiki.toc.empty-author"](): string;
+  /** No headings in this range. */
+  ["com.myoxus.wiki.toc.empty-reader"](): string;
+  /** {{count}} matching headings in this document */
+  ["com.myoxus.wiki.toc.matching-count"](options: { readonly ["count"]: string; }): string;
   /** Advanced options */
   ["com.myoxus.pdf-export.dialog.options.advanced"](): string;
   /** Review document changes */

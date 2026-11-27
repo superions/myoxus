@@ -13,13 +13,15 @@ import { createPortal } from "react-dom";
 import { effect } from "@preact/signals-core";
 import { useI18n } from "@myoxus/i18n";
 import { useFramework, useService, useServiceOptional } from "@myoxus/infra";
-import { MyoxusText, ReferenceCard } from "@myoxus/ui-facade";
+import { Badge, MyoxusText, ReferenceCard } from "@myoxus/ui-facade";
 import { LinkIcon } from "@myoxus/icons/react";
 import { nanoid } from "nanoid";
+import type { SelectedEmbedTargetSummary } from "@virgultum/core/adapters";
 import type {
   EmbedLinkedDocModel,
   EmbedSyncedDocModel,
   NoteBlockModel,
+  ReferenceParams,
 } from "@virgultum/core/models";
 import { Text, type BlockModel, type Store } from "@virgultum/core/store";
 import type { PageContent } from "./plain-page-model";
@@ -34,6 +36,7 @@ import { useNavigateHelper } from "../../../components/hooks/use-navigate-helper
 import { EditorDocumentCard } from "../../view-extensions/editor-view/editor-chrome/document-card";
 import { EditorEmbedCardEdit } from "../../view-extensions/editor-view/editor-chrome/embed-card-edit";
 import { EditorSelectionToolbar } from "../../view-extensions/editor-view/editor-chrome/selection-toolbar";
+import { EmbedTargetPickerModal } from "../../view-extensions/editor-view/embed-target-picker";
 import {
   copyOrCutPageBlock,
   deletePageBlock,
@@ -62,6 +65,7 @@ type State = {
   target?: Target;
   page?: Store;
   content?: PageContent | null;
+  selectionSummary?: SelectedEmbedTargetSummary | null;
   empty?: boolean;
   title?: string;
   updated?: number;
@@ -226,7 +230,18 @@ export default function PageDocumentCard({
                 });
                 return;
               }
-              const projection = projectSyncedDocContent(page, params, mode);
+              const authorizedTitles = new Map<string, string>();
+              for (const meta of target.collection.meta.docMetas) {
+                if (target.access.readable(meta.id).peek() === true) {
+                  authorizedTitles.set(meta.id, meta.title || "");
+                }
+              }
+              const projection = projectSyncedDocContent(
+                page,
+                params,
+                mode,
+                authorizedTitles,
+              );
               if (projection.status === "error") {
                 setResult({
                   key,
@@ -243,6 +258,7 @@ export default function PageDocumentCard({
                 target,
                 page,
                 content: projection.content,
+                selectionSummary: projection.selectionSummary,
                 lines: projection.fallbackLines,
                 empty: projection.empty,
                 title: currentTitle,
@@ -375,6 +391,7 @@ export default function PageDocumentCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [selectingTarget, setSelectingTarget] = useState(false);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [floating, setFloating] = useState<HTMLElement | null>(null);
   const writable = () =>
@@ -391,6 +408,50 @@ export default function PageDocumentCard({
       setEditing(false);
     },
   });
+  const applyTargetSelection = (nextParams: ReferenceParams | undefined) => {
+    if (!writable()) {
+      setSelectingTarget(false);
+      return;
+    }
+    const store = model.store;
+    if (synced) {
+      store.captureSync();
+      store.updateBlock(model, { params: nextParams });
+      store.captureSync();
+      setSelectingTarget(false);
+      setSelected(false);
+      return;
+    }
+    const parent = store.getParent(model);
+    if (!parent) {
+      setSelectingTarget(false);
+      return;
+    }
+    const index = parent.children.indexOf(model);
+    if (index < 0) {
+      setSelectingTarget(false);
+      return;
+    }
+    const wsId = (model.props as { workspaceId?: string }).workspaceId;
+    store.captureSync();
+    store.transact(() => {
+      store.addBlock(
+        "myoxus:embed-synced-doc",
+        {
+          pageId: model.props.pageId,
+          ...(wsId ? { workspaceId: wsId } : {}),
+          params: nextParams,
+          caption: model.props.caption,
+        },
+        parent,
+        index,
+      );
+      store.deleteBlock(model);
+    });
+    store.captureSync();
+    setSelectingTarget(false);
+    setSelected(false);
+  };
   const switchDocView = (nextKind: "inline" | "linked" | "synced") => {
     if (!writable()) return;
     const store = model.store;
@@ -452,7 +513,7 @@ export default function PageDocumentCard({
     }
   };
   const toolbarState = {
-    open: selected && !editing && !readonly,
+    open: selected && !editing && !selectingTarget && !readonly,
     key: model.id,
     placement: "top" as const,
     primary: [
@@ -472,6 +533,17 @@ export default function PageDocumentCard({
         disabled: !state?.target,
         run: (_el: HTMLElement, e: MouseEvent) =>
           open(e as unknown as React.MouseEvent, true),
+      },
+      {
+        id: "select-content",
+        label: t["com.myoxus.wiki.embed.select-content"](),
+        icon: "BlockLinkIcon" as const,
+        showLabel: synced,
+        disabled: !state?.target,
+        run: () => {
+          setSelected(false);
+          setSelectingTarget(true);
+        },
       },
       ...(!synced
         ? [
@@ -636,6 +708,23 @@ export default function PageDocumentCard({
             size="preview"
             orientation="vertical"
             title={label}
+            metadata={
+              state.selectionSummary
+                ? state.selectionSummary.selectionKind === "section" &&
+                  state.selectionSummary.headingPath?.length
+                  ? state.selectionSummary.headingPath.join(" › ")
+                  : state.selectionSummary.label
+                : undefined
+            }
+            status={
+              state.selectionSummary ? (
+                <Badge tone="info">
+                  {state.selectionSummary.selectionKind === "section"
+                    ? t["com.myoxus.wiki.embed.badge-section"]()
+                    : t["com.myoxus.wiki.embed.badge-block"]()}
+                </Badge>
+              ) : undefined
+            }
             icon={<LinkIcon />}
             preview={
               state.empty ? (
@@ -735,6 +824,15 @@ export default function PageDocumentCard({
             },
             close: () => setEditing(false),
           }}
+        />
+      ) : null}
+      {selectingTarget && !readonly ? (
+        <EmbedTargetPickerModal
+          pageId={pageId}
+          workspaceId={workspaceId}
+          params={params}
+          apply={applyTargetSelection}
+          close={() => setSelectingTarget(false)}
         />
       ) : null}
     </div>

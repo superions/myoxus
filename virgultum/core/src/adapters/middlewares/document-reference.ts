@@ -836,6 +836,203 @@ export function markdownNativeTargets(
   return targets;
 }
 
+export type SelectableEmbedTarget = {
+  blockId: string;
+  selectionKind: "section" | "subtree";
+  flavour: string;
+  headingLevel?: number;
+  headingPath?: string[];
+  label: string;
+};
+
+export type SelectedEmbedTargetSummary = {
+  blockId: string;
+  selectionKind: "section" | "subtree";
+  flavour: string;
+  headingLevel?: number;
+  headingPath?: string[];
+  label: string;
+};
+
+function authorizedSnapshotBlockText(
+  block: BlockSnapshot,
+  authorizedTitles: ReadonlyMap<string, string>,
+): string {
+  const text = block.props.text as
+    | {
+        delta?: Array<{
+          insert?: unknown;
+          attributes?: Record<string, unknown>;
+        }>;
+      }
+    | undefined;
+  let result = "";
+  for (const part of text?.delta ?? []) {
+    if (part.attributes?.annotation) continue;
+    const reference = part.attributes?.reference as
+      { pageId?: unknown; workspaceId?: unknown; title?: unknown } | undefined;
+    if (reference) {
+      const title =
+        typeof reference.pageId === "string" &&
+        reference.workspaceId === undefined
+          ? authorizedTitles.get(reference.pageId)
+          : undefined;
+      if (title !== undefined) {
+        result +=
+          typeof reference.title === "string" && reference.title.trim()
+            ? reference.title
+            : title;
+      }
+      continue;
+    }
+    if (typeof part.insert === "string") result += part.insert;
+  }
+  return result.replace(/\s+/g, " ").trim();
+}
+
+function summarizeReadableBlockLabel(
+  block: BlockSnapshot,
+  authorizedTitles: ReadonlyMap<string, string>,
+): string {
+  const text = authorizedSnapshotBlockText(block, authorizedTitles);
+  if (text)
+    return text.length > 120 ? `${text.slice(0, 119).trimEnd()}…` : text;
+  const candidates = [
+    block.props.title,
+    block.props.caption,
+    block.props.name,
+    block.props.url,
+  ];
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim()) {
+      const clean = value.replace(/\s+/g, " ").trim();
+      return clean.length > 120 ? `${clean.slice(0, 119).trimEnd()}…` : clean;
+    }
+  }
+  if (block.flavour === "myoxus:code") {
+    const lang =
+      typeof block.props.language === "string" && block.props.language.trim()
+        ? block.props.language.trim()
+        : "";
+    return lang ? `Code (${lang})` : "Code";
+  }
+  if (block.flavour === "myoxus:table") return "Table";
+  if (block.flavour === "myoxus:image") return "Image";
+  if (block.flavour === "myoxus:mermaid") return "Mermaid";
+  if (block.flavour === "myoxus:bpmn") return "BPMN";
+  if (block.flavour === "myoxus:latex") return "Equation";
+  if (block.flavour === "myoxus:document-index") return "Directory";
+  if (block.flavour === "myoxus:table-of-contents") return "Table of contents";
+  if (block.flavour === "myoxus:divider") return "";
+  return "";
+}
+
+/**
+ * List selectable heading sections and readable native blocks using the exact
+ * `readableOnly` boundary enforced by `projectDocumentReferenceSelection`.
+ * Never returns `myoxus:page`, `myoxus:note`, hidden/edgeless notes, annotations,
+ * or footnote definitions so every offered target resolves cleanly.
+ */
+export function listSelectableEmbedTargets(
+  root: BlockSnapshot,
+  authorizedTitles: ReadonlyMap<string, string> = new Map(),
+  limit = 200,
+): SelectableEmbedTarget[] {
+  const targets: SelectableEmbedTarget[] = [];
+  const headings: Array<{ level: number; label: string }> = [];
+  for (const block of markdownSnapshotBlocks(root, true)) {
+    if (targets.length >= limit) break;
+    if (block.flavour === "myoxus:page" || block.flavour === "myoxus:note") {
+      continue;
+    }
+    const level = markdownHeadingLevel(block);
+    if (level !== undefined) {
+      const label = authorizedSnapshotBlockText(block, authorizedTitles);
+      if (!label) continue;
+      while (headings.at(-1) && headings.at(-1)!.level >= level) headings.pop();
+      headings.push({ level, label });
+      targets.push({
+        blockId: block.id,
+        selectionKind: "section",
+        flavour: block.flavour,
+        headingLevel: level,
+        headingPath: headings.map((entry) => entry.label),
+        label,
+      });
+      continue;
+    }
+    const label = summarizeReadableBlockLabel(block, authorizedTitles);
+    if (!label) continue;
+    targets.push({
+      blockId: block.id,
+      selectionKind: "subtree",
+      flavour: block.flavour,
+      headingPath: headings.length
+        ? headings.map((entry) => entry.label)
+        : undefined,
+      label,
+    });
+  }
+  return targets;
+}
+
+/**
+ * Resolve a live human-readable summary for the currently selected embed target
+ * from an authorized target snapshot. Returns `null` for whole-document embeds
+ * or invalid/missing selections.
+ */
+export function describeSelectedEmbedTarget(
+  root: BlockSnapshot,
+  params: unknown,
+  authorizedTitles: ReadonlyMap<string, string> = new Map(),
+): SelectedEmbedTargetSummary | null {
+  try {
+    if (!hasDocumentReferenceSelection(params)) return null;
+  } catch {
+    return null;
+  }
+  const values = params as Record<string, unknown>;
+  const { blockSelection, ...rest } = values;
+  const id = markdownPreciseTargetBlockId(rest);
+  if (
+    !id ||
+    (blockSelection !== undefined &&
+      blockSelection !== "section" &&
+      blockSelection !== "subtree")
+  ) {
+    return null;
+  }
+  const selectionKind: "section" | "subtree" =
+    blockSelection === "section" ? "section" : "subtree";
+  const headings: Array<{ level: number; label: string }> = [];
+  for (const block of markdownSnapshotBlocks(root, true)) {
+    if (block.flavour === "myoxus:page" || block.flavour === "myoxus:note") {
+      continue;
+    }
+    const level = markdownHeadingLevel(block);
+    if (level !== undefined) {
+      const label = authorizedSnapshotBlockText(block, authorizedTitles);
+      while (headings.at(-1) && headings.at(-1)!.level >= level) headings.pop();
+      if (label) headings.push({ level, label });
+    }
+    if (block.id === id) {
+      const label =
+        summarizeReadableBlockLabel(block, authorizedTitles) || block.id;
+      return {
+        blockId: block.id,
+        selectionKind,
+        flavour: block.flavour,
+        headingLevel: level,
+        headingPath: headings.length
+          ? headings.map((entry) => entry.label)
+          : undefined,
+        label,
+      };
+    }
+  }
+  return null;
+}
+
 /** Rebind retained ASTs until reference-bearing heading labels are stable.
  * Slices extend their destination inventory; new documents replace their own.
  * No source is reparsed and no model is written by this preparation step.
