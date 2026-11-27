@@ -220,21 +220,6 @@ html[data-theme="dark"] .myoxus-app-container-root {
   box-sizing: border-box;
 }
 
-/* Virgultum's AI panel is rendered inside the Lit editor and needs bottom
-   scroll room while generation/error states are mounted. Keep this as editor
-   geometry at the facade boundary instead of a product pixel value. */
-.myoxus-document-editor-content:has(
-  myoxus-ai-panel-widget[data-state="generating"]
-),
-.myoxus-document-editor-content:has(
-  myoxus-ai-panel-widget[data-state="finished"]
-),
-.myoxus-document-editor-content:has(
-  myoxus-ai-panel-widget[data-state="error"]
-) {
-  padding-bottom: 100dvh;
-}
-
 .myoxus-document-editor-blank-gap {
   display: block;
   flex-grow: 1;

@@ -140,11 +140,14 @@ impl PgWorkspaceTagRepository {
           "invalid or retired imported label identity".into(),
         ));
       }
-      let existing = sqlx::query(&format!("{} WHERE id = $1 FOR SHARE", Self::SELECT_TAG))
-        .bind(tag.id)
-        .fetch_optional(&mut **tx)
-        .await
-        .map_err(Self::map_sqlx_error)?;
+      let existing = sqlx::query(sqlx::AssertSqlSafe(format!(
+        "{} WHERE id = $1 FOR SHARE",
+        Self::SELECT_TAG
+      )))
+      .bind(tag.id)
+      .fetch_optional(&mut **tx)
+      .await
+      .map_err(Self::map_sqlx_error)?;
       if let Some(existing) = existing {
         if existing.get::<Uuid, _>("workspace_id") != workspace_id {
           return Err(RepositoryError::Validation(
@@ -228,7 +231,7 @@ impl PgWorkspaceTagRepository {
     ignore_conflicts: bool,
   ) -> Result<Option<PgRow>, sqlx::Error> {
     let conflict_clause = if ignore_conflicts { "ON CONFLICT DO NOTHING" } else { "" };
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"
       INSERT INTO workspace_tags
         (id, workspace_id, name, slug, color_role, description, archived_at,
@@ -238,7 +241,7 @@ impl PgWorkspaceTagRepository {
       RETURNING id, workspace_id, name, slug, color_role, description,
                 archived_at, created_at, updated_at, created_by, updated_by
       "#,
-    ))
+    )))
     .bind(tag.id)
     .bind(tag.workspace_id)
     .bind(&tag.name)
@@ -291,7 +294,7 @@ impl PgWorkspaceTagRepository {
       "{} WHERE workspace_id = $1 AND id = ANY($2) ORDER BY id FOR SHARE",
       Self::SELECT_TAG
     );
-    let rows = sqlx::query(&sql)
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace_id)
       .bind(next_ids)
       .fetch_all(&mut **tx)
@@ -824,7 +827,7 @@ impl WorkspaceTagRepository for PgWorkspaceTagRepository {
   #[instrument(skip_all, fields(%workspace_id, %tag_id))]
   async fn get_tag(&self, workspace_id: WorkspaceId, tag_id: Uuid) -> RepoResult<Option<WorkspaceTag>> {
     let sql = format!("{} WHERE workspace_id = $1 AND id = $2", Self::SELECT_TAG);
-    sqlx::query(&sql)
+    sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace_id)
       .bind(tag_id)
       .fetch_optional(&self.pool)
@@ -840,7 +843,7 @@ impl WorkspaceTagRepository for PgWorkspaceTagRepository {
       "{} WHERE workspace_id = $1 AND slug = $2 AND archived_at IS NULL",
       Self::SELECT_TAG
     );
-    sqlx::query(&sql)
+    sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace_id)
       .bind(slug)
       .fetch_optional(&self.pool)
@@ -856,7 +859,7 @@ impl WorkspaceTagRepository for PgWorkspaceTagRepository {
       "{} WHERE workspace_id = $1 AND ($2 OR archived_at IS NULL) ORDER BY archived_at NULLS FIRST, lower(name), id",
       Self::SELECT_TAG
     );
-    sqlx::query(&sql)
+    sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace_id)
       .bind(include_archived)
       .fetch_all(&self.pool)
@@ -932,7 +935,7 @@ impl WorkspaceTagRepository for PgWorkspaceTagRepository {
       "{} WHERE workspace_id = $1 AND ($2 OR archived_at IS NULL) ORDER BY archived_at NULLS FIRST, lower(name), id LIMIT $3 OFFSET $4",
       Self::SELECT_TAG
     );
-    sqlx::query(&sql)
+    sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace_id)
       .bind(include_archived)
       .bind(page.limit.clamp(1, 201))
@@ -954,7 +957,7 @@ impl WorkspaceTagRepository for PgWorkspaceTagRepository {
       "{} WHERE workspace_id = $1 AND id = ANY($2) ORDER BY array_position($2, id)",
       Self::SELECT_TAG
     );
-    sqlx::query(&sql)
+    sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace_id)
       .bind(tag_ids)
       .fetch_all(&self.pool)

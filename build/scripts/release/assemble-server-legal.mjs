@@ -233,7 +233,7 @@ const patchesSource = await readFile(
 const patches = JSON.parse(patchesSource);
 // Local Cargo patches are still third-party code. Package their actual notices
 // with the image/deb, rather than relying only on the inventory's SPDX expression.
-for (const name of ["biblatex", "hayagriva", "safer-bytes", "simba"]) {
+for (const name of ["biblatex", "hayagriva", "safer-bytes"]) {
   const pkg = metadata.packages.find((candidate) => candidate.name === name);
   if (!pkg || pkg.version !== patches[name].version) {
     throw new Error(`Vendored license owner does not match Cargo: ${name}`);

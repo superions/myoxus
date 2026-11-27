@@ -519,7 +519,6 @@ path = [
   "libs/core/src/editor/ai/entries/image-toolbar/setup-image-toolbar.ts",
   "libs/core/src/editor/ai/entries/space/setup-space.ts",
   "libs/core/src/editor/ai/extensions/ai-edgeless-root.ts",
-  "libs/core/src/editor/ai/extensions/ai-page-root.ts",
   "libs/core/src/editor/ai/extensions/ai-slash-menu.ts",
   "libs/core/src/editor/ai/messages/error.ts",
   "libs/core/src/editor/ai/messages/mindmap.ts",
@@ -559,7 +558,6 @@ path = [
   "libs/core/src/editor/ai/utils/image.ts",
   "libs/core/src/editor/ai/utils/selection-utils.ts",
   "libs/core/src/editor/ai/utils/stream-objects.ts",
-  "libs/core/src/editor/ai/widgets/ai-panel/ai-panel.ts",
   "libs/core/src/editor/ai/widgets/ai-panel/type.ts",
   "libs/core/src/editor/ai/widgets/block-diff/block.ts",
   "libs/core/src/editor/ai/widgets/block-diff/page.ts",
@@ -5756,6 +5754,8 @@ X-Myoxus-Origin = "M0"
 path = [
   "libs/core/src/editor/ai/components/ai-tools/tool-cards.ts",
   "libs/core/src/editor/ai/components/ai-tools/native-mcp-tools.ts",
+  "libs/core/src/editor/ai/components/ai-tools/create-file-tool.tsx",
+  "libs/core/src/editor/ai/components/ai-tools/create-file-tool.spec.ts",
 ]
 
 [[annotations]]
@@ -6030,4 +6030,21 @@ path = [
   "libs/core/public/document-bundles/payloads/61e617905b6b907db642e9cab1d60998455daf2315880a8265f742782e717916.snapshot.json",
   "libs/core/public/document-bundles/payloads/8c837329b8f262ac2de597bc89c39684347d0cda73f99ee514df012a0bd18c21.snapshot.json",
   "libs/core/public/document-bundles/payloads/fe309a7c6353cab310e054ae9d470fb9b7dea3d2657e15125b4e2de9363f9825.snapshot.json",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/canvas-drag-insert.ts",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/canvas-dock-tools.tsx",
+  "libs/core/src/editor/ai/widgets/ai-panel/controller.ts",
 ]

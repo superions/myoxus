@@ -125,7 +125,7 @@ reviewed source.
 | **Client source**                              | File-level MIT/AGPL and exception declarations                                                      | [REUSE inventory](../client/REUSE.toml), [component inventory](../client/provenance/components.json), [upstream MIT grant](../client/provenance/LICENSE-UPSTREAM-MIT.txt)                                                                     |
 | **Virgultum**                                  | Reviewed packages and nested third-party components                                                 | [License inventory](../virgultum/provenance/licenses.json)                                                                                                                                                                                    |
 | **BPMN editor and generator**                  | Retained Apache files including changes; independently new AGPL files; recorded OMG/generated terms | [Source inventory](../client/libs/bpmn-editor/provenance.json), [Apache license](../client/libs/bpmn-editor/LICENSE), [original NOTICE](../client/libs/bpmn-editor/NOTICE), [OMG/W3C notices](../client/libs/bpmn-editor/THIRD-PARTY-NOTICES) |
-| **Glirulus workflow runtime**                  | MIT, Copyright (c) 2026 Sayiir; Daniel Scharf's fork modifications                                  | Published `1.0.0` packages; [fork provenance and original archive identities](https://github.com/superions/glirulus/blob/v1.0.0/UPSTREAM.md); each resolved package's `LICENSE` and `NOTICE`, Cargo checksums and release legal bundle        |
+| **Glirulus workflow runtime**                  | MIT, Copyright (c) 2026 Sayiir; Daniel Scharf's fork modifications                                  | Published `2.0.0` packages; [fork provenance and original archive identities](https://github.com/superions/glirulus/blob/v2.0.0/UPSTREAM.md); each resolved package's `LICENSE` and `NOTICE`, Cargo checksums and release legal bundle        |
 | **Rust server assets**                         | Fonts, ICC profiles and vendored Typst modules                                                      | [Server component inventory](../server/provenance/components.json)                                                                                                                                                                            |
 | **Media capture**                              | MIT retained implementation; AGPL wrapper                                                           | [Notice](../client/libs/media-capture/NOTICE.md), [inner license](../client/libs/media-capture/media_capture/LICENSE)                                                                                                                         |
 | **Icons**                                      | Myoxus artwork/generators and attributed MIT Tabler inputs                                          | [Client provenance](../client/libs/icons/PROVENANCE.md), [Virgultum icon provenance](../virgultum/icons/PROVENANCE.md)                                                                                                                        |
@@ -139,11 +139,9 @@ are authoritative. Package labels do not determine source licensing. The project
 [AGPL-3.0-or-later license](../LICENSE) does not replace third-party grants.
 
 Virgultum's former Lit signal adapters and the `client/libs/lit-react` bridge
-were retired in Phase 11 (Final Lit Exit); the
-[historical BSD license text](../virgultum/provenance/LICENSE-LIT-BSD-3-Clause.txt)
-remains archived beside the provenance ledger for traceability. Tabler's
-embedded MIT geometry and notice remain separate from the Myoxus icon
-implementation.
+were completely removed; no Lit dependencies or BSD-3-Clause Lit source files
+remain in the repository. Tabler's embedded MIT geometry and notice remain
+separate from the Myoxus icon implementation.
 
 The client inventory also covers the Electron main/helper/preload and renderer
 source. Its per-file declarations separate retained MIT material from independent

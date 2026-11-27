@@ -135,13 +135,13 @@ async fn insert_done_job(
 ) -> (Uuid, Uuid) {
   let blob_id = Uuid::new_v4();
   let blob_key = myoxus_application::pdf_export::jobs::pdf_export_blob_key(blob_id);
-  let row = sqlx::query(&format!(
+  let row = sqlx::query(sqlx::AssertSqlSafe(format!(
     "INSERT INTO pdf_export_jobs (workspace_id, doc_id, requested_by, template_id, \
        render_inputs, options_hash, status, sync_or_async, output_blob_id, \
        started_at, finished_at, expires_at) \
      VALUES ($1, $2, $3, 'default', '{{}}', $4, 'done', 'sync', $5, NOW(), NOW(), {expires_at_sql}) \
      RETURNING id"
-  ))
+  )))
   .bind(workspace_id)
   .bind(doc_id)
   .bind(requested_by)

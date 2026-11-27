@@ -8,7 +8,10 @@ import type { ReactNode } from "react";
 import type { PageAiBridge } from "../../../virgultum/doc-editor/page-ai-bridge";
 import type { MyoxusAIPanelState } from "../../widgets/ai-panel/type";
 import type { DocDisplayConfig } from "../ai-chat-chips";
-import type { StreamObject } from "../ai-chat-messages/type";
+import type {
+  CopilotGeneratedFile,
+  StreamObject,
+} from "../ai-chat-messages/type";
 import {
   CodeArtifactTool,
   type CodeArtifactToolCall,
@@ -36,6 +39,12 @@ type StreamObjectsPresentation = {
   docDisplayService?: DocDisplayConfig;
   peekViewService?: PeekViewService;
   onOpenDoc?: (docId: string, sessionId?: string) => void;
+  messageId?: string;
+  generatedFiles?: readonly CopilotGeneratedFile[];
+  downloadSavedFile?: (
+    file: CopilotGeneratedFile,
+    current: () => boolean,
+  ) => Promise<void>;
 };
 
 export function StreamObjectsView(p: StreamObjectsPresentation) {
@@ -85,6 +94,9 @@ export function StreamObjectsView(p: StreamObjectsPresentation) {
         onOpenDoc={p.onOpenDoc}
         notificationService={p.notificationService}
         renderRichText={richText}
+        messageId={p.messageId}
+        generatedFiles={p.generatedFiles}
+        downloadSavedFile={p.downloadSavedFile}
       />
     );
   };

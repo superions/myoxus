@@ -420,9 +420,9 @@ async fn inv_workspace_partial_provisioning_fences_same_key_after_durable_creati
   let journey=std::panic::AssertUnwindSafe(async {
     // Like the user-create fixture, fault only this disposable principal after
     // the Workspace insert. Concurrent unrelated owners remain unaffected.
-    sqlx::query(&format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF EXISTS(SELECT 1 FROM workspaces WHERE id=NEW.workspace_id AND owner_user_id='{user}') THEN RAISE EXCEPTION 'private-workspace-root-failure'; END IF; RETURN NEW; END $$"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF EXISTS(SELECT 1 FROM workspaces WHERE id=NEW.workspace_id AND owner_user_id='{user}') THEN RAISE EXCEPTION 'private-workspace-root-failure'; END IF; RETURN NEW; END $$")))
       .execute(&pool).await.unwrap();
-    sqlx::query(&format!("CREATE TRIGGER {trigger} BEFORE INSERT ON doc_updates FOR EACH ROW EXECUTE FUNCTION {trigger}()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {trigger} BEFORE INSERT ON doc_updates FOR EACH ROW EXECUTE FUNCTION {trigger}()")))
       .execute(&pool).await.unwrap();
     let token=key(&app,session,&["write:workspaces"]).await;
     let input=json!({"name":"Partial Workspace","idempotency_key":"partial"});
@@ -431,7 +431,7 @@ async fn inv_workspace_partial_provisioning_fences_same_key_after_durable_creati
     assert_eq!(failure["retryable"],false);
     assert!(failure["message"].as_str().unwrap().starts_with("MIX_MCP_WORKSPACE_CREATE_PARTIAL:"));
     assert!(!failure.to_string().contains("private-workspace-root-failure"));
-    sqlx::query(&format!("DROP TRIGGER {trigger} ON doc_updates")).execute(&pool).await.unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger} ON doc_updates"))).execute(&pool).await.unwrap();
     let retry=invoke(&app,&token,"workspace_create",input,false).await;
     assert_eq!(retry["code"],"RECOVERY_REQUIRED");
     assert_eq!(retry["retryable"],false);
@@ -441,9 +441,9 @@ async fn inv_workspace_partial_provisioning_fences_same_key_after_durable_creati
     assert_eq!(updates,0);
     // An empty update already present makes the shared seed owner preserve it.
     // The adapter must read initialization rather than reporting success.
-    sqlx::query(&format!("CREATE FUNCTION {trigger}_empty() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.is_workspace_root AND EXISTS(SELECT 1 FROM workspaces WHERE id=NEW.workspace_id AND owner_user_id='{user}') THEN INSERT INTO doc_updates(doc_id,workspace_id,payload,sequence) VALUES(NEW.id,NEW.workspace_id,decode('','hex'),1); END IF; RETURN NEW; END $$"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {trigger}_empty() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.is_workspace_root AND EXISTS(SELECT 1 FROM workspaces WHERE id=NEW.workspace_id AND owner_user_id='{user}') THEN INSERT INTO doc_updates(doc_id,workspace_id,payload,sequence) VALUES(NEW.id,NEW.workspace_id,decode('','hex'),1); END IF; RETURN NEW; END $$")))
       .execute(&pool).await.unwrap();
-    sqlx::query(&format!("CREATE TRIGGER {trigger}_empty AFTER INSERT ON docs FOR EACH ROW EXECUTE FUNCTION {trigger}_empty()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {trigger}_empty AFTER INSERT ON docs FOR EACH ROW EXECUTE FUNCTION {trigger}_empty()")))
       .execute(&pool).await.unwrap();
     let empty_input=json!({"name":"Empty root Workspace","idempotency_key":"empty-root"});
     let failure=invoke(&app,&token,"workspace_create",empty_input.clone(),false).await;
@@ -455,22 +455,28 @@ async fn inv_workspace_partial_provisioning_fences_same_key_after_durable_creati
     assert_eq!(count,2,"empty-root retries cannot create another Workspace");
 
   }).catch_unwind().await;
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger} ON doc_updates"))
-    .execute(&pool)
-    .await
-    .expect("remove scoped fault");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {trigger}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {trigger} ON doc_updates"
+  )))
+  .execute(&pool)
+  .await
+  .expect("remove scoped fault");
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {trigger}()")))
     .execute(&pool)
     .await
     .expect("remove scoped function");
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger}_empty ON docs"))
-    .execute(&pool)
-    .await
-    .expect("remove empty-root fixture");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {trigger}_empty()"))
-    .execute(&pool)
-    .await
-    .expect("remove empty-root function");
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {trigger}_empty ON docs"
+  )))
+  .execute(&pool)
+  .await
+  .expect("remove empty-root fixture");
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP FUNCTION IF EXISTS {trigger}_empty()"
+  )))
+  .execute(&pool)
+  .await
+  .expect("remove empty-root function");
   helpers::cleanup_users(&pool, &[user]).await;
   let remaining: i64 = sqlx::query_scalar("SELECT count(*) FROM users WHERE id=$1")
     .bind(user)
@@ -1142,22 +1148,24 @@ async fn inv_comment_creation_http_preserves_context_outbox_and_uncertain_replay
     let mut changed=input.clone();changed["body"]=json!({"text":"changed body"});assert_eq!(workspace_admin_call(&app,&token,"comment_create",changed,false).await["code"],"CONFLICT");
     // Fail only this disposable document's attachment update, after the
     // comment/outbox commit, then prove retry cannot create or repair it.
-    sqlx::query(&format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.doc_id='{fault}' THEN RAISE EXCEPTION 'private-comment-attachment-failure'; END IF; RETURN NEW; END $$")).execute(&pool).await.unwrap();
-    sqlx::query(&format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON comment_attachments FOR EACH ROW EXECUTE FUNCTION {trigger}()")).execute(&pool).await.unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.doc_id='{fault}' THEN RAISE EXCEPTION 'private-comment-attachment-failure'; END IF; RETURN NEW; END $$"))).execute(&pool).await.unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON comment_attachments FOR EACH ROW EXECUTE FUNCTION {trigger}()"))).execute(&pool).await.unwrap();
     let partial=json!({"workspace_id":workspace,"external_id":"comments-fault","body":{"text":"uncertain body"},"attachment_keys":[foreign_attachment],"idempotency_key":"partial"});
     let failed=workspace_admin_call(&app,&token,"comment_create",partial.clone(),false).await;assert_eq!(failed["code"],"RECOVERY_REQUIRED");assert_eq!(failed["retryable"],false);assert!(!failed.to_string().contains("private-comment-attachment-failure"));
-    sqlx::query(&format!("DROP TRIGGER {trigger} ON comment_attachments")).execute(&pool).await.unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger} ON comment_attachments"))).execute(&pool).await.unwrap();
     assert_eq!(workspace_admin_call(&app,&token,"comment_create",partial,false).await["code"],"RECOVERY_REQUIRED");
     assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM comments WHERE doc_id=$1 AND body->>'text'='uncertain body'").bind(fault).fetch_one(&pool).await.unwrap(),1);
     assert_eq!(sqlx::query_scalar::<_,Option<Uuid>>("SELECT comment_id FROM comment_attachments WHERE workspace_id=$1 AND storage_key=$2").bind(workspace).bind(&foreign_attachment).fetch_one(&pool).await.unwrap(),None);
     sqlx::query("UPDATE workspace_memberships SET role='Reader' WHERE workspace_id=$1 AND user_id=$2").bind(workspace).bind(recipient).execute(&pool).await.unwrap();
     let retry=json!({"workspace_id":workspace,"external_id":"comments-create","parent_comment_id":id,"body":{"text":"canonical reply"},"idempotency_key":"reply"});workspace_admin_call(&app,&recipient_key,"comment_create",retry,false).await;
   }).catch_unwind().await;
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger} ON comment_attachments"))
-    .execute(&pool)
-    .await
-    .expect("cleanup trigger");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {trigger}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {trigger} ON comment_attachments"
+  )))
+  .execute(&pool)
+  .await
+  .expect("cleanup trigger");
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {trigger}()")))
     .execute(&pool)
     .await
     .expect("cleanup function");

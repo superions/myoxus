@@ -164,7 +164,7 @@ export type EditorAttachmentCardControls = Readonly<{
 }>;
 
 /**
- * Plain snapshot of the block's preview state and guarded commands. The Lit
+ * Plain snapshot of the block's preview state and guarded commands. The native
  * block re-evaluates this on every reactive render; the React view is stateless.
  */
 export type EditorBookmarkCardControls = Readonly<{
@@ -292,38 +292,31 @@ export type EditorFrameTitleControls = {
   edit: (event: MouseEvent) => void;
 };
 
+export type EditorCanvasPopoverToolId =
+  "templates" | "frame" | "connector" | "note" | "pen" | "eraser" | "shape";
+
 export type EditorCanvasToolbarItem =
-  | {
-      readonly type: "hosts";
-      readonly tags: readonly `edgeless-${string}`[];
-      readonly edgeless: BlockComponent;
-      readonly toolbarContainer?: HTMLElement;
-      readonly menu?: SelectionAction;
-    }
   | {
       readonly type: "control";
       readonly controls: EditorCanvasToolControls;
       readonly menu?: SelectionAction;
+    }
+  | {
+      readonly type: "popover-tool";
+      readonly tool: EditorCanvasPopoverToolId;
+      readonly edgeless: BlockComponent;
+      readonly menu?: SelectionAction;
     };
 
-/** Tools can contribute existing controls directly alongside retained drag hosts. */
-export type EditorCanvasToolbarControls = {
-  quick: readonly EditorCanvasToolbarItem[];
-  senior: readonly EditorCanvasToolbarItem[];
-  moreLabel?: string;
-  navigation: readonly SelectionAction[];
-  more?: SelectionAction & {
-    control: Extract<SelectionAction["control"], { type: "menu" }>;
-  };
-  presentation?: {
-    edgeless: BlockComponent;
-    settingMenuShow: boolean;
-    frameMenuShow: boolean;
-    setSettingMenuShow: (show: boolean) => void;
-    setFrameMenuShow: (show: boolean) => void;
-  };
-  setContainer: (element: HTMLDivElement | null) => void;
-};
+/** Host payload for the React Edgeless canvas dock mounted on `<edgeless-toolbar-widget>`. */
+export type EditorCanvasDockControls = Readonly<{
+  edgeless: BlockComponent;
+  anchor: HTMLElement;
+  resolveTools: (closeActivePopover: () => void) => Readonly<{
+    quick: readonly EditorCanvasToolbarItem[];
+    senior: readonly EditorCanvasToolbarItem[];
+  }>;
+}>;
 export type EditorCanvasToolControls = {
   action: SelectionAction;
   /** Resolve the current catalog on opening/search, never during module registration. */
@@ -375,36 +368,83 @@ export type EditorCanvasTemplateControls = {
   }[];
 };
 
-/** Commands are valid only while the originating canvas controller is mounted. */
-export type EditorAutoCompleteTriggerControls = {
-  label: string;
-  icon?: MyoxusIconExportName;
-  preview: (active: boolean) => void;
-  pointerDown: (event: PointerEvent) => void;
-  activate: () => void;
-};
+/** Reactive snapshot for the Edgeless NoteSlicer overlay. */
+export type EditorNoteSlicerControls = Readonly<{
+  buttonLeft: number;
+  buttonTop: number;
+  buttonLabel: string;
+  lineWidth: number;
+  activeIndex: number;
+  lines: readonly Readonly<{ left: number; top: number }>[];
+  slice: () => void;
+}>;
 
-export type EditorAutoCompletePanelControls = EditorInlinePopupControls & {
-  label: string;
-  options: readonly {
+/** Reactive snapshot for the Edgeless auto-connect page-index badges and navigator. */
+export type EditorAutoConnectControls = Readonly<{
+  visibleGroups: readonly Readonly<{
+    id: string;
+    left: number;
+    top: number;
+    onHoverChange: (hovered: boolean) => void;
+    items: readonly Readonly<{
+      index: number;
+      offsetX: number;
+      offsetY: number;
+      active: boolean;
+      toggle: () => void;
+    }>[];
+  }>[];
+  hiddenNotes: readonly Readonly<{
+    id: string;
+    left: number;
+    top: number;
+  }>[];
+  navigator: Readonly<{
+    left: number;
+    top: number;
+    previous: boolean;
+    next: boolean;
+    navigate: (direction: -1 | 1) => void;
+  }> | null;
+}>;
+
+/** Reactive snapshot for Edgeless auto-complete directional triggers and target panel. */
+export type EditorAutoCompleteControls = Readonly<{
+  triggers: Readonly<{
+    rect: Readonly<{
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+      rotate: number;
+    }>;
+    items: readonly Readonly<{
+      key: string;
+      family: boolean;
+      hidden?: boolean;
+      width: number;
+      height: number;
+      transform: string;
+      label: string;
+      icon?: MyoxusIconExportName;
+      preview: (active: boolean) => void;
+      pointerDown: (event: PointerEvent) => void;
+      activate: () => void;
+    }>[];
+  }> | null;
+  panel: Readonly<{
+    left: number;
+    top: number;
     label: string;
-    icon: MyoxusIconExportName;
-    preview: (active: boolean) => void;
-    choose: () => void;
-  }[];
-};
-
-export type EditorAutoConnectLabelControls = {
-  index?: number;
-  active: boolean;
-  toggle: () => void;
-};
-
-export type EditorAutoConnectNavigatorControls = {
-  previous: boolean;
-  next: boolean;
-  navigate: (direction: -1 | 1) => void;
-};
+    options: readonly Readonly<{
+      label: string;
+      icon: MyoxusIconExportName;
+      preview: (active: boolean) => void;
+      choose: () => void;
+    }>[];
+    close: () => void;
+  }> | null;
+}>;
 
 /** Presentation only; the table keeps live identity, readonly checks and drag ownership. */
 export type EditorTableControl = {
@@ -450,6 +490,7 @@ export type EditorCanvasPopoverControls = Readonly<{
   withArrow?: boolean;
   closeOnClickOutside?: boolean;
   label?: string;
+  testId?: string;
   trigger?: EditorCanvasToolControls;
   content: EditorCanvasPopoverContent;
 }>;
@@ -501,10 +542,6 @@ export type EditorChromeHost = {
     anchor: HTMLElement,
     state: ReadonlySignal<EditorCanvasPopoverControls | null>,
   ) => () => void;
-  mountPresentationToolbar?: (
-    anchor: HTMLElement,
-    state: ReadonlySignal<EditorPresentationToolbarControls | null>,
-  ) => () => void;
   mountSurfaceRefPlaceholder?: (
     anchor: HTMLElement,
     state: ReadonlySignal<EditorSurfaceRefPlaceholderControls | null>,
@@ -513,43 +550,25 @@ export type EditorChromeHost = {
     anchor: HTMLElement,
     state: ReadonlySignal<EditorHtmlEmbedControls | null>,
   ) => () => void;
-  mountAutoCompleteTrigger: (
+  mountNoteSlicer: (
     anchor: HTMLElement,
-    state: ReadonlySignal<EditorAutoCompleteTriggerControls | null>,
+    state: ReadonlySignal<EditorNoteSlicerControls | null>,
   ) => () => void;
-  mountAutoCompletePanel: (
+  mountAutoConnect: (
     anchor: HTMLElement,
-    state: ReadonlySignal<EditorAutoCompletePanelControls | null>,
+    state: ReadonlySignal<EditorAutoConnectControls | null>,
   ) => () => void;
-  mountAutoConnectLabel: (
+  mountAutoComplete: (
     anchor: HTMLElement,
-    state: ReadonlySignal<EditorAutoConnectLabelControls | null>,
-  ) => () => void;
-  mountAutoConnectNavigator: (
-    anchor: HTMLElement,
-    state: ReadonlySignal<EditorAutoConnectNavigatorControls | null>,
-  ) => () => void;
-  mountCanvasTemplates: (
-    anchor: HTMLElement,
-    state: ReadonlySignal<EditorCanvasTemplateControls | null>,
+    state: ReadonlySignal<EditorAutoCompleteControls | null>,
   ) => () => void;
   mountCanvasMenu: (
     anchor: HTMLElement,
     state: ReadonlySignal<EditorCanvasMenuControls | null>,
   ) => () => void;
-  mountCanvasToolbar: (
+  mountCanvasDock: (
     anchor: HTMLElement,
-    state: ReadonlySignal<EditorCanvasToolbarControls | null>,
-  ) => () => void;
-  mountCanvasTool: (
-    anchor: HTMLElement,
-    state:
-      | EditorCanvasToolControls
-      | ReadonlySignal<EditorCanvasToolControls | null>,
-  ) => () => void;
-  mountFrameOrder: (
-    anchor: HTMLElement,
-    state: ReadonlySignal<EditorFrameOrderControls | null>,
+    controls: EditorCanvasDockControls,
   ) => () => void;
   mountFrameNavigator: (
     anchor: HTMLElement,

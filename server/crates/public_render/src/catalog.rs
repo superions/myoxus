@@ -72,6 +72,20 @@ impl HtmlRenderer {
     let mut digest = Sha256::new();
     let mut templates = Tera::default();
     templates.autoescape_on(vec![".html.tera", ".svg.tera"]);
+    // Tera 2 removed the built-in json_encode filter; keep it registered so
+    // bundled and operator-overridden HTML templates preserve their contract.
+    templates.register_filter(
+      "json_encode",
+      |value: &tera::Value, kwargs: tera::Kwargs, _: &tera::State| -> tera::TeraResult<String> {
+        let pretty = kwargs.get::<bool>("pretty")?.unwrap_or(false);
+        let encoded = if pretty {
+          serde_json::to_string_pretty(value)
+        } else {
+          serde_json::to_string(value)
+        };
+        encoded.map_err(|err| tera::Error::message(format!("json_encode failed: {err}")))
+      },
+    );
     let mut locales = BTreeMap::new();
     let mut decoded = BTreeMap::new();
     for &name in HTML_CATALOG_FILES {

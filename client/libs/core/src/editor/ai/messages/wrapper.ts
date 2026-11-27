@@ -2,7 +2,7 @@ import { MediaPreviewFrame, MediaPreviewImage } from "@myoxus/ui-facade";
 import type { EditorHost } from "@virgultum/editor/std";
 import { createElement, type ReactNode } from "react";
 
-import { getAIPanelWidget } from "../utils/ai-widgets";
+import { getAIPanelController } from "../utils/ai-widgets";
 import { preprocessHtml } from "../utils/html";
 import type { MyoxusAIPanelWidgetConfig } from "../widgets/ai-panel/type";
 
@@ -15,7 +15,7 @@ function createPreviewRenderer(
 ): MyoxusAIPanelWidgetConfig["answerRenderer"] {
   return (answer, state) => {
     if (state === "generating") {
-      getAIPanelWidget(host).generatingElement.updateLoadingProgress(2);
+      getAIPanelController(host).generatingElement.updateLoadingProgress(2);
       return null;
     }
     if (state !== "finished" && state !== "error") return null;

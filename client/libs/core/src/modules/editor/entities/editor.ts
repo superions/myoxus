@@ -97,7 +97,7 @@ export class Editor extends Entity {
     };
   }
 
-  /** Bind the Page viewport without allocating a Lit standard scope merely
+  /** Bind the Page viewport without allocating a native standard scope merely
    * to support printing, scroll restoration or a pending route mode. */
   bindPageOrigin(
     origin: HTMLElement,
@@ -522,7 +522,7 @@ export class Editor extends Entity {
           return;
         }
         const { diagnostic } = request;
-        // The native renderer can still be completing its Lit update when a
+        // The native renderer can still be completing its view update when a
         // Library result opens the source. Never select a stale snapshot range.
         await editorContainer.updateComplete;
         // A retired render must not consume a newer location request.

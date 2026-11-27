@@ -2185,20 +2185,22 @@ impl PgWorkspaceContentOperationRepository {
     tx: &mut Transaction<'_, Postgres>,
     idempotency_id: uuid::Uuid,
   ) -> AuthResult<Option<WorkspaceContentOperationRecord>> {
-    sqlx::query(&format!("{RECORD_SELECT} WHERE idempotency_id = $1"))
-      .bind(idempotency_id)
-      .fetch_optional(&mut **tx)
-      .await
-      .map_err(Self::storage)?
-      .map(|row| map_record(&row))
-      .transpose()
+    sqlx::query(sqlx::AssertSqlSafe(format!(
+      "{RECORD_SELECT} WHERE idempotency_id = $1"
+    )))
+    .bind(idempotency_id)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(Self::storage)?
+    .map(|row| map_record(&row))
+    .transpose()
   }
 
   async fn load_record(
     tx: &mut Transaction<'_, Postgres>,
     operation_id: WorkspaceContentOperationId,
   ) -> AuthResult<WorkspaceContentOperationRecord> {
-    sqlx::query(&format!("{RECORD_SELECT} WHERE id = $1"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("{RECORD_SELECT} WHERE id = $1")))
       .bind(operation_id)
       .fetch_optional(&mut **tx)
       .await
@@ -2636,7 +2638,7 @@ impl WorkspaceContentExtractRecoveryPort for PgWorkspaceContentOperationReposito
       .execute(&mut *tx)
       .await
       .map_err(Self::storage)?;
-    let row = sqlx::query(&format!("{RECORD_SELECT} WHERE id = $1 FOR UPDATE"))
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!("{RECORD_SELECT} WHERE id = $1 FOR UPDATE")))
       .bind(operation_id)
       .fetch_optional(&mut *tx)
       .await
@@ -2722,15 +2724,17 @@ impl WorkspaceContentExtractRecoveryPort for PgWorkspaceContentOperationReposito
       "workspace_content_operation_compensations",
       "workspace_content_extract_targets",
     ] {
-      sqlx::query(&format!("DELETE FROM {table} WHERE operation_id = $1"))
-        .bind(operation_id)
-        .execute(&mut *tx)
-        .await
-        .map_err(Self::storage)?;
+      sqlx::query(sqlx::AssertSqlSafe(format!(
+        "DELETE FROM {table} WHERE operation_id = $1"
+      )))
+      .bind(operation_id)
+      .execute(&mut *tx)
+      .await
+      .map_err(Self::storage)?;
     }
     // The locked current row, not the worker's earlier snapshot, decides
     // whether cancellation won the race with semantic failure.
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       "UPDATE workspace_content_operations
           SET target_workspace_id = NULL,
               status = CASE WHEN status = 'cancelled' OR
@@ -2748,7 +2752,7 @@ impl WorkspaceContentExtractRecoveryPort for PgWorkspaceContentOperationReposito
               diagnostic_instance_id = $4, updated_at = now()
         WHERE id = $1 AND status <> 'succeeded'
         RETURNING {RECORD_COLUMNS}"
-    ))
+    )))
     .bind(operation_id)
     .bind(failure.code.as_str())
     .bind(failure.message())
@@ -2792,7 +2796,7 @@ impl WorkspaceContentExtractRecoveryPort for PgWorkspaceContentOperationReposito
         WorkspaceContentErrorCode::DiagnosticInstanceInvalid.as_str(),
       ));
     }
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       "UPDATE workspace_content_operations
           SET status = 'cleanup_required',
               error_code = CASE WHEN status = 'cancelled'
@@ -2806,7 +2810,7 @@ impl WorkspaceContentExtractRecoveryPort for PgWorkspaceContentOperationReposito
           AND status IN ('running', 'cleanup_required', 'cancelled')
           AND target_workspace_id IS NOT NULL
         RETURNING {RECORD_COLUMNS}"
-    ))
+    )))
     .bind(operation_id)
     .bind(failure.code.as_str())
     .bind(failure.message())
@@ -3263,7 +3267,7 @@ impl WorkspaceContentOperationRepository for PgWorkspaceContentOperationReposito
     &self,
     operation_id: WorkspaceContentOperationId,
   ) -> AuthResult<Option<WorkspaceContentOperationRecord>> {
-    sqlx::query(&format!("{RECORD_SELECT} WHERE id = $1"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("{RECORD_SELECT} WHERE id = $1")))
       .bind(operation_id)
       .fetch_optional(&self.pool)
       .await
@@ -3309,7 +3313,7 @@ impl WorkspaceContentOperationRepository for PgWorkspaceContentOperationReposito
         Self::lock_live_parents(&mut tx, &current).await?;
       }
     }
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"
       UPDATE workspace_content_operations
       SET status = $3, error_code = $4, error_message = $5,
@@ -3318,7 +3322,7 @@ impl WorkspaceContentOperationRepository for PgWorkspaceContentOperationReposito
       RETURNING {}
       "#,
       RECORD_COLUMNS
-    ))
+    )))
     .bind(operation_id)
     .bind(expected.as_str())
     .bind(next.as_str())
@@ -3776,13 +3780,13 @@ impl WorkspaceContentControlRepository for PgWorkspaceContentOperationRepository
     {
       return Err(Self::invalid(WorkspaceContentErrorCode::RequestInvalid.as_str()));
     }
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       "UPDATE workspace_content_operations
           SET status = 'queued', updated_at = now()
         WHERE id = $1 AND actor_id = $2 AND status = 'previewed'
           AND preview_revision = $3
         RETURNING {RECORD_COLUMNS}"
-    ))
+    )))
     .bind(request.operation_id)
     .bind(request.actor_id)
     .bind(&request.revision)
@@ -3847,7 +3851,7 @@ impl WorkspaceContentControlRepository for PgWorkspaceContentOperationRepository
     operation_id: WorkspaceContentOperationId,
     actor_id: UserId,
   ) -> AuthResult<WorkspaceContentOperationRecord> {
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       "UPDATE workspace_content_operations operation_row
           SET status = 'cancelled', error_code = NULL, error_message = NULL, error_phase = NULL,
               diagnostic_instance_id = NULL, updated_at = now()
@@ -3855,7 +3859,7 @@ impl WorkspaceContentControlRepository for PgWorkspaceContentOperationRepository
           AND operation_row.status IN ('draft', 'previewed', 'queued', 'running')
           AND NOT EXISTS (SELECT 1 FROM workspace_content_publications published WHERE published.operation_id = operation_row.id)
         RETURNING {RECORD_COLUMNS}"
-    ))
+    )))
     .bind(operation_id)
     .bind(actor_id)
     .fetch_optional(&self.pool)
@@ -3918,14 +3922,14 @@ impl WorkspaceContentControlRepository for PgWorkspaceContentOperationRepository
       ));
     }
     Self::lock_live_parents(&mut tx, &current).await?;
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       "UPDATE workspace_content_operations
           SET status = 'queued', error_code = NULL, error_message = NULL, error_phase = NULL,
               diagnostic_instance_id = NULL, updated_at = now()
         WHERE id = $1 AND actor_id = $2 AND status = 'failed'
           AND preview_revision = $3
         RETURNING {RECORD_COLUMNS}"
-    ))
+    )))
     .bind(operation_id)
     .bind(actor_id)
     .bind(revision)
@@ -3964,14 +3968,14 @@ impl WorkspaceContentControlRepository for PgWorkspaceContentOperationRepository
     &self,
     operation_id: WorkspaceContentOperationId,
   ) -> AuthResult<WorkspaceContentOperationRecord> {
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       "UPDATE workspace_content_operations
           SET status = 'cancelled', error_code = NULL, error_message = NULL, error_phase = NULL,
               diagnostic_instance_id = NULL, updated_at = now()
         WHERE id = $1 AND status = 'cleanup_required'
           AND (error_code = 'XWS_CANCELLATION_CLEANUP_REQUIRED' OR (error_code = 'XWS_WORKER_EXECUTION_FAILED' AND error_message = 'workspace content cancellation cleanup requires retry'))
         RETURNING {RECORD_COLUMNS}"
-    ))
+    )))
     .bind(operation_id)
     .fetch_optional(&self.pool)
     .await
@@ -4011,7 +4015,7 @@ impl WorkspaceContentControlRepository for PgWorkspaceContentOperationRepository
     &self,
     operation_id: WorkspaceContentOperationId,
   ) -> AuthResult<WorkspaceContentOperationRecord> {
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       "UPDATE workspace_content_operations
           SET status = CASE WHEN kind = 'extract_folder' THEN status ELSE 'running' END,
               error_phase = CASE WHEN kind = 'extract_folder' THEN error_phase ELSE NULL END,
@@ -4021,7 +4025,7 @@ impl WorkspaceContentControlRepository for PgWorkspaceContentOperationRepository
         WHERE id = $1 AND status = 'cleanup_required'
           AND NOT (error_code = 'XWS_CANCELLATION_CLEANUP_REQUIRED' OR (error_code = 'XWS_WORKER_EXECUTION_FAILED' AND error_message = 'workspace content cancellation cleanup requires retry'))
         RETURNING {RECORD_COLUMNS}"
-    ))
+    )))
     .bind(operation_id)
     .fetch_optional(&self.pool)
     .await
@@ -4308,7 +4312,7 @@ impl WorkspaceContentLinkPublicationPort for PgWorkspaceContentOperationReposito
     }
 
     let mut tx = self.pool.begin().await.map_err(Self::storage)?;
-    let current = sqlx::query(&format!("{RECORD_SELECT} WHERE id = $1 FOR UPDATE"))
+    let current = sqlx::query(sqlx::AssertSqlSafe(format!("{RECORD_SELECT} WHERE id = $1 FOR UPDATE")))
       .bind(batch.operation.id)
       .fetch_optional(&mut *tx)
       .await
@@ -4459,13 +4463,13 @@ impl WorkspaceContentLinkPublicationPort for PgWorkspaceContentOperationReposito
     .execute(&mut *tx)
     .await
     .map_err(Self::storage)?;
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       "UPDATE workspace_content_operations
        SET status = 'succeeded', diagnostic_instance_id = $2,
            error_code = NULL, error_message = NULL, error_phase = NULL, updated_at = now()
        WHERE id = $1 AND status = 'running'
        RETURNING {RECORD_COLUMNS}"
-    ))
+    )))
     .bind(batch.operation.id)
     .bind(diagnostic_instance_id)
     .fetch_optional(&mut *tx)
@@ -4816,7 +4820,7 @@ impl PgWorkspaceContentCopyPublicationRepository {
         .map_err(PgWorkspaceContentOperationRepository::storage)?;
       PgDatabaseRepository::capture_catalog_admission(&mut tx, &self.database_templates)
         .await.map_err(publication_database_error)?;
-      let row = sqlx::query(&format!("{RECORD_SELECT} WHERE id = $1 FOR UPDATE"))
+      let row = sqlx::query(sqlx::AssertSqlSafe(format!("{RECORD_SELECT} WHERE id = $1 FOR UPDATE")))
         .bind(batch.operation.id)
         .fetch_optional(&mut *tx)
         .await
@@ -5103,13 +5107,13 @@ envelope, bundle, .. } = object
       .execute(&mut *tx)
       .await
       .map_err(PgWorkspaceContentOperationRepository::storage)?;
-      let row = sqlx::query(&format!(
+      let row = sqlx::query(sqlx::AssertSqlSafe(format!(
         "UPDATE workspace_content_operations
          SET status = 'succeeded', diagnostic_instance_id = $2,
              error_code = NULL, error_message = NULL, error_phase = NULL, updated_at = now()
          WHERE id = $1 AND status = 'running'
          RETURNING {RECORD_COLUMNS}"
-      ))
+      )))
       .bind(batch.operation.id)
       .bind(diagnostic_instance_id)
       .fetch_optional(&mut *tx)
@@ -5495,7 +5499,7 @@ impl PgWorkspaceContentMovePublicationRepository {
           .map_err(PgWorkspaceContentOperationRepository::storage)?;
         PgDatabaseRepository::capture_catalog_admission(&mut tx, &self.database_templates)
           .await.map_err(publication_database_error)?;
-        let row = sqlx::query(&format!("{RECORD_SELECT} WHERE id = $1 FOR UPDATE"))
+        let row = sqlx::query(sqlx::AssertSqlSafe(format!("{RECORD_SELECT} WHERE id = $1 FOR UPDATE")))
           .bind(batch.operation.id)
           .fetch_optional(&mut *tx)
           .await
@@ -5788,9 +5792,9 @@ impl PgWorkspaceContentMovePublicationRepository {
               .copied()
               .ok_or_else(|| publication_failure(WorkspaceContentErrorCode::MoveDocumentChildCountIsMissing))?;
             let affected = if *table == "public_asset_manifest" && !target_allows_public_sharing {
-              sqlx::query(&format!(
+              sqlx::query(sqlx::AssertSqlSafe(format!(
                 "DELETE FROM {table} WHERE workspace_id = $1 AND {column} = $2"
-              ))
+              )))
               .bind(source_workspace_id)
               .bind(doc_id)
               .execute(&mut *tx)
@@ -5799,10 +5803,10 @@ impl PgWorkspaceContentMovePublicationRepository {
               .rows_affected()
             } else {
               let cast = if *text_id { "::text" } else { "" };
-              sqlx::query(&format!(
+              sqlx::query(sqlx::AssertSqlSafe(format!(
                 "UPDATE {table} SET workspace_id = $2
                WHERE workspace_id = $1 AND {column} = $3{cast}"
-              ))
+              )))
               .bind(source_workspace_id)
               .bind(target_workspace_id)
               .bind(doc_id)
@@ -6127,13 +6131,13 @@ impl PgWorkspaceContentMovePublicationRepository {
           .await
           .map_err(PgWorkspaceContentOperationRepository::storage)?;
         }
-        let row = sqlx::query(&format!(
+        let row = sqlx::query(sqlx::AssertSqlSafe(format!(
           "UPDATE workspace_content_operations
          SET status = 'succeeded', diagnostic_instance_id = $2,
              error_code = NULL, error_message = NULL, error_phase = NULL, updated_at = now()
          WHERE id = $1 AND status = 'running'
          RETURNING {RECORD_COLUMNS}"
-        ))
+        )))
         .bind(batch.operation.id)
         .bind(diagnostic_instance_id)
         .fetch_optional(&mut *tx)
@@ -7053,9 +7057,9 @@ async fn ownership_row_counts(
   let mut counts = std::collections::BTreeMap::new();
   for (table, column, text_id) in MOVE_DOCUMENT_OWNERSHIP_TABLES {
     let cast = if *text_id { "::text" } else { "" };
-    let count: i64 = sqlx::query_scalar(&format!(
+    let count: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
       "SELECT count(*) FROM {table} WHERE workspace_id = $1 AND {column} = $2{cast}"
-    ))
+    )))
     .bind(workspace_id)
     .bind(doc_id)
     .fetch_one(&mut **tx)
@@ -7078,9 +7082,9 @@ async fn database_ownership_row_counts(
 ) -> AuthResult<std::collections::BTreeMap<String, u64>> {
   let mut counts = std::collections::BTreeMap::new();
   for table in MOVE_DATABASE_OWNERSHIP_TABLES {
-    let count: i64 = sqlx::query_scalar(&format!(
+    let count: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
       "SELECT count(*) FROM {table} WHERE workspace_id = $1 AND database_id = $2"
-    ))
+    )))
     .bind(workspace_id)
     .bind(database_id)
     .fetch_one(&mut **tx)
@@ -7119,7 +7123,7 @@ async fn capture_database_child_revisions(
        WHERE {workspace_predicate}database_id = $1
        ORDER BY to_jsonb(child)::text{lock_clause}"
     );
-    let query = sqlx::query(&sql).bind(database_id);
+    let query = sqlx::query(sqlx::AssertSqlSafe(sql.as_str())).bind(database_id);
     let rows = if workspace_qualified {
       query.bind(workspace_id).fetch_all(&mut **tx).await
     } else {
@@ -7180,10 +7184,10 @@ async fn materialize_operation_tag(
       WorkspaceContentErrorCode::PreparedTagIdentityWasRetired,
     ));
   }
-  let existing = sqlx::query(&format!(
+  let existing = sqlx::query(sqlx::AssertSqlSafe(format!(
     "{} WHERE id=$1 FOR SHARE",
     PgWorkspaceTagRepository::SELECT_TAG
-  ))
+  )))
   .bind(prepared.id)
   .fetch_optional(&mut **tx)
   .await
@@ -7229,10 +7233,10 @@ async fn materialize_operation_tag(
       }
       // A Read Committed Copy can see a concurrent winner after DO NOTHING.
       // A Serializable Move instead reaches the existing SQL retry path.
-      if let Some(row) = sqlx::query(&format!(
+      if let Some(row) = sqlx::query(sqlx::AssertSqlSafe(format!(
         "{} WHERE id=$1 FOR SHARE",
         PgWorkspaceTagRepository::SELECT_TAG
-      ))
+      )))
       .bind(tag.id)
       .fetch_optional(&mut **tx)
       .await
@@ -7445,10 +7449,10 @@ async fn capture_move_tag_manifest(
       ))
     })
     .collect::<AuthResult<BTreeMap<_, _>>>()?;
-  let source_rows = sqlx::query(&format!(
+  let source_rows = sqlx::query(sqlx::AssertSqlSafe(format!(
     "{} WHERE workspace_id=$1 AND id=ANY($2) ORDER BY id{lock_clause}",
     PgWorkspaceTagRepository::SELECT_TAG
-  ))
+  )))
   .bind(operation.source_workspace_id)
   .bind(tag_map.keys().copied().collect::<Vec<_>>())
   .fetch_all(&mut **tx)
@@ -7464,10 +7468,10 @@ async fn capture_move_tag_manifest(
       WorkspaceContentErrorCode::SourceTagMissing.as_str().into(),
     ));
   }
-  let target_rows = sqlx::query(&format!(
+  let target_rows = sqlx::query(sqlx::AssertSqlSafe(format!(
     "{} WHERE workspace_id=$1 ORDER BY id{lock_clause}",
     PgWorkspaceTagRepository::SELECT_TAG
-  ))
+  )))
   .bind(target_workspace_id)
   .fetch_all(&mut **tx)
   .await
@@ -7522,8 +7526,8 @@ async fn capture_move_tag_manifest(
   definitions.sort_by_key(|tag| tag.id);
   let mut positions = Vec::new();
   for document in documents {
-    let ids = sqlx::query_scalar::<_, Uuid>(&format!(
-      "SELECT tag_id FROM workspace_tag_document_assignments WHERE workspace_id=$1 AND doc_id=$2 ORDER BY position{lock_clause}"))
+    let ids = sqlx::query_scalar::<_, Uuid>(sqlx::AssertSqlSafe(format!(
+      "SELECT tag_id FROM workspace_tag_document_assignments WHERE workspace_id=$1 AND doc_id=$2 ORDER BY position{lock_clause}")))
       .bind(operation.source_workspace_id).bind(document.doc_id).fetch_all(&mut **tx).await
       .map_err(PgWorkspaceContentOperationRepository::storage)?;
     positions.push(WorkspaceContentMoveTagLineage {
@@ -7809,11 +7813,11 @@ async fn capture_move_revision_manifest(
     .iter()
     .filter(|mapping| mapping.source.kind() == WorkspaceContentResourceKind::Document)
   {
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       "SELECT id, metadata_revision, to_jsonb(docs) AS metadata
        FROM docs
        WHERE workspace_id = $1 AND external_id = $2 AND deleted_at IS NULL{lock_clause}"
-    ))
+    )))
     .bind(mapping.source.workspace_id())
     .bind(mapping.source.resource_id())
     .fetch_optional(&mut **tx)
@@ -7888,10 +7892,10 @@ async fn capture_move_revision_manifest(
     .iter()
     .filter(|mapping| mapping.source.kind() == WorkspaceContentResourceKind::Blob)
   {
-    let metadata: serde_json::Value = sqlx::query_scalar(&format!(
+    let metadata: serde_json::Value = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
       "SELECT to_jsonb(blobs) FROM blobs
        WHERE workspace_id = $1 AND key = $2 AND deleted_at IS NULL{lock_clause}"
-    ))
+    )))
     .bind(mapping.source.workspace_id())
     .bind(mapping.source.resource_id())
     .fetch_optional(&mut **tx)
@@ -7906,9 +7910,9 @@ async fn capture_move_revision_manifest(
 
   // Reuse the coherent transaction-local document reader and canonical Organizer
   // codec. Only contained placements are bound; unrelated rows stay out of the fence.
-  let folder_doc_id: Option<Uuid> = sqlx::query_scalar(&format!(
+  let folder_doc_id: Option<Uuid> = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
     "SELECT id FROM docs WHERE workspace_id=$1 AND external_id=$2 AND deleted_at IS NULL{lock_clause}"
-  ))
+  )))
   .bind(operation.source_workspace_id)
   .bind(format!("db${}$folders", operation.source_workspace_id))
   .fetch_optional(&mut **tx)
@@ -7958,10 +7962,10 @@ async fn capture_move_revision_manifest(
   ];
   workspace_ids.sort();
   for workspace_id in workspace_ids {
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       "SELECT id FROM docs
        WHERE workspace_id = $1 AND id = $1 AND is_workspace_root AND deleted_at IS NULL{lock_clause}"
-    ))
+    )))
     .bind(workspace_id)
     .fetch_optional(&mut **tx)
     .await
@@ -7981,10 +7985,10 @@ async fn capture_move_revision_manifest(
     .filter(|mapping| mapping.source.kind() == WorkspaceContentResourceKind::Database)
   {
     let database_id = parse_move_uuid(mapping.source.resource_id(), "Database")?;
-    let parent_edit_revision: i64 = sqlx::query_scalar(&format!(
+    let parent_edit_revision: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
       "SELECT edit_revision FROM workspace_databases
        WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL{lock_clause}"
-    ))
+    )))
     .bind(mapping.source.workspace_id())
     .bind(database_id)
     .fetch_optional(&mut **tx)
@@ -8003,11 +8007,11 @@ async fn capture_move_revision_manifest(
   let mut workspaces = Vec::new();
   let mut overview_states = BTreeMap::new();
   for workspace_id in workspace_ids {
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       "SELECT id, owner_principal_type::text AS owner_principal_type,
               owner_principal_id, overview_settings, overview_revision, to_jsonb(workspaces) AS policy
        FROM workspaces WHERE id = $1 AND deleted_at IS NULL{lock_clause}"
-    ))
+    )))
     .bind(workspace_id)
     .fetch_optional(&mut **tx)
     .await
@@ -8019,12 +8023,12 @@ async fn capture_move_revision_manifest(
           .to_string(),
       )
     })?;
-    let membership_rows = sqlx::query(&format!(
+    let membership_rows = sqlx::query(sqlx::AssertSqlSafe(format!(
       "SELECT to_jsonb(membership) AS membership
        FROM workspace_memberships membership
        WHERE workspace_id = $1
        ORDER BY user_id{lock_clause}"
-    ))
+    )))
     .bind(workspace_id)
     .fetch_all(&mut **tx)
     .await
@@ -9189,7 +9193,7 @@ async fn operation_publication_receipt(
     .begin()
     .await
     .map_err(PgWorkspaceContentOperationRepository::storage)?;
-  let row = sqlx::query(&format!("{RECORD_SELECT} WHERE id=$1 FOR UPDATE"))
+  let row = sqlx::query(sqlx::AssertSqlSafe(format!("{RECORD_SELECT} WHERE id=$1 FOR UPDATE")))
     .bind(operation_id)
     .fetch_one(&mut *tx)
     .await

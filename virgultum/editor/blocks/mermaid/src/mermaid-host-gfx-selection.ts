@@ -109,14 +109,12 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
   protected _selectVisualSubgraph(subgraphId: string) {
     this._visualInspectorSuppressed = false;
     this._applyVisualSelectionPatch(selectMermaidGfxSubgraphPatch(subgraphId));
-    this.requestUpdate();
     this._scheduleScopedGfxSelectionVisibility();
   }
 
   protected _clearVisualSelection() {
     this._visualInspectorSuppressed = false;
     this._applyVisualSelectionPatch(clearMermaidGfxSelectionPatch());
-    this.requestUpdate();
   }
 
   protected _clearPageVisualSelectionFromKeyboard() {
@@ -125,7 +123,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
       mermaidMessages.pageSelectionAllNodes(),
       0,
     );
-    this.requestUpdate();
   }
 
   protected _hydrateVisualSelectionFromScopedGfxSelection() {
@@ -141,18 +138,17 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
 
   protected _hydrateVisualSelectionFromGfxIds(
     selectedIds: readonly string[],
-    requestHostUpdate = true,
+    _requestHostUpdate = true,
   ) {
+    void _requestHostUpdate;
     if (selectedIds.length === 0) {
       this._visualSelection.hydrate([]);
-      if (requestHostUpdate) this.requestUpdate();
       return false;
     }
 
     const items = this._resolveVisualSelectionItemsFromGfxIds(selectedIds);
     if (!items) return false;
     this._visualSelection.hydrate(items);
-    if (requestHostUpdate) this.requestUpdate();
     return items.length > 0;
   }
 
@@ -213,7 +209,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
     if (!base || !candidates) return;
     this._visualSelection.applyAgainst(base, operation, candidates);
     this._visualContextMenu = null;
-    this.requestUpdate();
   }
 
   protected _getSelectedVisualNodeGfxModels() {
@@ -248,7 +243,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
       mermaidMessages.pageSelectionAllNodes(),
       nodeIds.length,
     );
-    this.requestUpdate();
   }
 
   protected _handlePageVisualObjectFocus(
@@ -260,7 +254,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
     )
       return;
     this._keyboardFocusedVisualItem = { ...item };
-    this.requestUpdate();
   }
 
   protected _restoreVisualObjectFocus() {
@@ -314,7 +307,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
     }
     if (!this._keyboardFocusedVisualItem) return;
     this._keyboardFocusedVisualItem = null;
-    this.requestUpdate();
   }
 
   protected _handlePageVisualWorkareaFocusOut(event: FocusEvent) {
@@ -330,7 +322,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
     }
     if (!this._keyboardFocusedVisualItem) return;
     this._keyboardFocusedVisualItem = null;
-    this.requestUpdate();
   }
 
   protected async _handlePageVisualObjectKeydown(
@@ -367,7 +358,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
       this._ensureScopedGfxSelectionVisible();
       this._pageSelectionAnnouncement =
         mermaidMessages.pageSelectionAnnouncement(label || item.editKey, 1);
-      this.requestUpdate();
       if (mutationReadonly && this._isInEdgelessMode()) {
         this._activateEmbeddedGfxEditor();
         // The first Enter can focus an object in the passive Note projection.
@@ -416,7 +406,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
       label || item.editKey,
       this._visualSelection.items.length,
     );
-    this.requestUpdate();
   }
 
   protected _selectedVisualNodeContextLabel(
@@ -433,7 +422,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
     const item = this._createVisualSelectionItem("node", nodeId);
     if (!item) return false;
     this._visualSelection.apply(additive ? "toggle" : "replace", [item]);
-    this.requestUpdate();
     this._scheduleScopedGfxSelectionVisibility();
     return true;
   }
@@ -483,7 +471,7 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
       if (resolved.length === pending.items.length) {
         this._visualSelection.apply("replace", resolved);
         if (pending.focus) {
-          this.requestUpdate();
+          this._notifyProjectionChange();
           // Invalid repair replaces the readonly workarea. Its new carrier can
           // receive focus only after the ready projection has been rendered.
           void this.updateComplete.then(() => {
@@ -524,7 +512,7 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
       this._gfxViewportBridge.restoreViewport(this._preservedScopedGfxViewport);
       this._lastScopedGfxFitKey = this._gfxViewportBridge.createFitKey();
     }
-    this.requestUpdate();
+    this._notifyProjectionChange();
   }
 
   protected _completePendingInsertedNodeProjection() {
@@ -558,7 +546,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
   protected _selectVisualEdge(edgeId: string) {
     this._visualInspectorSuppressed = false;
     this._applyVisualSelectionPatch(selectMermaidGfxEdgePatch(edgeId));
-    this.requestUpdate();
     this._scheduleScopedGfxSelectionVisibility();
   }
 
@@ -579,7 +566,7 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
       this._pendingVisualNodePlacement = null;
       this._pendingVisualInsertShape = null;
       onPlace({ centerX: insert.centerX, centerY: insert.centerY });
-      this.requestUpdate();
+      this._notifyProjectionChange();
       return "";
     }
     const visualModel = this._getMermaidVisualModelForEditing();
@@ -908,7 +895,7 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
       this._selectVisualEdge(result.edgeId);
       return;
     }
-    this.requestUpdate();
+    this._notifyProjectionChange();
   };
 
   protected _moveVisualNodeByDrag(
@@ -1107,7 +1094,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
     };
     this._hoveredVisualNodeId = "";
     this._refreshScopedGfxRenderer();
-    this.requestUpdate();
   }
 
   private _cancelTransientVisualNodeDrag() {
@@ -1166,7 +1152,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
     this._visualSubgraphDropPreview = null;
     const visualModel = this._getMermaidVisualModelForEditing();
     if (!nodeId || !targetSubgraphId || !visualModel) {
-      this.requestUpdate();
       return;
     }
     const nodeSelection = this._visualSelectionKeys("node");
@@ -1194,7 +1179,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
         id: targetSubgraphId,
       };
     }
-    this.requestUpdate();
   }
 
   protected _previewVisualSubgraphReparent(
@@ -1204,7 +1188,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
     this._visualSubgraphDropPreview = null;
     const visualModel = this._getMermaidVisualModelForEditing();
     if (!subgraphId || !targetSubgraphId || !visualModel) {
-      this.requestUpdate();
       return;
     }
     const currentParentId =
@@ -1225,7 +1208,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
         id: targetSubgraphId,
       };
     }
-    this.requestUpdate();
   }
 
   protected _reparentVisualSubgraph(
@@ -1255,7 +1237,7 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
     }
     this._selectVisualSubgraph(subgraphId);
     this._scheduleRender();
-    this.requestUpdate();
+    this._notifyProjectionChange();
   }
 
   protected _handleVisualNodeDragEnd(
@@ -1357,7 +1339,7 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
       // ensure-visible path, which would pan a deliberate edge drop back into
       // the viewport immediately after pointerup.
       this._projectVisualSelectionToScopedGfx();
-      this.requestUpdate();
+      this._notifyProjectionChange();
       return;
     }
     this._cancelTransientVisualNodeDrag();
@@ -1371,6 +1353,6 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
       });
       if (subgraphId) this._selectVisualSubgraph(subgraphId);
     });
-    this.requestUpdate();
+    this._notifyProjectionChange();
   }
 }

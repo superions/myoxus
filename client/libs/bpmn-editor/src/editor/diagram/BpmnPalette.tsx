@@ -98,8 +98,8 @@ export function BpmnPalette({ pulse: _pulse }: { pulse: boolean }) {
   ]);
   const bpmnEditorStoreApi = useBpmnEditorStoreApi();
   const denied = useBpmnEditorStore((s) => s.settings.isReadOnly);
-  const flowStore = RF.useStoreApi();
-  const interactive = RF.useStore((s) => s.nodesDraggable);
+  const flowStore = RF.useReactFlowStoreApi();
+  const interactive = RF.useOptionsStore((s) => s.nodesDraggable);
   const readOnly = denied || !interactive;
   const beginNodeProjection = useCallback(
     <T extends BpmnNodeType>(
@@ -110,7 +110,7 @@ export function BpmnPalette({ pulse: _pulse }: { pulse: boolean }) {
     ) => {
       if (
         bpmnEditorStoreApi.getState().settings.isReadOnly ||
-        !flowStore.getState().nodesDraggable
+        !flowStore.optionsStore.getState().nodesDraggable
       ) {
         event?.preventDefault();
         return;

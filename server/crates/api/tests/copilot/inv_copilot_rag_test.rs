@@ -21,11 +21,11 @@ fn vec_to_pgvector(vals: &[f32], dim: usize) -> String {
 
 async fn insert_test_embedding(pool: &sqlx::PgPool, workspace_id: Uuid, source_id: &str, chunk_text: &str) {
   let vec_str = vec_to_pgvector(&[0.1, 0.2, 0.3], 1536);
-  sqlx::query(&format!(
+  sqlx::query(sqlx::AssertSqlSafe(format!(
     r#"INSERT INTO copilot_embeddings
        (workspace_id, source_type, source_id, chunk_index, chunk_text, token_count, embedding, model)
        VALUES ($1, 'doc', $2, 0, $3, 10, '{vec_str}'::vector, 'text-embedding-3-small')"#
-  ))
+  )))
   .bind(workspace_id)
   .bind(source_id)
   .bind(chunk_text)

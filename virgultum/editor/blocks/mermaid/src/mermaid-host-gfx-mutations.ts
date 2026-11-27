@@ -97,7 +97,7 @@ export abstract class MermaidHostGfxMutations extends MermaidHostControls {
       // GFX mutations already updated the projection owner atomically; rendering
       // unchanged Source here would overwrite that projected geometry.
       if (commit.after !== commit.before) this._scheduleRender();
-      this.requestUpdate();
+      this._notifyProjectionChange();
     }
     return true;
   }
@@ -118,7 +118,7 @@ export abstract class MermaidHostGfxMutations extends MermaidHostControls {
     }
     if (this._containerActionIntent?.()) {
       this._handlePageSelectionToolChange("pointer");
-      this.requestUpdate();
+      this._notifyProjectionChange();
       return;
     }
     let subgraphId = "";
@@ -154,7 +154,6 @@ export abstract class MermaidHostGfxMutations extends MermaidHostControls {
           shape,
         }),
       );
-      this.requestUpdate();
       return;
     }
 
@@ -178,7 +177,6 @@ export abstract class MermaidHostGfxMutations extends MermaidHostControls {
     this._handlePageSelectionToolChange("pointer");
     this._clearVisualSelection();
     this._pendingVisualInsertShape = shape;
-    this.requestUpdate();
   };
 
   protected _handleToggleVisualConnection = () => {

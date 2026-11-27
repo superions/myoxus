@@ -92,7 +92,7 @@ test.describe("connector label with straight shape", () => {
 
     await page.mouse.move(0, 0);
 
-    const menu = page.locator("edgeless-connector-menu");
+    const menu = page.getByTestId("canvas-connector-menu");
     await expect(menu).toBeVisible();
 
     const straightBtn = menu.getByRole("button", {

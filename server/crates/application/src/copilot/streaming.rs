@@ -41,6 +41,9 @@ impl CopilotStreamGuard {
   pub fn stream_id(&self) -> Uuid {
     self.handle.as_ref().expect("unfinalized stream guard").stream_id
   }
+  pub fn message_id(&self) -> Uuid {
+    self.handle.as_ref().expect("unfinalized stream guard").message_id
+  }
   pub fn new(service: CopilotService, handle: CopilotStreamHandle) -> Self {
     Self {
       service,
@@ -132,6 +135,39 @@ impl CopilotService {
       .push(event.clone());
     self.persist_stream_message(stream).await?;
     Ok(event)
+  }
+
+  /// Publish a tool-created file under the active stream lock so subsequent
+  /// stream updates retain the committed attachment and stopped streams reject publication.
+  #[instrument(skip_all, fields(%stream_id, file_id = %file.id))]
+  pub async fn commit_stream_generated_file(
+    &self,
+    stream_id: Uuid,
+    expected_session: &myoxus_domain::entities::CopilotSession,
+    source: &CopilotMessage,
+    file: &myoxus_domain::entities::CopilotAttachmentRef,
+  ) -> AuthResult<myoxus_domain::entities::CopilotAttachmentRef> {
+    let mut streams = self.active_streams.write().await;
+    let stream = streams
+      .get_mut(&stream_id)
+      .ok_or_else(|| AuthError::InvalidInput("copilot stream not active".into()))?;
+    if stream.message_id != source.id || stream.session_id != expected_session.id {
+      return Err(AuthError::InvalidInput("file does not belong to this stream".into()));
+    }
+    let committed = self
+      .repo
+      .commit_copilot_generated_file(expected_session, &stream.message, file)
+      .await
+      .map_err(Self::map_repo_err)?;
+    if !stream
+      .message
+      .attachment_refs
+      .iter()
+      .any(|existing| existing.id == committed.id)
+    {
+      stream.message.attachment_refs.push(committed.clone());
+    }
+    Ok(committed)
   }
 
   #[instrument(skip_all)]

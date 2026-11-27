@@ -82,8 +82,8 @@ class PointState {
     readonly std: EditorHost["std"],
     readonly point: TextRangePoint,
   ) {
-    // Selection replacement may create its boundary synchronously before Lit
-    // mounts the view. Merge against the authoritative model, not its renderer.
+    // Selection replacement may create its boundary synchronously before the
+    // view mounts. Merge against the authoritative model, not its renderer.
     const model = std.store.getModelById(point.blockId);
     if (!model)
       throw new VirgultumError(

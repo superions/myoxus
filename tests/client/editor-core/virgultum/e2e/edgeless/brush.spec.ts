@@ -35,7 +35,7 @@ test("change editor mode when brush color palette opening", async ({
   await switchEditorMode(page);
   await setEdgelessTool(page, "brush");
 
-  const penMenu = page.locator("edgeless-pen-menu");
+  const penMenu = page.getByTestId("canvas-pen-menu");
   const colorPalettes = penMenu.getByRole("slider", {
     name: "Thickness",
     exact: true,
@@ -52,7 +52,7 @@ test("escape closes the highlighter tool menu", async ({ page }) => {
   await switchEditorMode(page);
 
   await setEdgelessTool(page, "highlighter");
-  const drawingToolsMenu = page.locator("edgeless-pen-menu");
+  const drawingToolsMenu = page.getByTestId("canvas-pen-menu");
   await expect(drawingToolsMenu).toBeVisible();
 
   await pressEscape(page);

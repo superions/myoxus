@@ -539,10 +539,7 @@ impl SqlxTemplateRegistryStore {
     })
   }
 
-  fn append_audit_event_filters<'a>(
-    query: &mut QueryBuilder<'a, Postgres>,
-    filter: &'a TemplateRegistryAuditEventFilter,
-  ) {
+  fn append_audit_event_filters(query: &mut QueryBuilder<Postgres>, filter: &TemplateRegistryAuditEventFilter) {
     if let Some(action) = filter.action {
       query.push(" AND a.action = ");
       query.push_bind(audit_action_to_db(action));

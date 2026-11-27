@@ -364,7 +364,7 @@ async fn inspect(
       "true"
     }
   );
-  let unknown: Vec<Uuid> = sqlx::query_scalar(&unknown_sql)
+  let unknown: Vec<Uuid> = sqlx::query_scalar(sqlx::AssertSqlSafe(unknown_sql.as_str()))
     .bind(&ids)
     .fetch_all(&mut *connection)
     .await?;
@@ -381,7 +381,7 @@ async fn inspect(
     "SELECT {key} FROM {table} WHERE {key}=ANY($1) AND apply_to_new_workspaces AND selection_mode='published' AND provisioning_mode IN ('seed_once','managed_until_local_edit') AND {}",
     if release_managed { "NOT release_managed" } else { "true" }
   );
-  let unknown_defaults: Vec<Uuid> = sqlx::query_scalar(&default_sql)
+  let unknown_defaults: Vec<Uuid> = sqlx::query_scalar(sqlx::AssertSqlSafe(default_sql.as_str()))
     .bind(&ids)
     .fetch_all(&mut *connection)
     .await?;

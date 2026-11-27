@@ -145,7 +145,7 @@ pub async fn run(pool: &PgPool) -> Result<(), MigrationRunError> {
     ensure_migrations_table(&mut transaction).await?;
   }
   MIGRATOR
-    .run_direct(&mut *transaction)
+    .run_direct(None, &mut *transaction, false)
     .await
     .map_err(|source| MigrationRunError::Canonical {
       class: class.label(),

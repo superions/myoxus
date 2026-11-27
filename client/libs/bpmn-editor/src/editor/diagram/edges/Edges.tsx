@@ -80,7 +80,9 @@ export const SequenceFlowEdge = React.memo(
       props.data?.bpmnEdgeIndex,
       interactionPathRef,
     );
-    const isConnecting = !!RF.useStore((s) => s.connection.fromHandle?.nodeId);
+    const isConnecting = !!RF.useConnectionStore(
+      (s) => s.connection.fromHandle?.nodeId,
+    );
     const className = useEdgeClassName(isConnecting, isDraggingWaypoint);
     useAlwaysVisibleEdgeUpdatersAtNodeBorders(
       interactionPathRef,
@@ -224,7 +226,9 @@ export const AssociationEdge = React.memo(
       props.data?.bpmnEdgeIndex,
       interactionPathRef,
     );
-    const isConnecting = !!RF.useStore((s) => s.connection.fromHandle?.nodeId);
+    const isConnecting = !!RF.useConnectionStore(
+      (s) => s.connection.fromHandle?.nodeId,
+    );
     const className = useEdgeClassName(isConnecting, isDraggingWaypoint);
     useAlwaysVisibleEdgeUpdatersAtNodeBorders(
       interactionPathRef,

@@ -147,24 +147,24 @@ sample. The persisted `invalidations_local` value for these shared Redis
 partitions means explicit eviction attempts on the reporting instance; it is
 not a confirmed-deletion or remote-invalidation count.
 
-Important Redis metrics:
+Important Valkey / Redis metrics (`redis-cli` works identically if running Redis):
 
 ```bash
-redis-cli INFO stats | grep keyspace_hits
-redis-cli INFO stats | grep keyspace_misses
-redis-cli INFO memory | grep used_memory_human
-redis-cli INFO stats | grep expired_keys
+valkey-cli INFO stats | grep keyspace_hits
+valkey-cli INFO stats | grep keyspace_misses
+valkey-cli INFO memory | grep used_memory_human
+valkey-cli INFO stats | grep expired_keys
 ```
 
 Inspect cache keys during diagnostics:
 
 ```bash
-redis-cli SCAN 0 MATCH "myoxus:cache:myoxus:doc_snapshot:*" COUNT 1000
-redis-cli SCAN 0 MATCH "myoxus:cache:myoxus:doc_metadata_projection:*" COUNT 1000
-redis-cli SCAN 0 MATCH "myoxus:cache:myoxus:document_metadata_index:*" COUNT 1000
-redis-cli SCAN 0 MATCH "myoxus:cache:myoxus:database_page_inventory:*" COUNT 1000
-redis-cli SCAN 0 MATCH "myoxus:cache:myoxus:doc_view_dedup:*" COUNT 1000
-redis-cli SCAN 0 MATCH "myoxus:cache:myoxus:doc_compact_lock:*" COUNT 100
+valkey-cli SCAN 0 MATCH "myoxus:cache:myoxus:doc_snapshot:*" COUNT 1000
+valkey-cli SCAN 0 MATCH "myoxus:cache:myoxus:doc_metadata_projection:*" COUNT 1000
+valkey-cli SCAN 0 MATCH "myoxus:cache:myoxus:document_metadata_index:*" COUNT 1000
+valkey-cli SCAN 0 MATCH "myoxus:cache:myoxus:database_page_inventory:*" COUNT 1000
+valkey-cli SCAN 0 MATCH "myoxus:cache:myoxus:doc_view_dedup:*" COUNT 1000
+valkey-cli SCAN 0 MATCH "myoxus:cache:myoxus:doc_compact_lock:*" COUNT 100
 ```
 
 ## Configuration tuning
@@ -236,14 +236,14 @@ server projection version. Use the audited snapshot flush above only after the
 canonical PostgreSQL state has been verified.
 
 ```bash
-redis-cli TTL "myoxus:cache:myoxus:doc_snapshot:{ws_uuid}:{doc_uuid}"
+valkey-cli TTL "myoxus:cache:myoxus:doc_snapshot:{ws_uuid}:{doc_uuid}"
 ```
 
 **Duplicate Git Sync events:** concurrent compaction may be running on multiple
 instances because the lock is ineffective.
 
 ```bash
-redis-cli TTL "myoxus:cache:myoxus:doc_compact_lock:{doc_uuid}"
+valkey-cli TTL "myoxus:cache:myoxus:doc_compact_lock:{doc_uuid}"
 ```
 
 Correlate the lock with compaction logs. Change

@@ -43,9 +43,8 @@ export function createDecoratorTransform() {
     },
     {
       // Scoped imports such as `@myoxus/*` must stay on Vite's Oxc path.
-      // Match decorator declarations and auto-accessor fields at line start,
-      // without treating Lit event bindings (`@click=`) as decorators. SWC
-      // must lower both because current Node runtimes cannot execute the
+      // Match decorator declarations and auto-accessor fields at line start.
+      // SWC must lower both because current Node runtimes cannot execute the
       // auto-accessor syntax emitted by decorator-heavy Virgultum classes.
       transform: {
         code: /^(?:\s*@[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*(?:\s*\(|\s*$)|\s*(?:(?:public|protected|private|static|override|declare|abstract)\s+)*accessor\s+[A-Za-z_$][\w$]*)/m,

@@ -1,3 +1,4 @@
+import { type ReadonlySignal, signal } from "@preact/signals-core";
 import { applyMermaidVisualModelCommand } from "../../commands/source-sync.js";
 import { getMermaidBlockSource } from "../../utils.js";
 import {
@@ -145,7 +146,6 @@ export type MermaidGfxSessionHost = {
     coalesceKey: string,
   ): void;
   refreshRenderer?(): void;
-  requestUpdate(): void;
   scheduleRender(): void;
   selectVisualEdge(edgeId: string): void;
   selectVisualSubgraph(subgraphId: string): void;
@@ -164,6 +164,7 @@ export type MermaidGfxSessionHost = {
  * before those BlockComponent accessors are usable.
  */
 export class MermaidGfxSessionController {
+  private readonly _stateRevision$ = signal<number>(0);
   private connectVisualNodeSourceId = "";
   private connectVisualNodeSourceHandle: MermaidGfxConnectionPortPoint | null =
     null;
@@ -189,6 +190,19 @@ export class MermaidGfxSessionController {
   private resizeViewportStart: MermaidVisualViewportResizeStart | null = null;
 
   constructor(private readonly host: MermaidGfxSessionHost) {}
+
+  get stateVersion$(): ReadonlySignal<number> {
+    return this._stateRevision$;
+  }
+
+  /** Subscribes a host signal effect to transient GFX session state transitions. */
+  trackState() {
+    void this._stateRevision$.value;
+  }
+
+  private notifyStateChanged() {
+    this._stateRevision$.value = this._stateRevision$.peek() + 1;
+  }
 
   private beginGeometryPreview() {
     const model = this.host.getMermaidVisualModelForEditing();
@@ -226,7 +240,7 @@ export class MermaidGfxSessionController {
     event.preventDefault();
     event.stopImmediatePropagation();
     this.stopTransientPointerInteractions();
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   };
 
   private validateGeometryPreview() {
@@ -294,7 +308,7 @@ export class MermaidGfxSessionController {
           })[1]?.applied === true,
       );
     this.host.scheduleRender();
-    this.host.requestUpdate();
+    this.notifyStateChanged();
     return true;
   }
 
@@ -330,7 +344,7 @@ export class MermaidGfxSessionController {
       "pointermove",
       this.handleVisualConnectorPointerMove,
     );
-    this.host.requestUpdate();
+    this.notifyStateChanged();
     return true;
   }
 
@@ -574,7 +588,7 @@ export class MermaidGfxSessionController {
     this.host.applyVisualSelectionPatch(
       selectMermaidGfxEdgePatch(reconnect.edgeId),
     );
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   };
 
   handleVisualEdgeReconnectPointerDown(
@@ -658,7 +672,7 @@ export class MermaidGfxSessionController {
       })[0];
     });
     if (!applied) return;
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   };
 
   handleVisualGfxResizeHandlePointerDown = (
@@ -724,7 +738,7 @@ export class MermaidGfxSessionController {
       this.moveSubgraphToSurfacePosition(move.target.id, move.x, move.y),
     );
     if (!applied) return;
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   };
 
   handleVisualGfxSubgraphMoveHandlePointerDown = (event: PointerEvent) => {
@@ -813,7 +827,7 @@ export class MermaidGfxSessionController {
       "pointerup",
       this.handleVisualConnectorPointerUp,
     );
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   }
 
   private readonly handleVisualConnectorPointerMove = (event: PointerEvent) => {
@@ -933,7 +947,7 @@ export class MermaidGfxSessionController {
         height,
       );
       this.host.refreshRenderer?.();
-      this.host.requestUpdate();
+      this.notifyStateChanged();
       return;
     }
     this.host.applyGfxMutation(
@@ -953,7 +967,7 @@ export class MermaidGfxSessionController {
         deferUpdate: true,
       },
     );
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   };
 
   private readonly handleVisualGfxNodeResizeEnd = () => {
@@ -964,7 +978,7 @@ export class MermaidGfxSessionController {
     this.stopVisualGfxNodeResize();
     this.host.commitProjectionOwnerGeometry();
     this.host.scheduleRender();
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   };
 
   private readonly handleVisualGfxSubgraphMove = (event: PointerEvent) => {
@@ -1033,7 +1047,7 @@ export class MermaidGfxSessionController {
           deferUpdate: true,
         },
       );
-    this.host.requestUpdate();
+    this.notifyStateChanged();
     const visualModel = this.host.getMermaidVisualModelForEditing();
     const descendants = new Set<string>();
     const visit = (parentId: string) => {
@@ -1115,7 +1129,7 @@ export class MermaidGfxSessionController {
     }
     if (subgraphId) this.host.commitProjectionOwnerGeometry();
     this.host.scheduleRender();
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   };
 
   private readonly handleVisualGfxSubgraphResize = (event: PointerEvent) => {
@@ -1170,7 +1184,7 @@ export class MermaidGfxSessionController {
         { width, height },
       );
       this.host.refreshRenderer?.();
-      this.host.requestUpdate();
+      this.notifyStateChanged();
       return;
     }
     this.host.applyGfxMutation(
@@ -1190,7 +1204,7 @@ export class MermaidGfxSessionController {
         deferUpdate: true,
       },
     );
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   };
 
   private readonly handleVisualGfxSubgraphResizeEnd = () => {
@@ -1208,7 +1222,7 @@ export class MermaidGfxSessionController {
       this.host.selectVisualSubgraph(subgraphId);
     }
     this.host.scheduleRender();
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   };
 
   private readonly handleVisualViewportResizePointerMove = (
@@ -1225,7 +1239,7 @@ export class MermaidGfxSessionController {
 
   private readonly handleVisualViewportResizePointerUp = () => {
     this.stopMermaidVisualViewportResize();
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   };
 
   private readonly handleVisualEdgeReconnectPointerUp = (
@@ -1275,7 +1289,7 @@ export class MermaidGfxSessionController {
     );
     if (!applied) return;
     this.host.applyVisualSelectionPatch(selectMermaidGfxEdgePatch(edgeId));
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   };
 
   private readonly handleVisualEdgeReconnectPointerMove = (
@@ -1341,14 +1355,14 @@ export class MermaidGfxSessionController {
       targetHandle,
       targetNodeId,
     });
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   }
 
   private updateVisualNodeConnectionPreview(clientX: number, clientY: number) {
     const sourceNodeId = this.connectVisualNodeSourceId;
     if (!sourceNodeId) {
       this.connectVisualNodePreview = null;
-      this.host.requestUpdate();
+      this.notifyStateChanged();
       return;
     }
 
@@ -1369,7 +1383,7 @@ export class MermaidGfxSessionController {
       targetHandle,
       targetNodeId,
     });
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   }
 
   private applyVisualConnectionResultSelection(edgeId: string) {
@@ -1384,7 +1398,7 @@ export class MermaidGfxSessionController {
         nodeOrder: [],
       }),
     );
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   }
 
   private nearestConnectionHandle(
@@ -1517,6 +1531,6 @@ export class MermaidGfxSessionController {
       "pointerup",
       this.handleVisualEdgeReconnectPointerUp,
     );
-    this.host.requestUpdate();
+    this.notifyStateChanged();
   }
 }

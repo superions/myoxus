@@ -16,5 +16,7 @@
   "eventFallback": "Termin ohne Titel",
   "documentFallback": "Dokument ohne Titel",
   "workspaceFallback": "Workspace",
-  "rowFallback": "Eintrag ohne Titel"
+  "rowFallback": "Eintrag ohne Titel",
+  "keyFallback": "MCP-API-Key",
+  "noExpiration": "Kein Ablaufdatum"
 }

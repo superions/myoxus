@@ -26,13 +26,7 @@ import type { HoverMiddleware, WhenHoverOptions } from "./types.js";
  *     document.body.append(hoverTip);
  *     setFloating(hoverTip);
  *   }, { hoverDelay: 500 });
- *   this._setReference = setReference;
- * }
- *
- * render() {
- *   return html`
- *     <div ref=${this._setReference}></div>
- *   `;
+ *   setReference(referenceElement);
  * }
  * ```
  */

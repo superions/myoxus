@@ -183,7 +183,7 @@ impl SqlxTemplateRegistryStore {
       LIMIT $10
     "#
     );
-    let rows = sqlx::query(&sql)
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(query.workspace_id)
       .bind(&query.filter.source_doc_id)
       .bind(query.filter.kind.map(|kind| match kind {

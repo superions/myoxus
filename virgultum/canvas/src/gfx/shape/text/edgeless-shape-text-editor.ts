@@ -274,7 +274,7 @@ export class EdgelessShapeTextEditor extends CanvasTextOverlay {
     if (!container) return;
 
     // VLine owns hard line boundaries. The enclosing textContent concatenates
-    // lines and includes Lit whitespace around empty caret placeholders; it is
+    // lines and includes whitespace around empty caret placeholders; it is
     // not a serialization of authored text. Keep the existing DOM-ahead-of-Y.Text
     // handoff, reading visible lines without treating an empty line as content.
     const lines = Array.from(container.querySelectorAll("v-line"));

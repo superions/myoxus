@@ -33,6 +33,7 @@ pub mod git_sync_engine;
 pub mod graphql;
 pub mod handlers;
 pub mod logging;
+pub mod mcp_api_key_notification;
 pub mod metrics_worker;
 pub mod organization;
 pub mod pdf_export_adapter;

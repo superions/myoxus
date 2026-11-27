@@ -5,6 +5,7 @@ use std::sync::{
 
 use client_schema::get_migrator;
 use memory_indexer::InMemoryIndex;
+use sqlx::SqlSafeStr as _;
 use sqlx::{
   Pool, Row,
   migrate::{MigrateDatabase, Migration, Migrator},
@@ -136,12 +137,12 @@ impl SqliteDocStorage {
     // sqlx computes the checksum as SHA-384 of the raw SQL bytes. The legacy
     // variant had an extra trailing space at the end of the SQL string (after
     // the final newline).
-    let legacy_sql = format!("{} ", migration.sql);
+    let legacy_sql = format!("{} ", migration.sql.as_str());
     let legacy_migration = Migration::new(
       migration.version,
       migration.description.clone(),
       migration.migration_type,
-      std::borrow::Cow::Owned(legacy_sql),
+      sqlx::AssertSqlSafe(legacy_sql).into_sql_str(),
       migration.no_tx,
     );
 
@@ -232,12 +233,12 @@ mod tests {
     assert_eq!(mig3.version, 3);
     assert_eq!(mig3.description.as_ref(), "add_idx_snapshots");
 
-    let legacy_sql = format!("{} ", mig3.sql);
+    let legacy_sql = format!("{} ", mig3.sql.as_str());
     migrations[2] = Migration::new(
       mig3.version,
       mig3.description.clone(),
       mig3.migration_type,
-      Cow::Owned(legacy_sql),
+      sqlx::AssertSqlSafe(legacy_sql).into_sql_str(),
       mig3.no_tx,
     );
 

@@ -473,11 +473,11 @@ async fn comment_intent_failure_rolls_back_comment_and_outbox() {
   let suffix = Uuid::new_v4().simple().to_string();
   let function = format!("dnot_fail_{suffix}");
   let trigger = format!("dnot_trigger_{suffix}");
-  sqlx::query(&format!("CREATE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.payload->>'authorId'='{actor}' THEN RAISE EXCEPTION 'owned comment intent failure'; END IF; RETURN NEW; END $$"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.payload->>'authorId'='{actor}' THEN RAISE EXCEPTION 'owned comment intent failure'; END IF; RETURN NEW; END $$")))
     .execute(&pool).await.expect("owned failure function");
-  sqlx::query(&format!(
+  sqlx::query(sqlx::AssertSqlSafe(format!(
     "CREATE TRIGGER {trigger} BEFORE INSERT ON outbox_events FOR EACH ROW EXECUTE FUNCTION {function}()"
-  ))
+  )))
   .execute(&pool)
   .await
   .expect("owned failure trigger");
@@ -500,11 +500,11 @@ async fn comment_intent_failure_rolls_back_comment_and_outbox() {
     assert_eq!(comments, 0);
     assert_eq!(after, before, "the failed comment must leave the workspace outbox untouched");
   }).catch_unwind().await;
-  sqlx::query(&format!("DROP TRIGGER {trigger} ON outbox_events"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger} ON outbox_events")))
     .execute(&pool)
     .await
     .expect("trigger cleanup");
-  sqlx::query(&format!("DROP FUNCTION {function}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {function}()")))
     .execute(&pool)
     .await
     .expect("function cleanup");

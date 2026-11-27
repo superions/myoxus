@@ -120,9 +120,9 @@ async fn inv_user_partial_creation_retains_uncertain_admission_without_repair() 
   let trigger = format!("mcp_partial_{}", Uuid::new_v4().simple());
   let outcome = AssertUnwindSafe(async {
     // Fail precisely after account/workspace commit, before the usable root.
-    sqlx::query(&format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF EXISTS(SELECT 1 FROM workspaces w JOIN users u ON u.id=w.owner_user_id WHERE w.id=NEW.workspace_id AND u.email='{email}') THEN RAISE EXCEPTION 'private-root-failure-sentinel'; END IF; RETURN NEW; END $$"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF EXISTS(SELECT 1 FROM workspaces w JOIN users u ON u.id=w.owner_user_id WHERE w.id=NEW.workspace_id AND u.email='{email}') THEN RAISE EXCEPTION 'private-root-failure-sentinel'; END IF; RETURN NEW; END $$")))
       .execute(&pool).await.unwrap();
-    sqlx::query(&format!("CREATE TRIGGER {trigger} BEFORE INSERT ON doc_updates FOR EACH ROW EXECUTE FUNCTION {trigger}()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {trigger} BEFORE INSERT ON doc_updates FOR EACH ROW EXECUTE FUNCTION {trigger}()")))
       .execute(&pool).await.unwrap();
     let token = key(&app,session,&["read:users","write:users"]).await;
     let input = json!({"email":email,"name":"Partial","idempotency_key":"partial"});
@@ -139,11 +139,13 @@ async fn inv_user_partial_creation_retains_uncertain_admission_without_repair() 
     let pending:i64=sqlx::query_scalar("SELECT count(*) FROM mcp_idempotency_keys WHERE user_id=$1 AND tool_name='user_create'").bind(admin).fetch_one(&pool).await.unwrap();
     assert_eq!(pending,2,"uncertain and duplicate admissions stay fail-closed");
   }).catch_unwind().await;
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger} ON doc_updates"))
-    .execute(&pool)
-    .await
-    .expect("remove failure trigger");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {trigger}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {trigger} ON doc_updates"
+  )))
+  .execute(&pool)
+  .await
+  .expect("remove failure trigger");
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {trigger}()")))
     .execute(&pool)
     .await
     .expect("remove failure function");

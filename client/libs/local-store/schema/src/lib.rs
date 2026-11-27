@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use sqlx::SqlSafeStr as _;
 use sqlx::migrate::{Migration, MigrationType, Migrator};
 
 type SimpleMigration = (
@@ -110,7 +111,7 @@ pub fn get_migrator() -> Migrator {
       } else {
         MigrationType::Simple
       },
-      Cow::from(up),
+      up.into_sql_str(),
       false,
     ));
 
@@ -119,7 +120,7 @@ pub fn get_migrator() -> Migrator {
         migrations.len() as i64 + 1,
         Cow::from(name),
         MigrationType::ReversibleDown,
-        Cow::from(down),
+        down.into_sql_str(),
         false,
       ));
     }

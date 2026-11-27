@@ -1,6 +1,6 @@
 [Unit]
 Description=Myoxus API Server
-After=network-online.target postgresql.service redis-server.service
+After=network-online.target postgresql.service valkey.service valkey-server.service redis-server.service
 Wants=network-online.target
 
 [Service]

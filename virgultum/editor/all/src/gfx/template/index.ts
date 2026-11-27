@@ -6,7 +6,7 @@ export {
   createTemplateJob,
   TemplateTool,
   templateSeniorTool,
-  EdgelessTemplatePanel,
+  builtInTemplates,
   type Template,
   type TemplateCategory,
   type TemplateManager,

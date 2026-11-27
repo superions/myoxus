@@ -19,8 +19,12 @@ import type { EditorHost } from "@virgultum/editor/std";
 import type { ReactNode } from "react";
 
 import type { DocDisplayConfig } from "../ai-chat-chips";
-import type { StreamObject } from "../ai-chat-messages";
+import type { CopilotGeneratedFile, StreamObject } from "../ai-chat-messages";
 import { ArtifactCardView } from "../ai-tools/artifact-view";
+import {
+  CREATE_FILE_TOOL_NAME,
+  CreateFileToolView,
+} from "../ai-tools/create-file-tool";
 import { renderNativeMcpTool } from "../ai-tools/native-mcp-tools";
 import {
   StoredDocumentEdit,
@@ -137,6 +141,9 @@ export function StoredToolView({
   independentMode,
   onOpenDoc,
   notificationService,
+  messageId,
+  generatedFiles,
+  downloadSavedFile,
 }: {
   data: Tool;
   host?: EditorHost | null;
@@ -149,6 +156,12 @@ export function StoredToolView({
   docDisplayService?: DocDisplayConfig;
   peekViewService?: PeekViewService;
   renderRichText: (text: string) => ReactNode;
+  messageId?: string;
+  generatedFiles?: readonly CopilotGeneratedFile[];
+  downloadSavedFile?: (
+    file: CopilotGeneratedFile,
+    current: () => boolean,
+  ) => Promise<void>;
 }) {
   const open = peekViewService
     ? (docId: string) => {
@@ -163,6 +176,17 @@ export function StoredToolView({
   const result = record(raw);
   const query = text(data.args.query);
   switch (data.toolName) {
+    case CREATE_FILE_TOOL_NAME:
+      return (
+        <CreateFileToolView
+          data={data}
+          generating={!!generating}
+          contained={!independentMode}
+          messageId={messageId}
+          generatedFiles={generatedFiles}
+          downloadSavedFile={downloadSavedFile}
+        />
+      );
     case "read_doc":
     case "search_docs":
     case "workspace_get":

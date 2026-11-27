@@ -306,14 +306,12 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
       .getByRole("radio", { name: "Edgeless", exact: true })
       .locator("..")
       .click();
-    const quickTool = page.getByTestId("myoxus-bpmn-edgeless-toolbar-button");
-    await quickTool.click();
-    const viewport = await page.locator("myoxus-edgeless-root").boundingBox();
-    if (!viewport) throw new Error("Edgeless viewport has no rendered bounds");
-    await page.mouse.click(
-      viewport.x + viewport.width * 0.65,
-      viewport.y + viewport.height * 0.3,
-    );
+    await expect(
+      page.getByTestId("myoxus-bpmn-edgeless-toolbar-button"),
+    ).toHaveCount(0);
+    await page.getByTestId("myoxus-mermaid-edgeless-toolbar-button").click();
+    await page.getByRole("menuitem", { name: /^Processes$/i }).hover();
+    await page.getByTestId("myoxus-diagram-edgeless-template-bpmn").click();
     await expect(dialog.locator(".react-flow")).toBeVisible();
     await expect(page.locator("myoxus-bpmn")).toHaveCount(2);
     await expect(

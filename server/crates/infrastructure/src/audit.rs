@@ -95,7 +95,7 @@ impl AuditLogStore for PgAuditLogStore {
   #[instrument(skip(self), level = "debug")]
   async fn list(&self, filter: AuditFilter, skip: i64, take: i64) -> Result<Vec<AuditEntry>, AuditError> {
     let (sql, params) = build_list_query(&filter, skip, take);
-    let mut q = sqlx::query(&sql);
+    let mut q = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()));
     for p in &params {
       q = bind_param(q, p);
     }
@@ -115,7 +115,7 @@ impl AuditLogStore for PgAuditLogStore {
   #[instrument(skip(self), level = "debug")]
   async fn count(&self, filter: AuditFilter) -> Result<i64, AuditError> {
     let (sql, params) = build_count_query(&filter);
-    let mut q = sqlx::query_scalar::<_, i64>(&sql);
+    let mut q = sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql.as_str()));
     for p in &params {
       q = bind_scalar_param(q, p);
     }
@@ -165,7 +165,7 @@ impl DocumentAuditProjectionStore for PgAuditLogStore {
   }
 }
 
-fn document_audit_base_query(count_only: bool) -> QueryBuilder<'static, Postgres> {
+fn document_audit_base_query(count_only: bool) -> QueryBuilder<Postgres> {
   let select = if count_only {
     "SELECT COUNT(*)::BIGINT"
   } else {
@@ -264,7 +264,7 @@ WITH document_audit AS (
   query
 }
 
-fn append_document_audit_filters(query: &mut QueryBuilder<'_, Postgres>, filter: &DocumentAuditFilter) {
+fn append_document_audit_filters(query: &mut QueryBuilder<Postgres>, filter: &DocumentAuditFilter) {
   query.push(" WHERE true");
   if let Some(groups) = filter.groups.as_ref().filter(|groups| !groups.is_empty()) {
     query.push(" AND group_key = ANY(").push_bind(groups.clone()).push(")");

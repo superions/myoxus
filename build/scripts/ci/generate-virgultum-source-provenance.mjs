@@ -30,14 +30,9 @@ const EMBEDDED_LICENSES = new Map([
   ["virgultum/canvas-runtime/src/utils/rough/LICENSE", "MIT"],
   ["virgultum/core/src/primitives/gfx/perfect-freehand/LICENSE", "MIT"],
   ["virgultum/icons/THIRD_PARTY_LICENSES.md", "MIT"],
-  ["virgultum/provenance/LICENSE-LIT-BSD-3-Clause.txt", "BSD-3-Clause"],
   ["virgultum/provenance/LICENSE-FIGMA-SQUIRCLE-MIT.txt", "MIT"],
   ["virgultum/provenance/LICENSE-GFM-AUTOLINK-MIT.txt", "MIT"],
 ]);
-const LIT_SOURCES = [
-  "virgultum/core/src/primitives/lit/signal-watcher.ts",
-  "virgultum/core/src/primitives/lit/watch.ts",
-];
 
 function isPublicExportExcluded(path) {
   return path.startsWith("virgultum/icons/dist/");
@@ -151,22 +146,6 @@ export function generateVirgultumProvenance(repoRoot = REPO_ROOT) {
           : undefined,
       ),
     );
-  const litSources = LIT_SOURCES.filter((path) => files.includes(path));
-  if (litSources.length > 0) {
-    // Keep the BSD text beside the inventory: a directory-level LICENSE in
-    // src/lit would incorrectly imply BSD licensing for unrelated siblings.
-    embeddedComponents.push(
-      licenseNotice(
-        repoRoot,
-        "virgultum/provenance/LICENSE-LIT-BSD-3-Clause.txt",
-        {
-          paths: litSources,
-          upstreamUrl:
-            "https://github.com/lit/lit/blob/16507ef656417c9c53a55a02a44a563bbbf2c484/packages/labs/preact-signals/LICENSE",
-        },
-      ),
-    );
-  }
   for (const entry of [
     {
       license: "virgultum/provenance/LICENSE-FIGMA-SQUIRCLE-MIT.txt",

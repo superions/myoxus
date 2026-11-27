@@ -1464,17 +1464,19 @@ export function XyFlowReactKieDiagram<
           }
         });
 
-        onNodesChange([
-          {
-            type: "position",
-            positionAbsolute: {
-              x: position.x,
-              y: position.y,
+        onNodesChange(
+          new RF.NodeChangeset([
+            {
+              type: "position",
+              positionAbsolute: {
+                x: position.x,
+                y: position.y,
+              },
+              id: xyFlowReactKieDiagramStoreApi.getState().xyFlowReactKieDiagram
+                .newNodeProjection!.id,
             },
-            id: xyFlowReactKieDiagramStoreApi.getState().xyFlowReactKieDiagram
-              .newNodeProjection!.id,
-          },
-        ]);
+          ]),
+        );
       }
     },
     [
@@ -1514,13 +1516,15 @@ export function XyFlowReactKieDiagram<
         if (s.xyFlowReactKieDiagram.newNodeProjection)
           s.xyFlowReactKieDiagram.newNodeProjection.hidden = false;
       });
-      onNodesChange([
-        {
-          type: "position",
-          id: projection.id,
-          positionAbsolute: { x: snapped["@_x"], y: snapped["@_y"] },
-        },
-      ]);
+      onNodesChange(
+        new RF.NodeChangeset([
+          {
+            type: "position",
+            id: projection.id,
+            positionAbsolute: { x: snapped["@_x"], y: snapped["@_y"] },
+          },
+        ]),
+      );
     },
     [
       reactFlowInstance,
@@ -1851,8 +1855,11 @@ export function XyFlowReactKieDiagram<
         // fitBounds uses the store's zoom range, not fitViewOptions. Its native
         // 50% floor clips large accepted sources; bound only at numeric precision.
         minZoom={Number.EPSILON}
-        className="myoxus-bpmn-diagram"
-        colorMode={colorMode}
+        className={
+          colorMode === "dark"
+            ? "myoxus-bpmn-diagram dark"
+            : "myoxus-bpmn-diagram light"
+        }
         connectionMode={RF.ConnectionMode.Loose} // Allow target handles to be used as source. This is very important for allowing the positional handles to be updated for the base of an edge.
         onKeyDownCapture={handleRfKeyDownCapture} // Override Reactflow's keyboard listeners.
         onEdgeContextMenu={(event, edge) => {
@@ -2056,9 +2063,10 @@ export function SetConnectionToReactFlowStore() {
   const ongoingConnection = useXyFlowReactKieDiagramStore(
     (s) => s.xyFlowReactKieDiagram.ongoingConnection,
   );
-  const xyFlowStoreApi = RF.useStoreApi();
+  const xyFlowStoreApi = RF.useReactFlowStoreApi();
   useEffect(() => {
-    if (!ongoingConnection) xyFlowStoreApi.getState().cancelConnection();
+    if (!ongoingConnection)
+      xyFlowStoreApi.optionsStore.getState().cancelConnection();
   }, [ongoingConnection, xyFlowStoreApi]);
 
   return null;

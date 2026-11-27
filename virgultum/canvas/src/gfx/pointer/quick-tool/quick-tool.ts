@@ -5,15 +5,11 @@ import {
   editorMessage,
   resolveEditorMessage,
 } from "@virgultum/core/services";
-import {
-  EDGELESS_TOOLBAR_WIDGET,
-  QuickToolExtension,
-  type EdgelessToolbarWidget,
-} from "../../../widgets/edgeless-toolbar/index";
+import { QuickToolExtension } from "../../../widgets/edgeless-toolbar/index";
 
 export const defaultQuickTool = QuickToolExtension(
   "default",
-  ({ block, gfx }) => {
+  ({ block, gfx, closeActivePopover }) => {
     const mode = gfx.tool.currentToolName$.peek();
     const hand = mode === "pan";
     return {
@@ -38,10 +34,8 @@ export const defaultQuickTool = QuickToolExtension(
             shortcut: hand ? "H" : "V",
             active: hand || mode === "default",
             disabled: false,
-            run: (element) => {
-              element
-                ?.closest<EdgelessToolbarWidget>(EDGELESS_TOOLBAR_WIDGET)
-                ?.activePopper?.dispose();
+            run: () => {
+              closeActivePopover();
               const current = gfx.tool.currentToolName$.peek();
               if (
                 current === "default" ||

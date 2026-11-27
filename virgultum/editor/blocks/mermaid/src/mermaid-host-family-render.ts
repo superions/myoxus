@@ -14,11 +14,34 @@ import {
 } from "./families/runtime/session-state.js";
 
 export abstract class MermaidHostFamilyRender extends MermaidHostGfxRender {
-  protected _familyActionTarget: HTMLElement | null = null;
-  protected _familyHeaderActionTarget: HTMLElement | null = null;
-  private _familySelectionAction: MermaidSelectionActionModel | null = null;
-  protected _familyTitlePresentationPreview: MermaidTitlePresentation | null =
-    null;
+  protected get _familyActionTarget() {
+    return this._hostState.familyActionTarget$.value;
+  }
+  protected set _familyActionTarget(value: HTMLElement | null) {
+    this._hostState.familyActionTarget$.value = value;
+  }
+  protected get _familyHeaderActionTarget() {
+    return this._hostState.familyHeaderActionTarget$.value;
+  }
+  protected set _familyHeaderActionTarget(value: HTMLElement | null) {
+    this._hostState.familyHeaderActionTarget$.value = value;
+  }
+  private get _familySelectionAction() {
+    return this._hostState.familySelectionAction$.value;
+  }
+  private set _familySelectionAction(
+    value: MermaidSelectionActionModel | null,
+  ) {
+    this._hostState.familySelectionAction$.value = value;
+  }
+  protected get _familyTitlePresentationPreview() {
+    return this._hostState.familyTitlePresentationPreview$.value;
+  }
+  protected set _familyTitlePresentationPreview(
+    value: MermaidTitlePresentation | null,
+  ) {
+    this._hostState.familyTitlePresentationPreview$.value = value;
+  }
   private readonly _familyTransientState = new Map<string, unknown>();
   private _pageSelectionActionInvoker: (() => void) | null = null;
 
@@ -33,7 +56,6 @@ export abstract class MermaidHostFamilyRender extends MermaidHostGfxRender {
   protected _handleFamilyActionTargetChange = (target: HTMLElement | null) => {
     if (this._familyActionTarget === target) return;
     this._familyActionTarget = target;
-    this.requestUpdate();
   };
 
   protected _handleFamilyHeaderActionTargetChange = (
@@ -41,7 +63,6 @@ export abstract class MermaidHostFamilyRender extends MermaidHostGfxRender {
   ) => {
     if (this._familyHeaderActionTarget === target) return;
     this._familyHeaderActionTarget = target;
-    this.requestUpdate();
   };
 
   private _setFamilyTitlePresentationPreview = (
@@ -49,7 +70,6 @@ export abstract class MermaidHostFamilyRender extends MermaidHostGfxRender {
   ) => {
     if (this._familyTitlePresentationPreview === presentation) return;
     this._familyTitlePresentationPreview = presentation;
-    this.requestUpdate();
   };
 
   private _handleFamilySelectionActionChange = (
@@ -57,7 +77,6 @@ export abstract class MermaidHostFamilyRender extends MermaidHostGfxRender {
   ) => {
     if (this._familySelectionAction === action) return;
     this._familySelectionAction = action;
-    this.requestUpdate();
   };
 
   protected _handleFamilySelectionAction() {

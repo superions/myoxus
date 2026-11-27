@@ -69,9 +69,9 @@ export function OutgoingStuffNodePanel<
   const dragging = useXyFlowReactKieDiagramStore(
     (s) => !!s.xyFlowReactKieDiagram.ongoingConnection,
   );
-  const connectable = RF.useStore((s) => s.nodesConnectable);
+  const connectable = RF.useOptionsStore((s) => s.nodesConnectable);
   const selected = RF.useInternalNode(props.nodeHref)?.selected;
-  const singleSelection = RF.useStore(
+  const singleSelection = RF.useNodesStore(
     (s) => s.nodes.filter((node) => node.selected).length === 1,
   );
   const visible = !!selected && singleSelection && !dragging;

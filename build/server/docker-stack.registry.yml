@@ -60,15 +60,14 @@ services:
           memory: ${POSTGRES_MEMORY_LIMIT:-4G}
 
   redis:
-    image: redis:${REDIS_IMAGE_TAG:-8}
+    image: ${REDIS_IMAGE:-valkey/valkey:${REDIS_IMAGE_TAG:-9}}
     command:
-      - redis-server
       - --appendonly
       - "yes"
       - --save
       - ""
     healthcheck:
-      test: [CMD, redis-cli, ping]
+      test: [CMD-SHELL, "valkey-cli ping 2>/dev/null || redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 20

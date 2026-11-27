@@ -3,5 +3,8 @@ export * from "./brush-tool";
 export * from "./eraser-tool";
 export * from "./highlighter-tool";
 export * from "./renderer";
+export * from "./toolbar/components/eraser/icons";
+export * from "./toolbar/components/pen/consts";
+export * from "./toolbar/components/pen/types";
 export * from "./toolbar/configs";
 export * from "./toolbar/senior-tool";

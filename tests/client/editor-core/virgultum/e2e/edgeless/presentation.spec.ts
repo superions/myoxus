@@ -93,7 +93,7 @@ test.describe("presentation", () => {
 
     await enterPresentationMode(page);
 
-    await page.locator(".edgeless-frame-order-button").click();
+    await page.getByTestId("presentation-frame-order").click();
     const frameItems = page.locator(
       '[data-testid="presentation-frame-order-list"] [data-frame-order-id][draggable="true"]',
     );
@@ -126,7 +126,7 @@ test.describe("presentation", () => {
     await expect(frameItems.nth(2)).toHaveText("Frame 1");
     await expect(frameItems.nth(3)).toHaveText("Frame 2");
 
-    const currentFrame = page.locator(".edgeless-frame-navigator-title");
+    const currentFrame = page.getByTestId("presentation-frame-title");
     const nextButton = locatorPresentationToolbarButton(page, "next");
 
     await expect(currentFrame).toHaveText("Frame 3");
@@ -153,7 +153,7 @@ test.describe("presentation", () => {
     await pasteByKeyboard(page);
 
     await enterPresentationMode(page);
-    await page.locator(".edgeless-frame-order-button").click();
+    await page.getByTestId("presentation-frame-order").click();
     const frameItems = page.locator(
       '[data-testid="presentation-frame-order-list"] [data-frame-order-id][draggable="true"]',
     );

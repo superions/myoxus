@@ -22237,6 +22237,8 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.ai.tools.search-documents"](): string;
   /** Read workspace */
   ["com.myoxus.ai.tools.read-workspace"](): string;
+  /** Create file */
+  ["com.myoxus.ai.tools.create-file"](): string;
   /** Action failed: {{tool}} */
   ["com.myoxus.ai.tools.failed"](options: { readonly ["tool"]: string; }): string;
   /** Page report */

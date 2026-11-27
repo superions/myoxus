@@ -102,7 +102,7 @@ test.describe("add a frame", () => {
     await createThreeShapesAndSelectTowShape(page);
     await autoFit(page);
     await setEdgelessTool(page, "frame");
-    const frameMenu = page.locator("edgeless-frame-menu");
+    const frameMenu = page.getByTestId("canvas-frame-menu");
     await expect(frameMenu).toBeVisible();
     const button = page.getByTestId("canvas-frame-1:1");
     await button.click();

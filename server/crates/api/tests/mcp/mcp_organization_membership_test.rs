@@ -27,14 +27,14 @@ async fn inv_mcp_memberships_share_atomic_capability_audit_and_preconditions() {
     for args in [json!({"unit_id":first,"user_id":target,"role":"manager"}), json!({"unit_id":first,"user_id":target,"role":"owner","idempotency_key":"bad-role"}), json!({"unit_id":first,"user_id":target,"role":"member","metadata":{},"idempotency_key":"extra"})] {
       invoke(&app, &token, "organization_unit_member_add", args, false).await;
     }
-    sqlx::query(&format!("CREATE FUNCTION {fault}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.user_id = '{target}'::uuid THEN RAISE EXCEPTION 'owned capability failure'; END IF; RETURN NEW; END $$")).execute(&pool).await.unwrap();
-    sqlx::query(&format!("CREATE TRIGGER {fault} AFTER INSERT OR UPDATE ON organization_unit_member FOR EACH ROW EXECUTE FUNCTION {fault}()")).execute(&pool).await.unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {fault}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.user_id = '{target}'::uuid THEN RAISE EXCEPTION 'owned capability failure'; END IF; RETURN NEW; END $$"))).execute(&pool).await.unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {fault} AFTER INSERT OR UPDATE ON organization_unit_member FOR EACH ROW EXECUTE FUNCTION {fault}()"))).execute(&pool).await.unwrap();
     invoke(&app, &token, "organization_unit_member_add", json!({"unit_id":first,"user_id":target,"role":"manager","idempotency_key":"rollback"}), false).await;
     assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM organization_unit_member WHERE user_id=$1").bind(target).fetch_one(&pool).await.unwrap(),0);
     assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM user_features WHERE user_id=$1 AND feature_name='manager'").bind(target).fetch_one(&pool).await.unwrap(),0);
     assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM admin_audit_log WHERE target_unit_id=$1 AND event_key='organization.member.assign'").bind(first).fetch_one(&pool).await.unwrap(),0);
-    sqlx::query(&format!("DROP TRIGGER {fault} ON organization_unit_member")).execute(&pool).await.unwrap();
-    sqlx::query(&format!("DROP FUNCTION {fault}()")).execute(&pool).await.unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {fault} ON organization_unit_member"))).execute(&pool).await.unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {fault}()"))).execute(&pool).await.unwrap();
     let features = helpers::gql(&app, session,json!({"query":"query($id:String!){admin{userById(id:$id){features}}}","variables":{"id":target}})).await;
     assert!(!features["data"]["admin"]["userById"]["features"].as_array().unwrap().contains(&json!("Manager")));
     let saved = invoke(&app, &token,"organization_unit_member_add",add.clone(),true).await;
@@ -66,11 +66,13 @@ async fn inv_mcp_memberships_share_atomic_capability_audit_and_preconditions() {
     let denied=invoke(&app,&token,"organization_unit_member_add",add,false).await;assert_eq!(denied["code"],"PERMISSION_DENIED","fresh authorization precedes replay");
     let (_, discovery)=request(&app,&reader,"tools/list",json!({})).await;assert!(discovery["result"]["tools"].as_array().unwrap().iter().all(|t|t["name"]!="organization_unit_member_add"));
   }).catch_unwind().await;
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {fault} ON organization_unit_member"))
-    .execute(&pool)
-    .await
-    .expect("cleanup owned trigger");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {fault}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {fault} ON organization_unit_member"
+  )))
+  .execute(&pool)
+  .await
+  .expect("cleanup owned trigger");
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {fault}()")))
     .execute(&pool)
     .await
     .expect("cleanup owned function");

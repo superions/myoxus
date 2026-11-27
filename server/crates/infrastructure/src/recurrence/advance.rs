@@ -11,7 +11,7 @@ pub(crate) async fn advance_completed_member_in(
   row_id: DatabaseRowId,
 ) -> RepoResult<()> {
   let rows = crate::workspace_database::DATABASE_ROWS_TABLE;
-  let candidates: Vec<(Uuid,Uuid)> = sqlx::query_as(&format!("SELECT m.id,m.series_id FROM task_recurrence_members m JOIN task_recurrence_series s ON s.id=m.series_id JOIN {rows} r ON r.id=m.row_id WHERE m.row_id=$1 AND r.row_kind='task' AND r.deleted_at IS NULL AND s.current_member_id=m.id AND m.advanced_at IS NULL ORDER BY m.series_id"))
+  let candidates: Vec<(Uuid,Uuid)> = sqlx::query_as(sqlx::AssertSqlSafe(format!("SELECT m.id,m.series_id FROM task_recurrence_members m JOIN task_recurrence_series s ON s.id=m.series_id JOIN {rows} r ON r.id=m.row_id WHERE m.row_id=$1 AND r.row_kind='task' AND r.deleted_at IS NULL AND s.current_member_id=m.id AND m.advanced_at IS NULL ORDER BY m.series_id")))
     .bind(row_id).fetch_all(&mut **tx).await.map_err(storage)?;
   for (member, series) in candidates {
     let plan = sqlx::query("SELECT * FROM scheduling_schedules WHERE id=$1 FOR UPDATE NOWAIT")
@@ -118,7 +118,7 @@ pub(crate) async fn lock_completion_source_in(tx: &mut PgConnection, run: &Accep
     return Ok(());
   };
   let table = crate::workspace_database::DATABASE_ROWS_TABLE;
-  let source: Option<Uuid> = sqlx::query_scalar(&format!("SELECT d.workspace_id FROM task_recurrence_members m JOIN {table} r ON r.id=m.row_id JOIN workspace_databases d ON d.id=r.database_id WHERE m.id=$1 AND m.series_id=$2 AND m.successor_occurrence_id=$3 AND m.advanced_at IS NOT NULL AND r.row_kind='task' AND r.deleted_at IS NULL AND d.deleted_at IS NULL FOR SHARE OF m,r,d NOWAIT"))
+  let source: Option<Uuid> = sqlx::query_scalar(sqlx::AssertSqlSafe(format!("SELECT d.workspace_id FROM task_recurrence_members m JOIN {table} r ON r.id=m.row_id JOIN workspace_databases d ON d.id=r.database_id WHERE m.id=$1 AND m.series_id=$2 AND m.successor_occurrence_id=$3 AND m.advanced_at IS NOT NULL AND r.row_kind='task' AND r.deleted_at IS NULL AND d.deleted_at IS NULL FOR SHARE OF m,r,d NOWAIT")))
     .bind(cause).bind(task.series_id).bind(task.occurrence_id).fetch_optional(&mut *tx).await.map_err(storage)?;
   crate::workflow_runtime::effects::lock_runtime_read_authority(
     tx,

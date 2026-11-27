@@ -766,7 +766,7 @@ export function DocumentFieldInline({
           returnFocus={false}
           onExitTransitionEnd={() => {
             // Commit only after the dialog releases focus; updating the Y.Text
-            // can replace this Lit host and would otherwise strand focus on body.
+            // can replace this native host and would otherwise strand focus on body.
             const pending = pendingDefinition.current;
             pendingDefinition.current = null;
             if (

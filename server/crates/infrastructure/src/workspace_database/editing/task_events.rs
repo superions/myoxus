@@ -14,7 +14,7 @@ impl PgDatabaseRepository {
       return Ok(());
     }
     let fields = DATABASE_FIELDS_TABLE;
-    let role = sqlx::query(&format!("SELECT r.field_id,f.config_json FROM database_field_roles r JOIN {fields} f ON f.id=r.field_id AND f.database_id=r.database_id WHERE r.database_id=$1 AND r.profile_kind='project' AND r.row_kind_scope='task' AND r.role_key='task.status' AND f.field_type='status'"))
+    let role = sqlx::query(sqlx::AssertSqlSafe(format!("SELECT r.field_id,f.config_json FROM database_field_roles r JOIN {fields} f ON f.id=r.field_id AND f.database_id=r.database_id WHERE r.database_id=$1 AND r.profile_kind='project' AND r.row_kind_scope='task' AND r.role_key='task.status' AND f.field_type='status'")))
       .bind(database).fetch_optional(&mut **tx).await.map_err(Self::map_sqlx_error)?;
     let Some(role) = role else {
       return Ok(());

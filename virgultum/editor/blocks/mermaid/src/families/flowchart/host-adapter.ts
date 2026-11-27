@@ -474,7 +474,7 @@ function projectFlowchartActions(context: MermaidGfxActionContext) {
   const body = renderProjection("surface") ?? context.workarea;
   // Embedded Edgeless consumes the typed callbacks through the one local
   // surface projection above. Page action projections are neither mounted nor
-  // actionable there, so do not create their React/Lit lifecycles in parallel.
+  // actionable there, so do not create duplicate React/host lifecycles in parallel.
   if (context.displayOnly || context.embedded) {
     return {
       actions: { actions: [], portal: false },

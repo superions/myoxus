@@ -12,6 +12,7 @@ import { CopilotResponseActions } from "../../components/response-actions";
 import { ChatContentImages } from "../../components/ai-message-content/images";
 import { StoredAnswerText } from "../../components/ai-message-content/stored-answer-text";
 import { StreamObjectsView } from "../../components/ai-message-content/stream-objects";
+import { collectToolCreatedFileIds } from "../../components/ai-tools/create-file-tool";
 import type {
   ChatMessage,
   ChatStatus,
@@ -60,6 +61,14 @@ export function AssistantReply({
   );
   const reasoningFirst = parts?.[0]?.type === "reasoning";
   const activeStore = host?.store ?? pageBridge?.store;
+  const toolFileIds = collectToolCreatedFileIds(
+    parts,
+    item.id,
+    item.generatedFiles,
+  );
+  const actionFiles = item.generatedFiles?.filter(
+    (file) => !toolFileIds.has(file.id),
+  );
   const actions =
     generating || status === "loading" ? null : (
       <CopilotResponseActions
@@ -75,7 +84,7 @@ export function AssistantReply({
         }
         content={text}
         messageId={item.id}
-        generatedFiles={item.generatedFiles}
+        generatedFiles={actionFiles}
         exportable={
           !!text.trim() &&
           !activeStore?.readonly &&
@@ -109,6 +118,8 @@ export function AssistantReply({
               {...context}
               answer={parts}
               state={state}
+              messageId={item.id}
+              generatedFiles={item.generatedFiles}
               reasoningIdentity={reasoningFirst ? identity : undefined}
             />
           ) : (

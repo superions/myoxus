@@ -20,6 +20,7 @@
 // Modified by Myoxus: React 19/XYFlow 12 and direct Facade integration; see provenance.json.
 
 import { createContext, useContext } from "react";
+import { type Draft } from "immer";
 import { type StoreApi, type UseBoundStore, type Mutate } from "zustand";
 import "zustand/middleware/immer";
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -34,7 +35,15 @@ export type StoreApiType<
   N extends string,
   NData extends XyFlowReactKieDiagramNodeData<N, NData>,
   EData extends XyFlowReactKieDiagramEdgeData,
-> = UseBoundStore<Mutate<StoreApi<S>, [["zustand/immer", never]]>>;
+> = Omit<
+  UseBoundStore<Mutate<StoreApi<S>, [["zustand/immer", never]]>>,
+  "setState"
+> & {
+  setState: (
+    nextStateOrUpdater: S | Partial<S> | ((state: Draft<S>) => void),
+    shouldReplace?: false,
+  ) => void;
+};
 
 export const XyFlowReactKieDiagramStoreApiContext = createContext<StoreApiType<
   any,

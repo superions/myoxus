@@ -258,7 +258,7 @@ export abstract class MermaidHostGfxActions extends MermaidHostFamilyFields {
         this._pendingVisualSelectionProjection = null;
       }
     } else if (createdSubgraph) {
-      this.requestUpdate();
+      this._notifyProjectionChange();
     }
   };
 }

@@ -7,7 +7,7 @@ import {
 
 import type { AIItemGroupConfig } from "../../components/ai-item/types";
 import { AIProvider } from "../../provider";
-import { getAIPanelWidget } from "../../utils/ai-widgets";
+import { getAIPanelController } from "../../utils/ai-widgets";
 import { getEdgelessCopilotWidget } from "../../utils/edgeless";
 import { extractSelectedContent } from "../../utils/extract";
 import type { EdgelessCopilotWidget } from "../../widgets/edgeless-copilot";
@@ -52,7 +52,7 @@ export function edgelessToolbarAIEntryConfig(): ToolbarModuleConfig {
             return null;
 
           const handler = () => {
-            const aiPanel = getAIPanelWidget(host);
+            const aiPanel = getAIPanelController(host);
             if (aiPanel.config) {
               aiPanel.config.generateAnswer = ({ finish, input }) => {
                 finish("success");

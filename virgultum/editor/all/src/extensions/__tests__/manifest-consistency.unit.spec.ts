@@ -114,12 +114,9 @@ import { InlinePresetViewExtension } from "@virgultum/content/view";
 import { ReferenceStoreExtension } from "@virgultum/content/store";
 import { ReferenceViewExtension } from "@virgultum/content/view";
 import { DragHandleViewExtension } from "../../widgets/drag-handle/view";
-import { EdgelessAutoConnectViewExtension } from "@virgultum/canvas/view";
 import { EdgelessSelectedRectViewExtension } from "@virgultum/canvas/view";
-import { EdgelessToolbarViewExtension } from "@virgultum/canvas/view";
 import { FrameTitleViewExtension } from "@virgultum/canvas/view";
 import { LinkedDocViewExtension } from "../../widgets/linked-doc/view";
-import { NoteSlicerViewExtension } from "@virgultum/canvas/view";
 import { RemoteSelectionViewExtension } from "../../widgets/remote-selection/view";
 import { ScrollAnchoringViewExtension } from "../../widgets/scroll-anchoring/view";
 import { SlashMenuViewExtension } from "../../widgets/slash-menu/view";
@@ -225,7 +222,6 @@ const LEGACY_VIEW = [
   MentionViewExtension,
   InlinePresetViewExtension,
   DragHandleViewExtension,
-  EdgelessAutoConnectViewExtension,
   FrameTitleViewExtension,
   LinkedDocViewExtension,
   RemoteSelectionViewExtension,
@@ -234,8 +230,6 @@ const LEGACY_VIEW = [
   ToolbarViewExtension,
   ViewportOverlayViewExtension,
   EdgelessSelectedRectViewExtension,
-  NoteSlicerViewExtension,
-  EdgelessToolbarViewExtension,
   DocTitleViewExtension,
   FramePanelViewExtension,
   OutlineViewExtension,

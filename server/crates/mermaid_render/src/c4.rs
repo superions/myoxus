@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use merman::render::{HeadlessRenderer, foreign_object_label_fallback_svg_text, layout_parsed};
-use serde_json::Value;
-
 use crate::MermaidRenderError;
 
 fn header_end(source: &str) -> Option<usize> {
@@ -46,13 +43,13 @@ pub(crate) fn is_c4(source: &str) -> bool {
 }
 
 /// Merman intentionally reproduces the native accTitle→title defect. Remove only
-/// those metadata statements from this render input, then project their actual
-/// fields through the public parsed model. Persisted Source is never modified.
-fn metadata_projection(source: &str) -> Result<(String, Option<String>, Option<String>), MermaidRenderError> {
+/// `accTitle` statements from this render input so `title` stays distinct, then
+/// inject the accessible `<title>` element into the rendered SVG root.
+/// Persisted Source is never modified.
+pub(crate) fn strip_acc_title(source: &str) -> Result<(String, Option<String>), MermaidRenderError> {
   let header_end = header_end(source).ok_or(MermaidRenderError::Unsupported)?;
   let mut offset = 0;
   let mut projected = String::with_capacity(source.len());
-  let mut title = None;
   let mut acc_title = None;
   let mut quoted = false;
   let mut parentheses = 0usize;
@@ -76,7 +73,8 @@ fn metadata_projection(source: &str) -> Result<(String, Option<String>, Option<S
       if let Some(is_title) = pending_metadata {
         if !line.is_empty() {
           if is_title {
-            title = Some(line.to_owned());
+            projected.push_str("title ");
+            projected.push_str(line);
           } else {
             acc_title = Some(line.to_owned());
           }
@@ -91,10 +89,10 @@ fn metadata_projection(source: &str) -> Result<(String, Option<String>, Option<S
       {
         if rest.trim().is_empty() {
           pending_metadata = Some(true);
+          projected.push('\n');
         } else {
-          title = Some(rest.trim().to_owned());
+          projected.push_str(raw);
         }
-        projected.push('\n');
         continue;
       }
       if let Some(value) = line
@@ -141,26 +139,75 @@ fn metadata_projection(source: &str) -> Result<(String, Option<String>, Option<S
   if pending_metadata.is_some() {
     return Err(MermaidRenderError::Renderer("C4 metadata requires a value".to_owned()));
   }
-  Ok((projected, title, acc_title))
+  Ok((projected, acc_title))
 }
 
-pub(crate) fn render(source: &str, renderer: &HeadlessRenderer) -> Result<String, MermaidRenderError> {
-  let (render_source, title, acc_title) = metadata_projection(source)?;
-  let mut parsed = renderer
-    .parse_diagram_sync(&render_source)
-    .map_err(|error| MermaidRenderError::Renderer(error.to_string()))?
-    .ok_or(MermaidRenderError::Unsupported)?;
-  let title = title
-    .filter(|value| !value.is_empty())
-    .or_else(|| parsed.meta.title.clone());
-  parsed.model["title"] = title.map_or(Value::Null, Value::String);
-  parsed.model["accTitle"] = acc_title
-    .filter(|value| !value.is_empty())
-    .map_or(Value::Null, Value::String);
-  let layout =
-    layout_parsed(&parsed, &renderer.layout).map_err(|error| MermaidRenderError::Renderer(error.to_string()))?;
-  let svg = renderer
-    .render_layouted_svg_sync(&layout)
-    .map_err(|error| MermaidRenderError::Renderer(error.to_string()))?;
-  Ok(foreign_object_label_fallback_svg_text(&svg))
+fn escape_xml(input: &str) -> String {
+  let mut escaped = String::with_capacity(input.len());
+  for ch in input.chars() {
+    match ch {
+      '&' => escaped.push_str("&amp;"),
+      '<' => escaped.push_str("&lt;"),
+      '>' => escaped.push_str("&gt;"),
+      '"' => escaped.push_str("&quot;"),
+      '\'' => escaped.push_str("&apos;"),
+      other => escaped.push(other),
+    }
+  }
+  escaped
+}
+
+fn extract_svg_id<'a>(open_tag: &'a str) -> Option<&'a str> {
+  let bytes = open_tag.as_bytes();
+  let mut idx = 0;
+  while idx + 4 < bytes.len() {
+    if bytes[idx].is_ascii_whitespace()
+      && bytes[idx + 1] == b'i'
+      && bytes[idx + 2] == b'd'
+      && bytes[idx + 3] == b'='
+      && bytes[idx + 4] == b'"'
+    {
+      let start = idx + 5;
+      if let Some(rel_end) = open_tag[start..].find('"') {
+        return Some(&open_tag[start..start + rel_end]);
+      }
+    }
+    idx += 1;
+  }
+  None
+}
+
+pub(crate) fn inject_accessible_title(svg: String, fallback_id: &str, acc_title: &str) -> String {
+  let acc_title = acc_title.trim();
+  if acc_title.is_empty() {
+    return svg;
+  }
+  let Some(svg_start) = svg.find("<svg") else {
+    return svg;
+  };
+  let Some(rel_close) = svg[svg_start..].find('>') else {
+    return svg;
+  };
+  let close_idx = svg_start + rel_close;
+  let open_tag = &svg[svg_start..close_idx];
+  let diagram_id = extract_svg_id(open_tag).unwrap_or(fallback_id);
+  let title_id = format!("chart-title-{diagram_id}");
+  let title_el = format!(
+    r#"<title id="{}">{}</title>"#,
+    escape_xml(&title_id),
+    escape_xml(acc_title)
+  );
+
+  let mut out = String::with_capacity(svg.len() + title_el.len() + title_id.len() + 24);
+  if open_tag.contains("aria-labelledby=") {
+    out.push_str(&svg[..=close_idx]);
+  } else {
+    out.push_str(&svg[..close_idx]);
+    out.push_str(r#" aria-labelledby=""#);
+    out.push_str(&escape_xml(&title_id));
+    out.push_str(r#"">"#);
+  }
+  out.push_str(&title_el);
+  out.push_str(&svg[close_idx + 1..]);
+  out
 }

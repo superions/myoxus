@@ -167,7 +167,6 @@ function viewportInteractionHarness({
     moveVisualNode: () => {},
     onVisualNodeDragEnd: () => {},
     previewVisualNodeReparent: () => {},
-    requestUpdate: () => {},
     restoreViewport: () => {},
     selectVisualEdge: (nextEdgeId) => {
       calls.selectedEdges.push(nextEdgeId);
@@ -497,7 +496,7 @@ describe("Mermaid GFX viewport event gates", () => {
     expect(calls.cleared).toBe(0);
   });
 
-  test("leaves overlapping portalled Facade and Lit menu actions to their controls", () => {
+  test("leaves overlapping portalled Facade and native menu actions to their controls", () => {
     const { calls, controller } = viewportInteractionHarness({ nodeId: "A" });
     const option = document.createElement("div");
     option.setAttribute("role", "option");

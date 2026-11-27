@@ -29,11 +29,10 @@ for package in biblatex hayagriva; do
   cmp "vendor/cargo/$package/LICENSE-APACHE" "$work_dir/first/licenses/$package/LICENSE-APACHE"
 done
 cmp vendor/cargo/hayagriva/NOTICE "$work_dir/first/licenses/hayagriva/NOTICE"
-cmp vendor/cargo/simba/LICENSE "$work_dir/first/licenses/simba/LICENSE"
 cmp build/dependencies/safer-bytes-license.txt "$work_dir/first/licenses/safer-bytes/DECLARED-MIT.txt"
 cmp build/dependencies/paste-consumers-source.json "$work_dir/first/provenance/paste-consumers-source.json"
 grep -Fq '| myoxus-yrs | 0.28.0-myoxus.1 | MIT |' "$work_dir/first/THIRD_PARTY_NOTICES.md"
-for package in biblatex hayagriva safer-bytes simba; do
+for package in biblatex hayagriva safer-bytes; do
   grep -Fq "| $package |" "$work_dir/first/THIRD_PARTY_NOTICES.md"
 done
 # Resolve the actual engine packages rather than a parallel legal inventory.

@@ -7,8 +7,8 @@ export const templateSeniorTool = SeniorToolExtension(
     return {
       name: editorMessage("Template", "Template"),
       content: {
-        type: "hosts",
-        tags: ["edgeless-template-button"],
+        type: "popover-tool",
+        tool: "templates" as const,
         edgeless: block,
       },
     };

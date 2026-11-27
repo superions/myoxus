@@ -91,7 +91,7 @@ export function NodeResizerHandle<N extends string>(
 }
 
 export function useNodeResizing(id: string): boolean {
-  return RF.useStore((s) => s.nodeLookup.get(id)?.resizing ?? false);
+  return RF.useNodesStore((s) => s.nodeLookup.get(id)?.resizing ?? false);
 }
 
 /** Render the same canonical geometry as XYFlow; import is never an implicit resize. */
@@ -134,8 +134,10 @@ export function useHoveredNodeAlwaysOnTop(
 
 /** Projects XYFlow's live handle gesture into KIE's semantic source/target direction. */
 export function useConnection(nodeId: string) {
-  const connectionNodeId = RF.useStore((s) => s.connection.fromHandle?.nodeId);
-  const connectionHandleType = RF.useStore(
+  const connectionNodeId = RF.useConnectionStore(
+    (s) => s.connection.fromHandle?.nodeId,
+  );
+  const connectionHandleType = RF.useConnectionStore(
     (s) => s.connection.fromHandle?.type,
   );
 
@@ -145,12 +147,13 @@ export function useConnection(nodeId: string) {
   const edgeIdBeingUpdated = useXyFlowReactKieDiagramStore(
     (s) => s.xyFlowReactKieDiagram.edgeIdBeingUpdated,
   );
-  const sourceHandle = RF.useStore(
-    (s) =>
-      s.connection.fromHandle?.id ??
-      s.edges.find((e) => e.id === edgeIdBeingUpdated)?.type ??
-      null,
+  const connectionHandleId = RF.useConnectionStore(
+    (s) => s.connection.fromHandle?.id,
   );
+  const edgeBeingUpdatedType = RF.useEdgesStore(
+    (s) => s.edges.find((e) => e.id === edgeIdBeingUpdated)?.type,
+  );
+  const sourceHandle = connectionHandleId ?? edgeBeingUpdatedType ?? null;
 
   const connection = useMemo(
     () => ({
@@ -169,14 +172,14 @@ export function useConnectionTargetStatus(
   nodeId: string,
   shouldActLikeHovered: boolean,
 ) {
-  const isTargeted = RF.useStore(
+  const isTargeted = RF.useConnectionStore(
     (s) =>
       !!s.connection.fromHandle?.nodeId &&
       s.connection.fromHandle.nodeId !== nodeId &&
       shouldActLikeHovered,
   );
   const connection = useConnection(nodeId);
-  const isValidConnectionTarget = RF.useStore(
+  const isValidConnectionTarget = RF.useOptionsStore(
     (s) => s.isValidConnection?.(connection) ?? false,
   );
 
@@ -203,7 +206,7 @@ export function useNodeClassName<N extends string, E extends string>(
     (s) => s.xyFlowReactKieDiagram.dropTarget?.containmentMode,
   );
 
-  const isConnectionNodeId = RF.useStore(
+  const isConnectionNodeId = RF.useConnectionStore(
     (s) => s.connection.fromHandle?.nodeId === nodeId,
   );
   const connection = useConnection(nodeId);

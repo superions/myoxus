@@ -62,7 +62,7 @@
   ],
   "version": "0.41.5",
   "devDependencies": {
-    "prettier": "3.9.9",
+    "prettier": "3.10.1",
     "vitest": "4.1.12"
   }
 }

@@ -198,6 +198,7 @@ export function AIPanelView({
   host,
   answer,
   progress,
+  answerContextVersion = 0,
   onInput,
   onFinish,
   onStop,
@@ -208,11 +209,13 @@ export function AIPanelView({
   host: EditorHost;
   answer: string | null;
   progress: number;
+  answerContextVersion?: number;
   onInput: (text: string) => void;
   onFinish: (text: string) => void;
   onStop: () => void;
   setInput: (element: HTMLTextAreaElement | null) => void;
 }) {
+  void answerContextVersion;
   const t = useI18n();
   const [input, setValue] = useState("");
   const [copied, setCopied] = useState(false);

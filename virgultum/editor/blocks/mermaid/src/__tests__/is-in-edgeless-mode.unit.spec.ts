@@ -41,13 +41,9 @@
  *    common Page-mode case.
  *
  * **Why this is a contract test, not a behaviour
- * test.** The 5 production call sites of
- * `_isInEdgelessMode` (mermaid-block.ts:563, 647,
- * 5034, 8535, 9108 post-I-04b; pre-I-04a: 1682, 1766,
- * 6153, 9654, 10227) all live inside Lit render
- * / lifecycle methods that pull in
- * `@virgultum/store`, `@virgultum/std`, and Lit's
- * `html`. Spinning up the full `MermaidBlockComponent`
+ * test.** The production call sites of `_isInEdgelessMode` live inside
+ * `MermaidBlockComponent` render/lifecycle methods that pull in the full block
+ * runtime. Spinning up the full `MermaidBlockComponent`
  * in happy-dom to test the boolean would cost more
  * than the contract is worth. The boolean is
  * private, so the test reaches it via a typed
@@ -90,7 +86,7 @@ import { describe, expect, test } from "vitest";
 /**
  * Minimal stub that mirrors the `_isInEdgelessMode`
  * surface of `MermaidBlockComponent`. The real
- * component is a Lit element with a 547-class body;
+ * component is a large custom-element host;
  * pulling it in for a 4-test contract would
  * explode the test surface for no signal.
  *

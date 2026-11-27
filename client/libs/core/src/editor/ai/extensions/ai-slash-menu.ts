@@ -10,23 +10,14 @@ import {
 import { pageAIGroups } from "../_common/config";
 import { handleInlineAskAIAction } from "../actions/doc-handler";
 import type { AIItemConfig } from "../components/ai-item/types";
-import {
-  MYOXUS_AI_PANEL_WIDGET,
-  type MyoxusAIPanelWidget,
-} from "../widgets/ai-panel/ai-panel";
+import { AIPanelControllerIdentifier } from "../widgets/ai-panel/controller";
 
 export function AiSlashMenuConfigExtension() {
   const AIItems = pageAIGroups.flatMap((group) => group.items);
   const showWhenWrapper =
     (item?: AIItemConfig) =>
     ({ std }: SlashMenuContext) => {
-      const root = std.host.store.root;
-      if (!root) return false;
-      const myoxusAIPanelWidget = std.view.getWidget(
-        MYOXUS_AI_PANEL_WIDGET,
-        root.id,
-      );
-      if (myoxusAIPanelWidget === null) return false;
+      if (!std.getOptional(AIPanelControllerIdentifier)) return false;
 
       const chain = std.host.command.chain();
       const docModeService = std.get(DocModeProvider);
@@ -70,13 +61,9 @@ export function AiSlashMenuConfigExtension() {
       icon: "AiIcon",
       when: showWhenWrapper(),
       action: ({ std }) => {
-        const root = std.host.store.root;
-        if (!root) return;
-        const myoxusAIPanelWidget = std.view.getWidget(
-          MYOXUS_AI_PANEL_WIDGET,
-          root.id,
-        ) as MyoxusAIPanelWidget;
-        handleInlineAskAIAction(myoxusAIPanelWidget.host);
+        const aiPanel = std.getOptional(AIPanelControllerIdentifier);
+        if (!aiPanel) return;
+        handleInlineAskAIAction(aiPanel.host);
       },
     },
     ...AIItems.filter(({ name }) =>

@@ -73,7 +73,7 @@ lopdf                    = "0.42.0"
 moxcms                   = "0.8"
 myoxus-tests             = { path = "../tests" }
 openssl.workspace        = true
-pdf-extract              = "0.12.0"
+pdf-extract              = "0.12.1"
 tera.workspace           = true
 tower.workspace          = true
 wordcraft-doc.workspace  = true

@@ -54,16 +54,16 @@ async fn cli_archive_is_atomic_and_enable_preserves_disabled_policies() {
       .bind(id).execute(&pool).await.expect("default");
     sqlx::query("INSERT INTO workspace_template_policies(workspace_id,template_id,selection_mode,provisioning_mode,is_enabled) VALUES($1,$2,'published','seed_once',true)")
       .bind(workspace).bind(id).execute(&pool).await.expect("policy");
-    sqlx::query(&format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'owned CLI policy rollback probe'; END $$"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'owned CLI policy rollback probe'; END $$")))
       .execute(&pool).await.expect("failure function");
-    sqlx::query(&format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON workspace_template_policies FOR EACH ROW WHEN (OLD.template_id='{id}'::uuid) EXECUTE FUNCTION {trigger}()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON workspace_template_policies FOR EACH ROW WHEN (OLD.template_id='{id}'::uuid) EXECUTE FUNCTION {trigger}()")))
       .execute(&pool).await.expect("failure trigger");
     assert!(!run_cli("archive", id, storage_root.as_path()).status.success());
     assert_eq!(state(&pool, id).await, ("active".into(), true));
     let count: i64 = sqlx::query_scalar("SELECT count(*) FROM admin_audit_log WHERE target_id=$1")
       .bind(id.to_string()).fetch_one(&pool).await.expect("audit count");
     assert_eq!(count, 0, "failed archive must not audit success");
-    sqlx::query(&format!("DROP TRIGGER {trigger} ON workspace_template_policies")).execute(&pool).await.expect("remove failure trigger");
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger} ON workspace_template_policies"))).execute(&pool).await.expect("remove failure trigger");
     let archived = run_cli("archive", id, storage_root.as_path());
     assert!(archived.status.success(), "{}", String::from_utf8_lossy(&archived.stderr));
     assert_eq!(String::from_utf8(archived.stdout).expect("stdout"), format!("Template archived: {slug} ({id})\n"));
@@ -105,13 +105,13 @@ async fn cli_archive_is_atomic_and_enable_preserves_disabled_policies() {
     }
 
   }}).await;
-  sqlx::query(&format!(
+  sqlx::query(sqlx::AssertSqlSafe(format!(
     "DROP TRIGGER IF EXISTS {trigger} ON workspace_template_policies"
-  ))
+  )))
   .execute(&pool)
   .await
   .expect("cleanup trigger");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {trigger}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {trigger}()")))
     .execute(&pool)
     .await
     .expect("cleanup function");

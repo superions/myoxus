@@ -28,7 +28,7 @@ export type ToolbarControl =
       message: ToolbarText;
       tone: "warning";
     }
-  // Existing native family views pass through the original React portal; never Lit panels.
+  // Existing native family views pass through the original React portal.
   | { type: "native"; node: unknown }
   | {
       type: "menu";

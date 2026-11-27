@@ -77,9 +77,9 @@ services:
       timeout: 5s
       retries: 20
   redis:
-    image: docker.io/library/redis:8-alpine
+    image: docker.io/valkey/valkey:9-alpine
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 20

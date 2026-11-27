@@ -138,7 +138,6 @@ licenses/biblatex/LICENSE-APACHE
 licenses/hayagriva/LICENSE-MIT
 licenses/hayagriva/LICENSE-APACHE
 licenses/hayagriva/NOTICE
-licenses/simba/LICENSE
 licenses/safer-bytes/DECLARED-MIT.txt
 sbom/server.cdx.json
 ```

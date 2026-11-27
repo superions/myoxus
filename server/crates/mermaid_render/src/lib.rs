@@ -45,7 +45,7 @@ pub struct MermaidPreviewTheme<'a> {
 
 impl MermaidExportRenderer for MermanSvgRenderer {
   fn render_svg(&self, source: &str, diagram_id: &str) -> Result<String, MermaidRenderError> {
-    self.render_svg_with_renderer(source, diagram_id, merman::render::HeadlessRenderer::default())
+    self.render_svg_with_renderer(source, diagram_id, merman::Renderer::new())
   }
 }
 
@@ -75,10 +75,31 @@ impl MermanSvgRenderer {
         serde_json::Value::String(color.to_string()),
       );
     }
+    // Merman 0.11 skips theme rematerialization when source `themeVariables`
+    // omit `theme` and match the site theme. Propagate admitted source
+    // `themeVariables` into site config before initialization so source colors
+    // still recalculate derived colors like `mainBkg`.
+    if source.contains("themeVariables") {
+      if let Ok(merman::RenderOutput::Semantic(Some(semantic))) = merman::Renderer::new().render(
+        merman::RenderRequest::semantic(source, merman::OperationControl::default()),
+      ) {
+        if let Some(vars) = semantic
+          .metadata()
+          .semantic_config
+          .get("themeVariables")
+          .and_then(serde_json::Value::as_object)
+        {
+          for (key, value) in vars {
+            config.set_value(&format!("themeVariables.{key}"), value.clone());
+          }
+        }
+      }
+    }
+    let engine = merman::MermaidEngine::new().with_site_config(merman::SourcePresentationConfig::from_config(config));
     self.render_svg_with_renderer(
       source,
       diagram_id,
-      merman::render::HeadlessRenderer::default().with_site_config(config),
+      merman::Renderer::new().with_presentation_engine(engine),
     )
   }
 
@@ -86,7 +107,7 @@ impl MermanSvgRenderer {
     &self,
     source: &str,
     diagram_id: &str,
-    renderer: merman::render::HeadlessRenderer,
+    renderer: merman::Renderer,
   ) -> Result<String, MermaidRenderError> {
     let source = source.trim();
     if source.is_empty() {
@@ -101,15 +122,34 @@ impl MermanSvgRenderer {
     }
 
     let source = normalize_merman_compatibility(source);
-    let renderer = renderer.with_vendored_text_measurer().with_diagram_id(diagram_id);
-    let svg = if c4::is_c4(&source) {
-      c4::render(&source, &renderer)?
+    let (render_source, c4_acc_title) = if c4::is_c4(&source) {
+      let (projected, acc_title) = c4::strip_acc_title(&source)?;
+      (Cow::Owned(projected), acc_title)
     } else {
-      renderer
-        .render_svg_readable_sync(&source)
-        .map_err(|error| MermaidRenderError::Renderer(error.to_string()))?
-        .ok_or(MermaidRenderError::Unsupported)?
+      (source, None)
     };
+
+    let mut svg_request = merman::SvgRequest::default();
+    svg_request.options.diagram_id = Some(diagram_id.to_owned());
+    svg_request.pipeline = Some(merman::svg::SvgPipeline::readable());
+
+    let output = renderer
+      .render(merman::RenderRequest::svg(
+        &render_source,
+        merman::OperationControl::default(),
+        svg_request,
+      ))
+      .map_err(|error| MermaidRenderError::Renderer(error.to_string()))?;
+
+    let mut svg = match output {
+      merman::RenderOutput::Svg(Some(rendered)) => rendered.into_parts().0,
+      merman::RenderOutput::Svg(None) => return Err(MermaidRenderError::Unsupported),
+      _ => return Err(MermaidRenderError::Unsupported),
+    };
+
+    if let Some(acc_title) = c4_acc_title {
+      svg = c4::inject_accessible_title(svg, diagram_id, &acc_title);
+    }
 
     validate_svg(&svg)?;
     Ok(svg)

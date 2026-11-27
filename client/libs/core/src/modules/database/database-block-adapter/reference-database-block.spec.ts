@@ -125,7 +125,7 @@ describe("DatabaseReferenceBlockComponent", () => {
     const rendererHost = document.createElement("div");
     editorTheme.append(rendererHost);
     const renderer = rendererHost.attachShadow({ mode: "open" });
-    // The repository Lit setup replaces only customElements with a no-op
+    // The repository test setup replaces only customElements with a no-op
     // registry. Restore its native lifecycle for this consuming boundary test.
     const setupRegistry = customElements;
     vi.unstubAllGlobals();

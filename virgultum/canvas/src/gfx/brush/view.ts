@@ -4,7 +4,6 @@ import {
 } from "@virgultum/core/extensions";
 
 import { BrushTool } from "./brush-tool";
-import { effects } from "./effects";
 import { EraserTool } from "./eraser-tool";
 import { HighlighterTool } from "./highlighter-tool";
 import {
@@ -21,11 +20,6 @@ import { penSeniorTool } from "./toolbar/senior-tool";
 
 export class BrushViewExtension extends ViewExtensionProvider {
   override name = "myoxus-brush-gfx";
-
-  override effect(): void {
-    super.effect();
-    effects();
-  }
 
   override setup(context: ViewExtensionContext) {
     super.setup(context);

@@ -13,5 +13,8 @@ export {
   NOTE_OVERLAY_DARK_BACKGROUND_COLOR,
   NoteOverlay,
   DraggingNoteOverlay,
+  NOTE_MENU_ITEMS,
+  type NoteMenuItem,
+  toShapeNotToAdapt,
   noteSeniorTool,
 } from "@virgultum/canvas/gfx";

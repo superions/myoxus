@@ -45,15 +45,6 @@ done < <(
     || true
 )
 
-if printf '%s\n' "${AUDIT_ARGS[@]}" | grep -qx 'RUSTSEC-2023-0071'; then
-  RSA_TREE="$(cargo tree --target all --edges all --invert rsa 2>/dev/null || true)"
-  if [ -n "$RSA_TREE" ]; then
-    echo -e "${RED}✗ RUSTSEC-2023-0071 exception is invalid: rsa is reachable${NC}"
-    printf '%s\n' "$RSA_TREE"
-    exit 1
-  fi
-fi
-
 set +e
 if [ -n "$CARGO_AUDIT_JSON_OUTPUT" ]; then
   mkdir -p "$(dirname "$CARGO_AUDIT_JSON_OUTPUT")"

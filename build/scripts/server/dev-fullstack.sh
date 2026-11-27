@@ -119,7 +119,7 @@ echo "[INFO] starting Docker data services only (postgres, redis)"
 (cd "$REPO_ROOT/build/server" && docker compose -f "$COMPOSE_FILE" up -d postgres redis)
 
 wait_infra "postgres" docker compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
-wait_infra "redis" docker compose -f "$COMPOSE_FILE" exec -T redis redis-cli ping
+wait_infra "redis" docker compose -f "$COMPOSE_FILE" exec -T redis sh -lc 'valkey-cli ping 2>/dev/null || redis-cli ping'
 
 start_api
 wait_cmd "local api $API_ORIGIN/health" "${MYOXUS_DEV_API_START_TIMEOUT:-300}" curl -fsS "$API_ORIGIN/health"

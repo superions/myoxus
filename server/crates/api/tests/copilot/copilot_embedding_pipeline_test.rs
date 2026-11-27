@@ -260,11 +260,11 @@ async fn embedding_delete_by_source() {
   let vec_str = vec_to_pgvector(&[1.0, 0.0, 0.0], 1536);
 
   for i in 0..3 {
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"INSERT INTO copilot_embeddings
          (workspace_id, source_type, source_id, chunk_index, chunk_text, token_count, embedding, model)
          VALUES ($1, 'doc', $2, $3, 'chunk {i}', 3, '{vec_str}'::vector, 'text-embedding-3-small')"#
-    ))
+    )))
     .bind(workspace_id)
     .bind(&source_id)
     .bind(i)
@@ -317,11 +317,11 @@ async fn embedding_similarity_search() {
   ];
 
   for (src, text, vec_str) in &vecs {
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"INSERT INTO copilot_embeddings
          (workspace_id, source_type, source_id, chunk_index, chunk_text, token_count, embedding, model)
          VALUES ($1, 'doc', $2, 0, $3, 3, '{vec_str}'::vector, 'text-embedding-3-small')"#
-    ))
+    )))
     .bind(workspace_id)
     .bind(*src)
     .bind(*text)
@@ -333,13 +333,13 @@ async fn embedding_similarity_search() {
   // Query vector close to v1: [1, 0, 0, ...]
   let query_vec = vec_to_pgvector(&[1.0, 0.0, 0.0], 1536);
 
-  let rows = sqlx::query(&format!(
+  let rows = sqlx::query(sqlx::AssertSqlSafe(format!(
     r#"SELECT source_id, chunk_text, embedding <=> '{query_vec}'::vector AS distance
        FROM copilot_embeddings
        WHERE workspace_id = $1
        ORDER BY embedding <=> '{query_vec}'::vector
        LIMIT 3"#
-  ))
+  )))
   .bind(workspace_id)
   .fetch_all(&pool)
   .await
@@ -523,11 +523,11 @@ async fn inv_emb_batch02_multi_batch_storage_preserves_partial_results() {
   // Simulate best-effort batch processing: insert each batch separately.
   // Batch 1: chunks 0–2 (3 chunks)
   for chunk_index in 0..3i32 {
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"INSERT INTO copilot_embeddings
          (workspace_id, source_type, source_id, chunk_index, chunk_text, token_count, embedding, model)
          VALUES ($1, 'doc', $2, $3, 'chunk {chunk_index}', 8, '{vec_str}'::vector, 'text-embedding-3-small')"#
-    ))
+    )))
     .bind(workspace_id)
     .bind(&source_id)
     .bind(chunk_index)
@@ -548,11 +548,11 @@ async fn inv_emb_batch02_multi_batch_storage_preserves_partial_results() {
 
   // Batch 2: chunks 3–4 (2 chunks)
   for chunk_index in 3..5i32 {
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"INSERT INTO copilot_embeddings
          (workspace_id, source_type, source_id, chunk_index, chunk_text, token_count, embedding, model)
          VALUES ($1, 'doc', $2, $3, 'chunk {chunk_index}', 8, '{vec_str}'::vector, 'text-embedding-3-small')"#
-    ))
+    )))
     .bind(workspace_id)
     .bind(&source_id)
     .bind(chunk_index)

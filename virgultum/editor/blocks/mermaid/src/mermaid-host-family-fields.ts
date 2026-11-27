@@ -180,7 +180,7 @@ export abstract class MermaidHostFamilyFields extends MermaidHostGfxMutations {
         })[0],
       options,
     );
-    this.requestUpdate();
+    this._notifyProjectionChange();
   }
 
   protected _patchSelectedVisualSubgraph(

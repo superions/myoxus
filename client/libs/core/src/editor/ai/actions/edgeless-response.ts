@@ -25,7 +25,7 @@ import type { ChatContextValue } from "../components/ai-chat-content/type";
 import type { AIItemConfig } from "../components/ai-item/types";
 import { AIProvider } from "../provider";
 import { reportResponse } from "../utils/action-reporter";
-import { getAIPanelWidget } from "../utils/ai-widgets";
+import { getAIPanelController } from "../utils/ai-widgets";
 import type { AIContext } from "../utils/context";
 import { getEdgelessCopilotWidget } from "../utils/edgeless";
 import { preprocessHtml } from "../utils/html";
@@ -34,17 +34,17 @@ import {
   getCopilotSelectedElems,
   getSurfaceElementFromEditor,
 } from "../utils/selection-utils";
-import type { MyoxusAIPanelWidget } from "../widgets/ai-panel/ai-panel";
+import type { AIPanelController } from "../widgets/ai-panel/controller";
 import type { EdgelessCopilotWidget } from "../widgets/edgeless-copilot";
 import { EXCLUDING_INSERT_ACTIONS, generatingStages } from "./consts";
 
 type FinishConfig = Exclude<
-  MyoxusAIPanelWidget["config"],
+  AIPanelController["config"],
   null
 >["finishStateConfig"];
 
 type ErrorConfig = Exclude<
-  MyoxusAIPanelWidget["config"],
+  AIPanelController["config"],
   null
 >["errorStateConfig"];
 
@@ -65,7 +65,7 @@ export function getTriggerEntry(host: EditorHost) {
 }
 
 export function discard(
-  panel: MyoxusAIPanelWidget,
+  panel: AIPanelController,
   _: EdgelessCopilotWidget,
 ): AIItemConfig {
   return {
@@ -79,7 +79,7 @@ export function discard(
   };
 }
 
-export function retry(panel: MyoxusAIPanelWidget): AIItemConfig {
+export function retry(panel: AIPanelController): AIItemConfig {
   return {
     name: "Retry",
     icon: "ResetIcon",
@@ -112,7 +112,7 @@ export function createInsertItems<T extends keyof VirgultumPresets.AIActions>(
       icon: "LoadingIcon",
       testId: "answer-insert-below-loading",
       showWhen: () => {
-        const panel = getAIPanelWidget(host);
+        const panel = getAIPanelController(host);
         const data = ctx.get();
         return (
           !EXCLUDING_INSERT_ACTIONS.includes(id) &&
@@ -128,7 +128,7 @@ export function createInsertItems<T extends keyof VirgultumPresets.AIActions>(
       testId:
         buttonText === "Replace" ? "answer-replace" : `answer-insert-below`,
       showWhen: () => {
-        const panel = getAIPanelWidget(host);
+        const panel = getAIPanelController(host);
         const data = ctx.get();
         return (
           !EXCLUDING_INSERT_ACTIONS.includes(id) &&
@@ -140,7 +140,7 @@ export function createInsertItems<T extends keyof VirgultumPresets.AIActions>(
       handler: () => {
         reportResponse("result:insert");
         edgelessResponseHandler(id, host, ctx).catch(console.error);
-        const panel = getAIPanelWidget(host);
+        const panel = getAIPanelController(host);
         if (id !== "brainstormMindmap" && id !== "expandMindmap") panel.hide();
       },
     },
@@ -183,12 +183,12 @@ export function asCaption<T extends keyof VirgultumPresets.AIActions>(
     icon: "PenIcon",
     testId: "answer-use-as-caption",
     showWhen: () => {
-      const panel = getAIPanelWidget(host);
+      const panel = getAIPanelController(host);
       return id === "generateCaption" && !!panel.answer;
     },
     handler: () => {
       reportResponse("result:use-as-caption");
-      const panel = getAIPanelWidget(host);
+      const panel = getAIPanelController(host);
       const caption = panel.answer;
       if (!caption) return;
 
@@ -272,7 +272,7 @@ function createBlockAndInsert(
  * @param host EditorHost
  */
 const defaultHandler = (host: EditorHost) => {
-  const panel = getAIPanelWidget(host);
+  const panel = getAIPanelController(host);
   const selectedElements = getCopilotSelectedElems(host);
   if (!panel.answer) return;
   if (
@@ -298,7 +298,7 @@ const defaultHandler = (host: EditorHost) => {
  * @param host
  */
 function responseToCreateImage(host: EditorHost) {
-  const aiPanel = getAIPanelWidget(host);
+  const aiPanel = getAIPanelController(host);
   // `DataURL` or `URL`
   const data = aiPanel.answer;
   if (!data) return;
@@ -356,7 +356,7 @@ function finishSourceMindmapResponse(host: EditorHost) {
   copilot.hideCopilotPanel();
   copilot.lockToolbar(false);
   // The generic hide callback clears selection; the accepted owner owns it now.
-  getAIPanelWidget(host).hide(false);
+  getAIPanelController(host).hide(false);
   host.std.get(GfxControllerIdentifier).tool.setTool(DefaultTool);
   host.focus({ preventScroll: true });
 }
@@ -382,7 +382,7 @@ async function responseToBrainstormMindmap(host: EditorHost, ctx: AIContext) {
 }
 
 function getMakeItRealHTML(host: EditorHost) {
-  const aiPanel = getAIPanelWidget(host);
+  const aiPanel = getAIPanelController(host);
   let html = aiPanel.answer;
   if (!html) return;
   html = preprocessHtml(html);
@@ -390,7 +390,7 @@ function getMakeItRealHTML(host: EditorHost) {
 }
 
 function responseToMakeItReal(host: EditorHost, ctx: AIContext) {
-  const aiPanel = getAIPanelWidget(host);
+  const aiPanel = getAIPanelController(host);
   const html = getMakeItRealHTML(host);
   if (!html) return;
 
@@ -507,8 +507,8 @@ export function actionToResponse<T extends keyof VirgultumPresets.AIActions>(
           },
           ...createInsertItems(id, host, ctx, variants),
           asCaption(id, host),
-          retry(getAIPanelWidget(host)),
-          discard(getAIPanelWidget(host), getEdgelessCopilotWidget(host)),
+          retry(getAIPanelController(host)),
+          discard(getAIPanelController(host), getEdgelessCopilotWidget(host)),
         ],
       },
     ],
@@ -554,7 +554,7 @@ function continueCreateSlides(ctx: AIContext) {
 }
 
 async function continueCreateImage(host: EditorHost) {
-  const aiPanel = getAIPanelWidget(host);
+  const aiPanel = getAIPanelController(host);
   // `DataURL` or `URL`
   const data = aiPanel.answer;
   if (!data) return null;
@@ -576,7 +576,7 @@ async function continueCreateImage(host: EditorHost) {
 }
 
 function continueDefaultHandler(host: EditorHost) {
-  const panel = getAIPanelWidget(host);
+  const panel = getAIPanelController(host);
   return {
     combinedElementsMarkdown: panel.answer,
   };
@@ -609,7 +609,7 @@ async function edgelesContinueResponseHandler<
       break;
   }
 
-  const panel = getAIPanelWidget(host);
+  const panel = getAIPanelController(host);
   AIProvider.slots.requestOpenWithChat.next({
     host,
     context,
@@ -631,7 +631,7 @@ export function actionToGenerating<T extends keyof VirgultumPresets.AIActions>(
 export function actionToErrorResponse<
   T extends keyof VirgultumPresets.AIActions,
 >(
-  panel: MyoxusAIPanelWidget,
+  panel: AIPanelController,
   id: T,
   host: EditorHost,
   ctx: AIContext,
@@ -659,8 +659,8 @@ export function actionToErrorResponse<
       {
         name: "",
         items: [
-          retry(getAIPanelWidget(host)),
-          discard(getAIPanelWidget(host), getEdgelessCopilotWidget(host)),
+          retry(getAIPanelController(host)),
+          discard(getAIPanelController(host), getEdgelessCopilotWidget(host)),
         ],
       },
     ],

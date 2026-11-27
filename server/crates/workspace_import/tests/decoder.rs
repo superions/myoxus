@@ -446,7 +446,7 @@ fn current_doc_storage_schema_is_decoded_through_the_same_neutral_model() {
       .expect("write current snapshot");
   }
   for (key, data) in assets {
-    let size = data.len();
+    let size = i64::try_from(data.len()).expect("asset size fits i64");
     current
       .execute(
         "INSERT INTO blobs(key, data, mime, size) VALUES (?1, ?2, 'application/octet-stream', ?3)",

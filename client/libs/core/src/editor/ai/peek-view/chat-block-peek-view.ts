@@ -7,6 +7,7 @@ import { MyoxusText, Stack } from "@myoxus/ui-facade";
 import { createElement, type ReactNode } from "react";
 import { signal } from "@preact/signals-core";
 import { CopilotResponseActions } from "../components/response-actions";
+import { collectToolCreatedFileIds } from "../components/ai-tools/create-file-tool";
 import type { CopilotChatHistoryFragment } from "@myoxus/graphql";
 import {
   CanvasElementType,
@@ -159,6 +160,8 @@ export class AIChatBlockPeekSession {
         ...message,
         id: forkMessages[idx]?.id ?? message.id,
         params: forkMessages[idx]?.params,
+        streamObjects:
+          forkMessages[idx]?.streamObjects ?? message.streamObjects,
         attachments: [],
         generatedFiles: forkMessages[idx]?.generatedFiles ?? [],
       };
@@ -531,6 +534,7 @@ export class AIChatBlockPeekSession {
             ...requestMessages.at(-1)!,
             id: current.id,
             params: current.params,
+            generatedFiles: current.generatedFiles,
           },
         ],
       });
@@ -576,6 +580,14 @@ export class AIChatBlockPeekSession {
       }
 
       const notificationService = this.host.std.get(NotificationProvider);
+      const toolFileIds = collectToolCreatedFileIds(
+        message.streamObjects,
+        message.id,
+        message.generatedFiles,
+      );
+      const remainingFiles = message.generatedFiles?.filter(
+        (file) => !toolFileIds.has(file.id),
+      );
 
       return createElement(
         Stack,
@@ -596,7 +608,7 @@ export class AIChatBlockPeekSession {
               actions,
               content: markdown,
               messageId: message.id ?? undefined,
-              generatedFiles: message.generatedFiles,
+              generatedFiles: remainingFiles,
               exportable:
                 !this.host.store.readonly &&
                 !!markdown.trim() &&
@@ -623,12 +635,20 @@ export class AIChatBlockPeekSession {
         if (lifetime !== this.lifetime) return;
         // History enrichment may be unavailable offline. The saved snapshot
         // already contains readable attachments and completed file references.
-        this._historyMessages = this._historyMessages.map((message, index) => ({
-          ...message,
-          attachments: messages[index]?.attachments ?? message.attachments,
-          generatedFiles:
-            messages[index]?.generatedFiles ?? message.generatedFiles,
-        }));
+        this._historyMessages = this._historyMessages.map((message, index) => {
+          const parsedObjects = StreamObjectSchema.array().safeParse(
+            messages[index]?.streamObjects,
+          );
+          return {
+            ...message,
+            streamObjects: parsedObjects.success
+              ? parsedObjects.data
+              : message.streamObjects,
+            attachments: messages[index]?.attachments ?? message.attachments,
+            generatedFiles:
+              messages[index]?.generatedFiles ?? message.generatedFiles,
+          };
+        });
         this.refresh();
       })
       .catch((error: Error) =>

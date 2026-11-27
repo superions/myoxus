@@ -358,7 +358,6 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
           ) {
             if (this._hoveredVisualNodeId) {
               this._hoveredVisualNodeId = "";
-              this.requestUpdate();
             }
             return;
           }
@@ -379,19 +378,16 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
             hit && !this._visualSelectionKeys("node").includes(hit) ? hit : "";
           if (nextHover !== this._hoveredVisualNodeId) {
             this._hoveredVisualNodeId = nextHover;
-            this.requestUpdate();
           }
         },
         onViewportPointerLeave: () => {
           if (this._hoveredVisualNodeId) {
             this._hoveredVisualNodeId = "";
-            this.requestUpdate();
           }
         },
         onContextConnect: this._handleConnectSelectedVisualNodesFromContext,
         onCloseContextMenu: () => {
           this._visualContextMenu = null;
-          this.requestUpdate();
         },
         onEdgeReconnectKeydown:
           this._gfxSession.handleVisualEdgeReconnectKeydown,
@@ -425,7 +421,7 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
         },
         onProjectionOwnerViewportMove: () => {
           // Floating controls follow the live transform, including viewport resize.
-          this.requestUpdate();
+          this._notifyProjectionChange();
           if (embedded) return;
           const mode = displayOnly ? "view" : "visual";
           const position = this._gfxViewportBridge.resolvePageScrollPosition(
@@ -526,7 +522,6 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
                 : mermaidMessages.architectureAlignRow(),
               memberIds.length,
             );
-          this.requestUpdate();
         },
         onObjectKeydown: (event, item) =>
           this._handlePageVisualObjectKeydown(event, item, readonly),
@@ -667,7 +662,6 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
                   this._clearVisualSelection();
                   this._pendingVisualNodePlacement = onPlace;
                   this._pendingVisualInsertShape = "rect";
-                  this.requestUpdate();
                   // Placement is a canvas gesture. Escape must reach its
                   // owner rather than remain on the external toolbar button.
                   this._activateKeyboardTarget();
@@ -792,7 +786,7 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
                     elements: objects,
                     refresh: () => {
                       this._refreshScopedGfxRenderer();
-                      this.requestUpdate();
+                      this._notifyProjectionChange();
                     },
                   });
                   if (!options?.includeInNavigation) return preview;
@@ -803,12 +797,12 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
                         return element ? [element.elementBound] : [];
                       }),
                     );
-                  this.requestUpdate();
+                  this._notifyProjectionChange();
                   return Object.assign(
                     () => {
                       preview();
                       restoreNavigation();
-                      this.requestUpdate();
+                      this._notifyProjectionChange();
                     },
                     { resolveNode: preview.resolveNode },
                   );

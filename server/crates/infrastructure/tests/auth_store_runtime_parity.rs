@@ -337,16 +337,16 @@ async fn email_change_is_atomic_and_serializes_token_consumption() {
     sqlx::query("UPDATE users SET status='active' WHERE id=$1").bind(user_id).execute(&pool).await.expect("restore active account");
     // Fail the last write, after email and token changes, to prove actual DB
     // rollback rather than only validation before any writes.
-    sqlx::query(&format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'owned email-change rollback probe'; END $$"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'owned email-change rollback probe'; END $$")))
       .execute(&pool).await.expect("failure function");
-    sqlx::query(&format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON sessions FOR EACH ROW WHEN (OLD.user_id = '{user_id}'::uuid) EXECUTE FUNCTION {trigger}()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON sessions FOR EACH ROW WHEN (OLD.user_id = '{user_id}'::uuid) EXECUTE FUNCTION {trigger}()")))
       .execute(&pool).await.expect("failure trigger");
     assert!(store.commit_email_change(user_id, &token, "rollback@example.test", now, &barrier).await.is_err());
     assert_eq!(store.get_user_by_id(user_id).await.expect("user").expect("exists").email, original.email);
     assert!(store.get_verification_token(&token).await.expect("token").expect("exists").used_at.is_none());
     assert!(store.get_session(session.id).await.expect("session").expect("exists").revoked_at.is_none());
     assert_eq!(store.get_user_by_id(user_id).await.expect("user").expect("exists").email_verified_at, original.email_verified_at);
-    sqlx::query(&format!("DROP TRIGGER {trigger} ON sessions")).execute(&pool).await.expect("remove failure trigger");
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger} ON sessions"))).execute(&pool).await.expect("remove failure trigger");
     let first_email = format!("first-{user_id}@example.test");
     let second_email = format!("second-{user_id}@example.test");
     let (first, second) = tokio::join!(
@@ -364,11 +364,13 @@ async fn email_change_is_atomic_and_serializes_token_consumption() {
     assert!(store.get_verification_token(&token).await.expect("token").expect("exists").used_at.is_some());
     assert!(store.get_session(session.id).await.expect("session").expect("exists").revoked_at.is_some());
   }).catch_unwind().await;
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger} ON sessions"))
-    .execute(&pool)
-    .await
-    .expect("cleanup trigger");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {trigger}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {trigger} ON sessions"
+  )))
+  .execute(&pool)
+  .await
+  .expect("cleanup trigger");
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {trigger}()")))
     .execute(&pool)
     .await
     .expect("cleanup function");

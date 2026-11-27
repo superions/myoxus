@@ -52,7 +52,7 @@ export function usePotentialWaypointControls(
     ReturnType<typeof approximateClosestPoint> | undefined
   >(undefined);
 
-  const isConnecting = RF.useStore((s) => s.connection.inProgress);
+  const isConnecting = RF.useConnectionStore((s) => s.connection.inProgress);
 
   const isExistingWaypoint = useCallback(
     (point: DC__Point) =>

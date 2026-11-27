@@ -63,12 +63,9 @@ import { MentionViewExtension } from "@virgultum/content/view";
 import { InlinePresetViewExtension } from "@virgultum/content/view";
 import { ReferenceViewExtension } from "@virgultum/content/view";
 import { DragHandleViewExtension } from "../widgets/drag-handle/view";
-import { EdgelessAutoConnectViewExtension } from "@virgultum/canvas/view";
 import { EdgelessSelectedRectViewExtension } from "@virgultum/canvas/view";
-import { EdgelessToolbarViewExtension } from "@virgultum/canvas/view";
 import { FrameTitleViewExtension } from "@virgultum/canvas/view";
 import { LinkedDocViewExtension } from "../widgets/linked-doc/view";
-import { NoteSlicerViewExtension } from "@virgultum/canvas/view";
 import { RemoteSelectionViewExtension } from "../widgets/remote-selection/view";
 import { ScrollAnchoringViewExtension } from "../widgets/scroll-anchoring/view";
 import { SlashMenuViewExtension } from "../widgets/slash-menu/view";
@@ -252,10 +249,6 @@ const INTERNAL_MANIFESTS: ReadonlyArray<FeatureManifest> = [
     view: [DragHandleViewExtension],
   },
   {
-    id: featureManifestId("widget-edgeless-auto-connect"),
-    view: [EdgelessAutoConnectViewExtension],
-  },
-  {
     id: featureManifestId("widget-frame-title"),
     view: [FrameTitleViewExtension],
   },
@@ -286,14 +279,6 @@ const INTERNAL_MANIFESTS: ReadonlyArray<FeatureManifest> = [
   {
     id: featureManifestId("widget-edgeless-selected-rect"),
     view: [EdgelessSelectedRectViewExtension],
-  },
-  {
-    id: featureManifestId("widget-note-slicer"),
-    view: [NoteSlicerViewExtension],
-  },
-  {
-    id: featureManifestId("widget-edgeless-toolbar"),
-    view: [EdgelessToolbarViewExtension],
   },
   {
     id: featureManifestId("fragment-doc-title"),
@@ -368,7 +353,6 @@ const INTERNAL_VIEW_ORDER: ReadonlyArray<FeatureManifestId> = [
   featureManifestId("inline-preset"),
   // Widget
   featureManifestId("widget-drag-handle"),
-  featureManifestId("widget-edgeless-auto-connect"),
   featureManifestId("widget-frame-title"),
   featureManifestId("widget-linked-doc"),
   featureManifestId("widget-remote-selection"),
@@ -377,8 +361,6 @@ const INTERNAL_VIEW_ORDER: ReadonlyArray<FeatureManifestId> = [
   featureManifestId("widget-toolbar"),
   featureManifestId("widget-viewport-overlay"),
   featureManifestId("widget-edgeless-selected-rect"),
-  featureManifestId("widget-note-slicer"),
-  featureManifestId("widget-edgeless-toolbar"),
   // Fragment
   featureManifestId("fragment-doc-title"),
   featureManifestId("fragment-frame-panel"),

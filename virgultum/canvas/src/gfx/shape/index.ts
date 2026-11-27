@@ -1,6 +1,5 @@
 export * from "./adapter";
 export * from "./consts";
-export * from "./draggable";
 export * from "./element-renderer";
 export * from "./element-view";
 export * from "./overlay";

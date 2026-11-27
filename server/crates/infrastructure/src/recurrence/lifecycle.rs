@@ -350,7 +350,7 @@ pub(super) async fn skip(
   PgDatabaseRepository::lock_managed_admission(&mut tx, target.database_id).await?;
   PgDatabaseRepository::lock_project_definition_fields(&mut tx, target.database_id).await?;
   let rows = crate::workspace_database::DATABASE_ROWS_TABLE;
-  let row=sqlx::query(&format!("SELECT edit_revision FROM {rows} WHERE id=$1 AND database_id=$2 AND row_kind='task' AND deleted_at IS NULL FOR UPDATE"))
+  let row=sqlx::query(sqlx::AssertSqlSafe(format!("SELECT edit_revision FROM {rows} WHERE id=$1 AND database_id=$2 AND row_kind='task' AND deleted_at IS NULL FOR UPDATE")))
     .bind(target.row_id).bind(target.database_id).fetch_optional(&mut *tx).await.map_err(storage)?.ok_or_else(invalid)?;
   if row.try_get::<i64, _>("edit_revision").map_err(storage)? != command.expected_row_revision {
     return Err(RepositoryError::Conflict("database row edit revision"));
@@ -391,7 +391,7 @@ pub(super) async fn skip(
     return Err(conflict());
   }
   let fields = crate::workspace_database::DATABASE_FIELDS_TABLE;
-  let config:Option<serde_json::Value>=sqlx::query_scalar(&format!("SELECT f.config_json FROM database_field_roles r JOIN {fields} f ON f.id=r.field_id AND f.database_id=r.database_id WHERE r.database_id=$1 AND r.field_id=$2 AND r.profile_kind='project' AND r.row_kind_scope='task' AND r.role_key='task.status' AND f.field_type='status' FOR SHARE OF r,f NOWAIT"))
+  let config:Option<serde_json::Value>=sqlx::query_scalar(sqlx::AssertSqlSafe(format!("SELECT f.config_json FROM database_field_roles r JOIN {fields} f ON f.id=r.field_id AND f.database_id=r.database_id WHERE r.database_id=$1 AND r.field_id=$2 AND r.profile_kind='project' AND r.row_kind_scope='task' AND r.role_key='task.status' AND f.field_type='status' FOR SHARE OF r,f NOWAIT")))
     .bind(target.database_id).bind(target.status_field_id).fetch_optional(&mut *tx).await.map_err(storage)?;
   let config: DatabaseFieldConfig = serde_json::from_value(config.ok_or_else(invalid)?).map_err(storage)?;
   if !matches!(config,DatabaseFieldConfig::Status(config) if config.options.iter().any(|option|option.id==target.archived_option_id && option.group==DatabaseStatusGroup::Archived))

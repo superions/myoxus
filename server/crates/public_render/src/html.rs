@@ -498,12 +498,8 @@ fn render_shell(
   };
   let shell = options.site_shell.template(&body.toc, &renderer.css, &renderer.js);
   let mut context = Context::new();
-  context
-    .try_insert("page", &page)
-    .map_err(|err| format!("template page context failed: {err}"))?;
-  context
-    .try_insert("shell", &shell)
-    .map_err(|err| format!("template shell context failed: {err}"))?;
+  context.insert("page", &page);
+  context.insert("shell", &shell);
   let html = renderer.render("public_page.html.tera", &context)?;
   Ok(HtmlRenderOutput { html, seo })
 }

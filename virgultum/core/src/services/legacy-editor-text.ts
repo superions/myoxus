@@ -1,7 +1,7 @@
 import type { EditorI18nMessage, EditorI18nValues } from "./i18n-service";
 
 /**
- * Transitional lookup for active Lit toolbar contracts that still expose
+ * Transitional lookup for active toolbar contracts that still expose
  * display text as a string. The map is finite and literal so the legacy path
  * remains auditable while callers migrate to `EditorI18nMessage`.
  */

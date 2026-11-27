@@ -329,7 +329,7 @@ impl PgDatabaseRepository {
     source_field_id: DatabaseFieldId,
   ) -> RepoResult<(DatabaseId, DatabaseRelationFieldConfig)> {
     let row_database_sql = format!("SELECT database_id FROM {DATABASE_ROWS_TABLE} WHERE id = $1");
-    let source_database_id: DatabaseId = sqlx::query_scalar(&row_database_sql)
+    let source_database_id: DatabaseId = sqlx::query_scalar(sqlx::AssertSqlSafe(row_database_sql.as_str()))
       .bind(source_row_id)
       .fetch_optional(&mut **tx)
       .await

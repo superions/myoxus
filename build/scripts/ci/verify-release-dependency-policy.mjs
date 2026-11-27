@@ -52,27 +52,27 @@ const prohibitedPolicyKeys = new Set([
 ]);
 const exactDependencyVersions = new Map([
   ["@graphql-codegen/core", "6.2.2"],
-  ["@sentry/electron", "7.20.0"],
-  ["@sentry/react", "10.75.0"],
+  ["@sentry/electron", "8.4.0"],
+  ["@sentry/react", "11.10.0"],
   ["dompurify", "3.5.0"],
   ["file-type", "22.3.0"],
   ["happy-dom", "21.0.4"],
   ["http-proxy-middleware", "3.0.7"],
   ["katex", "0.19.1"],
-  ["mermaid", "11.17.2"],
+  ["mermaid", "12.3.0"],
   ["path-to-regexp", "8.4.2"],
   ["react-router", "7.18.4"],
   ["uuid", "13.0.1"],
   ["yaml", "2.9.1"],
 ]);
 const exactResolvedVersions = new Map([
-  ["@sentry/bundler-plugins", "10.75.0"],
-  ["@sentry/core", "10.75.0"],
-  ["@sentry/electron", "7.20.0"],
-  ["@sentry/react", "10.75.0"],
+  ["@sentry/bundler-plugins", "11.10.0"],
+  ["@sentry/core", "11.10.0"],
+  ["@sentry/electron", "8.4.0"],
+  ["@sentry/react", "11.10.0"],
   ["dompurify", "3.5.0"],
   ["katex", "0.19.1"],
-  ["mermaid", "11.17.2"],
+  ["mermaid", "12.3.0"],
   ["react-router", "7.18.4"],
 ]);
 const resolvedVersionPolicies = [

@@ -894,7 +894,7 @@ async fn install_statement_counters(pool: &PgPool, suffix: &str) {
        AFTER UPDATE ON workspace_database_rows FOR EACH STATEMENT
        EXECUTE FUNCTION database_reorder_counter_fn_{suffix}();"
   );
-  sqlx::raw_sql(&ddl)
+  sqlx::raw_sql(sqlx::AssertSqlSafe(ddl.as_str()))
     .execute(pool)
     .await
     .expect("install test-local reorder statement counters");
@@ -908,7 +908,7 @@ async fn remove_statement_counters(pool: &PgPool, suffix: &str) {
      DROP FUNCTION database_reorder_counter_fn_{suffix}();
      DROP TABLE database_reorder_counter_{suffix};"
   );
-  sqlx::raw_sql(&ddl)
+  sqlx::raw_sql(sqlx::AssertSqlSafe(ddl.as_str()))
     .execute(pool)
     .await
     .expect("remove test-local reorder statement counters");
@@ -1018,9 +1018,9 @@ async fn hundred_item_reorders_use_one_write_statement_and_preserve_conflicts() 
   .bind(fixture.database_id)
   .fetch_all(&pool)
   .await;
-  let statement_counts = sqlx::query_as::<_, (String, i32)>(&format!(
+  let statement_counts = sqlx::query_as::<_, (String, i32)>(sqlx::AssertSqlSafe(format!(
     "SELECT table_name, statement_count FROM database_reorder_counter_{suffix} ORDER BY table_name"
-  ))
+  )))
   .fetch_all(&pool)
   .await;
 

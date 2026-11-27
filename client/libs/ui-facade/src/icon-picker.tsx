@@ -630,8 +630,8 @@ export function DocumentIconTitleSlot({
   return (
     <div
       {...props}
-      // The Lit doc-title fragment is outside React; this stable class is the
-      // shared layout bridge between the facade trigger and editor title grid.
+      // The doc-title fragment mounts outside this trigger; this stable class
+      // is the shared layout bridge between the facade trigger and title grid.
       className={joinClassName("doc-icon-container", className)}
       data-has-icon={hasIcon ? "true" : "false"}
       data-myoxus-ui-role="document-icon-title-slot"

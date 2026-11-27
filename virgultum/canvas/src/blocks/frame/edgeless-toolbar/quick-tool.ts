@@ -6,8 +6,8 @@ export const frameQuickTool = QuickToolExtension("frame", ({ block, gfx }) => {
   return {
     type: "frame",
     content: {
-      type: "hosts",
-      tags: ["edgeless-frame-tool-button"],
+      type: "popover-tool",
+      tool: "frame",
       edgeless: block,
     },
     menu: buildFrameDenseMenu(block, gfx),

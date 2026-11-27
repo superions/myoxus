@@ -34,5 +34,5 @@ export const IS_LINUX = /Linux/.test(platform);
 export const IS_MOBILE = IS_IOS || IS_IPAD || IS_ANDROID;
 
 // Data-only consumers import view registrations in Node without mounting them.
-export const NativeViewElement =
+export const NativeViewElement: typeof HTMLElement =
   globalThis.HTMLElement ?? (class {} as typeof HTMLElement);

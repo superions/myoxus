@@ -57,7 +57,7 @@ import { deleteEdge } from "../mutations/deleteEdge";
 import { deleteNode } from "../mutations/deleteNode";
 import { inspectBpmnEditability } from "../../process-source";
 export function BpmnDiagramCommands() {
-  const xyFlowStoreApi = RF.useStoreApi<
+  const xyFlowStoreApi = RF.useReactFlowStoreApi<
     RF.Node<BpmnDiagramNodeData, BpmnNodeType>,
     RF.Edge<BpmnDiagramEdgeData>
   >();
@@ -152,17 +152,14 @@ export function BpmnDiagramCommands() {
       return;
     }
     commandsRef.current.cancelAction = async () => {
-      xyFlowStoreApi.setState((xyFlowState) => {
-        if (xyFlowState.connection.inProgress) {
-          xyFlowState.cancelConnection();
-          bpmnEditorStoreApi.setState((state) => {
-            state.xyFlowReactKieDiagram.ongoingConnection = undefined;
-          });
-        } else {
-          (document.activeElement as any)?.blur?.();
-        }
-        return xyFlowState;
-      });
+      if (xyFlowStoreApi.connectionStore.getState().connection.inProgress) {
+        xyFlowStoreApi.optionsStore.getState().cancelConnection();
+        bpmnEditorStoreApi.setState((state) => {
+          state.xyFlowReactKieDiagram.ongoingConnection = undefined;
+        });
+      } else {
+        (document.activeElement as any)?.blur?.();
+      }
     };
   }, [bpmnEditorStoreApi, commandsRef, xyFlowStoreApi]);
 
@@ -216,7 +213,10 @@ export function BpmnDiagramCommands() {
       if (bpmnEditorStoreApi.getState().settings.isReadOnly) return;
       const { clipboard, copiedEdgesById, danglingEdgesById, copiedNodesById } =
         buildClipboardFromDiagram(
-          xyFlowStoreApi.getState(),
+          {
+            nodes: xyFlowStoreApi.nodesStore.getState().nodes,
+            edges: xyFlowStoreApi.edgesStore.getState().edges,
+          },
           bpmnEditorStoreApi.getState(),
         );
       try {
@@ -256,7 +256,7 @@ export function BpmnDiagramCommands() {
         );
 
         // Delete nodes
-        xyFlowStoreApi
+        xyFlowStoreApi.nodesStore
           .getState()
           .nodes.forEach((node: RF.Node<BpmnDiagramNodeData>) => {
             if (copiedNodesById.has(node.id)) {
@@ -286,7 +286,10 @@ export function BpmnDiagramCommands() {
     }
     commandsRef.current.copy = async () => {
       const { clipboard } = buildClipboardFromDiagram(
-        xyFlowStoreApi.getState(),
+        {
+          nodes: xyFlowStoreApi.nodesStore.getState().nodes,
+          edges: xyFlowStoreApi.edgesStore.getState().edges,
+        },
         bpmnEditorStoreApi.getState(),
       );
       try {
@@ -447,7 +450,10 @@ export function BpmnDiagramCommands() {
       const state = bpmnEditorStoreApi.getState();
       if (state.settings.isReadOnly) return;
       const { clipboard } = buildClipboardFromDiagram(
-        xyFlowStoreApi.getState(),
+        {
+          nodes: xyFlowStoreApi.nodesStore.getState().nodes,
+          edges: xyFlowStoreApi.edgesStore.getState().edges,
+        },
         state,
       );
       if (!clipboard.shapes.length) return;
@@ -479,8 +485,12 @@ export function BpmnDiagramCommands() {
       return;
     }
     commandsRef.current.selectAll = async () => {
-      const allNodeIds = xyFlowStoreApi.getState().nodes.map((s) => s.id);
-      const allEdgeIds = xyFlowStoreApi.getState().edges.map((s) => s.id);
+      const allNodeIds = xyFlowStoreApi.nodesStore
+        .getState()
+        .nodes.map((s) => s.id);
+      const allEdgeIds = xyFlowStoreApi.edgesStore
+        .getState()
+        .edges.map((s) => s.id);
       bpmnEditorStoreApi.setState((state) => {
         const allSelectedNodesSet = new Set(
           state.xyFlowReactKieDiagram._selectedNodes,

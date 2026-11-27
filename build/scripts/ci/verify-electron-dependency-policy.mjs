@@ -35,8 +35,8 @@ const builtins = new Set([
 const exactVersions = new Map([
   ["electron", "45.5.0"],
   ["@electron/packager", "20.3.0"],
-  ["@sentry/electron", "7.20.0"],
-  ["@sentry/bundler-plugins", "10.75.0"],
+  ["@sentry/electron", "8.4.0"],
+  ["@sentry/bundler-plugins", "11.10.0"],
   ["vitest", "4.1.12"],
   ["@vitest/browser-playwright", "4.1.12"],
   ["@vitest/coverage-istanbul", "4.1.12"],

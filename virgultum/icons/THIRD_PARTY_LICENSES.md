@@ -5,7 +5,7 @@
 The reviewed icon mappings recorded in
 `src/mappings/tabler-top-200.json` use SVG geometry from Tabler Icons
 3.45.0. The geometry is embedded by the Virgultum icon generator for matching
-React and Lit output; product code does not import Tabler directly.
+React and native SVG output; product code does not import Tabler directly.
 
 Source: <https://github.com/tabler/tabler-icons>
 

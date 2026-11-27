@@ -38,12 +38,15 @@ impl PgWorkspaceImportRepository {
     tx: &mut Transaction<'_, Postgres>,
     import_id: WorkspaceImportId,
   ) -> AuthResult<WorkspaceImportRecord> {
-    let row = sqlx::query(&format!("{} WHERE id = $1 FOR UPDATE", RECORD_SELECT))
-      .bind(import_id)
-      .fetch_optional(&mut **tx)
-      .await
-      .map_err(Self::storage)?
-      .ok_or_else(|| AuthError::NotFound("workspace import".to_string()))?;
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
+      "{} WHERE id = $1 FOR UPDATE",
+      RECORD_SELECT
+    )))
+    .bind(import_id)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(Self::storage)?
+    .ok_or_else(|| AuthError::NotFound("workspace import".to_string()))?;
     map_record(&row)
   }
 
@@ -51,7 +54,7 @@ impl PgWorkspaceImportRepository {
     tx: &mut Transaction<'_, Postgres>,
     import_id: WorkspaceImportId,
   ) -> AuthResult<WorkspaceImportRecord> {
-    let row = sqlx::query(&format!("{} WHERE id = $1", RECORD_SELECT))
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!("{} WHERE id = $1", RECORD_SELECT)))
       .bind(import_id)
       .fetch_one(&mut **tx)
       .await
@@ -286,7 +289,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
   }
 
   async fn get(&self, import_id: WorkspaceImportId) -> AuthResult<Option<WorkspaceImportRecord>> {
-    let row = sqlx::query(&format!("{} WHERE id = $1", RECORD_SELECT))
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!("{} WHERE id = $1", RECORD_SELECT)))
       .bind(import_id)
       .fetch_optional(&self.pool)
       .await
@@ -299,12 +302,15 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
     import_id: WorkspaceImportId,
     actor_id: UserId,
   ) -> AuthResult<Option<WorkspaceImportRecord>> {
-    let row = sqlx::query(&format!("{} WHERE id = $1 AND actor_id = $2", RECORD_SELECT))
-      .bind(import_id)
-      .bind(actor_id)
-      .fetch_optional(&self.pool)
-      .await
-      .map_err(Self::storage)?;
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
+      "{} WHERE id = $1 AND actor_id = $2",
+      RECORD_SELECT
+    )))
+    .bind(import_id)
+    .bind(actor_id)
+    .fetch_optional(&self.pool)
+    .await
+    .map_err(Self::storage)?;
     row.as_ref().map(map_record).transpose()
   }
 
@@ -360,7 +366,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
     source_size_bytes: i64,
     source_hash: &str,
   ) -> AuthResult<WorkspaceImportRecord> {
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"
       UPDATE workspace_imports SET
         source_size_bytes = $3, source_hash = $4, updated_at = now()
@@ -369,7 +375,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
       RETURNING {}
       "#,
       RECORD_COLUMNS
-    ))
+    )))
     .bind(import_id)
     .bind(actor_id)
     .bind(source_size_bytes)
@@ -568,7 +574,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
   }
 
   async fn store_preview(&self, import_id: WorkspaceImportId, preview: Value) -> AuthResult<WorkspaceImportRecord> {
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"
       UPDATE workspace_imports SET status = 'previewed', preview = $2,
         queued_operation = NULL, progress_current = progress_total,
@@ -577,7 +583,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
       RETURNING {}
       "#,
       RECORD_COLUMNS
-    ))
+    )))
     .bind(import_id)
     .bind(preview)
     .fetch_optional(&self.pool)
@@ -680,7 +686,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
     cleanup_required: bool,
   ) -> AuthResult<WorkspaceImportRecord> {
     let target = if cleanup_required { "cleanup_required" } else { "failed" };
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"
       UPDATE workspace_imports SET status = $2, queued_operation = NULL,
         error_code = $3, error_message = $4, updated_at = now()
@@ -688,7 +694,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
       RETURNING {}
       "#,
       RECORD_COLUMNS
-    ))
+    )))
     .bind(import_id)
     .bind(target)
     .bind(error_code)
@@ -701,7 +707,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
   }
 
   async fn request_cancel(&self, import_id: WorkspaceImportId, actor_id: UserId) -> AuthResult<WorkspaceImportRecord> {
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"
       UPDATE workspace_imports SET
         status = CASE WHEN status = 'running' THEN status ELSE 'cancelled' END,
@@ -713,7 +719,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
       RETURNING {}
       "#,
       RECORD_COLUMNS
-    ))
+    )))
     .bind(import_id)
     .bind(actor_id)
     .fetch_optional(&self.pool)
@@ -724,7 +730,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
   }
 
   async fn mark_cancelled(&self, import_id: WorkspaceImportId) -> AuthResult<WorkspaceImportRecord> {
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"
       UPDATE workspace_imports SET status = 'cancelled', queued_operation = NULL,
         cancel_requested = true, updated_at = now()
@@ -732,7 +738,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
       RETURNING {}
       "#,
       RECORD_COLUMNS
-    ))
+    )))
     .bind(import_id)
     .fetch_optional(&self.pool)
     .await
@@ -742,7 +748,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
   }
 
   async fn complete_cleanup(&self, import_id: WorkspaceImportId) -> AuthResult<WorkspaceImportRecord> {
-    let row = sqlx::query(&format!(
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"
       UPDATE workspace_imports SET status = 'failed', queued_operation = NULL,
         error_code = 'MIX_WORKSPACE_IMPORT_APPLY_BLOCKED',
@@ -752,7 +758,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
       RETURNING {}
       "#,
       RECORD_COLUMNS
-    ))
+    )))
     .bind(import_id)
     .fetch_optional(&self.pool)
     .await
@@ -924,7 +930,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
     terminal_before: DateTime<Utc>,
     limit: i64,
   ) -> AuthResult<Vec<WorkspaceImportRecord>> {
-    let rows = sqlx::query(&format!(
+    let rows = sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"
       WITH candidates AS (
         SELECT id
@@ -952,7 +958,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
       SELECT {} FROM expired
       "#,
       RECORD_COLUMNS
-    ))
+    )))
     .bind(terminal_before)
     .bind(limit)
     .fetch_all(&self.pool)
@@ -974,7 +980,7 @@ impl WorkspaceImportRepository for PgWorkspaceImportRepository {
       "workspace_import_id_mappings",
       "workspace_import_compensations",
     ] {
-      sqlx::query(&format!("DELETE FROM {table} WHERE import_id = $1"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("DELETE FROM {table} WHERE import_id = $1")))
         .bind(import_id)
         .execute(&mut *tx)
         .await

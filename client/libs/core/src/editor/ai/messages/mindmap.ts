@@ -3,7 +3,7 @@ import type { MindmapDesign as MindmapStyle } from "@virgultum/block-mermaid";
 import type { EditorHost } from "@virgultum/editor/std";
 
 import { markdownToMindmap, MiniMindmapPreview } from "../mini-mindmap";
-import { getAIPanelWidget } from "../utils/ai-widgets";
+import { getAIPanelController } from "../utils/ai-widgets";
 import type { AIContext } from "../utils/context";
 import type { MyoxusAIPanelWidgetConfig } from "../widgets/ai-panel/type";
 
@@ -17,7 +17,7 @@ export const createMindmapRenderer: (
 ) => MyoxusAIPanelWidgetConfig["answerRenderer"] = (host, ctx, style) => {
   return (answer, state) => {
     if (state === "generating") {
-      const panel = getAIPanelWidget(host);
+      const panel = getAIPanelController(host);
       panel.generatingElement?.updateLoadingProgress(2);
     }
 
@@ -52,7 +52,7 @@ export const createMindmapExecuteRenderer: (
   return (answer, state) => {
     if (state !== "finished") {
       executed = false;
-      const panel = getAIPanelWidget(host);
+      const panel = getAIPanelController(host);
       panel.generatingElement?.updateLoadingProgress(2);
       return null;
     }

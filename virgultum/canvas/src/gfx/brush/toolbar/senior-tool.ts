@@ -5,8 +5,8 @@ export const penSeniorTool = SeniorToolExtension("pen", ({ block }) => {
   return {
     name: editorMessage("Pen", "Pen"),
     content: {
-      type: "hosts",
-      tags: ["edgeless-pen-tool-button", "edgeless-eraser-tool-button"],
+      type: "popover-tool",
+      tool: "pen",
       edgeless: block,
     },
   };

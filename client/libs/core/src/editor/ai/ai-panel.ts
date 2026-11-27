@@ -29,12 +29,12 @@ import type {
 import { createAIScrollableTextRenderer } from "./components/ai-scrollable-text-renderer";
 import { AIProvider } from "./provider";
 import { reportResponse } from "./utils/action-reporter";
-import { getAIPanelWidget } from "./utils/ai-widgets";
+import { getAIPanelController } from "./utils/ai-widgets";
 import { AIContext } from "./utils/context";
 import { findNoteBlockModel } from "./utils/edgeless";
 import { copyTextAnswer } from "./utils/editor-actions";
 import { getSelections } from "./utils/selection-utils";
-import type { MyoxusAIPanelWidget } from "./widgets/ai-panel/ai-panel";
+import type { AIPanelController } from "./widgets/ai-panel/controller";
 import type { MyoxusAIPanelWidgetConfig } from "./widgets/ai-panel/type";
 
 function asCaption<T extends keyof VirgultumPresets.AIActions>(
@@ -46,12 +46,12 @@ function asCaption<T extends keyof VirgultumPresets.AIActions>(
     iconName: "PenIcon",
     testId: "answer-use-as-caption",
     showWhen: () => {
-      const panel = getAIPanelWidget(host);
+      const panel = getAIPanelController(host);
       return id === "generateCaption" && !!panel.answer;
     },
     handler: () => {
       reportResponse("result:use-as-caption");
-      const panel = getAIPanelWidget(host);
+      const panel = getAIPanelController(host);
       const caption = panel.answer;
       if (!caption) return;
 
@@ -73,7 +73,7 @@ function createNewNote(host: EditorHost): AIItemConfig {
     iconName: "PageIcon",
     testId: "answer-create-new-note",
     showWhen: () => {
-      const panel = getAIPanelWidget(host);
+      const panel = getAIPanelController(host);
       return !!panel.answer && isInsideEdgelessEditor(host);
     },
     handler: () => {
@@ -89,7 +89,7 @@ function createNewNote(host: EditorHost): AIItemConfig {
       const bound = Bound.deserialize(noteModel.xywh);
       const newBound = new Bound(bound.x - bound.w - 20, bound.y, bound.w, 72);
       const doc = host.store;
-      const panel = getAIPanelWidget(host);
+      const panel = getAIPanelController(host);
       const gfx = host.std.get(GfxControllerIdentifier);
       doc.transact(() => {
         if (!doc.root || !panel.answer) return;
@@ -131,7 +131,7 @@ function createNewNote(host: EditorHost): AIItemConfig {
 }
 
 function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
-  panel: MyoxusAIPanelWidget,
+  panel: AIPanelController,
   id: T,
   ctx: AIContext,
 ): AIItemGroupConfig[] {
@@ -243,7 +243,7 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
 }
 
 export function buildErrorResponseConfig(
-  panel: MyoxusAIPanelWidget,
+  panel: AIPanelController,
 ): AIItemGroupConfig[] {
   return [
     {
@@ -274,7 +274,7 @@ export function buildErrorResponseConfig(
 }
 
 export function buildFinishConfig<T extends keyof VirgultumPresets.AIActions>(
-  panel: MyoxusAIPanelWidget,
+  panel: AIPanelController,
   id: T,
   ctx: AIContext,
 ) {
@@ -284,7 +284,7 @@ export function buildFinishConfig<T extends keyof VirgultumPresets.AIActions>(
   };
 }
 
-export function buildErrorConfig(panel: MyoxusAIPanelWidget) {
+export function buildErrorConfig(panel: AIPanelController) {
   return {
     upgrade: () => {
       panel.hide();
@@ -306,7 +306,7 @@ export function buildGeneratingConfig(generatingIcon?: MyoxusIconExportName) {
   };
 }
 
-export function buildCopyConfig(panel: MyoxusAIPanelWidget) {
+export function buildCopyConfig(panel: AIPanelController) {
   return {
     allowed: true,
     onCopy: () => {
@@ -316,7 +316,7 @@ export function buildCopyConfig(panel: MyoxusAIPanelWidget) {
 }
 
 export function buildAIPanelConfig(
-  panel: MyoxusAIPanelWidget,
+  panel: AIPanelController,
 ): MyoxusAIPanelWidgetConfig {
   const ctx = new AIContext();
   return {

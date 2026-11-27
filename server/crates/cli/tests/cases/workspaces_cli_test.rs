@@ -745,7 +745,7 @@ async fn workspace_labels_cli_reconciliation_is_explicit_atomic_revision_bound_a
     let original_file = serde_json::to_vec(&decision)?;
     std::fs::write(&decision_file, &original_file)?;
     // Scope the injected failure to this unique fixture and remove it before continuing.
-    sqlx::raw_sql(&format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.target_id = '{workspace}' AND NEW.event_key = 'workspace.labels_reconcile' THEN RAISE EXCEPTION 'label fixture audit failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER {trigger} BEFORE INSERT ON admin_audit_log FOR EACH ROW EXECUTE FUNCTION {trigger}();"))
+    sqlx::raw_sql(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.target_id = '{workspace}' AND NEW.event_key = 'workspace.labels_reconcile' THEN RAISE EXCEPTION 'label fixture audit failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER {trigger} BEFORE INSERT ON admin_audit_log FOR EACH ROW EXECUTE FUNCTION {trigger}();")))
       .execute(&pool).await?;
     ensure!(!run_cli(&apply_args, &namespace, true)?.status.success());
     let rejected = run_json(&inspect_args, &namespace)?;
@@ -753,7 +753,7 @@ async fn workspace_labels_cli_reconciliation_is_explicit_atomic_revision_bound_a
     let outbox: i64 = sqlx::query_scalar("SELECT count(*) FROM outbox_events WHERE event_type='workspace_doc_broadcast' AND payload->>'workspaceId'=$1")
       .bind(&workspace_text).fetch_one(&pool).await?;
     ensure!(outbox == 0, "failed repair must not publish an outbox entry");
-    sqlx::raw_sql(&format!("DROP TRIGGER {trigger} ON admin_audit_log; DROP FUNCTION {trigger}();")).execute(&pool).await?;
+    sqlx::raw_sql(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger} ON admin_audit_log; DROP FUNCTION {trigger}();"))).execute(&pool).await?;
     let applied = run_json(&apply_args, &namespace)?;
     ensure!(applied["changed"] == true && applied["root_catalog_removed"] == false);
     let delivered: Value = sqlx::query_scalar("SELECT payload->'updates' FROM outbox_events WHERE event_type='workspace_doc_broadcast' AND payload->>'workspaceId'=$1")
@@ -804,9 +804,9 @@ async fn workspace_labels_cli_reconciliation_is_explicit_atomic_revision_bound_a
   // Cleanup is explicit even after a failed assertion; no test-owned global
   // trigger, audit/outbox record, cache key, workspace or user may escape.
   let cleanup: Result<()> = async {
-    sqlx::raw_sql(&format!(
+    sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
       "DROP TRIGGER IF EXISTS {trigger} ON admin_audit_log; DROP FUNCTION IF EXISTS {trigger}();"
-    ))
+    )))
     .execute(&pool)
     .await?;
     sqlx::query("DELETE FROM outbox_events WHERE event_type='workspace_doc_broadcast' AND payload->>'workspaceId'=$1")

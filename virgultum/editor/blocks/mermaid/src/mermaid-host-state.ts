@@ -65,7 +65,22 @@ import { readMermaidGfxMeta } from "./mermaid-gfx-metadata.js";
 import { resolveMermaidGfxProjection } from "./presentation/gfx-projection-owner.js";
 import { Bound } from "@virgultum/core/primitives/gfx";
 import type { MermaidGfxSnapGuide } from "./mermaid-gfx-snap.js";
+import {
+  getMermaidHostSignalState,
+  type MermaidGeometryHudState,
+  type MermaidHostSignalState,
+  type MermaidSubgraphDropPreviewState,
+} from "./mermaid-host-signal-state.js";
+
 export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlockModel> {
+  protected get _hostState(): MermaidHostSignalState {
+    return getMermaidHostSignalState(this);
+  }
+
+  /** Bumps the host signal revision for external non-signal sources (model/history/theme/viewport). */
+  protected _notifyProjectionChange() {
+    this._hostState.bumpExternalRevision();
+  }
   protected _objectEditIntent:
     ((intent: MermaidGfxObjectEditIntent) => boolean) | undefined;
   protected _familyNodePointerDown:
@@ -80,7 +95,7 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
       if (intent.kind === "detail" && intent.ownerId) {
         this._gfxViewportBridge.ensureDetailVisible(intent.ownerId, intent.id);
       }
-      this.requestUpdate();
+      this._notifyProjectionChange();
     }
     return consumed;
   }
@@ -375,11 +390,35 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
   protected abstract _projectVisualSelectionToScopedGfx(): void;
   protected abstract _restoreVisualObjectFocus(): void;
 
-  protected _renderState: MermaidRenderState = "empty";
-  protected _pageSelectionState = createMermaidPageSelectionState();
+  protected get _renderState(): MermaidRenderState {
+    return this._hostState.renderState$.value;
+  }
+  protected set _renderState(value: MermaidRenderState) {
+    this._hostState.renderState$.value = value;
+  }
+  protected get _pageSelectionState() {
+    return this._hostState.pageSelectionState$.value;
+  }
+  protected set _pageSelectionState(
+    value: ReturnType<typeof createMermaidPageSelectionState>,
+  ) {
+    this._hostState.pageSelectionState$.value = value;
+  }
   protected _pageSelectionEnabled = false;
-  protected _pageViewportState = createMermaidPageViewportState();
-  protected _embeddedGfxActionsSafeInset = 0;
+  protected get _pageViewportState() {
+    return this._hostState.pageViewportState$.value;
+  }
+  protected set _pageViewportState(
+    value: ReturnType<typeof createMermaidPageViewportState>,
+  ) {
+    this._hostState.pageViewportState$.value = value;
+  }
+  protected get _embeddedGfxActionsSafeInset(): number {
+    return this._hostState.embeddedGfxActionsSafeInset$.value;
+  }
+  protected set _embeddedGfxActionsSafeInset(value: number) {
+    this._hostState.embeddedGfxActionsSafeInset$.value = value;
+  }
 
   protected _setEmbeddedGfxActionsSafeInset(height: number) {
     const next = Number.isFinite(height) ? Math.max(0, Math.ceil(height)) : 0;
@@ -394,7 +433,6 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
     if (this._isInEdgelessMode() && (insetChanged || clientRectChanged)) {
       this._fitScopedGfxViewport();
     }
-    if (insetChanged) this.requestUpdate();
   }
 
   protected _transitionPageSelection(
@@ -410,7 +448,6 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
     this._pauseProjectionOwnerSourceSync();
     this._acceptProjectionOwnerSourceSyncKey();
     this._pageSelectionState = next;
-    this.requestUpdate();
     return true;
   }
 
@@ -539,7 +576,6 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
             ?.gfxElementId ?? null)
         : null;
     });
-    this.requestUpdate();
   }
 
   protected _transitionPageViewport(transition: MermaidPageViewportTransition) {
@@ -549,7 +585,6 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
     );
     if (next === this._pageViewportState) return false;
     this._pageViewportState = next;
-    this.requestUpdate();
     return true;
   }
   protected _changePageZoom(
@@ -624,11 +659,21 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
   protected _centerPageViewport(mode: MermaidPageViewportMode) {
     return this._transitionPageViewport({ mode, type: "center" });
   }
-  protected _renderErrorLine: number | null = null;
-  protected _renderErrorMessage: string | null = null;
+  protected get _renderErrorLine(): number | null {
+    return this._hostState.renderErrorLine$.value;
+  }
+  protected set _renderErrorLine(value: number | null) {
+    this._hostState.renderErrorLine$.value = value;
+  }
+  protected get _renderErrorMessage(): string | null {
+    return this._hostState.renderErrorMessage$.value;
+  }
+  protected set _renderErrorMessage(value: string | null) {
+    this._hostState.renderErrorMessage$.value = value;
+  }
   protected _renderTimer: ReturnType<typeof setTimeout> | null = null;
   protected readonly _ownerSourceSync = new MermaidOwnerSourceSyncController();
-  // Keep BlockComponent-owned state behind callbacks: Lit field initializers run
+  // Keep BlockComponent-owned state behind callbacks: class field initializers run
   // before model/std accessors are safe to dereference in extracted controllers.
   protected readonly _ownerGfx = new MermaidOwnerGfxBridge({
     acceptProjectionOwnerSourceSyncKey: () =>
@@ -751,7 +796,6 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
         ),
       previewVisualNodeReparent: (nodeId, targetSubgraphId) =>
         this._previewVisualNodeReparent(nodeId, targetSubgraphId),
-      requestUpdate: () => this.requestUpdate(),
       restoreViewport: (snapshot) => this._restoreScopedGfxViewport(snapshot),
       selectVisualEdge: (edgeId) => this._selectVisualEdge(edgeId),
       selectVisualNode: (nodeId, additive) => {
@@ -799,7 +843,6 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
       ),
     announceDiagnostic: (message) => {
       this._pageSelectionAnnouncement = message;
-      this.requestUpdate();
     },
     applyGfxMutation: (run, options) => this._applyGfxMutation(run, options),
     applyVisualSelectionPatch: (patch) =>
@@ -854,7 +897,6 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
       this._previewVisualSubgraphReparent(subgraphId, targetSubgraphId),
     reparentVisualSubgraph: (subgraphId, parentId, coalesceKey) =>
       this._reparentVisualSubgraph(subgraphId, parentId, coalesceKey),
-    requestUpdate: () => this.requestUpdate(),
     scheduleRender: () => this._scheduleRender(),
     selectVisualEdge: (edgeId) => this._selectVisualEdge(edgeId),
     selectVisualSubgraph: (subgraphId) =>
@@ -880,41 +922,129 @@ export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlock
       Pick<MermaidPageSelectionItem, "editKey" | "kind">
     >;
   } | null = null;
-  protected _pendingVisualInsertShape: MermaidVisualNodeShape | null = null;
-  protected _showAllVisualShapes = false;
-  protected _mode: MermaidViewMode = "visual";
-  protected _keyboardFocusedVisualItem: Pick<
+  protected get _pendingVisualInsertShape(): MermaidVisualNodeShape | null {
+    return this._hostState.pendingVisualInsertShape$.value;
+  }
+  protected set _pendingVisualInsertShape(
+    value: MermaidVisualNodeShape | null,
+  ) {
+    this._hostState.pendingVisualInsertShape$.value = value;
+  }
+  protected get _showAllVisualShapes(): boolean {
+    return this._hostState.showAllVisualShapes$.value;
+  }
+  protected set _showAllVisualShapes(value: boolean) {
+    this._hostState.showAllVisualShapes$.value = value;
+  }
+  protected get _mode(): MermaidViewMode {
+    return this._hostState.mode$.value;
+  }
+  protected set _mode(value: MermaidViewMode) {
+    this._hostState.mode$.value = value;
+  }
+  protected get _keyboardFocusedVisualItem(): Pick<
     MermaidPageSelectionItem,
     "editKey" | "kind"
-  > | null = null;
-  protected _pageSelectionAnnouncement = "";
-  protected _visualInspectorSuppressed = false;
-  protected _visualAutoViewportHeight: number | null = null;
-  protected _visualNodeDragModel: MermaidVisualModel | null = null;
-  protected _visualNodePointerSessionActive = false;
-  protected _snapToGridEnabled = true;
-  protected _activeSnapGuides: readonly MermaidGfxSnapGuide[] = [];
-  protected _activeGeometryHud: {
-    readonly x: number;
-    readonly y: number;
-    readonly text: string;
-  } | null = null;
-  protected _hoveredVisualNodeId = "";
-  protected _visualContextMenu: { left: number; top: number } | null = null;
+  > | null {
+    return this._hostState.keyboardFocusedVisualItem$.value;
+  }
+  protected set _keyboardFocusedVisualItem(
+    value: Pick<MermaidPageSelectionItem, "editKey" | "kind"> | null,
+  ) {
+    this._hostState.keyboardFocusedVisualItem$.value = value;
+  }
+  protected get _pageSelectionAnnouncement(): string {
+    return this._hostState.pageSelectionAnnouncement$.value;
+  }
+  protected set _pageSelectionAnnouncement(value: string) {
+    this._hostState.pageSelectionAnnouncement$.value = value;
+  }
+  protected get _visualInspectorSuppressed(): boolean {
+    return this._hostState.visualInspectorSuppressed$.value;
+  }
+  protected set _visualInspectorSuppressed(value: boolean) {
+    this._hostState.visualInspectorSuppressed$.value = value;
+  }
+  protected get _visualAutoViewportHeight(): number | null {
+    return this._hostState.visualAutoViewportHeight$.value;
+  }
+  protected set _visualAutoViewportHeight(value: number | null) {
+    this._hostState.visualAutoViewportHeight$.value = value;
+  }
+  protected get _visualNodeDragModel(): MermaidVisualModel | null {
+    return this._hostState.visualNodeDragModel$.value;
+  }
+  protected set _visualNodeDragModel(value: MermaidVisualModel | null) {
+    this._hostState.visualNodeDragModel$.value = value;
+  }
+  protected get _visualNodePointerSessionActive(): boolean {
+    return this._hostState.visualNodePointerSessionActive$.value;
+  }
+  protected set _visualNodePointerSessionActive(value: boolean) {
+    this._hostState.visualNodePointerSessionActive$.value = value;
+  }
+  protected get _snapToGridEnabled(): boolean {
+    return this._hostState.snapToGridEnabled$.value;
+  }
+  protected set _snapToGridEnabled(value: boolean) {
+    this._hostState.snapToGridEnabled$.value = value;
+  }
+  protected get _activeSnapGuides(): readonly MermaidGfxSnapGuide[] {
+    return this._hostState.activeSnapGuides$.value;
+  }
+  protected set _activeSnapGuides(value: readonly MermaidGfxSnapGuide[]) {
+    this._hostState.activeSnapGuides$.value = value;
+  }
+  protected get _activeGeometryHud(): MermaidGeometryHudState | null {
+    return this._hostState.activeGeometryHud$.value;
+  }
+  protected set _activeGeometryHud(value: MermaidGeometryHudState | null) {
+    this._hostState.activeGeometryHud$.value = value;
+  }
+  protected get _hoveredVisualNodeId(): string {
+    return this._hostState.hoveredVisualNodeId$.value;
+  }
+  protected set _hoveredVisualNodeId(value: string) {
+    this._hostState.hoveredVisualNodeId$.value = value;
+  }
+  protected get _visualContextMenu(): { left: number; top: number } | null {
+    return this._hostState.visualContextMenu$.value;
+  }
+  protected set _visualContextMenu(
+    value: { left: number; top: number } | null,
+  ) {
+    this._hostState.visualContextMenu$.value = value;
+  }
   // Alignment guides have no native GFX element identity. Keep only the
   // currently invoked guide so two legal alignments over the same members can
   // still address the correct existing command; node selection remains owned
   // exclusively by the central visual selection controller.
-  protected _visualAlignmentGuideId = "";
-  protected _visualSubgraphDropPreview: {
-    height: number;
-    id: string;
-    left: number;
-    top: number;
-    width: number;
-  } | null = null;
-  protected _svg = "";
-  protected _lastValidSvg = "";
+  protected get _visualAlignmentGuideId(): string {
+    return this._hostState.visualAlignmentGuideId$.value;
+  }
+  protected set _visualAlignmentGuideId(value: string) {
+    this._hostState.visualAlignmentGuideId$.value = value;
+  }
+  protected get _visualSubgraphDropPreview(): MermaidSubgraphDropPreviewState | null {
+    return this._hostState.visualSubgraphDropPreview$.value;
+  }
+  protected set _visualSubgraphDropPreview(
+    value: MermaidSubgraphDropPreviewState | null,
+  ) {
+    this._hostState.visualSubgraphDropPreview$.value = value;
+  }
+  protected get _svg(): string {
+    return this._hostState.svg$.value;
+  }
+  protected set _svg(value: string) {
+    this._hostState.svg$.value = value;
+  }
+  protected get _lastValidSvg(): string {
+    return this._hostState.lastValidSvg$.value;
+  }
+  protected set _lastValidSvg(value: string) {
+    this._hostState.lastValidSvg$.value = value;
+  }
   protected get _visualRedoStack(): MermaidVisualHistoryEntry[] {
     return getMermaidVisualHistoryStacks(this.model).redoStack;
   }

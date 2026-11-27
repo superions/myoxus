@@ -3,10 +3,10 @@ import type { BlockComponent } from "@virgultum/core/runtime";
 import { Bound } from "@virgultum/core/primitives/gfx";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import {
+  DiagramToolbarTemplateIdentifier,
+  type DiagramToolbarTemplateCategory,
   type SeniorTool,
   SeniorToolExtension,
-  type EdgelessToolbarWidget,
-  EDGELESS_TOOLBAR_WIDGET,
   type ToolBuilder,
 } from "@virgultum/canvas/widgets";
 
@@ -107,6 +107,13 @@ export async function insertMermaidEdgelessToolbarTemplate(
   return result;
 }
 
+type DiagramTemplateMenuEntry = {
+  id: string;
+  label: string;
+  category: DiagramToolbarTemplateCategory;
+  run: () => void;
+};
+
 export function buildMermaidEdgelessToolbarMenuItems(
   edgeless: BlockComponent,
   query = "",
@@ -116,17 +123,47 @@ export function buildMermaidEdgelessToolbarMenuItems(
     sensitivity: "base",
     numeric: true,
   });
-  const templates = getMermaidEdgelessToolbarTemplates().sort((a, b) =>
+  const mermaidEntries: DiagramTemplateMenuEntry[] =
+    getMermaidEdgelessToolbarTemplates().map((template) => ({
+      id: `myoxus-mermaid-edgeless-template-${template.id}`,
+      label: template.label,
+      category: template.category,
+      run: () => void insertMermaidEdgelessToolbarTemplate(edgeless, template),
+    }));
+  const contributed =
+    typeof edgeless.std.provider?.getAll === "function"
+      ? Array.from(
+          edgeless.std.provider
+            .getAll(DiagramToolbarTemplateIdentifier)
+            .values(),
+        )
+      : [];
+  const contributedEntries: DiagramTemplateMenuEntry[] = contributed.map(
+    (template) => ({
+      id: `myoxus-diagram-edgeless-template-${template.id}`,
+      label:
+        typeof template.label === "string"
+          ? template.label
+          : resolveEditorMessage(template.label, i18n),
+      category: template.category,
+      run: () =>
+        template.run({
+          block: edgeless,
+          gfx: edgeless.std.get(GfxControllerIdentifier),
+        }),
+    }),
+  );
+  const templates = [...mermaidEntries, ...contributedEntries].sort((a, b) =>
     collator.compare(a.label, b.label),
   );
   const actions = (
-    items: readonly MermaidEdgelessToolbarTemplate[],
+    items: readonly DiagramTemplateMenuEntry[],
   ): SelectionAction[] =>
     items.map((template) => ({
-      id: `myoxus-mermaid-edgeless-template-${template.id}`,
+      id: template.id,
       label: template.label,
       disabled: edgeless.store.readonly,
-      run: () => void insertMermaidEdgelessToolbarTemplate(edgeless, template),
+      run: template.run,
     }));
   const imports = [
     createMermaidMmdImportMenuItem(edgeless),
@@ -161,7 +198,7 @@ export function buildMermaidEdgelessToolbarMenuItems(
 
 export const buildMermaidSeniorTool: ToolBuilder<SeniorTool> = ({
   block,
-  toolbarContainer,
+  closeActivePopover,
 }) => ({
   name: titleMessage,
   enable: !block.store.readonly,
@@ -179,11 +216,7 @@ export const buildMermaidSeniorTool: ToolBuilder<SeniorTool> = ({
       menu: {
         searchPlaceholder: mermaidMessages.toolbarSearchPlaceholder(),
         onOpen: () => {
-          const toolbar = toolbarContainer.closest<EdgelessToolbarWidget>(
-            EDGELESS_TOOLBAR_WIDGET,
-          );
-          toolbar?.activePopper?.dispose();
-          if (toolbar) toolbar.activePopper = null;
+          closeActivePopover();
         },
         actions: (query) => buildMermaidEdgelessToolbarMenuItems(block, query),
       },

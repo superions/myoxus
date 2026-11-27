@@ -323,8 +323,9 @@ fanout paths but do not turn those transient states into durable data.
    `{namespace}:ws:broadcast:{workspace_id}`:
 
    ```bash
-   redis-cli --host localhost --port 6379 \
+   valkey-cli --host localhost --port 6379 \
      PUBSUB CHANNELS "myoxus:socket:ws:broadcast:*"
+   # (use redis-cli when running Redis instead of Valkey)
    ```
 
 3. Check that every API instance in the logical deployment uses the same Redis

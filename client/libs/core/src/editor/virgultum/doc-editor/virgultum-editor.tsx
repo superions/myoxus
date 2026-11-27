@@ -90,7 +90,7 @@ export interface EditorProps extends HTMLAttributes<HTMLDivElement> {
   contentOnly?: boolean;
   // on Editor ready
   onEditorReady?: (editor: MyoxusEditorContainer) => (() => void) | void;
-  /** Includes native Lit initialization failures that React boundaries cannot catch. */
+  /** Includes native custom-element initialization failures that React boundaries cannot catch. */
   onEditorError?: (error: unknown) => void;
 }
 
@@ -119,7 +119,7 @@ async function activateCatalogMermaidNote(
   await block?.updateComplete;
   if (signal.aborted || !std.host.isConnected || std.store.readonly) return;
   const diagram = std.store.getModelById(blockId);
-  // The React family body mounts after the Lit block update. Observe its
+  // The React family body mounts after the native block update. Observe its
   // first measured canvas layout, rather than fitting an empty Note shell.
   const workarea =
     block && diagram instanceof MermaidBlockModel && diagram.childIds.length
@@ -509,7 +509,7 @@ const VirgultumEditorImpl = ({
           }
           // Catalog navigation carries a one-use view intent, not a document
           // property. Subscribe only after the destination's loaded block and
-          // Lit host are available; a retained failed initialization keeps its
+          // native host are available; a retained failed initialization keeps its
           // existing Retry path instead of opening an empty session.
           if (destinationView && std && !snapshot) {
             const intent = destinationView

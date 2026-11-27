@@ -39,7 +39,6 @@ describe("Mermaid render state decisions", () => {
       _getDisplayMode: () => "display",
       _getShellMode: () => "view",
       _getMermaidVisualModelForEditing: () => null,
-      requestUpdate: vi.fn(),
     });
     Object.defineProperties(host, {
       model: { value: model },

@@ -48,8 +48,8 @@ test("should add highlighter", async ({ page }) => {
 test("should enter highlighter tool when `Shift + P` is pressed", async ({
   page,
 }) => {
-  const drawingToolButton = page.locator(".edgeless-pen-button");
-  const drawingToolsMenu = page.locator("edgeless-pen-menu");
+  const drawingToolButton = page.locator("[data-drawing-tool]");
+  const drawingToolsMenu = page.getByTestId("canvas-pen-menu");
 
   await expect(drawingToolButton).toHaveAttribute("data-drawing-tool", "brush");
   await expect(drawingToolsMenu).toBeHidden();

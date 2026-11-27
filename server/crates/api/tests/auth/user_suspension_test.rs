@@ -151,7 +151,7 @@ fn suspension_transaction_rolls_back_status_sessions_and_keys() {
     let suffix = user_id.simple().to_string();
     let function_name = format!("myoxus_test_suspend_failure_{suffix}");
     let trigger_name = format!("myoxus_test_suspend_trigger_{suffix}");
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"CREATE FUNCTION "{function_name}"() RETURNS trigger
          LANGUAGE plpgsql AS $$
          BEGIN
@@ -161,25 +161,27 @@ fn suspension_transaction_rolls_back_status_sessions_and_keys() {
            RETURN OLD;
          END;
          $$"#
-    ))
+    )))
     .execute(&pool)
     .await
     .expect("create rollback trigger function");
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"CREATE TRIGGER "{trigger_name}" BEFORE DELETE ON api_keys
          FOR EACH ROW EXECUTE FUNCTION "{function_name}"()"#
-    ))
+    )))
     .execute(&pool)
     .await
     .expect("create rollback trigger");
 
     let result = auth_store.commit_user_suspension(user_id, chrono::Utc::now()).await;
 
-    sqlx::query(&format!(r#"DROP TRIGGER "{trigger_name}" ON api_keys"#))
-      .execute(&pool)
-      .await
-      .expect("drop rollback trigger");
-    sqlx::query(&format!(r#"DROP FUNCTION "{function_name}""#))
+    sqlx::query(sqlx::AssertSqlSafe(format!(
+      r#"DROP TRIGGER "{trigger_name}" ON api_keys"#
+    )))
+    .execute(&pool)
+    .await
+    .expect("drop rollback trigger");
+    sqlx::query(sqlx::AssertSqlSafe(format!(r#"DROP FUNCTION "{function_name}""#)))
       .execute(&pool)
       .await
       .expect("drop rollback trigger function");

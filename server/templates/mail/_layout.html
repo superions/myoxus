@@ -3,7 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
     <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
     <title>{% block subject %}{% endblock subject %}</title>
     <style>
       @font-face {
@@ -19,20 +21,52 @@
         src: url("cid:myoxus-inter-latin-ext") format("woff2");
       }
       body {
+        margin: 0;
+        padding: 0;
         -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
       }
       a {
         overflow-wrap: anywhere;
+      }
+      .mail-btn:hover {
+        background-color: #264765 !important;
+      }
+      @media only screen and (max-width: 620px) {
+        .mail-shell {
+          padding: 20px 10px 24px !important;
+        }
+        .mail-pad-header {
+          padding: 20px 22px 18px !important;
+        }
+        .mail-pad-body {
+          padding: 28px 22px 26px !important;
+        }
+        .mail-pad-footer {
+          padding: 20px 22px 22px !important;
+        }
+        .mail-heading {
+          font-size: 23px !important;
+        }
       }
     </style>
   </head>
   <body
     style="
       margin: 0;
-      padding: 32px 16px;
-      background: #f3f3f5;
-      font-family: Inter, Arial, Helvetica, sans-serif;
-      color: #1f2330;
+      padding: 0;
+      background-color: #f1f4f8;
+      font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        &quot;Segoe UI&quot;,
+        Roboto,
+        Arial,
+        Helvetica,
+        sans-serif;
+      color: #162230;
     "
   >
     <div
@@ -43,235 +77,459 @@
         opacity: 0;
         overflow: hidden;
         mso-hide: all;
+        font-size: 1px;
+        line-height: 1px;
+        color: #f1f4f8;
       "
     >
-      {% block preheader %}{% endblock preheader %}
+      {% block preheader %}{% endblock preheader
+      %}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
     </div>
     <table
       role="presentation"
-      width="600"
-      align="center"
+      width="100%"
       cellpadding="0"
       cellspacing="0"
-      style="
-        width: 600px;
-        max-width: 100%;
-        margin: 0 auto;
-        border: 1px solid #e5dfd3;
-        border-radius: 8px;
-        background: #fff;
-        border-spacing: 0;
-        font-family: Inter, Arial, Helvetica, sans-serif;
-      "
+      style="width: 100%; border-collapse: collapse; background-color: #f1f4f8"
     >
       <tr>
-        <td
-          style="
-            height: 4px;
-            line-height: 4px;
-            border-radius: 8px 8px 0 0;
-            background: #1f3a52;
-          "
-        >
-          &nbsp;
-        </td>
-      </tr>
-      <tr>
-        <td style="padding: 26px 38px 23px; border-bottom: 1px solid #e5dfd3">
+        <td align="center" class="mail-shell" style="padding: 40px 16px 36px">
           <table
             role="presentation"
-            width="100%"
+            width="600"
+            align="center"
             cellpadding="0"
             cellspacing="0"
-          >
-            <tr>
-              <td width="46">
-                <img
-                  src="cid:myoxus-mark"
-                  alt=""
-                  width="38"
-                  height="38"
-                  style="display: block; border: 0"
-                />
-              </td>
-              <td
-                style="
-                  font-size: 22px;
-                  font-weight: 700;
-                  letter-spacing: -0.7px;
-                "
-              >
-                Myoxus<span style="color: #1f3a52">.</span>
-              </td>
-              <td
-                align="right"
-                style="
-                  font-size: 11px;
-                  line-height: 1.4;
-                  letter-spacing: 1.3px;
-                  color: #4b5363;
-                "
-              >
-                {% block category %}{% endblock category %}
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding: 34px 38px 30px">
-          <table role="presentation" width="30" cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="height: 3px; line-height: 3px; background: #fcdb00">
-                &nbsp;
-              </td>
-            </tr>
-          </table>
-          <h1
             style="
-              margin: 18px 0 22px;
-              font-size: 30px;
-              line-height: 1.2;
-              letter-spacing: -0.7px;
-              font-weight: 700;
+              width: 600px;
+              max-width: 100%;
+              margin: 0 auto;
+              border: 1px solid #dfe5ee;
+              border-radius: 14px;
+              overflow: hidden;
+              background-color: #ffffff;
+              border-collapse: separate;
+              border-spacing: 0;
+              box-shadow:
+                0 10px 30px rgba(22, 34, 48, 0.06),
+                0 1px 3px rgba(22, 34, 48, 0.04);
+              font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                &quot;Segoe UI&quot;,
+                Roboto,
+                Arial,
+                Helvetica,
+                sans-serif;
             "
           >
-            {% block heading %}{% endblock heading %}
-          </h1>
-          <p style="margin: 0 0 9px; font-size: 15px; line-height: 1.7">
-            {{ copy.greeting }}
-          </p>
-          <p
-            style="
-              margin: 0 0 24px;
-              font-size: 15px;
-              line-height: 1.7;
-              color: #4b5363;
-            "
-          >
-            {% block introduction %}{% endblock introduction %}
-          </p>
-          <table
-            data-mail-details
-            role="presentation"
-            width="100%"
-            cellpadding="0"
-            cellspacing="0"
-            style="border-spacing: 0; background: #f3f3f5; border-radius: 6px"
-          >
             <tr>
-              <td style="padding: 20px 22px">
-                {% block details %}{% endblock details %}
-              </td>
-            </tr>
-          </table>
-          {% if otp %}
-          <p style="margin: 22px 0 5px; font-size: 12px; color: #4b5363">
-            {{ copy.code }}
-          </p>
-          <p
-            style="
-              margin: 0 0 22px;
-              font-size: 28px;
-              font-weight: 700;
-              letter-spacing: 5px;
-            "
-          >
-            {{ otp }}
-          </p>
-          {% endif %}
-          <p
-            style="
-              margin: 22px 0 23px;
-              font-size: 14px;
-              line-height: 1.7;
-              color: #4b5363;
-            "
-          >
-            {% block next_step %}{% endblock next_step %}
-          </p>
-          {% if url %}
-          <table role="presentation" cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="border-radius: 6px; background: #1f3a52">
-                <a
-                  data-mail-action
-                  href="{{ url }}"
-                  style="
-                    display: inline-block;
-                    padding: 14px 23px;
-                    border-radius: 6px;
-                    font-size: 14px;
-                    font-weight: 700;
-                    color: #fff;
-                    text-decoration: none;
-                  "
-                  >{% block action %}{% endblock action %}</a
+              <td style="padding: 0; line-height: 0; font-size: 0">
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="width: 100%; border-collapse: collapse"
                 >
+                  <tr>
+                    <td
+                      width="84"
+                      style="
+                        width: 84px;
+                        height: 5px;
+                        line-height: 5px;
+                        font-size: 0;
+                        background-color: #fcdb00;
+                      "
+                    >
+                      &nbsp;
+                    </td>
+                    <td
+                      style="
+                        height: 5px;
+                        line-height: 5px;
+                        font-size: 0;
+                        background-color: #1f3a52;
+                      "
+                    >
+                      &nbsp;
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td
+                class="mail-pad-header"
+                style="
+                  padding: 24px 40px 22px;
+                  background-color: #fafbfd;
+                  border-bottom: 1px solid #eaedf2;
+                "
+              >
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="width: 100%; border-collapse: collapse"
+                >
+                  <tr>
+                    <td width="44" valign="middle" style="padding: 0">
+                      <img
+                        src="cid:myoxus-mark"
+                        alt=""
+                        width="34"
+                        height="34"
+                        style="display: block; border: 0; border-radius: 7px"
+                      />
+                    </td>
+                    <td
+                      valign="middle"
+                      style="
+                        padding: 0 12px 0 0;
+                        font-size: 20px;
+                        line-height: 1.2;
+                        font-weight: 700;
+                        letter-spacing: -0.03em;
+                        color: #162230;
+                      "
+                    >
+                      Myoxus<span style="color: #1f3a52">.</span>
+                    </td>
+                    <td align="right" valign="middle" style="padding: 0">
+                      <span
+                        style="
+                          display: inline-block;
+                          padding: 5px 12px;
+                          border-radius: 999px;
+                          background-color: #edf3f8;
+                          border: 1px solid #d5e1ed;
+                          font-size: 10.5px;
+                          line-height: 1.2;
+                          font-weight: 700;
+                          letter-spacing: 0.08em;
+                          text-transform: uppercase;
+                          color: #1f3a52;
+                          white-space: nowrap;
+                        "
+                      >
+                        {% block category %}{% endblock category %}
+                      </span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td
+                class="mail-pad-body"
+                style="padding: 36px 40px 32px; background-color: #ffffff"
+              >
+                <table
+                  role="presentation"
+                  width="28"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="border-collapse: collapse"
+                >
+                  <tr>
+                    <td
+                      style="
+                        height: 3px;
+                        line-height: 3px;
+                        font-size: 0;
+                        border-radius: 2px;
+                        background-color: #fcdb00;
+                      "
+                    >
+                      &nbsp;
+                    </td>
+                  </tr>
+                </table>
+                <h1
+                  class="mail-heading"
+                  style="
+                    margin: 16px 0 18px;
+                    font-size: 26px;
+                    line-height: 1.24;
+                    letter-spacing: -0.025em;
+                    font-weight: 700;
+                    color: #162230;
+                  "
+                >
+                  {% block heading %}{% endblock heading %}
+                </h1>
+                <p
+                  style="
+                    margin: 0 0 8px;
+                    font-size: 15px;
+                    line-height: 1.65;
+                    font-weight: 600;
+                    color: #162230;
+                  "
+                >
+                  {{ copy.greeting }}
+                </p>
+                <p
+                  style="
+                    margin: 0 0 26px;
+                    font-size: 15px;
+                    line-height: 1.68;
+                    color: #4a5568;
+                  "
+                >
+                  {% block introduction %}{% endblock introduction %}
+                </p>
+                <table
+                  data-mail-details
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    width: 100%;
+                    border-collapse: separate;
+                    border-spacing: 0;
+                    background-color: #f7f9fc;
+                    border: 1px solid #e3e8f0;
+                    border-radius: 10px;
+                    overflow: hidden;
+                  "
+                >
+                  <tr>
+                    <td
+                      width="4"
+                      style="
+                        width: 4px;
+                        padding: 0;
+                        background-color: #1f3a52;
+                        font-size: 0;
+                        line-height: 0;
+                      "
+                    >
+                      &nbsp;
+                    </td>
+                    <td style="padding: 6px 22px">
+                      {% block details %}{% endblock details %}
+                    </td>
+                  </tr>
+                </table>
+                {% if otp %}
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    width: 100%;
+                    margin-top: 22px;
+                    border-collapse: separate;
+                    border-spacing: 0;
+                    background-color: #f5f8fc;
+                    border: 1px dashed #b8c7da;
+                    border-radius: 10px;
+                  "
+                >
+                  <tr>
+                    <td align="center" style="padding: 18px 20px">
+                      <p
+                        style="
+                          margin: 0 0 8px;
+                          font-size: 11px;
+                          line-height: 1.3;
+                          font-weight: 700;
+                          letter-spacing: 0.09em;
+                          text-transform: uppercase;
+                          color: #5b6678;
+                        "
+                      >
+                        {{ copy.code }}
+                      </p>
+                      <p
+                        style="
+                          margin: 0;
+                          padding-left: 7px;
+                          font-family:
+                            ui-monospace, SFMono-Regular, Menlo, Monaco,
+                            Consolas, &quot;Liberation Mono&quot;, monospace;
+                          font-size: 30px;
+                          line-height: 1.2;
+                          font-weight: 700;
+                          letter-spacing: 7px;
+                          color: #1f3a52;
+                          font-variant-numeric: tabular-nums;
+                        "
+                      >
+                        {{ otp }}
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+                {% endif %}
+                <p
+                  style="
+                    margin: 24px 0 22px;
+                    font-size: 14.5px;
+                    line-height: 1.65;
+                    color: #4a5568;
+                  "
+                >
+                  {% block next_step %}{% endblock next_step %}
+                </p>
+                {% if url %}
+                <table
+                  role="presentation"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="border-collapse: separate"
+                >
+                  <tr>
+                    <td
+                      align="center"
+                      style="
+                        border-radius: 8px;
+                        background-color: #1f3a52;
+                        box-shadow: 0 2px 6px rgba(31, 58, 82, 0.22);
+                      "
+                    >
+                      <a
+                        class="mail-btn"
+                        data-mail-action
+                        href="{{ url }}"
+                        style="
+                          display: inline-block;
+                          padding: 13px 26px;
+                          border-radius: 8px;
+                          background-color: #1f3a52;
+                          font-size: 14px;
+                          line-height: 1.2;
+                          font-weight: 600;
+                          letter-spacing: 0.01em;
+                          color: #ffffff;
+                          text-decoration: none;
+                        "
+                        >{% block action %}{% endblock action %}</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+                {% endif %}
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    width: 100%;
+                    margin-top: 26px;
+                    border-collapse: separate;
+                    border-spacing: 0;
+                    background-color: #fafbfd;
+                    border: 1px solid #e9edf3;
+                    border-radius: 8px;
+                  "
+                >
+                  <tr>
+                    <td style="padding: 13px 16px">
+                      <p
+                        style="
+                          margin: 0;
+                          font-size: 12.5px;
+                          line-height: 1.62;
+                          color: #556070;
+                        "
+                      >
+                        {% block note %}{% endblock note %}
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td
+                class="mail-pad-footer"
+                style="
+                  padding: 22px 40px 26px;
+                  background-color: #fafbfd;
+                  border-top: 1px solid #eaedf2;
+                "
+              >
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 12px;
+                    line-height: 1.62;
+                    color: #647082;
+                  "
+                >
+                  {% block reason %}{% endblock reason %}
+                </p>
+                {% if url %}
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    width: 100%;
+                    margin-top: 14px;
+                    border-collapse: separate;
+                    border-spacing: 0;
+                    background-color: #ffffff;
+                    border: 1px solid #e4e9f0;
+                    border-radius: 8px;
+                  "
+                >
+                  <tr>
+                    <td style="padding: 11px 14px">
+                      <p
+                        style="
+                          margin: 0 0 4px;
+                          font-size: 11px;
+                          line-height: 1.45;
+                          font-weight: 600;
+                          color: #647082;
+                        "
+                      >
+                        {{ copy.fallbackLabel }}
+                      </p>
+                      <a
+                        data-mail-link
+                        href="{{ url }}"
+                        style="
+                          font-size: 11.5px;
+                          line-height: 1.55;
+                          color: #1f3a52;
+                          text-decoration: underline;
+                          word-break: break-all;
+                        "
+                        >{{ url }}</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+                {% endif %}
               </td>
             </tr>
           </table>
-          {% endif %}
           <p
             style="
-              margin: 23px 0 0;
-              font-size: 12px;
-              line-height: 1.7;
-              color: #4b5363;
-            "
-          >
-            {% block note %}{% endblock note %}
-          </p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding: 22px 38px 25px; border-top: 1px solid #e5dfd3">
-          <p
-            style="
-              margin: 0 0 15px;
-              font-size: 12px;
-              line-height: 1.7;
-              color: #4b5363;
-            "
-          >
-            {% block reason %}{% endblock reason %}
-          </p>
-          {% if url %}
-          <p
-            style="
-              margin: 0 0 6px;
-              font-size: 12px;
+              margin: 20px 0 0;
+              text-align: center;
+              font-size: 11.5px;
               line-height: 1.6;
-              color: #4b5363;
+              color: #7a8596;
+              letter-spacing: 0.01em;
             "
           >
-            {{ copy.fallbackLabel }}
+            {{ copy.footer }}
           </p>
-          <a
-            data-mail-link
-            href="{{ url }}"
-            style="
-              font-size: 12px;
-              line-height: 1.6;
-              color: #1f3a52;
-              text-decoration: underline;
-              word-break: break-all;
-            "
-            >{{ url }}</a
-          >{% endif %}
         </td>
       </tr>
     </table>
-    <p
-      style="
-        margin: 17px 0 0;
-        text-align: center;
-        font-size: 11px;
-        line-height: 1.6;
-        color: #4b5363;
-      "
-    >
-      {{ copy.footer }}
-    </p>
   </body>
 </html>

@@ -20,7 +20,7 @@
     "dayjs": "^1.11.23",
     "dompurify": "3.5.0",
     "marked": "^16.3.0",
-    "mermaid": "patch:mermaid@npm%3A11.17.2#~/.yarn/patches/mermaid-npm-11.17.2-97875ab19c.patch",
+    "mermaid": "patch:mermaid@npm%3A12.3.0#~/.yarn/patches/mermaid-npm-12.3.0-fcb7c3170b.patch",
     "react": "19.3.1",
     "ts-dedent": "^2.2.0",
     "yaml": "2.9.1"

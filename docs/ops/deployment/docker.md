@@ -201,7 +201,7 @@ placement, update order and rollback behavior explicitly.
 | Service    | Image                                                              | Role                                                                               |
 | ---------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
 | `postgres` | `pgvector/pgvector:pg16`                                           | Primary database                                                                   |
-| `redis`    | `redis:8`                                                          | Session/cache/queue/locking                                                        |
+| `redis`    | `valkey/valkey:9`                                                  | Valkey 9 (Redis-compatible) session/cache/queue/locking                            |
 | `api`      | Built from `build/server/Dockerfile` or the published server image | Myoxus Rust API server                                                             |
 | `frontend` | `${MYOXUS_NGINX_IMAGE}`                                            | Operator-owned Nginx serving materialized Web/Admin files and proxying API traffic |
 
@@ -246,7 +246,8 @@ The compose file uses shell environment variables (with defaults) to control con
 | `MYOXUS_FRONTEND_BASE_PATH`      | _(empty)_                              | Optional base path prefix (e.g. `/myoxus`)                                                                                                                                           |
 | `MYOXUS_STYLE_HOST_DIR`          | `../../client/branding`                | Host directory for operator branding assets; writable by API and read-only in Nginx                                                                                                  |
 | `POSTGRES_IMAGE_TAG`             | `pg16`                                 | PostgreSQL image tag (e.g. `pg16`, `pg17`)                                                                                                                                           |
-| `REDIS_IMAGE_TAG`                | `7`                                    | Redis image tag (e.g. `7`, `7-alpine`)                                                                                                                                               |
+| `REDIS_IMAGE`                    | `valkey/valkey:${REDIS_IMAGE_TAG:-9}`  | Full Valkey/Redis-compatible image override (e.g. `valkey/valkey:9-alpine`, `redis:8`, or a mirrored digest)                                                                         |
+| `REDIS_IMAGE_TAG`                | `9`                                    | Valkey image tag used when `REDIS_IMAGE` is unset (e.g. `9`, `9-alpine`)                                                                                                             |
 
 For production deployments, set `RUN_MODE=production` explicitly.
 
@@ -269,11 +270,19 @@ export MYOXUS_SERVER_ORIGIN=https://myoxus.example.com
 
 The selfhost stack uses three named Docker volumes by default:
 
-| Volume                  | Contents                     |
-| ----------------------- | ---------------------------- |
-| `myoxus-postgres-data`  | PostgreSQL database files    |
-| `myoxus-redis-data`     | Redis AOF (append-only file) |
-| `myoxus-pdf-fonts-data` | Uploaded PDF font material   |
+| Volume                  | Contents                              |
+| ----------------------- | ------------------------------------- |
+| `myoxus-postgres-data`  | PostgreSQL database files             |
+| `myoxus-redis-data`     | Valkey / Redis AOF (append-only file) |
+| `myoxus-pdf-fonts-data` | Uploaded PDF font material            |
+
+> **Upgrading from Redis 7.4+ / Redis 8 to Valkey 9:** Valkey 9 cannot load
+> RDB or AOF files written by Redis 7.4+ or Redis 8. Because `myoxus-redis-data`
+> holds only non-authoritative session, cache, lock and queue state (authoritative
+> data lives in PostgreSQL and `MYOXUS_DATA_DIR`), stop the `api` and `redis`
+> services, clear the existing files inside `myoxus-redis-data` (or recreate that
+> volume), and then start `redis` (Valkey 9) and `api`. Operators who prefer to
+> stay on Redis 8 may pin `REDIS_IMAGE=redis:8`.
 
 Blob storage, logs and Git-sync repos live under `MYOXUS_DATA_DIR`. Runtime
 config, branding and templates use separate `MYOXUS_RUNTIME_CONFIG_DIR`,
@@ -532,12 +541,12 @@ remove working secret/mount settings or change the readiness policy.
 
 The compose file configures health checks for each service:
 
-| Service    | Health check                  | Interval | Retries |
-| ---------- | ----------------------------- | -------- | ------- |
-| `postgres` | `pg_isready`                  | 10s      | 20      |
-| `redis`    | `redis-cli ping`              | 10s      | 20      |
-| `api`      | `myoxus-cli container health` | 15s      | 10      |
-| `frontend` | `wget /health`                | 15s      | 10      |
+| Service    | Health check                                   | Interval | Retries |
+| ---------- | ---------------------------------------------- | -------- | ------- |
+| `postgres` | `pg_isready`                                   | 10s      | 20      |
+| `redis`    | `valkey-cli ping` (fallback: `redis-cli ping`) | 10s      | 20      |
+| `api`      | `myoxus-cli container health`                  | 15s      | 10      |
+| `frontend` | `wget /health`                                 | 15s      | 10      |
 
 The API has a 25-second `start_period` to allow time for startup checks to complete.
 Its native loopback probe uses `MYOXUS__SERVER__PORT` (default 3001), a four-second

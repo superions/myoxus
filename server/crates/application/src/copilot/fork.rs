@@ -157,8 +157,36 @@ impl CopilotService {
         call.id = *tool_ids.entry(call.id.to_string()).or_insert_with(Uuid::new_v4);
         call.message_id = message.id;
       }
+      // Generated files share immutable bytes across copies. Remap owning IDs
+      // first so tool results and metadata references stay synchronized.
+      let mut file_ids = HashMap::<String, Uuid>::new();
+      for attachment in &mut message.attachment_refs {
+        let original_id = attachment.id;
+        attachment.id = Uuid::new_v4();
+        attachment.message_id = message.id;
+        file_ids.insert(original_id.to_string(), attachment.id);
+        if attachment.generated_file().is_some()
+          && let Some(meta) = attachment.metadata.as_object_mut()
+          && let Some(source_id) = meta.get("sourceId").and_then(Value::as_str)
+        {
+          if let Some(mapped_tool) = tool_ids.get(source_id) {
+            meta.insert("sourceId".into(), json!(mapped_tool));
+          } else if let Some(parsed) = Uuid::parse_str(source_id).ok()
+            && let Some(mapped_message) = remapped_messages.get(&parsed)
+          {
+            meta.insert("sourceId".into(), json!(mapped_message));
+          }
+        }
+      }
+      for call in &mut message.tool_calls {
+        if call.tool_name == super::files::CREATE_FILE_TOOL_NAME
+          && let Some(result) = call.result.as_mut()
+        {
+          remap_generated_file_result(result, &file_ids, &remapped_messages);
+        }
+      }
       // Rewrite only structural correlation fields, never arbitrary tool args,
-      // result payloads, document links or provider/user text.
+      // document links or provider/user text.
       if let Some(objects) = message.content.get_mut("streamObjects").and_then(Value::as_array_mut) {
         for object in objects {
           if matches!(
@@ -166,17 +194,17 @@ impl CopilotService {
             Some("tool-call" | "tool-result")
           ) {
             remap_tool_id(object, "toolCallId", &mut tool_ids);
+            if object.get("type").and_then(Value::as_str) == Some("tool-result")
+              && object.get("toolName").and_then(Value::as_str) == Some(super::files::CREATE_FILE_TOOL_NAME)
+              && let Some(result) = object.get_mut("result")
+            {
+              remap_generated_file_result(result, &file_ids, &remapped_messages);
+            }
           }
         }
       }
       if message.role == CopilotMessageRole::Tool {
         remap_tool_id(&mut message.content, "toolCallId", &mut tool_ids);
-      }
-      // Generated files share immutable bytes across copies. Only the owning
-      // attachment/message IDs change; original source/render fingerprints stay.
-      for attachment in &mut message.attachment_refs {
-        attachment.id = Uuid::new_v4();
-        attachment.message_id = message.id;
       }
     }
     let fork = CopilotSessionFork {
@@ -203,5 +231,28 @@ fn remap_tool_id(object: &mut Value, key: &str, ids: &mut HashMap<String, Uuid>)
     if let Some(original) = id.as_str() {
       *id = json!(*ids.entry(original.to_owned()).or_insert_with(Uuid::new_v4));
     }
+  }
+}
+
+fn remap_generated_file_result(
+  result: &mut Value,
+  file_ids: &HashMap<String, Uuid>,
+  message_ids: &HashMap<Uuid, Uuid>,
+) {
+  let Some(object) = result.as_object_mut() else {
+    return;
+  };
+  if let Some(original) = object.get("fileId").and_then(Value::as_str)
+    && let Some(mapped) = file_ids.get(original)
+  {
+    object.insert("fileId".into(), json!(mapped));
+  }
+  if let Some(original) = object
+    .get("messageId")
+    .and_then(Value::as_str)
+    .and_then(|value| Uuid::parse_str(value).ok())
+    && let Some(mapped) = message_ids.get(&original)
+  {
+    object.insert("messageId".into(), json!(mapped));
   }
 }

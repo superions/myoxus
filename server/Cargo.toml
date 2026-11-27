@@ -50,12 +50,12 @@ resolver = "2"
   dashmap = "6"
   fs2 = "0.4"
   futures-util = "0.3"
-  glirulus-core = { version = "=1.0.0", default-features = false, features = [
+  glirulus-core = { version = "=2.0.0", default-features = false, features = [
     "tokio",
   ] }
-  glirulus-persistence = "=1.0.0"
-  glirulus-postgres = "=1.0.0"
-  glirulus-runtime = { version = "=1.0.0", default-features = false, features = [
+  glirulus-persistence = "=2.0.0"
+  glirulus-postgres = "=2.0.0"
+  glirulus-runtime = { version = "=2.0.0", default-features = false, features = [
     "json",
   ] }
   hex = "0.4"
@@ -85,7 +85,7 @@ resolver = "2"
     "rustls-no-provider",
   ] }
   openssl = "0.10"
-  pem = "3"
+  pem = "4"
   percent-encoding = "2.3.2"
   pulldown-cmark = "0.13.6"
   rand = "0.8"
@@ -109,15 +109,15 @@ resolver = "2"
     "std",
     "tls12",
   ] }
-  # SQLx 0.8.6 already links libsqlite3-sys 0.30 in the workspace graph.
-  # rusqlite 0.32 is the matching line; `bundled` keeps server images
+  # SQLx 0.9 already links libsqlite3-sys 0.40 in the workspace graph.
+  # rusqlite 0.43 is the matching line; `bundled` keeps server images
   # independent from a host SQLite installation and `blob` permits streaming
   # legacy assets without allocating their complete payloads.
-  rmcp = { version = "3.9.0", default-features = false, features = [
+  rmcp = { version = "3.12.0", default-features = false, features = [
     "server",
     "transport-streamable-http-server",
   ] }
-  rusqlite = { version = "0.32.1", features = ["blob", "bundled"] }
+  rusqlite = { version = "0.43.0", features = ["blob", "bundled"] }
   scraper = "0.29"
   semver = "1"
   serde = { version = "1", features = ["derive"] }
@@ -126,9 +126,10 @@ resolver = "2"
   sha2 = "0.10"
   similar = { version = "2.7", features = ["unicode"] }
   socketioxide = { version = "0.18.9", features = ["state"] }
-  sqlx = { version = "0.8", default-features = false, features = [
+  sqlx = { version = "0.9", default-features = false, features = [
     "postgres",
-    "runtime-tokio-rustls",
+    "runtime-tokio",
+    "tls-rustls-ring-webpki",
     "uuid",
     "chrono",
     "migrate",
@@ -146,7 +147,7 @@ resolver = "2"
   syntect = "5.3"
   tabled = "0.22"
   tempfile = "3"
-  tera = "1"
+  tera = "2"
   thiserror = "2"
   tiny-skia = "0.12"
   tokio = { version = "1", features = [
@@ -231,7 +232,6 @@ resolver = "2"
 biblatex    = { path = "../vendor/cargo/biblatex" }
 hayagriva   = { path = "../vendor/cargo/hayagriva" }
 safer-bytes = { path = "../vendor/cargo/safer-bytes" }
-simba       = { path = "../vendor/cargo/simba" }
 # The commit immediately after syntect 5.3.0 replaces its retired YAML parser.
 # Keep all consumers on this bounded upstream delta until a release includes it.
 syntect = { git = "https://github.com/trishume/syntect.git", rev = "af7d1a88cce6680ed99a2623197cc7fa779f30e4" }

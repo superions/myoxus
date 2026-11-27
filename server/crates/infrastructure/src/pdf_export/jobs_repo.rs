@@ -64,7 +64,7 @@ impl PdfExportJobStore for PgPdfExportJobStore {
   #[instrument(skip(self), err)]
   async fn get(&self, id: Uuid) -> RepoResult<Option<PdfExportJob>> {
     let sql = format!("SELECT {} FROM pdf_export_jobs WHERE id = $1", Self::JOB_COLUMNS);
-    let row = sqlx::query(&sql)
+    let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(id)
       .fetch_optional(&self.pool)
       .await
@@ -78,7 +78,7 @@ impl PdfExportJobStore for PgPdfExportJobStore {
       "SELECT {} FROM pdf_export_jobs WHERE workspace_id=$1 AND output_blob_id=$2",
       Self::JOB_COLUMNS
     );
-    let row = sqlx::query(&sql)
+    let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace_id)
       .bind(blob_id)
       .fetch_optional(&self.pool)
@@ -192,7 +192,7 @@ impl PdfExportJobStore for PgPdfExportJobStore {
       "SELECT {} FROM pdf_export_jobs WHERE doc_id = $1 ORDER BY created_at DESC LIMIT $2",
       Self::JOB_COLUMNS
     );
-    let rows = sqlx::query(&sql)
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(doc_id)
       .bind(limit)
       .fetch_all(&self.pool)
@@ -242,7 +242,7 @@ impl PdfExportJobStore for PgPdfExportJobStore {
        AND status::TEXT != 'failed' ORDER BY created_at DESC LIMIT 1",
       Self::JOB_COLUMNS
     );
-    let row = sqlx::query(&sql)
+    let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace_id)
       .bind(doc_id)
       .bind(options_hash)
@@ -269,7 +269,7 @@ impl PdfExportJobStore for PgPdfExportJobStore {
        AND status::TEXT != 'failed' ORDER BY created_at DESC LIMIT 1",
       Self::JOB_COLUMNS
     );
-    let row = sqlx::query(&sql)
+    let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace_id)
       .bind(doc_id)
       .bind(template_id)
@@ -308,7 +308,7 @@ impl PdfExportJobStore for PgPdfExportJobStore {
        $8, $9, $10, NOW(), NOW(), NOW() + INTERVAL '24 hours') RETURNING {}",
       Self::JOB_COLUMNS
     );
-    let row = sqlx::query(&sql)
+    let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(input.job.id)
       .bind(input.job.workspace_id)
       .bind(input.job.doc_id)
@@ -344,7 +344,7 @@ impl PdfExportJobStore for PgPdfExportJobStore {
        options_hash, status, sync_or_async) VALUES ($1, $2, $3, $4, $5, $6, $7, 'queued', 'async') RETURNING {}",
       Self::JOB_COLUMNS
     );
-    let row = sqlx::query(&sql)
+    let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(input.id)
       .bind(input.workspace_id)
       .bind(input.doc_id)

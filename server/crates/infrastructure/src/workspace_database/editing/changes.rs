@@ -685,7 +685,7 @@ impl PgDatabaseRepository {
         ORDER BY position ASC, id ASC
       "#,
     );
-    let unique_fields = sqlx::query(&unique_fields_sql)
+    let unique_fields = sqlx::query(sqlx::AssertSqlSafe(unique_fields_sql.as_str()))
       .bind(database_id)
       .fetch_all(&mut **tx)
       .await

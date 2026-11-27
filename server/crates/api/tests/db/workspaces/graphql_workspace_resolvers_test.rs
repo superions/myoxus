@@ -215,14 +215,14 @@ fn contextual_document_api_preserves_native_identity_context_and_current_access(
         let mut retained_entry=None;
         if selected_task.is_some() {
           // Fail only this fixture's real Organizer write, after Created is durable.
-          sqlx::query(&format!("CREATE FUNCTION {failpoint}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+          sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {failpoint}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
             IF NEW.workspace_id='{workspace}'::uuid
               AND EXISTS(SELECT 1 FROM docs WHERE id=NEW.doc_id AND external_id='db${workspace}$folders')
               AND EXISTS(SELECT 1 FROM workspace_starter_applications WHERE workspace_id='{workspace}'::uuid
                 AND operation='prepare_documents' AND project_progress->'documents'<>'{{}}'::jsonb)
-            THEN RAISE EXCEPTION 'owned context placement interruption'; END IF; RETURN NEW; END $$"))
+            THEN RAISE EXCEPTION 'owned context placement interruption'; END IF; RETURN NEW; END $$")))
             .execute(&pool).await.unwrap();
-          sqlx::query(&format!("CREATE TRIGGER {failpoint} BEFORE INSERT ON doc_updates FOR EACH ROW EXECUTE FUNCTION {failpoint}()"))
+          sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {failpoint} BEFORE INSERT ON doc_updates FOR EACH ROW EXECUTE FUNCTION {failpoint}()")))
             .execute(&pool).await.unwrap();
           let interrupted=helpers::gql(&app,session,json!({"query":APPLY,"variables":{"input":apply}})).await;
           assert!(interrupted.get("errors").is_none(),"native placement is admitted asynchronously: {interrupted}");
@@ -232,8 +232,8 @@ fn contextual_document_api_preserves_native_identity_context_and_current_access(
           assert_eq!(partial["documents"][0]["placed"],false);
           let doc=Uuid::parse_str(partial["documents"][0]["reservedDocumentId"].as_str().unwrap()).unwrap();
           partial_id=Some(doc);
-          sqlx::query(&format!("DROP TRIGGER {failpoint} ON doc_updates")).execute(&pool).await.unwrap();
-          sqlx::query(&format!("DROP FUNCTION {failpoint}()" )).execute(&pool).await.unwrap();
+          sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {failpoint} ON doc_updates"))).execute(&pool).await.unwrap();
+          sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {failpoint}()" ))).execute(&pool).await.unwrap();
           state.doc().page_lifecycle.rename(workspace,doc,actor,"Edited after Created".into(),None).await.unwrap();
           edited_partial=Some(state.doc().load_full_doc_consistent(workspace,doc).await.unwrap());
           let entry=registry_store.get_catalog_entry_by_slug(&slug).await.unwrap().unwrap();
@@ -427,17 +427,17 @@ fn contextual_document_api_preserves_native_identity_context_and_current_access(
             let progress:serde_json::Value=sqlx::query_scalar("SELECT project_progress FROM workspace_starter_applications WHERE actor_id=$1 AND operation='prepare_documents' AND request_id=$2").bind(actor).bind(input.request_id).fetch_one(&pool).await.unwrap();
             assert_eq!(progress["documents"],json!({}));assert_eq!(progress["folderReady"],false);assert_eq!(progress["placementComplete"],false);
           } else {
-            sqlx::query(&format!("CREATE FUNCTION {failpoint}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+            sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {failpoint}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
               IF NEW.workspace_id='{workspace}'::uuid
                 AND EXISTS(SELECT 1 FROM docs WHERE id=NEW.doc_id AND external_id='db${workspace}$folders')
                 AND EXISTS(SELECT 1 FROM workspace_starter_applications WHERE actor_id='{actor}'::uuid
                   AND operation='prepare_documents' AND request_id='{}'::uuid AND project_progress->'documents'<>'{{}}'::jsonb)
-              THEN RAISE EXCEPTION 'owned context placement interruption'; END IF; RETURN NEW; END $$",input.request_id)).execute(&pool).await.unwrap();
-            sqlx::query(&format!("CREATE TRIGGER {failpoint} BEFORE INSERT ON doc_updates FOR EACH ROW EXECUTE FUNCTION {failpoint}()")).execute(&pool).await.unwrap();
+              THEN RAISE EXCEPTION 'owned context placement interruption'; END IF; RETURN NEW; END $$",input.request_id))).execute(&pool).await.unwrap();
+            sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {failpoint} BEFORE INSERT ON doc_updates FOR EACH ROW EXECUTE FUNCTION {failpoint}()"))).execute(&pool).await.unwrap();
             helpers::gql(&app,session,json!({"query":APPLY,"variables":{"input":apply}})).await;
             wait_context(&app,session,workspace,input.request_id,true).await;
-            sqlx::query(&format!("DROP TRIGGER {failpoint} ON doc_updates")).execute(&pool).await.unwrap();
-            sqlx::query(&format!("DROP FUNCTION {failpoint}()")).execute(&pool).await.unwrap();
+            sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {failpoint} ON doc_updates"))).execute(&pool).await.unwrap();
+            sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {failpoint}()"))).execute(&pool).await.unwrap();
             let partial=store.get_context_documents(actor,workspace,input.request_id,None).await.unwrap().unwrap();
             assert!(partial.progress.documents.contains_key(component));assert!(!partial.progress.documents[component].placed);assert!(!partial.progress.placement_complete);
             let original=state.doc().load_full_doc_consistent(workspace,reserved).await.unwrap();
@@ -487,11 +487,13 @@ fn contextual_document_api_preserves_native_identity_context_and_current_access(
       Some(runtime) => runtime.shutdown(Duration::from_secs(30)).await,
       None => Ok(()),
     };
-    sqlx::query(&format!("DROP TRIGGER IF EXISTS {failpoint} ON doc_updates"))
-      .execute(&pool)
-      .await
-      .expect("owned failpoint trigger cleanup");
-    sqlx::query(&format!("DROP FUNCTION IF EXISTS {failpoint}()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!(
+      "DROP TRIGGER IF EXISTS {failpoint} ON doc_updates"
+    )))
+    .execute(&pool)
+    .await
+    .expect("owned failpoint trigger cleanup");
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {failpoint}()")))
       .execute(&pool)
       .await
       .expect("owned failpoint function cleanup");
@@ -1888,20 +1890,20 @@ fn project_setup_creates_full_native_brief_and_preserves_its_acknowledged_copy()
         if locale == "en" {
           // Fail the actual Organizer write after the child leaf/root ACK,
           // without replacing a persistence owner or swallowing its error.
-          sqlx::query(&format!(
+          sqlx::query(sqlx::AssertSqlSafe(format!(
             "CREATE FUNCTION {failpoint}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
              IF NEW.workspace_id='{workspace}'::uuid
                AND EXISTS(SELECT 1 FROM docs WHERE id=NEW.doc_id AND external_id='db${workspace}$folders')
                AND EXISTS(SELECT 1 FROM workspace_starter_applications WHERE workspace_id='{workspace}'::uuid
                  AND operation='create_project' AND project_progress->'documents'<>'{{}}'::jsonb)
              THEN RAISE EXCEPTION 'owned Project placement interruption'; END IF; RETURN NEW; END $$"
-          ))
+          )))
           .execute(&pool)
           .await
           .unwrap();
-          sqlx::query(&format!(
+          sqlx::query(sqlx::AssertSqlSafe(format!(
             "CREATE TRIGGER {failpoint} BEFORE INSERT ON doc_updates FOR EACH ROW EXECUTE FUNCTION {failpoint}()"
-          ))
+          )))
           .execute(&pool)
           .await
           .unwrap();
@@ -1949,11 +1951,11 @@ fn project_setup_creates_full_native_brief_and_preserves_its_acknowledged_copy()
               .any(|block| block.plain_text.contains("Durable reviewed goal {{workspace.name}}")),
             "partial copy has real text before any opening"
           );
-          sqlx::query(&format!("DROP TRIGGER {failpoint} ON doc_updates"))
+          sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {failpoint} ON doc_updates")))
             .execute(&pool)
             .await
             .unwrap();
-          sqlx::query(&format!("DROP FUNCTION {failpoint}()"))
+          sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {failpoint}()")))
             .execute(&pool)
             .await
             .unwrap();
@@ -2114,11 +2116,13 @@ fn project_setup_creates_full_native_brief_and_preserves_its_acknowledged_copy()
     })
     .catch_unwind()
     .await;
-    sqlx::query(&format!("DROP TRIGGER IF EXISTS {failpoint} ON doc_updates"))
-      .execute(&pool)
-      .await
-      .expect("owned interruption trigger cleanup");
-    sqlx::query(&format!("DROP FUNCTION IF EXISTS {failpoint}()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!(
+      "DROP TRIGGER IF EXISTS {failpoint} ON doc_updates"
+    )))
+    .execute(&pool)
+    .await
+    .expect("owned interruption trigger cleanup");
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {failpoint}()")))
       .execute(&pool)
       .await
       .expect("owned interruption function cleanup");

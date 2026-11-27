@@ -6046,8 +6046,11 @@ flowchart LR
         const point = await statePoint(id);
         await page.mouse.move(point.x, point.y);
         await page.mouse.down();
+        // Hold Alt after pointerdown to bypass grid + alignment snap without Alt-duplicating.
+        await page.keyboard.down("Alt");
         await page.mouse.move(point.x + 14, point.y + 10, { steps: 6 });
         await page.mouse.up();
+        await page.keyboard.up("Alt");
         await expect
           .poll(async () => (await statePoint(id)).geometry[0])
           .toBeCloseTo(before.geometry[0] + 14 / point.zoom, 1);

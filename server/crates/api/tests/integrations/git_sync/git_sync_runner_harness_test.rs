@@ -2471,11 +2471,13 @@ async fn rejected_push_never_materializes_normal_state_or_a_successful_commit() 
   assert_eq!(pending.observed_remote_oid, None);
   assert!(!pending.reconciliation_required);
   for table in ["git_sync_document_bindings", "git_sync_version_links"] {
-    let count: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*)::bigint FROM {table} WHERE profile_id = $1"))
-      .bind(profile.id)
-      .fetch_one(&pool)
-      .await
-      .expect("normal state count");
+    let count: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+      "SELECT COUNT(*)::bigint FROM {table} WHERE profile_id = $1"
+    )))
+    .bind(profile.id)
+    .fetch_one(&pool)
+    .await
+    .expect("normal state count");
     assert_eq!(count, 0, "{table} must remain empty after push rejection");
   }
   let baseline_count: i64 = sqlx::query_scalar(

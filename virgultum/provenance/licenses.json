@@ -4,14 +4,14 @@
     "generator": "build/scripts/ci/generate-virgultum-source-provenance.mjs",
     "sourceInventory": {
       "path": "virgultum/provenance/sources.json",
-      "sha256": "3b2a4611162fbdde541d96de921873ce81e9b6092b750721e5f5fa181b4fd190"
+      "sha256": "cc857d60807505d0d0ca140d070b211f416e0634ee3b0e340ac6e83fae18cf2b"
     },
-    "trackedPathCount": 3210,
-    "trackedPathSha256": "ee0b1bfc83263137ee9b9f907ebde316375000262e3bde42059c4f78456bede5",
+    "trackedPathCount": 3163,
+    "trackedPathSha256": "6fd004fb92bcfd9ff04648ca36ee528f7e0ef9e871bffd3ce4c64efec72ed34a",
     "publicExport": {
       "excludedPaths": ["virgultum/icons/dist/**"],
-      "trackedPathCount": 3199,
-      "trackedPathSha256": "a55ce1d04533eed8a2ab3b48f368a4aa1a8e075d2eff4d3f9cb1a2222569a453"
+      "trackedPathCount": 3152,
+      "trackedPathSha256": "731dee66d51cb82add9c4e5a642467059266216f4030c4f5d08759e1ac318b39"
     },
     "packageManifestCount": 10,
     "packageLicenseCounts": {
@@ -212,7 +212,7 @@
       "origin": "T1",
       "licenseExpression": "MIT",
       "copyrightNotices": ["2020-2026 Paweł Kuna"],
-      "sha256": "b815747a1cd72bd1e242b0bd21ad76b9293505a942957528571af80abbd2f2a7"
+      "sha256": "161b165f8b85f1257f0b310efa17faff6deebec59587f46528e7dbe586af7d3d"
     },
     {
       "path": "virgultum/provenance/LICENSE-FIGMA-SQUIRCLE-MIT.txt",

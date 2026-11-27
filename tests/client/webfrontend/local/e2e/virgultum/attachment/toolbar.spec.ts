@@ -21,10 +21,10 @@ test.describe("Replaces attachment", () => {
   test("should replace attachment in edgeless", async ({ page }) => {
     await clickEdgelessModeButton(page);
 
-    await page.locator("edgeless-note-tool-button").click();
+    await page.getByTestId("canvas-note").click();
     await importFile(page, "lorem-ipsum.pdf", async () => {
       await page
-        .locator("edgeless-note-menu")
+        .getByTestId("canvas-note-menu")
         .getByRole("button", { name: "File", exact: true })
         .click();
     });

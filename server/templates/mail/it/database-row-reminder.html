@@ -4,78 +4,112 @@ aggiornarli.{% endblock preheader %} {% block category %}IL TUO PROMEMORIA{%
 endblock category %} {% block heading %}È il momento del tuo promemoria.{%
 endblock heading %} {% block introduction %}È arrivato il momento del promemoria
 configurato per questo campo data. Qui trovi il record, il campo e la data
-prevista.{% endblock introduction %} {% block details %}{% if row_title %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
+prevista.{% endblock introduction %} {% block details %}
+<table
+  role="presentation"
+  width="100%"
+  cellpadding="0"
+  cellspacing="0"
+  style="width: 100%; border-collapse: collapse"
 >
-  RECORD
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ row_title }}
-</p>
-{% endif %}{% if field_name %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Campo del promemoria
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ field_name }}
-</p>
-{% endif %}{% if scheduled_label %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Data prevista
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ scheduled_label }}
-</p>
-{% endif %}{% endblock details %} {% block next_step %}Apri il record per vedere
-i dettagli e aggiornarli.{% endblock next_step %} {% block action %}Apri
-record{% endblock action %} {% block note %}Puoi modificare o eliminare questo
-promemoria nel campo data del record.{% endblock note %} {% block reason
-%}Ricevi questa email perché hai configurato un promemoria per questo campo
-data.{% endblock reason %}
+  {% set has_prev = false %} {% if row_title %}
+  <tr>
+    <td style="padding: 13px 0">
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        RECORD
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 15.5px;
+          line-height: 1.45;
+          font-weight: 600;
+          color: #162230;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ row_title }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if field_name %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Campo del promemoria
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ field_name }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if scheduled_label %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Data prevista
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ scheduled_label }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %}
+</table>
+{% endblock details %} {% block next_step %}Apri il record per vedere i dettagli
+e aggiornarli.{% endblock next_step %} {% block action %}Apri record{% endblock
+action %} {% block note %}Puoi modificare o eliminare questo promemoria nel
+campo data del record.{% endblock note %} {% block reason %}Ricevi questa email
+perché hai configurato un promemoria per questo campo data.{% endblock reason %}

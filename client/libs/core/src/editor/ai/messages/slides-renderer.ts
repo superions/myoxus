@@ -8,7 +8,7 @@ import { createElement, useEffect, useRef } from "react";
 import { Doc as YDoc } from "yjs";
 
 import { PPTBuilder } from "../slides/index";
-import { getAIPanelWidget } from "../utils/ai-widgets";
+import { getAIPanelController } from "../utils/ai-widgets";
 import type { AIContext } from "../utils/context";
 import type { MyoxusAIPanelWidgetConfig } from "../widgets/ai-panel/type";
 
@@ -59,7 +59,7 @@ export function AISlidesRenderer({ text, host, ctx }: AISlidesRendererProps) {
               >[0]["contents"],
               images: res.images,
             });
-            getAIPanelWidget(host).requestUpdate();
+            getAIPanelController(host).notifyAnswerContextChanged();
           }
         })
         .catch(console.error);
@@ -108,7 +108,7 @@ export const createSlidesRenderer: (
 ) => MyoxusAIPanelWidgetConfig["answerRenderer"] = (host, ctx) => {
   return (answer, state) => {
     if (state === "generating") {
-      const panel = getAIPanelWidget(host);
+      const panel = getAIPanelController(host);
       panel.generatingElement?.updateLoadingProgress(2);
       return null;
     }

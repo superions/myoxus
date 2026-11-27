@@ -180,14 +180,21 @@ impl OrganizationUnitRepository for PgOrganizationUnitRepository {
          WHERE u.organization_id = $1 AND u.status = $2::organization_unit_status \
          ORDER BY u.name"
       );
-      sqlx::query(&sql).bind(org).bind(s.as_str()).fetch_all(&self.pool).await
+      sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
+        .bind(org)
+        .bind(s.as_str())
+        .fetch_all(&self.pool)
+        .await
     } else {
       let sql = format!(
         "SELECT {SELECT_FIELDS}, {COUNT_FIELDS} FROM organization_unit u \
          WHERE u.organization_id = $1 \
          ORDER BY u.name"
       );
-      sqlx::query(&sql).bind(org).fetch_all(&self.pool).await
+      sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
+        .bind(org)
+        .fetch_all(&self.pool)
+        .await
     }
     .map_err(Self::map_db_err)?;
     Ok(rows.into_iter().map(Self::map_row).collect())
@@ -206,7 +213,11 @@ impl OrganizationUnitRepository for PgOrganizationUnitRepository {
            WHERE u.organization_id = $1 AND u.parent_unit_id = $2 \
            ORDER BY u.name"
         );
-        sqlx::query(&sql).bind(org).bind(p).fetch_all(&self.pool).await
+        sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
+          .bind(org)
+          .bind(p)
+          .fetch_all(&self.pool)
+          .await
       }
       None => {
         let sql = format!(
@@ -214,7 +225,10 @@ impl OrganizationUnitRepository for PgOrganizationUnitRepository {
            WHERE u.organization_id = $1 AND u.parent_unit_id IS NULL \
            ORDER BY u.name"
         );
-        sqlx::query(&sql).bind(org).fetch_all(&self.pool).await
+        sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
+          .bind(org)
+          .fetch_all(&self.pool)
+          .await
       }
     }
     .map_err(Self::map_db_err)?;
@@ -250,7 +264,7 @@ impl OrganizationUnitRepository for PgOrganizationUnitRepository {
   #[instrument(skip_all)]
   async fn get_by_id(&self, id: OrganizationUnitId) -> RepoResult<Option<OrganizationUnit>> {
     let sql = format!("SELECT {SELECT_FIELDS}, {COUNT_FIELDS} FROM organization_unit u WHERE u.id = $1");
-    let row = sqlx::query(&sql)
+    let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(id)
       .fetch_optional(&self.pool)
       .await
@@ -314,7 +328,7 @@ impl OrganizationUnitRepository for PgOrganizationUnitRepository {
        ORDER BY u.name ASC \
        LIMIT $2"
     );
-    let rows = sqlx::query(&sql)
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(query)
       .bind(clamped)
       .fetch_all(&self.pool)

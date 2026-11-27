@@ -431,32 +431,32 @@ async fn administrative_creation_is_insert_only_and_reports_durable_provisioning
   let trigger = format!("admin_create_failure_{marker}");
   let outcome = AssertUnwindSafe(async {
     // Fail only this fixture's root payload, after the workspace transaction commits.
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       "CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN \
      IF EXISTS (SELECT 1 FROM workspaces w JOIN users u ON u.id = w.owner_user_id \
      WHERE w.id = NEW.workspace_id AND u.email = '{partial_email}') THEN \
      RAISE EXCEPTION 'root-init-secret-sentinel'; END IF; RETURN NEW; END $$"
-    ))
+    )))
     .execute(&pool)
     .await
     .expect("install isolated failure function");
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       "CREATE TRIGGER {trigger} BEFORE INSERT ON doc_updates FOR EACH ROW EXECUTE FUNCTION {trigger}()"
-    ))
+    )))
     .execute(&pool)
     .await
     .expect("install isolated failure trigger");
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       "CREATE FUNCTION {trigger}_password() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN \
      IF OLD.email = '{password_failure_email}' AND NEW.password_hash IS DISTINCT FROM OLD.password_hash THEN \
      RAISE EXCEPTION 'password-write-secret-sentinel'; END IF; RETURN NEW; END $$"
-    ))
+    )))
     .execute(&pool)
     .await
     .expect("install password failure function");
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       "CREATE TRIGGER {trigger}_password BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION {trigger}_password()"
-    ))
+    )))
     .execute(&pool)
     .await
     .expect("install password failure trigger");
@@ -636,22 +636,28 @@ async fn administrative_creation_is_insert_only_and_reports_durable_provisioning
   })
   .catch_unwind()
   .await;
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger} ON doc_updates"))
-    .execute(&pool)
-    .await
-    .expect("remove failure trigger");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {trigger}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {trigger} ON doc_updates"
+  )))
+  .execute(&pool)
+  .await
+  .expect("remove failure trigger");
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {trigger}()")))
     .execute(&pool)
     .await
     .expect("remove failure function");
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger}_password ON users"))
-    .execute(&pool)
-    .await
-    .expect("remove password failure trigger");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {trigger}_password()"))
-    .execute(&pool)
-    .await
-    .expect("remove password failure function");
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {trigger}_password ON users"
+  )))
+  .execute(&pool)
+  .await
+  .expect("remove password failure trigger");
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP FUNCTION IF EXISTS {trigger}_password()"
+  )))
+  .execute(&pool)
+  .await
+  .expect("remove password failure function");
   let mut ids: Vec<Uuid> = sqlx::query_scalar("SELECT id FROM users WHERE email = ANY($1)")
     .bind(fixture_emails)
     .fetch_all(&pool)
@@ -739,15 +745,15 @@ async fn admin_role_ingresses_refresh_warm_sessions_retain_keys_and_rollback_mis
     assert!(absent.get("errors").is_some());
     assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM admin_audit_log WHERE target_id=$1 AND event_key='user.admin-role-set'").bind(missing.to_string()).fetch_one(&pool).await.unwrap(),0);
     let before=sqlx::query_scalar::<_,i64>("SELECT count(*) FROM admin_audit_log WHERE target_id=$1 AND event_key='user.admin-role-set'").bind(target.to_string()).fetch_one(&pool).await.unwrap();
-    sqlx::query(&format!("CREATE FUNCTION {fault}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id='{target}'::uuid THEN RAISE EXCEPTION 'owned role failure'; END IF; RETURN NEW; END $$")).execute(&pool).await.unwrap();
-    sqlx::query(&format!("CREATE TRIGGER {fault} BEFORE UPDATE OF is_admin ON users FOR EACH ROW EXECUTE FUNCTION {fault}()")).execute(&pool).await.unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {fault}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id='{target}'::uuid THEN RAISE EXCEPTION 'owned role failure'; END IF; RETURN NEW; END $$"))).execute(&pool).await.unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {fault} BEFORE UPDATE OF is_admin ON users FOR EACH ROW EXECUTE FUNCTION {fault}()"))).execute(&pool).await.unwrap();
     let failed=helpers::gql(&app,session,json!({"query":"mutation($id:ID!){admin{setUserAdmin(userId:$id,isAdmin:true)}}","variables":{"id":target}})).await;
     assert!(failed.get("errors").is_some());
     assert!(!auth.get_user_by_id(target).await.unwrap().unwrap().is_admin);
     assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM admin_audit_log WHERE target_id=$1 AND event_key='user.admin-role-set'").bind(target.to_string()).fetch_one(&pool).await.unwrap(),before);
     assert!(helpers::gql(&other,target_session,json!({"query":"query{currentUser{id}}"})).await.get("errors").is_none(),"rollback restores usable credentials");
-    sqlx::query(&format!("DROP TRIGGER {fault} ON users")).execute(&pool).await.unwrap();
-    sqlx::query(&format!("DROP FUNCTION {fault}()")).execute(&pool).await.unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {fault} ON users"))).execute(&pool).await.unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {fault}()"))).execute(&pool).await.unwrap();
     helpers::gql(&app,session,json!({"query":"mutation($id:ID!){admin{setUserAdmin(userId:$id,isAdmin:true)}}","variables":{"id":unverified}})).await;
     assert!(helpers::gql(&other,unverified_session,json!({"query":"query($id:String!){admin{userById(id:$id){id}}}","variables":{"id":unverified}})).await.get("errors").is_none());
     helpers::gql(&app,session,json!({"query":"mutation($id:ID!){admin{setUserAdmin(userId:$id,isAdmin:false)}}","variables":{"id":unverified}})).await;
@@ -756,11 +762,11 @@ async fn admin_role_ingresses_refresh_warm_sessions_retain_keys_and_rollback_mis
     assert!(restricted.get("errors").is_some(),"demotion does not bypass unverified-account policy");
 
   }).catch_unwind().await;
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {fault} ON users"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER IF EXISTS {fault} ON users")))
     .execute(&pool)
     .await
     .unwrap();
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {fault}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {fault}()")))
     .execute(&pool)
     .await
     .unwrap();
@@ -819,8 +825,8 @@ async fn account_deletion_ingresses_preserve_shared_content_rollback_and_fence_t
       assert!(helpers::gql(&other,target_session,json!({"query":"query($id:String!){admin{userById(id:$id){id}} workspaces{id}}","variables":{"id":admin}})).await.get("errors").is_none(),"warm privileged identity on second API");
       assert_eq!(helpers::mcp::request(&other,&target_key,"tools/list",json!({})).await.0,axum::http::StatusCode::OK);
       if ingress=="admin" {
-        sqlx::query(&format!("CREATE FUNCTION {fault}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF OLD.id='{target}'::uuid AND NEW.status='deleted' THEN RAISE EXCEPTION 'owned deletion rollback'; END IF; RETURN NEW; END $$")).execute(&pool).await.unwrap();
-        sqlx::query(&format!("CREATE TRIGGER {fault} BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION {fault}()")).execute(&pool).await.unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {fault}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF OLD.id='{target}'::uuid AND NEW.status='deleted' THEN RAISE EXCEPTION 'owned deletion rollback'; END IF; RETURN NEW; END $$"))).execute(&pool).await.unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {fault} BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION {fault}()"))).execute(&pool).await.unwrap();
         let failed=helpers::gql(&app,session,json!({"query":"mutation($id:String!){admin{deleteUser(id:$id){success}}}","variables":{"id":target}})).await;
         assert!(failed.get("errors").is_some());
         assert!(auth.get_user_by_id(target).await.unwrap().is_some());
@@ -830,8 +836,8 @@ async fn account_deletion_ingresses_preserve_shared_content_rollback_and_fence_t
         assert!(helpers::gql(&other,target_session,json!({"query":"query($id:String!){admin{userById(id:$id){id}} workspaces{id}}","variables":{"id":admin}})).await.get("errors").is_none(),"rollback restores usable account credentials");
         assert_eq!(helpers::mcp::request(&other,&target_key,"tools/list",json!({})).await.0,axum::http::StatusCode::OK);
         assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM admin_audit_log WHERE target_id=$1 AND event_key='user.delete'").bind(target.to_string()).fetch_one(&pool).await.unwrap(),0);
-        sqlx::query(&format!("DROP TRIGGER {fault} ON users")).execute(&pool).await.unwrap();
-        sqlx::query(&format!("DROP FUNCTION {fault}()")).execute(&pool).await.unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {fault} ON users"))).execute(&pool).await.unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {fault}()"))).execute(&pool).await.unwrap();
       }
       if ingress=="mcp" {
         let args=json!({"user_id":target,"confirmed_user_id":target,"idempotency_key":"delete-content"});
@@ -876,11 +882,11 @@ async fn account_deletion_ingresses_preserve_shared_content_rollback_and_fence_t
     assert!(absent.get("errors").is_some());
     assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM admin_audit_log WHERE event_key='user.delete' AND target_id=$1").bind(missing.to_string()).fetch_one(&pool).await.unwrap(),0);
   }).catch_unwind().await;
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {fault} ON users"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER IF EXISTS {fault} ON users")))
     .execute(&pool)
     .await
     .unwrap();
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {fault}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {fault}()")))
     .execute(&pool)
     .await
     .unwrap();
@@ -974,7 +980,7 @@ async fn terminal_account_repository_cleanup_guards_and_released_email_are_atomi
       format!("INSERT INTO workspace_memberships(workspace_id,user_id,role,status,invited_by_user_id) VALUES('{ws}','{survivor}','Admin','Accepted','{target}')"),
       format!("INSERT INTO document_workspace_settings(workspace_id,default_responsible_user_id) VALUES('{ws}','{target}')"),
       format!("INSERT INTO organization_document_settings(organization_id,default_responsible_user_id) VALUES('{org}','{target}') ON CONFLICT(organization_id) DO UPDATE SET default_responsible_user_id=EXCLUDED.default_responsible_user_id"),
-    ] {sqlx::query(&statement).execute(&pool).await.unwrap();}
+    ] {sqlx::query(sqlx::AssertSqlSafe(statement.as_str())).execute(&pool).await.unwrap();}
     let history: i64=sqlx::query_scalar("INSERT INTO doc_histories(workspace_id,doc_id,snapshot,actor_id) VALUES($1,$2,$3,$4) RETURNING id").bind(ws).bind(doc).bind(vec![1u8,2,3]).bind(target).fetch_one(&pool).await.unwrap();
     sqlx::query("INSERT INTO document_version(doc_id,workspace_id,doc_history_id,label,created_by,version_no) VALUES($1,$2,$3,'retained',$4,1)").bind(doc).bind(ws).bind(history).bind(target).execute(&pool).await.unwrap();
     let reminder_id=Uuid::new_v4();
@@ -1006,7 +1012,7 @@ async fn terminal_account_repository_cleanup_guards_and_released_email_are_atomi
       ("telemetry_events","user_id",format!("INSERT INTO telemetry_events(user_id,event_id,event_name,category,schema_version,client_timestamp) VALUES('{target}','{target}','owned','owned',1,now())")),
       ("workspace_imports","actor_id",format!("INSERT INTO workspace_imports(id,actor_id,status,staging_object_key,config_fingerprint,expires_at) VALUES('{target}','{target}','staged','owned/{target}','owned',now()+interval '1 hour')")),
     ];
-    for (table,_,statement) in &statements {sqlx::query(statement).execute(&pool).await.unwrap_or_else(|e|panic!("populate {table}: {e}"));}
+    for (table,_,statement) in &statements {sqlx::query(sqlx::AssertSqlSafe(statement.as_str())).execute(&pool).await.unwrap_or_else(|e|panic!("populate {table}: {e}"));}
     let otp_token=store.create_verification_token(Some(target),"SignIn",&format!("otp-{target}"),Some(&email),Utc::now()+chrono::Duration::hours(1),None).await.unwrap();
     store.upsert_magic_link_otp(MagicLinkOtp{email:email.clone(),otp:"123456".into(),verification_token_id:otp_token.id,client_nonce:None,expires_at:Utc::now()+chrono::Duration::hours(1)}).await.unwrap();
     store.create_verification_token(None,"SignIn",&format!("unbound-{target}"),Some(&email),Utc::now()+chrono::Duration::hours(1),None).await.unwrap();
@@ -1027,7 +1033,7 @@ async fn terminal_account_repository_cleanup_guards_and_released_email_are_atomi
       format!("INSERT INTO organization_unit_member(unit_id,user_id,role) VALUES('{unit}','{target}','manager') ON CONFLICT(unit_id,user_id) DO UPDATE SET role='manager'"),
       format!("INSERT INTO workspace_memberships(workspace_id,user_id,role,status) VALUES('{ws}','{target}','Reader','Accepted') ON CONFLICT(workspace_id,user_id) DO UPDATE SET role='Reader'"),
       format!("INSERT INTO doc_user_permissions(doc_id,user_id,role) VALUES('{doc}','{target}','Reader') ON CONFLICT(doc_id,user_id) DO UPDATE SET role='Reader'"),
-    ] {let pool=pool.clone(); writers.push(tokio::spawn(async move {sqlx::query(&statement).execute(&pool).await}));}
+    ] {let pool=pool.clone(); writers.push(tokio::spawn(async move {sqlx::query(sqlx::AssertSqlSafe(statement.as_str())).execute(&pool).await}));}
     lock.commit().await.unwrap();
     let commit=tokio::time::timeout(std::time::Duration::from_secs(20),deletion).await.expect("deletion cannot deadlock with grant writers").unwrap().unwrap();
     for writer in writers {
@@ -1041,16 +1047,16 @@ async fn terminal_account_repository_cleanup_guards_and_released_email_are_atomi
     assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM docs WHERE id=$1").bind(private_doc).fetch_one(&pool).await.unwrap(),0);
     assert!(sqlx::query_scalar::<_,bool>("SELECT owner_user_id IS NULL AND owner_principal_type='system' AND deleted_at IS NOT NULL FROM workspaces WHERE id=$1").bind(archived).fetch_one(&pool).await.unwrap());
     for (table,column,statement) in &statements {
-      let count:i64=sqlx::query_scalar(&format!("SELECT count(*) FROM {table} WHERE {column}=$1")).bind(target).fetch_one(&pool).await.unwrap();
+      let count:i64=sqlx::query_scalar(sqlx::AssertSqlSafe(format!("SELECT count(*) FROM {table} WHERE {column}=$1"))).bind(target).fetch_one(&pool).await.unwrap();
       assert_eq!(count,0,"cleanup {table}");
-      let error=sqlx::query(statement).execute(&pool).await.unwrap_err();
+      let error=sqlx::query(sqlx::AssertSqlSafe(statement.as_str())).execute(&pool).await.unwrap_err();
       assert!(error.as_database_error().is_some_and(|e|e.constraint()==Some("account_reference_not_operational")),"{table} denies at terminal account guard: {error}");
     }
     // Changing an existing operational reference must be guarded too; every
     // table retains a valid suspended-account control record for this check.
     for (table,column,statement) in &statements {
-      if *table!="workspace_memberships" {sqlx::query(&statement.replace(&target.to_string(),&survivor.to_string())).execute(&pool).await.unwrap_or_else(|e|panic!("control {table}: {e}"));}
-      let error=sqlx::query(&format!("UPDATE {table} SET {column}=$1 WHERE {column}=$2")).bind(target).bind(survivor).execute(&pool).await.unwrap_err();
+      if *table!="workspace_memberships" {sqlx::query(sqlx::AssertSqlSafe(statement.replace(&target.to_string(),&survivor.to_string()).as_str())).execute(&pool).await.unwrap_or_else(|e|panic!("control {table}: {e}"));}
+      let error=sqlx::query(sqlx::AssertSqlSafe(format!("UPDATE {table} SET {column}=$1 WHERE {column}=$2"))).bind(target).bind(survivor).execute(&pool).await.unwrap_err();
       assert!(error.as_database_error().is_some_and(|e|e.constraint()==Some("account_reference_not_operational")),"update {table}: {error}");
     }
     assert!(store.get_magic_link_otp(&email,"123456").await.unwrap().is_none());
@@ -1064,11 +1070,11 @@ async fn terminal_account_repository_cleanup_guards_and_released_email_are_atomi
     assert_eq!(sqlx::query_scalar::<_,Uuid>("SELECT created_by FROM document_version WHERE doc_id=$1").bind(doc).fetch_one(&pool).await.unwrap(),target);
     assert_eq!(sqlx::query_scalar::<_,Vec<u8>>("SELECT snapshot FROM doc_histories WHERE id=$1").bind(history).fetch_one(&pool).await.unwrap(),vec![1,2,3]);
     for statement in [format!("SELECT default_responsible_user_id IS NULL AND metadata_revision>{workspace_revision} FROM document_workspace_settings WHERE workspace_id='{ws}'"),format!("SELECT default_responsible_user_id IS NULL AND metadata_revision>{organization_revision} FROM organization_document_settings WHERE organization_id='{org}'")] {
-      assert!(sqlx::query_scalar::<_,bool>(&statement).fetch_one(&pool).await.unwrap());
+      assert!(sqlx::query_scalar::<_,bool>(sqlx::AssertSqlSafe(statement.as_str())).fetch_one(&pool).await.unwrap());
     }
     assert!(sqlx::query_scalar::<_,bool>("SELECT responsible_user_id IS NULL FROM docs WHERE id=$1").bind(doc).fetch_one(&pool).await.unwrap());
     for statement in [format!("UPDATE users SET status='active' WHERE id='{target}'"),format!("UPDATE users SET name='changed' WHERE id='{target}'"),format!("UPDATE users SET email='{email}' WHERE id='{target}'"),format!("UPDATE docs SET responsible_user_id='{target}' WHERE id='{doc}'"),format!("UPDATE workspaces SET owner_user_id='{target}' WHERE id='{ws}'")] {
-      let error=sqlx::query(&statement).execute(&pool).await.unwrap_err();
+      let error=sqlx::query(sqlx::AssertSqlSafe(statement.as_str())).execute(&pool).await.unwrap_err();
       assert!(error.as_database_error().is_some_and(|e|e.constraint()==Some("account_reference_not_operational")));
     }
     use myoxus_application::admin::AdminStore;

@@ -306,7 +306,7 @@ impl SearchRepository for SqlxSearchRepository {
             LIMIT $5 OFFSET $6
             "#
     );
-    let rows = sqlx::query(&sql)
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace_id)
       .bind(fts_config)
       .bind(normalised)
@@ -368,7 +368,7 @@ impl SearchRepository for SqlxSearchRepository {
             ORDER BY doc_id
             "#
     );
-    let rows = sqlx::query(&sql)
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace_id)
       .fetch_all(&self.pool)
       .await
@@ -819,7 +819,7 @@ pub async fn hybrid_search(
 
   let dimensions = query_embedding.len();
   let distance = crate::copilot::embedding_store::SqlxCopilotEmbeddingRepository::distance_sql(dimensions)?;
-  let rows = sqlx::query(&format!(
+  let rows = sqlx::query(sqlx::AssertSqlSafe(format!(
     r#"
     WITH vector_sources AS (
         SELECT DISTINCT ON (e.source_id) d.id AS doc_id, e.chunk_text, d.title,
@@ -859,7 +859,7 @@ pub async fn hybrid_search(
     ORDER BY rrf_score DESC, COALESCE(v.doc_id, f.doc_id)
     LIMIT $4 OFFSET $6
     "#,
-  ))
+  )))
   .bind(&embedding_literal)
   .bind(workspace_id)
   .bind(query_trimmed)

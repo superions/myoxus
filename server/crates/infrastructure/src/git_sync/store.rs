@@ -1086,7 +1086,7 @@ impl SqlxGitSyncStore {
   }
 
   pub(crate) async fn profile_in(conn: &mut sqlx::PgConnection, id: Uuid) -> GitSyncResult<GitSyncProfile> {
-    let row = sqlx::query(&format!("{PROFILE_SELECT} WHERE p.id=$1"))
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!("{PROFILE_SELECT} WHERE p.id=$1")))
       .bind(id)
       .fetch_optional(conn)
       .await
@@ -1546,12 +1546,14 @@ impl SqlxGitSyncStore {
       .execute(&mut *tx)
       .await
       .map_err(Self::map_db_err)?;
-    let profiles = sqlx::query(&format!("{PROFILE_SELECT} WHERE p.repo_url=$1 AND p.branch=$2"))
-      .bind(repository)
-      .bind(branch)
-      .fetch_all(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?;
+    let profiles = sqlx::query(sqlx::AssertSqlSafe(format!(
+      "{PROFILE_SELECT} WHERE p.repo_url=$1 AND p.branch=$2"
+    )))
+    .bind(repository)
+    .bind(branch)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(Self::map_db_err)?;
     let mut peers = Vec::new();
     for row in profiles {
       let profile = Self::map_profile_row(row)?;
@@ -2245,11 +2247,13 @@ impl SqlxGitSyncStore {
   /// Fetch the (enabled) profile for a workspace.
   #[instrument(skip(self))]
   pub async fn get_profile_by_workspace(&self, workspace_id: Uuid) -> GitSyncResult<Option<GitSyncProfile>> {
-    let row = sqlx::query(&format!("{PROFILE_SELECT} WHERE p.workspace_id=$1 AND p.enabled=true"))
-      .bind(workspace_id)
-      .fetch_optional(&self.pool)
-      .await
-      .map_err(Self::map_db_err)?;
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
+      "{PROFILE_SELECT} WHERE p.workspace_id=$1 AND p.enabled=true"
+    )))
+    .bind(workspace_id)
+    .fetch_optional(&self.pool)
+    .await
+    .map_err(Self::map_db_err)?;
 
     let result = row.map(Self::map_profile_row).transpose()?;
     trace!(found = result.is_some(), "profile lookup by workspace");
@@ -2259,9 +2263,9 @@ impl SqlxGitSyncStore {
   /// Configuration/status reads include paused profiles. Display ordering is
   /// not run admission; collision checks still cover every configured scope.
   pub async fn get_configured_profile_by_workspace(&self, workspace_id: Uuid) -> GitSyncResult<Option<GitSyncProfile>> {
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       "{PROFILE_SELECT} WHERE p.workspace_id=$1 ORDER BY p.enabled DESC,p.created_at DESC,p.id DESC LIMIT 1"
-    ))
+    )))
     .bind(workspace_id)
     .fetch_optional(&self.pool)
     .await
@@ -5270,7 +5274,7 @@ impl SqlxGitSyncStore {
       ));
     }
 
-    let mut query = sqlx::query(&sql);
+    let mut query = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()));
     for link in chunk {
       query = query
         .bind(link.id)
@@ -5767,7 +5771,7 @@ impl GitTokenRotationStore for SqlxGitSyncStore {
          WHERE consumer.id = $1
        ), $1)"
     );
-    sqlx::query(&query)
+    sqlx::query(sqlx::AssertSqlSafe(query.as_str()))
       .bind(profile_id)
       .fetch_optional(&self.pool)
       .await
@@ -5985,7 +5989,7 @@ impl GitTokenRotationStore for SqlxGitSyncStore {
        LEFT JOIN git_sync_credentials credential ON credential.id = profile.credential_id
        WHERE rotation.latest_attempt_id = $1 AND rotation.state = 'Completed'"
     );
-    sqlx::query(&query)
+    sqlx::query(sqlx::AssertSqlSafe(query.as_str()))
       .bind(attempt_id)
       .fetch_optional(&self.pool)
       .await

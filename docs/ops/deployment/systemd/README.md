@@ -48,7 +48,7 @@ reference.
 - The Rust toolchain selected by the checked-out `rust-toolchain.toml`
 - Build dependencies: `pkg-config`, `libssl-dev`, `ca-certificates`
 - Runtime tools: `git` for Git sync and `curl` for the supplied health script
-- Redis 8+ (**required** — the server will not start without a reachable Redis instance)
+- Valkey 8+ (recommended: Valkey 9) or compatible Redis 8+ (**required** — the server will not start without a reachable instance)
 
 ---
 
@@ -221,8 +221,8 @@ because writeback uses a temporary file and rename.
 # database URL. Startup readiness performs the authenticated check.
 pg_isready -h 127.0.0.1 -p 5432
 
-# Verify Redis through its locally configured authentication mechanism.
-redis-cli ping
+# Verify Valkey (or Redis) through its locally configured authentication mechanism.
+valkey-cli ping # or: redis-cli ping
 ```
 
 Abort before starting Myoxus if either probe fails. The central migration
@@ -247,7 +247,7 @@ The service file is at `docs/ops/deployment/systemd/myoxus-api.service`. Its con
 ```ini
 [Unit]
 Description=Myoxus API Server
-After=network-online.target postgresql.service redis-server.service
+After=network-online.target postgresql.service valkey.service valkey-server.service redis-server.service
 Wants=network-online.target
 
 [Service]

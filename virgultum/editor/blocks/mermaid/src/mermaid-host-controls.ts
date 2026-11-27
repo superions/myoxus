@@ -380,7 +380,6 @@ export abstract class MermaidHostControls extends MermaidHostSource {
       this._pendingVisualInsertShape = null;
       this._pendingVisualNodePlacement = null;
       this._stopTransientPointerInteractions();
-      this.requestUpdate();
       this.focus({ preventScroll: true });
       return;
     }
@@ -603,7 +602,7 @@ export abstract class MermaidHostControls extends MermaidHostSource {
       // Projection-only history has no Source text event to queue its carrier.
       if (owned && !this._pendingVisualSelectionProjection) {
         this._queueVisualSelectionForProjection([item], { focus: true });
-        this.requestUpdate();
+        this._notifyProjectionChange();
       }
     };
   }
@@ -632,7 +631,7 @@ export abstract class MermaidHostControls extends MermaidHostSource {
       this._queueVisualSelectionForProjection(selectionHistory.before, {
         focus: selectionHistory.before.length > 0,
       });
-      this.requestUpdate();
+      this._notifyProjectionChange();
     }
     restoreFocus();
   };
@@ -658,7 +657,7 @@ export abstract class MermaidHostControls extends MermaidHostSource {
       this._queueVisualSelectionForProjection(selectionHistory.after, {
         focus: selectionHistory.after.length > 0,
       });
-      this.requestUpdate();
+      this._notifyProjectionChange();
     }
     restoreFocus();
   };
@@ -693,7 +692,7 @@ export abstract class MermaidHostControls extends MermaidHostSource {
     this._acceptProjectionOwnerSourceSyncKey();
     this._remapVisualSelection();
     this._scheduleRender();
-    this.requestUpdate();
+    this._notifyProjectionChange();
     return true;
   }
 
@@ -727,7 +726,7 @@ export abstract class MermaidHostControls extends MermaidHostSource {
     this._acceptProjectionOwnerSourceSyncKey();
     this._remapVisualSelection();
     this._scheduleRender();
-    this.requestUpdate();
+    this._notifyProjectionChange();
     return true;
   }
 

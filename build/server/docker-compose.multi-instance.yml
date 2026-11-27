@@ -62,10 +62,10 @@ services:
     restart: "no"
 
   redis-mi:
-    image: redis:8
-    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    image: valkey/valkey:9
+    command: ["valkey-server", "--appendonly", "no", "--save", ""]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 3s
       timeout: 3s
       retries: 30

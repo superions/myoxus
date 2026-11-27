@@ -1952,7 +1952,7 @@ fn main() {}
           .blob_key
       );
       // Fail only this fixture, after storage writes at the SQL COMMIT boundary.
-      sqlx::raw_sql(&format!("CREATE FUNCTION {journey_trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.workspace_id='{wsid}' THEN RAISE EXCEPTION 'forced footnote asset commit failure'; END IF; RETURN NEW; END $$; CREATE CONSTRAINT TRIGGER {journey_trigger} AFTER INSERT ON doc_updates DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION {journey_trigger}();"))
+      sqlx::raw_sql(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {journey_trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.workspace_id='{wsid}' THEN RAISE EXCEPTION 'forced footnote asset commit failure'; END IF; RETURN NEW; END $$; CREATE CONSTRAINT TRIGGER {journey_trigger} AFTER INSERT ON doc_updates DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION {journey_trigger}();")))
         .execute(&pool).await.unwrap();
       let error = import_single_file(
         &path,
@@ -1993,9 +1993,9 @@ fn main() {}
       );
     });
     let result = journey.await;
-    sqlx::raw_sql(&format!(
+    sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
       "DROP TRIGGER IF EXISTS {trigger} ON doc_updates; DROP FUNCTION IF EXISTS {trigger}();"
-    ))
+    )))
     .execute(&pool)
     .await
     .expect("remove only the fixture's deferred trigger");

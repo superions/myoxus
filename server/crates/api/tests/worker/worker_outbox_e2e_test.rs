@@ -459,8 +459,8 @@ async fn task_intent_is_transactional_recoverable_and_currently_authorized() {
 
     // If the outbox insert itself fails, the native Cell, derived completion
     // state and revision must roll back. An after-commit publisher fails this.
-    sqlx::query(&format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'owned Task intent failure'; END; $$")).execute(&pool).await.unwrap();
-    sqlx::query(&format!("CREATE TRIGGER {trigger}_insert BEFORE INSERT ON outbox_events FOR EACH ROW WHEN (NEW.event_type='database_task_notification' AND NEW.aggregate_id='{row}') EXECUTE FUNCTION {trigger}()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'owned Task intent failure'; END; $$"))).execute(&pool).await.unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {trigger}_insert BEFORE INSERT ON outbox_events FOR EACH ROW WHEN (NEW.event_type='database_task_notification' AND NEW.aggregate_id='{row}') EXECUTE FUNCTION {trigger}()")))
               .execute(&pool).await.unwrap();
     assert!(
       repo
@@ -487,7 +487,7 @@ async fn task_intent_is_transactional_recoverable_and_currently_authorized() {
     );
     assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM outbox_events WHERE event_type='database_task_notification' AND payload->'intent'->>'rowId'=$1")
               .bind(row.to_string()).fetch_one(&pool).await.unwrap(),count_before);
-    sqlx::query(&format!("DROP TRIGGER {trigger}_insert ON outbox_events"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger}_insert ON outbox_events")))
       .execute(&pool)
       .await
       .unwrap();
@@ -528,7 +528,7 @@ async fn task_intent_is_transactional_recoverable_and_currently_authorized() {
       .unwrap();
     let (failing_id, failing_payload) = event(&pool, failing).await;
 
-    sqlx::query(&format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON outbox_events FOR EACH ROW WHEN (NEW.id='{failing_id}'::uuid) EXECUTE FUNCTION {trigger}()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON outbox_events FOR EACH ROW WHEN (NEW.id='{failing_id}'::uuid) EXECUTE FUNCTION {trigger}()")))
               .execute(&pool).await.unwrap();
     let data = json!({"eventId":failing_id,"intent":failing_payload["intent"]});
     assert!(dispatch(&pool, &state, &data, std::sync::Arc::new(myoxus_infrastructure::workspace_database::PgDatabaseRepository::new(pool.clone(), crate::helpers::database_starter_catalog()))).await.is_err());
@@ -567,7 +567,7 @@ async fn task_intent_is_transactional_recoverable_and_currently_authorized() {
       1,
       "unfinished SQL receipt protects inserted-only Inbox evidence"
     );
-    sqlx::query(&format!("DROP TRIGGER {trigger} ON outbox_events"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger} ON outbox_events")))
       .execute(&pool)
       .await
       .unwrap();
@@ -645,7 +645,7 @@ async fn task_intent_is_transactional_recoverable_and_currently_authorized() {
       .unwrap();
     let intents_before:i64=sqlx::query_scalar("SELECT count(*) FROM outbox_events WHERE event_type='database_task_notification' AND payload->'intent'->>'databaseId'=$1")
               .bind(database.to_string()).fetch_one(&pool).await.unwrap();
-    sqlx::query(&format!("CREATE TRIGGER {trigger}_body BEFORE INSERT ON workspace_database_rows FOR EACH ROW WHEN (NEW.database_id='{database}'::uuid AND NEW.title='Body publication rollback') EXECUTE FUNCTION {trigger}()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {trigger}_body BEFORE INSERT ON workspace_database_rows FOR EACH ROW WHEN (NEW.database_id='{database}'::uuid AND NEW.title='Body publication rollback') EXECUTE FUNCTION {trigger}()")))
               .execute(&pool).await.unwrap();
     let apply = "mutation($i:CreateDatabaseRowFromTemplateInput!){createDatabaseRowFromTemplate(input:$i){row{id contentDocument{documentId state}}}}";
     let input = json!({"databaseId":database,"rowTemplateId":template.id,"title":"Body publication rollback"});
@@ -680,7 +680,7 @@ async fn task_intent_is_transactional_recoverable_and_currently_authorized() {
     );
     assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM outbox_events WHERE event_type='database_task_notification' AND payload->'intent'->>'databaseId'=$1")
               .bind(database.to_string()).fetch_one(&pool).await.unwrap(),intents_before);
-    sqlx::query(&format!("DROP TRIGGER {trigger}_body ON workspace_database_rows"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger}_body ON workspace_database_rows")))
       .execute(&pool)
       .await
       .unwrap();
@@ -839,24 +839,30 @@ async fn task_intent_is_transactional_recoverable_and_currently_authorized() {
       );
     }
   }).catch_unwind().await;
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger}_insert ON outbox_events"))
-    .execute(&pool)
-    .await
-    .unwrap();
-  sqlx::query(&format!(
-    "DROP TRIGGER IF EXISTS {trigger}_body ON workspace_database_rows"
-  ))
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {trigger}_insert ON outbox_events"
+  )))
   .execute(&pool)
   .await
   .unwrap();
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger} ON outbox_events"))
-    .execute(&pool)
-    .await
-    .unwrap();
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {trigger}() CASCADE"))
-    .execute(&pool)
-    .await
-    .unwrap();
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {trigger}_body ON workspace_database_rows"
+  )))
+  .execute(&pool)
+  .await
+  .unwrap();
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {trigger} ON outbox_events"
+  )))
+  .execute(&pool)
+  .await
+  .unwrap();
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP FUNCTION IF EXISTS {trigger}() CASCADE"
+  )))
+  .execute(&pool)
+  .await
+  .unwrap();
   let mut connection = redis::Client::open(redis_url)
     .unwrap()
     .get_multiplexed_async_connection()

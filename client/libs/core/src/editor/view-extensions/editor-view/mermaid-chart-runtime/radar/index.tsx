@@ -186,7 +186,7 @@ function RadarRuntimeBody({
     command: MermaidRadarCommand | readonly MermaidRadarCommand[],
     options?: MermaidRuntimeTransactionOptions,
   ) => {
-    // The Lit/Yjs commit can synchronously project new props before onCommand
+    // The Yjs/host commit can synchronously project new props before onCommand
     // returns. Mark the pure command projection first so that this component
     // can distinguish its own write from a concurrent source edit.
     const projected = props.onPreviewCommand(command);

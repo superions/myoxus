@@ -135,7 +135,7 @@ impl TaskRecurrenceRepository for PgTaskRecurrenceRepository {
     let rows_table = crate::workspace_database::DATABASE_ROWS_TABLE;
     let cells_table = crate::workspace_database::DATABASE_CELL_VALUES_TABLE;
     let fields_table = crate::workspace_database::DATABASE_FIELDS_TABLE;
-    let row = sqlx::query(&format!("SELECT edit_revision FROM {rows_table} WHERE id=$1 AND database_id=$2 AND row_kind='task' AND deleted_at IS NULL FOR UPDATE"))
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!("SELECT edit_revision FROM {rows_table} WHERE id=$1 AND database_id=$2 AND row_kind='task' AND deleted_at IS NULL FOR UPDATE")))
       .bind(adoption.row_id).bind(adoption.database_id).fetch_optional(&mut *tx).await.map_err(storage)?
       .ok_or_else(invalid)?;
     if row.try_get::<i64, _>("edit_revision").map_err(storage)? != adoption.expected_row_revision {
@@ -150,7 +150,7 @@ impl TaskRecurrenceRepository for PgTaskRecurrenceRepository {
         "Task already belongs to an active recurrence",
       ));
     }
-    let roles = sqlx::query(&format!("SELECT r.role_key,r.field_id,f.config_json FROM database_field_roles r JOIN {fields_table} f ON f.id=r.field_id AND f.database_id=r.database_id WHERE r.database_id=$1 AND r.profile_kind='project' AND r.row_kind_scope='task' AND r.role_key IN ('task.status','task.dueDate')"))
+    let roles = sqlx::query(sqlx::AssertSqlSafe(format!("SELECT r.role_key,r.field_id,f.config_json FROM database_field_roles r JOIN {fields_table} f ON f.id=r.field_id AND f.database_id=r.database_id WHERE r.database_id=$1 AND r.profile_kind='project' AND r.row_kind_scope='task' AND r.role_key IN ('task.status','task.dueDate')")))
       .bind(adoption.database_id).fetch_all(&mut *tx).await.map_err(storage)?;
     if !roles.iter().any(|row| {
       row
@@ -178,9 +178,9 @@ impl TaskRecurrenceRepository for PgTaskRecurrenceRepository {
     let DatabaseFieldConfig::Status(config) = config else {
       return Err(invalid());
     };
-    let status: Option<serde_json::Value> = sqlx::query_scalar(&format!(
+    let status: Option<serde_json::Value> = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
       "SELECT value_json FROM {cells_table} WHERE row_id=$1 AND field_id=$2"
-    ))
+    )))
     .bind(adoption.row_id)
     .bind(adoption.status_field_id)
     .fetch_optional(&mut *tx)
@@ -203,9 +203,9 @@ impl TaskRecurrenceRepository for PgTaskRecurrenceRepository {
     }) {
       return Err(invalid());
     }
-    let current = sqlx::query(&format!(
+    let current = sqlx::query(sqlx::AssertSqlSafe(format!(
       "SELECT value_json,edit_revision FROM {cells_table} WHERE row_id=$1 AND field_id=$2"
-    ))
+    )))
     .bind(adoption.row_id)
     .bind(adoption.due_field_id)
     .fetch_optional(&mut *tx)
@@ -321,9 +321,9 @@ pub(crate) async fn record_member_in(
     return Err(invalid());
   }
   let table = crate::workspace_database::DATABASE_ROWS_TABLE;
-  let current: bool = sqlx::query_scalar(&format!(
+  let current: bool = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
     "SELECT EXISTS(SELECT 1 FROM {table} WHERE id=$1 AND database_id=$2 AND row_kind='task' AND deleted_at IS NULL)"
-  ))
+  )))
   .bind(task.row_id)
   .bind(task.database_id)
   .fetch_one(&mut *tx)

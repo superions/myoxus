@@ -131,7 +131,7 @@ export type MermaidFamilyEdgelessToolbarContribution = {
   readonly invalidSourceSelection?: boolean;
   /** The existing root toolbar can expose selection/readback/export in readonly. */
   readonly readonlySelection?: boolean;
-  /** Semantic actions or existing native family views; no selection-owned Lit panels. */
+  /** Semantic actions or existing native family views; no selection-owned custom panels. */
   readonly actions: ReadonlyArray<ToolbarGenericAction>;
   readonly suppressBaseActionIds?: ReadonlyArray<string>;
   readonly when?: ((context: ToolbarContext) => boolean) | boolean;

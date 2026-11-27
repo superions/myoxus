@@ -310,9 +310,9 @@ async fn inv_mcp_database_write_is_service_backed_and_idempotent() {
   assert!(conflict.1.contains("MIX_MCP_IDEMPOTENCY_CONFLICT"));
 
   let rows_table = ["workspace", "database", "rows"].join("_");
-  let count: i64 = sqlx::query_scalar(&format!(
+  let count: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
     "SELECT COUNT(*)::BIGINT FROM {rows_table} WHERE database_id = $1"
-  ))
+  )))
   .bind(database_id)
   .fetch_one(&pool)
   .await
@@ -341,11 +341,13 @@ async fn inv_mcp_database_write_is_service_backed_and_idempotent() {
       .expect("same MCP cell update should replay"),
     updated
   );
-  let row_title: String = sqlx::query_scalar(&format!("SELECT title FROM {rows_table} WHERE id = $1"))
-    .bind(Uuid::parse_str(&row_id).expect("row UUID"))
-    .fetch_one(&pool)
-    .await
-    .expect("load updated row title");
+  let row_title: String = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+    "SELECT title FROM {rows_table} WHERE id = $1"
+  )))
+  .bind(Uuid::parse_str(&row_id).expect("row UUID"))
+  .fetch_one(&pool)
+  .await
+  .expect("load updated row title");
   assert_eq!(row_title, "Updated once");
   let mut changed_cell = cell_params;
   changed_cell["value"]["value"] = json!("Different value");

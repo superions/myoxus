@@ -20,7 +20,6 @@ SOURCES = {
     "biblatex": ("0.12.0", "591eba69b7c085632e22ca03606f0bbea68d53bbe26c8962e2d549af20c6a561"),
     "hayagriva": ("0.10.1", "7b6c185c5c72546d50b25b70187f01ab9a1a2fa21c4db8691e2426fa5fce805c"),
     "safer-bytes": ("0.2.0", "9814c78d534f27a438fcb57091d6deed0634b60e4e500fee28fe5990adf5ea54"),
-    "simba": ("0.9.1", "c99284beb21666094ba2b75bbceda012e610f5479dfcc2d6e2426f53197ffd95"),
 }
 
 

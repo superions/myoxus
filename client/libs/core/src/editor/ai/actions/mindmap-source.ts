@@ -24,7 +24,7 @@ import {
   type GfxModel,
 } from "@virgultum/editor/std/gfx";
 import { editorToast } from "@virgultum/editor/shared/utils";
-import { getAIPanelWidget } from "../utils/ai-widgets";
+import { getAIPanelController } from "../utils/ai-widgets";
 import { getSelections } from "../utils/selection-utils";
 import type { AIContext } from "../utils/context";
 
@@ -90,7 +90,7 @@ export async function acceptSourceMindmap(
     | { kind: "expand" },
 ) {
   const state = ctx.get();
-  const panel = getAIPanelWidget(host);
+  const panel = getAIPanelController(host);
   const panelConfig = panel.config;
   const panelIsCurrent = () =>
     panel.state !== "hidden" && panel.config === panelConfig;

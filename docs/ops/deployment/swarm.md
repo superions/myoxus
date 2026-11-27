@@ -208,7 +208,12 @@ available through the packaged `workspaces` and `shared-workspaces` groups.
 For a frontend update, materialize the new Web/Admin tag into a new directory,
 change `MYOXUS_FRONTEND_ASSET_ROOT`, and redeploy. For an Nginx security update,
 change only `MYOXUS_NGINX_IMAGE`; no Myoxus artifact must be rebuilt. For a
-server update, change only `MYOXUS_SERVER_IMAGE_TAG`.
+server update, change only `MYOXUS_SERVER_IMAGE_TAG`. The `redis` service
+defaults to `valkey/valkey:9` and supports `REDIS_IMAGE` / `REDIS_IMAGE_TAG`
+overrides. When migrating an existing Redis 7.4+ or Redis 8 deployment to
+Valkey 9, stop the API service, empty `$MYOXUS_SWARM_STATE_ROOT/redis` (Redis
+7.4+/8 RDB and AOF files are not loadable by Valkey 9, and authoritative data
+remains in PostgreSQL and `/srv/myoxus/data`), and then redeploy.
 
 Swarm uses `stop-first` for the API to avoid concurrent migrations. The
 frontend delivery service uses `start-first`. A database migration may make an

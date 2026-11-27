@@ -1,17 +1,13 @@
 import type { EditorHost } from "@virgultum/editor/std";
 
 import {
-  MYOXUS_AI_PANEL_WIDGET,
-  MyoxusAIPanelWidget,
-} from "../widgets/ai-panel/ai-panel";
+  type AIPanelController,
+  AIPanelControllerIdentifier,
+} from "../widgets/ai-panel/controller";
 
-export const getAIPanelWidget = (host: EditorHost): MyoxusAIPanelWidget => {
-  const rootBlockId = host.store.root?.id;
-  if (!rootBlockId) {
-    throw new Error("rootBlockId is not found");
-  }
-  const aiPanel = host.view.getWidget(MYOXUS_AI_PANEL_WIDGET, rootBlockId);
-  if (!(aiPanel instanceof MyoxusAIPanelWidget)) {
+export const getAIPanelController = (host: EditorHost): AIPanelController => {
+  const aiPanel = host.std.getOptional(AIPanelControllerIdentifier);
+  if (!aiPanel) {
     throw new Error("AI panel not found");
   }
   return aiPanel;

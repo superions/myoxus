@@ -134,16 +134,16 @@ async fn sessions_revoke_uses_shared_auth_cache_fence_and_keeps_output_contract(
       ensure!(output.status.success(), "CLI revoke: {}", String::from_utf8_lossy(&output.stderr));
       Ok(serde_json::from_slice(&output.stdout)?)
     };
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       "CREATE FUNCTION {failure_function}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN \
        IF NEW.user_id = '{}'::uuid THEN RAISE EXCEPTION 'intentional session revoke rollback'; END IF; RETURN NEW; END; $$", user.id
-    )).execute(&pool).await?;
-    sqlx::query(&format!("CREATE TRIGGER {failure_trigger} BEFORE UPDATE ON sessions FOR EACH ROW EXECUTE FUNCTION {failure_function}()"))
+    ))).execute(&pool).await?;
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {failure_trigger} BEFORE UPDATE ON sessions FOR EACH ROW EXECUTE FUNCTION {failure_function}()")))
       .execute(&pool).await?;
     ensure!(run(&["--user", &email]).is_err(), "injected DB failure must abort CLI revocation");
     for session in &sessions { ensure!(auth.get_session_snapshot(*session).await?.is_some(), "rolled-back revoke preserves valid credentials"); }
-    sqlx::query(&format!("DROP TRIGGER {failure_trigger} ON sessions")).execute(&pool).await?;
-    sqlx::query(&format!("DROP FUNCTION {failure_function}()")).execute(&pool).await?;
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {failure_trigger} ON sessions"))).execute(&pool).await?;
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {failure_function}()"))).execute(&pool).await?;
     let first = sessions[0].to_string();
     let output = run(&[&first])?;
     ensure!(output[0]["revoked_count"] == 1 && output[0]["target"] == first);
@@ -160,12 +160,16 @@ async fn sessions_revoke_uses_shared_auth_cache_fence_and_keeps_output_contract(
     }
     Ok(())
   }.await;
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {failure_trigger} ON sessions"))
-    .execute(&pool)
-    .await?;
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {failure_function}()"))
-    .execute(&pool)
-    .await?;
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {failure_trigger} ON sessions"
+  )))
+  .execute(&pool)
+  .await?;
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP FUNCTION IF EXISTS {failure_function}()"
+  )))
+  .execute(&pool)
+  .await?;
   cleanup_user(&pool, user.id).await?;
   for session in sessions {
     redis.delete_key(&format!("auth:session_snapshot:{session}")).await?;

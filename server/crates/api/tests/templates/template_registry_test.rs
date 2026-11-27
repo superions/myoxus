@@ -2936,9 +2936,9 @@ async fn inv_template_archive_disables_policies() {
     }
     let already_active = mutate("enableTemplate").await;
     assert_eq!(already_active["errors"][0]["message"], "template is already active");
-    sqlx::query(&format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'owned policy rollback probe'; END $$"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'owned policy rollback probe'; END $$")))
       .execute(&pool).await.expect("failure function");
-    sqlx::query(&format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON workspace_template_policies FOR EACH ROW WHEN (OLD.template_id='{id}'::uuid) EXECUTE FUNCTION {trigger}()", id=entry.id))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON workspace_template_policies FOR EACH ROW WHEN (OLD.template_id='{id}'::uuid) EXECUTE FUNCTION {trigger}()", id=entry.id)))
       .execute(&pool).await.expect("failure trigger");
     let failed = mutate("archiveTemplate").await;
     assert!(failed["errors"].is_array(), "policy failure must reject archive");
@@ -2949,7 +2949,7 @@ async fn inv_template_archive_disables_policies() {
     let archive_audits: i64 = sqlx::query_scalar("SELECT count(*) FROM admin_audit_log WHERE target_id=$1 AND event_key='template.archive'")
       .bind(entry.id.to_string()).fetch_one(&pool).await.expect("audit count");
     assert_eq!(archive_audits, 0, "rollback cannot emit successful archive audit");
-    sqlx::query(&format!("DROP TRIGGER {trigger} ON workspace_template_policies")).execute(&pool).await.expect("remove failure trigger");
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger} ON workspace_template_policies"))).execute(&pool).await.expect("remove failure trigger");
     assert!(mutate("archiveTemplate").await["errors"].is_null());
     let archived = service.store().get_catalog_entry(entry.id).await.expect("catalog").expect("exists");
     assert_eq!(archived.status, TemplateStatus::Archived);
@@ -2974,13 +2974,13 @@ async fn inv_template_archive_disables_policies() {
       .bind(entry.id.to_string()).bind(user_id).fetch_one(&pool).await.expect("attributed audit count");
     assert_eq!(audits, 5, "successful transitions audit exactly once");
   }).catch_unwind().await;
-  sqlx::query(&format!(
+  sqlx::query(sqlx::AssertSqlSafe(format!(
     "DROP TRIGGER IF EXISTS {trigger} ON workspace_template_policies"
-  ))
+  )))
   .execute(&pool)
   .await
   .expect("cleanup trigger");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {trigger}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {trigger}()")))
     .execute(&pool)
     .await
     .expect("cleanup function");

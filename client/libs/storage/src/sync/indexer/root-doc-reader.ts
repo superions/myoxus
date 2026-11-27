@@ -24,7 +24,7 @@ export async function readAllBlocksForIndexer(options: ReadAllBlocksOptions) {
  * This intentionally lives in `@myoxus/storage` instead of `@myoxus/reader`:
  * the storage worker needs root metadata during boot, while `@myoxus/reader`
  * also initializes the full Virgultum schema/Markdown stack and therefore
- * pulls DOM/Lit modules into worker bundles.
+ * pulls DOM/editor modules into worker bundles.
  */
 export function readAllDocsFromRootDoc(
   rootDoc: YDoc,

@@ -290,7 +290,7 @@ impl DatabaseHarness {
 
   async fn create(&mut self, role: &str) -> Result<PgPool, sqlx::Error> {
     let name = format!("myoxus_migrations_{role}_{}", Uuid::new_v4().simple());
-    sqlx::query(&format!(r#"CREATE DATABASE "{name}""#))
+    sqlx::query(sqlx::AssertSqlSafe(format!(r#"CREATE DATABASE "{name}""#)))
       .execute(&self.admin)
       .await?;
     self.names.push(name.clone());
@@ -309,7 +309,7 @@ impl DatabaseHarness {
         .bind(name)
         .execute(&self.admin)
         .await?;
-      sqlx::query(&format!(r#"DROP DATABASE IF EXISTS "{name}""#))
+      sqlx::query(sqlx::AssertSqlSafe(format!(r#"DROP DATABASE IF EXISTS "{name}""#)))
         .execute(&self.admin)
         .await?;
     }
@@ -959,6 +959,11 @@ fn expected_ledger() -> Vec<(i64, &'static str, Vec<u8>)> {
       "scope document field refresh",
       sha384(include_bytes!("../migrations/1120_scope_document_field_refresh.sql")),
     ),
+    (
+      1121,
+      "mcp api key created outbox",
+      sha384(include_bytes!("../migrations/1121_mcp_api_key_created_outbox.sql")),
+    ),
   ]
 }
 
@@ -1358,8 +1363,8 @@ async fn baseline_1000_advances_through_regular_forward_migrations() {
       let field: Uuid = sqlx::query_scalar("INSERT INTO workspace_database_fields(database_id,name,field_type,position)
           SELECT database_id,$2,$2,$3 FROM workspace_database_rows WHERE id=$1 RETURNING id")
         .bind(stale_search_row_id).bind(kind).bind(value).fetch_one(&pool).await?;
-      sqlx::query(&format!("INSERT INTO {storage}(database_id,field_id,row_id,value_json,source_hash,stale_state)
-          SELECT database_id,$2,id,to_jsonb($3::integer),'source','current' FROM workspace_database_rows WHERE id=$1"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("INSERT INTO {storage}(database_id,field_id,row_id,value_json,source_hash,stale_state)
+          SELECT database_id,$2,id,to_jsonb($3::integer),'source','current' FROM workspace_database_rows WHERE id=$1")))
         .bind(stale_search_row_id).bind(field).bind(value).execute(&pool).await?;
     }
     let mut guide_cases = Vec::new();
@@ -1488,7 +1493,7 @@ async fn baseline_1000_advances_through_regular_forward_migrations() {
       let version = migration_version(&path);
       if !(1001..=1044).contains(&version) { continue; }
       let source = std::fs::read_to_string(&path).expect("read released migration fixture");
-      sqlx::raw_sql(&source).execute(&released).await?;
+      sqlx::raw_sql(sqlx::AssertSqlSafe(source.as_str())).execute(&released).await?;
       let (_,description,checksum) = expected.iter().find(|entry|entry.0==version).expect("known released ledger entry");
       sqlx::query("INSERT INTO _sqlx_migrations(version,description,success,checksum,execution_time) VALUES($1,$2,true,$3,0)")
         .bind(version).bind(description).bind(checksum).execute(&released).await?;
@@ -1521,7 +1526,7 @@ async fn baseline_1000_advances_through_regular_forward_migrations() {
       let version=migration_version(&path);
       if !(1001..=1094).contains(&version){continue;}
       let source=std::fs::read_to_string(&path).expect("read native scheduling upgrade fixture");
-      sqlx::raw_sql(&source).execute(&scheduled).await?;
+      sqlx::raw_sql(sqlx::AssertSqlSafe(source.as_str())).execute(&scheduled).await?;
       let (_,description,checksum)=expected.iter().find(|entry|entry.0==version).expect("known native scheduling ledger");
       sqlx::query("INSERT INTO _sqlx_migrations(version,description,success,checksum,execution_time) VALUES($1,$2,true,$3,0)")
         .bind(version).bind(description).bind(checksum).execute(&scheduled).await?;

@@ -24,6 +24,7 @@ import { CopilotResponseActions } from "../../../components/response-actions";
 import { StreamParts } from "../../../components/ai-message-content/stream-parts";
 import { StoredToolView } from "../../../components/ai-message-content/stored-tool-view";
 import { StoredAnswerText } from "../../../components/ai-message-content/stored-answer-text";
+import { collectToolCreatedFileIds } from "../../../components/ai-tools/create-file-tool";
 
 export function StoredChatMessages({
   host,
@@ -53,68 +54,81 @@ export function StoredChatMessages({
   const notifications = host.std.get(NotificationProvider);
   return (
     <Stack gap="xl">
-      {messages.map((message) => (
-        <Stack key={message.id || message.createdAt} gap="xs">
-          <Group wrap="nowrap" gap="sm">
-            {message.role === "user" ? (
-              <Avatar
-                name={message.userName}
-                url={message.avatarUrl}
-                size="sm"
-              />
-            ) : (
-              <MyoxusAIIcon />
-            )}
-            <MyoxusText typographySlot="nav">
-              {message.role === "user"
-                ? (message.userName ?? "You")
-                : "Myoxus AI"}
-            </MyoxusText>
-          </Group>
-          <Stack gap="sm" pl="xl">
-            {message.attachments?.length ? (
-              <Group gap="sm">
-                {message.attachments.map((source) => (
-                  <MediaPreviewFrame key={source} aspectRatio="auto">
-                    <MediaPreviewImage alt="" src={source} />
-                  </MediaPreviewFrame>
-                ))}
-              </Group>
-            ) : null}
-            <Box>
-              {message.streamObjects?.length ? (
-                <StreamParts
-                  answer={message.streamObjects}
-                  state={state}
-                  showReasoning
-                  renderText={renderText}
-                  renderTool={(data) => (
-                    <StoredToolView
-                      data={data}
-                      host={host}
-                      readOnly={readOnly}
-                      generating={state === "generating"}
-                      docDisplayService={docDisplayConfig}
-                      peekViewService={peekViewService}
-                      renderRichText={renderText}
-                    />
-                  )}
+      {messages.map((message) => {
+        const toolFileIds = collectToolCreatedFileIds(
+          message.streamObjects,
+          message.id,
+          message.generatedFiles,
+        );
+        const remainingFiles = message.generatedFiles?.filter(
+          (file) => !toolFileIds.has(file.id),
+        );
+        return (
+          <Stack key={message.id || message.createdAt} gap="xs">
+            <Group wrap="nowrap" gap="sm">
+              {message.role === "user" ? (
+                <Avatar
+                  name={message.userName}
+                  url={message.avatarUrl}
+                  size="sm"
                 />
               ) : (
-                renderText(message.content)
+                <MyoxusAIIcon />
               )}
-            </Box>
-            {showGeneratedFiles && message.generatedFiles?.length ? (
-              <CopilotResponseActions
-                messageId={message.id}
-                generatedFiles={message.generatedFiles}
-                downloadSavedFile={downloadSavedFile}
-                notificationService={notifications}
-              />
-            ) : null}
+              <MyoxusText typographySlot="nav">
+                {message.role === "user"
+                  ? (message.userName ?? "You")
+                  : "Myoxus AI"}
+              </MyoxusText>
+            </Group>
+            <Stack gap="sm" pl="xl">
+              {message.attachments?.length ? (
+                <Group gap="sm">
+                  {message.attachments.map((source) => (
+                    <MediaPreviewFrame key={source} aspectRatio="auto">
+                      <MediaPreviewImage alt="" src={source} />
+                    </MediaPreviewFrame>
+                  ))}
+                </Group>
+              ) : null}
+              <Box>
+                {message.streamObjects?.length ? (
+                  <StreamParts
+                    answer={message.streamObjects}
+                    state={state}
+                    showReasoning
+                    renderText={renderText}
+                    renderTool={(data) => (
+                      <StoredToolView
+                        data={data}
+                        host={host}
+                        readOnly={readOnly}
+                        generating={state === "generating"}
+                        docDisplayService={docDisplayConfig}
+                        peekViewService={peekViewService}
+                        renderRichText={renderText}
+                        messageId={message.id}
+                        generatedFiles={message.generatedFiles}
+                        downloadSavedFile={downloadSavedFile}
+                      />
+                    )}
+                  />
+                ) : (
+                  renderText(message.content)
+                )}
+              </Box>
+              {showGeneratedFiles && remainingFiles?.length ? (
+                <CopilotResponseActions
+                  messageId={message.id}
+                  generatedFiles={remainingFiles}
+                  downloadSavedFile={downloadSavedFile}
+                  notificationService={notifications}
+                />
+              ) : null}
+            </Stack>
           </Stack>
-        </Stack>
-      ))}
+        );
+      })}
     </Stack>
   );
 }

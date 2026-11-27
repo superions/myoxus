@@ -10,7 +10,9 @@ import {
 } from "@virgultum/core/runtime";
 import { stopPropagation } from "@virgultum/core/utils";
 
-import type { EdgelessAutoComplete } from "./edgeless-auto-complete";
+import type { NoteBlockModel, ShapeElementModel } from "@virgultum/core/models";
+
+import { AutoCompleteController } from "./auto-complete-controller";
 import {
   CanvasSelectionController,
   canvasSelectionCss,
@@ -34,7 +36,7 @@ function syncTargets(container: HTMLElement, targets: HTMLElement[]) {
 export class EdgelessSelectedRectWidget extends NativeViewElement {
   private readonly overlay: ShadowRoot;
   private readonly rect = this.ownerDocument.createElement("div");
-  private autoComplete?: EdgelessAutoComplete;
+  private autoComplete?: AutoCompleteController;
   private connector?: HTMLElementTagNameMap["edgeless-connector-handle"];
   private outlines = new Map<string, HTMLElement>();
   private controller?: CanvasSelectionController;
@@ -71,24 +73,24 @@ export class EdgelessSelectedRectWidget extends NativeViewElement {
 
   private paint(state: SelectionViewState | null, std: BlockStdScope) {
     if (!state) {
-      this.clearOverlay();
+      this.autoComplete?.updateSelection(null, null);
+      this.clearOverlay(false);
       return;
     }
 
     this.drawSelection(state);
     const block = std.store.root && std.view.getBlock(std.store.root.id);
-    if (state.autoComplete && block) {
-      const editor = (this.autoComplete ??= this.ownerDocument.createElement(
-        "edgeless-auto-complete",
-      ) as EdgelessAutoComplete);
-      editor.current = state.autoComplete as EdgelessAutoComplete["current"];
-      editor.edgeless = block;
-      editor.selectedRect = state.rect;
-      if (!editor.isConnected) this.overlay.insertBefore(editor, this.rect);
-      else editor.requestUpdate();
+    if (block) {
+      const controller = (this.autoComplete ??= new AutoCompleteController(
+        block,
+      ));
+      controller.updateSelection(
+        (state.autoComplete as ShapeElementModel | NoteBlockModel | null) ??
+          null,
+        state.autoComplete ? state.rect : null,
+      );
     } else {
-      this.autoComplete?.remove();
-      this.autoComplete = undefined;
+      this.autoComplete?.updateSelection(null, null);
     }
 
     const targets: HTMLElement[] = [...state.targets];
@@ -122,13 +124,15 @@ export class EdgelessSelectedRectWidget extends NativeViewElement {
     this.controller?.dispose();
     this.disposeRender = undefined;
     this.controller = undefined;
-    this.clearOverlay();
+    this.clearOverlay(true);
     this.removeEventListener("pointerdown", stopPropagation);
   }
 
-  private clearOverlay() {
-    this.autoComplete?.remove();
-    this.autoComplete = undefined;
+  private clearOverlay(disposeAutoComplete: boolean) {
+    if (disposeAutoComplete) {
+      this.autoComplete?.dispose();
+      this.autoComplete = undefined;
+    }
     this.connector = undefined;
     this.outlines.clear();
     this.rect.replaceChildren();

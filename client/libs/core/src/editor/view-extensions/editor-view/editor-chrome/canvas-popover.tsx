@@ -37,8 +37,10 @@ function NativePopoverBody({
 /** Mantine Popover host for canvas dock submenus, template catalog, and presentation/frame menus. */
 export function EditorCanvasPopover({
   controls,
+  withinPortal = true,
 }: {
   controls: EditorCanvasPopoverControls;
+  withinPortal?: boolean;
 }) {
   const {
     opened,
@@ -48,6 +50,7 @@ export function EditorCanvasPopover({
     withArrow = false,
     closeOnClickOutside = true,
     label,
+    testId,
     trigger,
     content,
   } = controls;
@@ -63,6 +66,8 @@ export function EditorCanvasPopover({
       position={position}
       offset={offset}
       withArrow={withArrow}
+      withinPortal={withinPortal}
+      zIndex="var(--myoxus-z-index-popover, 10000)"
       floatingStrategy="fixed"
       closeOnEscape
       closeOnClickOutside={closeOnClickOutside}
@@ -88,6 +93,7 @@ export function EditorCanvasPopover({
       <PopoverContent
         role="dialog"
         aria-label={label}
+        data-testid={testId}
         data-range-sync-exclude="true"
         style={
           flushSurface

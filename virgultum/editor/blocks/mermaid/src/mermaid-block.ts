@@ -1,3 +1,4 @@
+import { effect } from "@preact/signals-core";
 import { createElement, type ReactNode } from "react";
 import { NativeBlockProjection } from "@virgultum/canvas-runtime/surface";
 
@@ -76,7 +77,14 @@ export class MermaidBlockComponent extends MermaidHostFamilyRender {
         afterCommit: this.commitProjection,
       }),
     );
-    this.requestUpdate();
+    this.disposables.add(
+      effect(() => {
+        this._hostState.trackAll();
+        void this._visualSelection.items;
+        this._gfxSession.trackState();
+        this._scheduleProjection();
+      }),
+    );
   }
 
   override disconnectedCallback() {
@@ -100,7 +108,7 @@ export class MermaidBlockComponent extends MermaidHostFamilyRender {
     this.projectionUpdate = undefined;
   };
 
-  override requestUpdate() {
+  private _scheduleProjection() {
     if (this.projectionQueued || !this.presenterMounted || !this.isConnected)
       return;
     this.projectionQueued = true;
@@ -127,6 +135,10 @@ export class MermaidBlockComponent extends MermaidHostFamilyRender {
       this.projection = next;
       for (const listener of this.projectionListeners) listener();
     });
+  }
+
+  override requestUpdate() {
+    this._scheduleProjection();
   }
 
   private _lastValidProjection: {
@@ -679,7 +691,6 @@ export class MermaidBlockComponent extends MermaidHostFamilyRender {
             label: mermaidMessages.pageSnapGrid(),
             onToggle: () => {
               this._snapToGridEnabled = !this._snapToGridEnabled;
-              this.requestUpdate();
             },
           }
         : undefined,

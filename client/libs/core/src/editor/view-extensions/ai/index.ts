@@ -11,10 +11,9 @@ import { edgelessToolbarAIEntryConfig } from "@myoxus/core/editor/ai/entries/edg
 import { imageToolbarAIEntryConfig } from "@myoxus/core/editor/ai/entries/image-toolbar/setup-image-toolbar";
 import { AICodeBlockWatcher } from "@myoxus/core/editor/ai/extensions/ai-code";
 import { getAIEdgelessRootWatcher } from "@myoxus/core/editor/ai/extensions/ai-edgeless-root";
-import { getAIPageRootWatcher } from "@myoxus/core/editor/ai/extensions/ai-page-root";
 import { AiSlashMenuConfigExtension } from "@myoxus/core/editor/ai/extensions/ai-slash-menu";
 import { CopilotTool } from "@myoxus/core/editor/ai/tool/copilot-tool";
-import { aiPanelWidget } from "@myoxus/core/editor/ai/widgets/ai-panel/ai-panel";
+import { AIPanelController } from "@myoxus/core/editor/ai/widgets/ai-panel/controller";
 import { edgelessCopilotWidget } from "@myoxus/core/editor/ai/widgets/edgeless-copilot";
 import { FrameworkProvider } from "@myoxus/infra";
 import {
@@ -88,7 +87,6 @@ export class AIViewExtension extends ViewExtensionProvider<AIViewOptions> {
 
     if (context.scope === "edgeless" || context.scope === "page") {
       context.register([
-        aiPanelWidget,
         AiSlashMenuConfigExtension(),
         ToolbarModuleExtension({
           id: BlockFlavourIdentifier("custom:myoxus:note"),
@@ -98,6 +96,7 @@ export class AIViewExtension extends ViewExtensionProvider<AIViewOptions> {
     }
     if (context.scope === "edgeless") {
       context.register([
+        AIPanelController,
         CopilotTool,
         edgelessCopilotWidget,
         getAIEdgelessRootWatcher(),
@@ -112,7 +111,6 @@ export class AIViewExtension extends ViewExtensionProvider<AIViewOptions> {
       context.register([
         blockDiffWidgetForPage,
         blockDiffWidgetForBlock,
-        getAIPageRootWatcher(),
         BlockDiffService,
         BlockDiffWatcher,
       ]);

@@ -289,7 +289,7 @@ async fn inv_docmeta_schema01_target_tables_and_docs_columns_exist() {
     ("document_audience_definition", 5_i64),
     ("document_metadata_field_definition", 18_i64),
   ] {
-    let count: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*) FROM {table}"))
+    let count: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!("SELECT COUNT(*) FROM {table}")))
       .fetch_one(&pool)
       .await
       .expect("count reference table");

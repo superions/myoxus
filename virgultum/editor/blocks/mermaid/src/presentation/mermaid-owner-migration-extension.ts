@@ -17,7 +17,7 @@ export class MermaidOwnerMigrationExtension extends StoreExtension {
     if (this.isDisposed) return Promise.resolve();
     this.migrationRequested = true;
     if (this.migrationTask) return this.migrationTask;
-    // Permission and Lit effects may invoke us inside a signal batch. Writing
+    // Permission and reactive effects may invoke us inside a signal batch. Writing
     // Yjs object props there defers their echo until the synchronization mutex
     // has released and repeatedly recreates the same object. Migrate after the
     // current reactive turn, coalescing host and permission notifications.

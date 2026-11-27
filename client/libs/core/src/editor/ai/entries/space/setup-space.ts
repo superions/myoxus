@@ -3,7 +3,7 @@ import { type EditorHost, TextSelection } from "@virgultum/editor/std";
 
 import { handleInlineAskAIAction } from "../../actions/doc-handler";
 import { AIProvider } from "../../provider";
-import type { MyoxusAIPanelWidget } from "../../widgets/ai-panel/ai-panel";
+import type { AIPanelController } from "../../widgets/ai-panel/controller";
 
 function isSpaceEvent(event: KeyboardEvent) {
   return event.key === " " && event.which === 32 && !event.isComposing;
@@ -29,7 +29,7 @@ function insertSpace(host: EditorHost) {
   );
 }
 
-export function setupSpaceAIEntry(panel: MyoxusAIPanelWidget) {
+export function setupSpaceAIEntry(panel: AIPanelController) {
   // Background: The keydown event triggered by a space may originate from:
   // 1. Normal space insertion
   // 2. Space triggered by input method confirming candidate words
@@ -39,37 +39,43 @@ export function setupSpaceAIEntry(panel: MyoxusAIPanelWidget) {
   //
   // To fix this, the space-activated AI listener uses the `keypress` event:
   // In scenario 2, `event.which !== 32` (may be `30430` or other values) can be used to differentiate from scenario 1.
-  panel.handleEvent("keyPress", (ctx) => {
-    const host = panel.host;
-    const keyboardState = ctx.get("keyboardState");
-    const event = keyboardState.raw;
-    if (AIProvider.actions.chat && isSpaceEvent(event)) {
-      // If the AI panel is in the input state and the input content is empty,
-      // insert a space back into the editor.
-      if (panel.state === "input") {
-        const input = panel.inputElement;
-        if (input?.value.trim() === "") {
-          event.preventDefault();
-          insertSpace(host);
-          panel.hide();
+  panel.disposables.add(
+    panel.std.event.add("keyPress", (ctx) => {
+      const host = panel.host;
+      const keyboardState = ctx.get("keyboardState");
+      const event = keyboardState.raw;
+      if (AIProvider.actions.chat && isSpaceEvent(event)) {
+        // If the AI panel is in the input state and the input content is empty,
+        // insert a space back into the editor.
+        if (panel.state === "input") {
+          const input = panel.inputElement;
+          if (input?.value.trim() === "") {
+            event.preventDefault();
+            insertSpace(host);
+            panel.hide();
+          }
+
+          return;
         }
 
-        return;
-      }
-
-      const selection = host.selection.find(TextSelection);
-      if (selection && selection.isCollapsed() && selection.from.index === 0) {
-        const block = host.view.getBlock(selection.blockId);
+        const selection = host.selection.find(TextSelection);
         if (
-          !block?.model?.text ||
-          block.model.text?.length > 0 ||
-          block.model.flavour !== "myoxus:paragraph"
-        )
-          return;
+          selection &&
+          selection.isCollapsed() &&
+          selection.from.index === 0
+        ) {
+          const block = host.view.getBlock(selection.blockId);
+          if (
+            !block?.model?.text ||
+            block.model.text?.length > 0 ||
+            block.model.flavour !== "myoxus:paragraph"
+          )
+            return;
 
-        event.preventDefault();
-        handleInlineAskAIAction(host);
+          event.preventDefault();
+          handleInlineAskAIAction(host);
+        }
       }
-    }
-  });
+    }),
+  );
 }

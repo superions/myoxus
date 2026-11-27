@@ -19,8 +19,17 @@ pub(super) fn render_mail(
   let language = MailTemplateRenderer::language(Some(&presentation.locale), default_locale);
   let mut data = complete_mail_context(mail, origin)?;
   data["role_name"] = Value::String(renderer.role_name(language, data["role"].as_str().unwrap_or_default()));
-  for key in ["starts_at", "ends_at", "previous_starts_at", "scheduled_label"] {
-    if let Some(value) = data[key].as_str() {
+  for key in [
+    "starts_at",
+    "ends_at",
+    "previous_starts_at",
+    "scheduled_label",
+    "created_at",
+    "expires_at",
+  ] {
+    if let Some(value) = data[key].as_str()
+      && !value.is_empty()
+    {
       data[key] = Value::String(format_mail_time(
         value,
         language,
@@ -38,13 +47,14 @@ fn complete_mail_context(mail: &TemplateMail, origin: &str) -> PortResult<Value>
   let mut context = serde_json::json!({"email":mail.to,"url":"","otp":"","actor":"","workspace_name":"",
     "role":"","role_name":"","document_title":"","row_title":"","field_name":"","scheduled_label":"",
     "event_title":"","starts_at":"","ends_at":"","previous_starts_at":"","location":"","summary":"","all_day":false,
+    "key_name":"","key_scopes":[],"created_at":"","expires_at":"",
     "doc_title":"","doc_url":"","mentioned_by":"","shared_by":"","is_signup":mail.template == MailTemplate::Welcome});
   let fields = mail
     .context
     .as_object()
     .ok_or_else(|| PortError::InvalidInput("Mail context must be an object".into()))?;
   for (key, value) in fields {
-    if context.get(key).is_some() {
+    if context.get(key).is_some() && !value.is_null() {
       context[key] = value.clone();
     }
   }

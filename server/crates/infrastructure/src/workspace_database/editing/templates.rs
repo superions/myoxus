@@ -52,7 +52,7 @@ impl PgDatabaseRepository {
         WHERE database_id = $1
       "#,
     );
-    let fields = sqlx::query(&fields_sql)
+    let fields = sqlx::query(sqlx::AssertSqlSafe(fields_sql.as_str()))
       .bind(database_id)
       .fetch_all(&self.pool)
       .await

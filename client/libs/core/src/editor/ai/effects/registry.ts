@@ -10,7 +10,6 @@ export const storedBlockTags = [
 
 export const interactiveEditorTags = [
   "myoxus-block-diff-playground",
-  "myoxus-ai-panel-widget",
   "myoxus-edgeless-copilot-widget",
   "myoxus-block-diff-widget-for-block",
   "myoxus-block-diff-widget-for-page",

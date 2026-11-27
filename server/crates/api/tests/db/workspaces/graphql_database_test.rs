@@ -1013,10 +1013,10 @@ fn database_graphql_crud_rows_and_csv_export_are_workspace_bound() {
       "clearing a cell must remove the stored value from row projections"
     );
     let cell_values_table = ["workspace", "database", "cell", "values"].join("_");
-    let (cell_count, tombstone_revision): (i64, Option<i64>) = sqlx::query_as(&format!(
+    let (cell_count, tombstone_revision): (i64, Option<i64>) = sqlx::query_as(sqlx::AssertSqlSafe(format!(
       "SELECT COUNT(*)::BIGINT, MAX(edit_revision) FILTER (WHERE value_json IS NULL) \
        FROM {cell_values_table} WHERE row_id = $1 AND field_id = $2"
-    ))
+    )))
     .bind(uuid::Uuid::parse_str(row["row"]["id"].as_str().expect("row id")).expect("row id uuid"))
     .bind(uuid::Uuid::parse_str(company_field_id).expect("company field id uuid"))
     .fetch_one(&pool)
@@ -10546,9 +10546,9 @@ fn database_simple_property_pack_roundtrips_and_keeps_projections_readonly() {
     );
 
     let cell_values_table = ["workspace", "database", "cell", "values"].join("_");
-    let projection_storage_count: i64 = sqlx::query_scalar(&format!(
+    let projection_storage_count: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
       "SELECT COUNT(*)::BIGINT FROM {cell_values_table} WHERE field_id = ANY($1)"
-    ))
+    )))
     .bind(vec![
       uuid::Uuid::parse_str(&created_time_field_id).expect("created time field uuid"),
       uuid::Uuid::parse_str(&created_by_field_id).expect("created by field uuid"),
@@ -20815,7 +20815,7 @@ fn pdb25_perf_gate_10k_rows_query_contracts() {
         "('{row_id}', '{database_id}', 'task', 'row-{idx:05}', {idx}, '{owner_id}', '{owner_id}')"
       ));
     }
-    sqlx::query(&row_insert_sql)
+    sqlx::query(sqlx::AssertSqlSafe(row_insert_sql.as_str()))
       .execute(&mut *tx)
       .await
       .expect("insert 10k rows");
@@ -20837,7 +20837,7 @@ fn pdb25_perf_gate_10k_rows_query_contracts() {
          ('{row_id}', '{select_field_id}', '\"{option_id}\"', '{database_id}', '{owner_id}')"
       ));
     }
-    sqlx::query(&cell_insert_sql)
+    sqlx::query(sqlx::AssertSqlSafe(cell_insert_sql.as_str()))
       .execute(&mut *tx)
       .await
       .expect("insert 20k cells");

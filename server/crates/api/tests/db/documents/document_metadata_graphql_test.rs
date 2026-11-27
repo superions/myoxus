@@ -90,7 +90,7 @@ fn metadata_deadline_rearms_one_native_review_without_duplicate_admission() {
 
 async fn reference_id(pool: &PgPool, table: &str, key: &str) -> Uuid {
   let sql = format!("SELECT id FROM {table} WHERE key = $1");
-  sqlx::query_scalar(&sql)
+  sqlx::query_scalar(sqlx::AssertSqlSafe(sql.as_str()))
     .bind(key)
     .fetch_one(pool)
     .await

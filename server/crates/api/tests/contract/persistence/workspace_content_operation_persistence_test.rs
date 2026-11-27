@@ -5892,9 +5892,9 @@ fn move_publication_preserves_identity_history_acl_and_rolls_back_conflicts() {
       .await
       .unwrap();
       for table in ["doc_updates", "doc_histories", "comments", "comment_attachments"] {
-        let count = sqlx::query_scalar::<_, i64>(&format!(
+        let count = sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(format!(
           "SELECT count(*) FROM {table} WHERE doc_id = $1 AND workspace_id = $2"
-        ))
+        )))
         .bind(doc_id)
         .bind(target_workspace_id)
         .fetch_one(&pool)
@@ -5961,13 +5961,13 @@ fn move_publication_preserves_identity_history_acl_and_rolls_back_conflicts() {
           let hook=format!("hist_rollback_{}",Uuid::new_v4().simple());
           // Root publication follows the document/intent transition. Fail there
           // to prove the rebind cannot escape the owning SQL transaction.
-          sqlx::query(&format!("CREATE FUNCTION {hook}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'history rollback fixture'; END $$"))
+          sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {hook}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'history rollback fixture'; END $$")))
             .execute(&pool).await.unwrap();
-          sqlx::query(&format!("CREATE TRIGGER {hook} BEFORE INSERT ON doc_updates FOR EACH ROW WHEN (NEW.doc_id='{to}'::uuid) EXECUTE FUNCTION {hook}()"))
+          sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {hook} BEFORE INSERT ON doc_updates FOR EACH ROW WHEN (NEW.doc_id='{to}'::uuid) EXECUTE FUNCTION {hook}()")))
             .execute(&pool).await.unwrap();
           let failed=publisher.publish_move(moving.clone(),"move-capture-late-rollback").await;
-          sqlx::query(&format!("DROP TRIGGER {hook} ON doc_updates")).execute(&pool).await.expect("remove exact rollback trigger");
-          sqlx::query(&format!("DROP FUNCTION {hook}()")).execute(&pool).await.expect("remove exact rollback function");
+          sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {hook} ON doc_updates"))).execute(&pool).await.expect("remove exact rollback trigger");
+          sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {hook}()"))).execute(&pool).await.expect("remove exact rollback function");
           assert!(failed.is_err(),"late root publication must fail");
           let after:serde_json::Value=sqlx::query_scalar("SELECT to_jsonb(s) FROM document_edit_capture_state s WHERE doc_id=$1")
             .bind(window_doc.id).fetch_one(&pool).await.unwrap();
@@ -6169,7 +6169,7 @@ async fn assert_extract_followup_syncs(
     ] {
       let query = format!("SELECT to_jsonb(t) FROM {table} t WHERE profile_id=ANY($1) ORDER BY to_jsonb(t)::text");
       rows.push(
-        sqlx::query_scalar::<_, serde_json::Value>(&query)
+        sqlx::query_scalar::<_, serde_json::Value>(sqlx::AssertSqlSafe(query.as_str()))
           .bind(&ids)
           .fetch_all(pool)
           .await

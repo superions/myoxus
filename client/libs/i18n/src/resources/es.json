@@ -11168,6 +11168,7 @@
   "com.myoxus.ai.tools.read-document": "Leer documento",
   "com.myoxus.ai.tools.search-documents": "Buscar documentos",
   "com.myoxus.ai.tools.read-workspace": "Leer espacio de trabajo",
+  "com.myoxus.ai.tools.create-file": "Crear archivo",
   "com.myoxus.ai.tools.failed": "Error de la acción: {{tool}}",
   "com.myoxus.wiki.report.title": "Informe de páginas",
   "com.myoxus.wiki.directory.title": "Directorio de páginas",

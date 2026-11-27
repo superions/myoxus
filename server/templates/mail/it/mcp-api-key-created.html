@@ -1,0 +1,196 @@
+{% extends "_layout.html" %} {% block subject %}Nuova chiave API MCP creata: {{
+key_name }}{% endblock subject %} {% block preheader %}È stata creata una chiave
+API MCP personale per il tuo account Myoxus. Verifica dettagli e ambiti.{%
+endblock preheader %} {% block category %}SICUREZZA{% endblock category %} {%
+block heading %}È stata creata una nuova chiave API MCP.{% endblock heading %}
+{% block introduction %}È appena stata creata una chiave API MCP personale nel
+contesto del tuo account Myoxus. Utilizza le tue autorizzazioni attuali insieme
+agli ambiti concessi indicati di seguito.{% endblock introduction %} {% block
+details %}
+<table
+  role="presentation"
+  width="100%"
+  cellpadding="0"
+  cellspacing="0"
+  style="width: 100%; border-collapse: collapse"
+>
+  {% set has_prev = false %} {% if key_name %}
+  <tr>
+    <td style="padding: 13px 0">
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Nome della chiave
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-family:
+            ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+            &quot;Liberation Mono&quot;, monospace;
+          font-size: 15px;
+          line-height: 1.45;
+          font-weight: 600;
+          color: #162230;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ key_name }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if email %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Account
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ email }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if key_scopes %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 6px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Ambiti
+      </p>
+      <p style="margin: 0; line-height: 1.7">
+        {% for scope in key_scopes %}<span
+          style="
+            display: inline-block;
+            margin: 2px 6px 4px 0;
+            padding: 3px 9px;
+            border-radius: 6px;
+            background-color: #ebf1f7;
+            border: 1px solid #d4e0ec;
+            font-family:
+              ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+              &quot;Liberation Mono&quot;, monospace;
+            font-size: 12px;
+            line-height: 1.3;
+            font-weight: 600;
+            color: #1f3a52;
+          "
+          >{{ scope }}</span
+        >{% endfor %}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if created_at %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Creata il
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ created_at }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Scadenza
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {% if expires_at %}{{ expires_at }}{% else %}{{ copy.noExpiration }}{%
+        endif %}
+      </p>
+    </td>
+  </tr>
+</table>
+{% endblock details %} {% block next_step %}Se hai creato tu questa chiave, non
+è necessaria alcuna altra azione. Puoi controllare o revocare le tue chiavi API
+MCP in qualsiasi momento in Myoxus.{% endblock next_step %} {% block action
+%}Apri Myoxus{% endblock action %} {% block note %}Per motivi di sicurezza, il
+valore segreto della chiave non viene mai incluso in questa email. Se non hai
+creato tu questa chiave, revocala subito e metti al sicuro il tuo account
+Myoxus.{% endblock note %} {% block reason %}Ricevi questo avviso di sicurezza
+perché è stata creata una chiave API MCP per il tuo account Myoxus.{% endblock
+reason %}

@@ -35,37 +35,37 @@ export function useAlwaysVisibleEdgeUpdatersAtNodeBorders(
   target: string,
   snappedWaypoints: DC__Point[],
 ) {
-  const sourceNodeX = RF.useStore((s) =>
+  const sourceNodeX = RF.useNodesStore((s) =>
     source
       ? s.nodeLookup.get(source)?.internals.positionAbsolute?.x
       : undefined,
   );
-  const sourceNodeY = RF.useStore((s) =>
+  const sourceNodeY = RF.useNodesStore((s) =>
     source
       ? s.nodeLookup.get(source)?.internals.positionAbsolute?.y
       : undefined,
   );
-  const sourceNodeWidth = RF.useStore((s) =>
+  const sourceNodeWidth = RF.useNodesStore((s) =>
     source ? s.nodeLookup.get(source)?.measured?.width : undefined,
   );
-  const sourceNodeHeight = RF.useStore((s) =>
+  const sourceNodeHeight = RF.useNodesStore((s) =>
     source ? s.nodeLookup.get(source)?.measured?.height : undefined,
   );
 
-  const targetNodeX = RF.useStore((s) =>
+  const targetNodeX = RF.useNodesStore((s) =>
     target
       ? s.nodeLookup.get(target)?.internals.positionAbsolute?.x
       : undefined,
   );
-  const targetNodeY = RF.useStore((s) =>
+  const targetNodeY = RF.useNodesStore((s) =>
     target
       ? s.nodeLookup.get(target)?.internals.positionAbsolute?.y
       : undefined,
   );
-  const targetNodeWidth = RF.useStore((s) =>
+  const targetNodeWidth = RF.useNodesStore((s) =>
     target ? s.nodeLookup.get(target)?.measured?.width : undefined,
   );
-  const targetNodeHeight = RF.useStore((s) =>
+  const targetNodeHeight = RF.useNodesStore((s) =>
     target ? s.nodeLookup.get(target)?.measured?.height : undefined,
   );
 

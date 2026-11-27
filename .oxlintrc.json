@@ -121,7 +121,15 @@
     "no-constructor-return": "error",
     "no-func-assign": "error",
     "no-global-assign": "error",
-    "no-unused-vars": "error",
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_"
+      }
+    ],
     "no-unused-expressions": [
       "error",
       {
@@ -243,12 +251,22 @@
     "unicorn/new-for-builtins": "error",
     "unicorn/prefer-node-protocol": "error",
     "import/no-cycle": "off",
-    "import/sort-imports": "error",
     "import/namespace": "off",
     "import/no-webpack-loader-syntax": "error",
     "import/no-duplicates": "off",
-    "import/no-import-assign": "error",
-    "import/no-self-import": "error"
+    "no-import-assign": "error",
+    "import/no-self-import": "error",
+    "react/refs": "off",
+    "react/set-state-in-effect": "off",
+    "react/no-object-type-as-default-prop": "off",
+    "react/immutability": "off",
+    "react/preserve-manual-memoization": "off",
+    "react/static-components": "off",
+    "react/no-deriving-state-in-effects": "off",
+    "react/jsx-no-constructed-context-values": "off",
+    "react/use-memo": "off",
+    "react/purity": "off",
+    "react/globals": "off"
   },
   "overrides": [
     {
@@ -349,6 +367,12 @@
       "files": ["**/*.{ts,js,mjs}"],
       "rules": {
         "react/rules-of-hooks": "off"
+      }
+    },
+    {
+      "files": ["**/*.cjs"],
+      "rules": {
+        "typescript/no-var-requires": "off"
       }
     }
   ]

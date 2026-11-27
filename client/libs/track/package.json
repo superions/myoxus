@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "@myoxus/debug": "workspace:*",
-    "@sentry/react": "10.75.0",
+    "@sentry/react": "11.10.0",
     "nanoid": "6.0.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",

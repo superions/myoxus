@@ -64,7 +64,7 @@ flowchart TB
     web["Nginx frontend :3010<br/>Web + Admin static files"]
     api["One Rust API :3001<br/>HTTP / GraphQL / realtime<br/>embedded workers + scheduler"]
     pg[("PostgreSQL 16 + pgvector<br/>persistent volume")]
-    redis[("Redis 8<br/>sessions / queue / locks / cache / sockets")]
+    redis[("Valkey 9 (Redis-compatible)<br/>sessions / queue / locks / cache / sockets")]
     data[("Persistent blobs + PDF fonts<br/>runtime config + branding")]
     web -->|"API and WebSocket proxy"| api
     api --> pg
@@ -106,7 +106,7 @@ flowchart TB
     web["Nginx + TLS<br/>materialized Web/Admin assets"]
     api["Myoxus server + PDF compiler<br/>service: myoxus-api<br/>embedded workers + scheduler"]
     pg[("PostgreSQL 16 + pgvector")]
-    redis[("Redis 8")]
+    redis[("Valkey 8+ / Redis 8+")]
     files[("Blobs / PDF fonts / config / branding")]
     web -->|"HTTP and WebSocket :3001"| api
     api --> pg
@@ -209,7 +209,7 @@ alongside native packages.
 
 1. Choose CPU, RAM and disk using the [sizing estimates](../deployment/sizing.md).
 2. Set the public DNS name and arrange TLS certificates and renewal.
-3. Provision PostgreSQL 16 with pgvector, Redis 8 and persistent file storage.
+3. Provision PostgreSQL 16 with pgvector, Valkey 8+ (container default: Valkey 9; or Redis 8+) and persistent file storage.
 4. Generate and protect the database and application-encryption secrets.
 5. Select server and frontend versions, and record their immutable digests.
 6. Decide how much data loss and downtime are acceptable. Size backup storage

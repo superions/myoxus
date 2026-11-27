@@ -47,7 +47,7 @@ vi.mock("@myoxus/i18n", async () => {
   };
 });
 
-// Persisted Lit content is covered by the real-store entity test and browser.
+// Persisted block content is covered by the real-store entity test and browser.
 // Keep the actual consumer controls, job state machine and Facade audio player.
 vi.mock("./transcription-block", () => ({ TranscriptionBlock: () => null }));
 

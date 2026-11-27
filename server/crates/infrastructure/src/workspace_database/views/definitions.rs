@@ -166,7 +166,7 @@ impl PgDatabaseRepository {
           WHERE database_id = $1 AND role_key = $2 AND view_id = $5
         "#,
       );
-      let updated = sqlx::query(&sql)
+      let updated = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
         .bind(role.database_id)
         .bind(role.role_key)
         .bind(role.view_id)

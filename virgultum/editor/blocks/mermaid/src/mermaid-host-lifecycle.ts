@@ -44,7 +44,7 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
         this._ensureProjectionOwner(false, true);
         this._acceptProjectionOwnerSourceSyncKey();
         this._scheduleRender();
-        this.requestUpdate();
+        this._notifyProjectionChange();
       } finally {
         if (generation === this._projectionRefreshGeneration) {
           this._themeProjectionRefreshQueued = false;
@@ -144,9 +144,11 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
     // title/hash here marks an untouched document as edited.
     this._observeThemeProjection();
     this.disposables.add(
-      this.model.propsUpdated.subscribe(() => this.requestUpdate()),
+      this.model.propsUpdated.subscribe(() => this._notifyProjectionChange()),
     );
-    this.disposables.add(this.selected$.subscribe(() => this.requestUpdate()));
+    this.disposables.add(
+      this.selected$.subscribe(() => this._notifyProjectionChange()),
+    );
     this.disposables.add(
       subscribeMermaidNativeValidation((source) => {
         if (source === getMermaidBlockSource(this.model.props)) {
@@ -196,14 +198,16 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
       }),
     );
     this.disposables.add(
-      this.store.history.onUpdated.subscribe(() => this.requestUpdate()),
+      this.store.history.onUpdated.subscribe(() =>
+        this._notifyProjectionChange(),
+      ),
     );
     this.disposables.add(
       this.store.readonly$.subscribe((readonly) => {
         // A mounted readonly owner skips reconciliation. Resume it after the
         // store's queued legacy adoption, even when Source itself is unchanged.
         if (!readonly) this._handleThemeProjectionChange();
-        this.requestUpdate();
+        this._notifyProjectionChange();
       }),
     );
     const hostViewport = this.std.get(GfxControllerIdentifier).viewport;
@@ -236,7 +240,7 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
           this._stopTransientPointerInteractions();
           this._clearVisualSelection();
         }
-        this.requestUpdate();
+        this._notifyProjectionChange();
       }),
     );
     this.disposables.add(

@@ -2,8 +2,6 @@ export {
   EdgelessClipboardFrameConfig,
   FrameConfig,
   buildFrameDenseMenu,
-  EdgelessFrameMenu,
-  EdgelessFrameToolButton,
   frameQuickTool,
   FrameBlockComponent,
   FrameBlockInteraction,

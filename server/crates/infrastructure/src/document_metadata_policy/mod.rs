@@ -280,7 +280,7 @@ const METADATA_INDEX_SQL: &str = r#"
 
 async fn fetch_runtime_buckets(pool: &PgPool, query: &str) -> RepoResult<Vec<DocumentRuntimeAggregateBucket>> {
   Ok(
-    sqlx::query(query)
+    sqlx::query(sqlx::AssertSqlSafe(query))
       .fetch_all(pool)
       .await
       .map_err(db_error)?

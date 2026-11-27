@@ -33,7 +33,7 @@ import {
 } from "../../actions/types";
 import type { AIItemGroupConfig } from "../../components/ai-item/types";
 import { AIProvider } from "../../provider";
-import { getAIPanelWidget } from "../../utils/ai-widgets";
+import { getAIPanelController } from "../../utils/ai-widgets";
 import { getEdgelessCopilotWidget } from "../../utils/edgeless";
 import { extractSelectedContent } from "../../utils/extract";
 import { canvasToBlob, randomSeed } from "../../utils/image";
@@ -102,7 +102,7 @@ const othersGroup: AIItemGroupConfig = {
       icon: "CommentIcon",
       showWhen: () => true,
       handler: (host) => {
-        const panel = getAIPanelWidget(host);
+        const panel = getAIPanelController(host);
         const edgelessCopilot = getEdgelessCopilotWidget(host);
         extractSelectedContent(host)
           .then((context) => {
@@ -315,7 +315,7 @@ const generateFromTextGroup: AIItemGroupConfig = {
           const selectedElements = getCopilotSelectedElems(host);
           const len = selectedElements.length;
 
-          const aiPanel = getAIPanelWidget(host);
+          const aiPanel = getAIPanelController(host);
           // text to image
           // from user input
           if (len === 0) {
@@ -444,7 +444,7 @@ const generateFromTextGroup: AIItemGroupConfig = {
 
           // from user input
           if (selectedElements.length === 0) {
-            const aiPanel = getAIPanelWidget(host);
+            const aiPanel = getAIPanelController(host);
             const content = aiPanel.inputText?.trim();
             if (!content) return;
             return {
@@ -480,7 +480,7 @@ const generateFromTextGroup: AIItemGroupConfig = {
 
           // from user input
           if (content.length === 0) {
-            const aiPanel = getAIPanelWidget(host);
+            const aiPanel = getAIPanelController(host);
             content = aiPanel.inputText?.trim() || "";
           }
 

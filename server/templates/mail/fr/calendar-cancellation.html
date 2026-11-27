@@ -4,146 +4,208 @@ vos autres engagements.{% endblock preheader %} {% block category %}VOTRE
 CALENDRIER{% endblock category %} {% block heading %}Cet événement a été
 annulé.{% endblock heading %} {% block introduction %}L’organisateur a annulé
 cet événement. La réunion prévue n’aura pas lieu.{% endblock introduction %} {%
-block details %}{% if event_title %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
+block details %}
+<table
+  role="presentation"
+  width="100%"
+  cellpadding="0"
+  cellspacing="0"
+  style="width: 100%; border-collapse: collapse"
 >
-  ÉVÉNEMENT
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ event_title }}
-</p>
-{% endif %}{% if actor %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Organisé par
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ actor }}
-</p>
-{% endif %}{% if starts_at %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Date prévue
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ starts_at }}
-</p>
-{% endif %}{% if previous_starts_at %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Ancien horaire
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ previous_starts_at }}
-</p>
-{% endif %}{% if ends_at %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Fin
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ ends_at }}
-</p>
-{% endif %}{% if location %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Lieu
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ location }}
-</p>
-{% endif %}{% endblock details %} {% block next_step %}Ouvrez votre calendrier
-pour consulter vos autres engagements.{% endblock next_step %} {% block action
+  {% set has_prev = false %} {% if event_title %}
+  <tr>
+    <td style="padding: 13px 0">
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        ÉVÉNEMENT
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 15.5px;
+          line-height: 1.45;
+          font-weight: 600;
+          color: #162230;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ event_title }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if actor %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Organisé par
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ actor }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if starts_at %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Date prévue
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ starts_at }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if previous_starts_at %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Ancien horaire
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ previous_starts_at }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if ends_at %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Fin
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ ends_at }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if location %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Lieu
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ location }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %}
+</table>
+{% endblock details %} {% block next_step %}Ouvrez votre calendrier pour
+consulter vos autres engagements.{% endblock next_step %} {% block action
 %}Ouvrir le calendrier{% endblock action %} {% block note %}Un fichier iCalendar
 est joint. Ouvrez-le dans votre application de calendrier pour consulter
 l’invitation, la modification ou l’annulation.{% endblock note %} {% block

@@ -1304,7 +1304,7 @@ fn template_mutations_roll_back_with_audit_and_retain_captured_bundle_bytes() {
       ("theme.typ", VALID_THEME_TYP.as_bytes()),
     ];
     let result=std::panic::AssertUnwindSafe(async {
-      sqlx::query(&format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK(actor_user_id IS DISTINCT FROM '{admin}' OR event_key NOT LIKE 'pdf_template.%') NOT VALID"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK(actor_user_id IS DISTINCT FROM '{admin}' OR event_key NOT LIKE 'pdf_template.%') NOT VALID")))
         .execute(&pool).await.unwrap();
       let failed=upload_template(&app,session,&manifest,&files).await;
       assert!(failed["errors"].as_array().unwrap().iter().any(|e|e["message"].as_str().unwrap().contains(&constraint)),"upload audit failure: {failed}");
@@ -1314,7 +1314,7 @@ fn template_mutations_roll_back_with_audit_and_retain_captured_bundle_bytes() {
         std::fs::read_dir(path).unwrap().map(|entry|{let entry=entry.unwrap();if entry.file_type().unwrap().is_dir(){file_count(&entry.path())}else{1}}).sum()
       }
       assert_eq!(file_count(dir.path()),0,"failed initial upload removes only its UUID-owned bytes");
-      sqlx::query(&format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}")).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}"))).execute(&pool).await.unwrap();
       let uploaded=upload_template(&app,session,&manifest,&files).await;
       assert!(uploaded.get("errors").is_none(),"upload: {uploaded}");
       assert_eq!(count_audit_log(&pool,"pdf_template.upload",admin).await,1);
@@ -1329,7 +1329,7 @@ fn template_mutations_roll_back_with_audit_and_retain_captured_bundle_bytes() {
       let mut next=manifest.clone();next["version"]=json!("1.1.0");next["provenance"]["source_revision"]=json!("1.1.0");
       let revised=format!("{VALID_MAIN_TYP}\n// immutable revision\n");
       let replacement_files=[("main.typ",revised.as_bytes()),("preamble.typ",VALID_PREAMBLE_TYP.as_bytes()),("theme.typ",VALID_THEME_TYP.as_bytes())];
-      sqlx::query(&format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK(actor_user_id IS DISTINCT FROM '{admin}' OR event_key NOT LIKE 'pdf_template.%') NOT VALID"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK(actor_user_id IS DISTINCT FROM '{admin}' OR event_key NOT LIKE 'pdf_template.%') NOT VALID")))
         .execute(&pool).await.unwrap();
       for fields in [format!("updatePdfTemplateMetadata(id:\"{id}\",name:\"Changed\"){{name}}"),format!("deletePdfTemplate(id:\"{id}\")")] {
         let failed=helpers::gql(&app,session,json!({"query":format!("mutation{{admin{{{fields}}}}}")})).await;
@@ -1343,7 +1343,7 @@ fn template_mutations_roll_back_with_audit_and_retain_captured_bundle_bytes() {
         let expected=files.iter().find(|(name,_)|name==path).unwrap().1;
         assert_eq!(blobs.get_template_file(key).await.unwrap(),expected,"captured prior bytes remain intact");
       }
-      sqlx::query(&format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}")).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}"))).execute(&pool).await.unwrap();
       let replaced=replace_template(&app,session,id,&next,&replacement_files).await;
       assert!(replaced.get("errors").is_none(),"replacement: {replaced}");
       assert_eq!(count_audit_log(&pool,"pdf_template.replace_bundle",admin).await,1);
@@ -1367,9 +1367,9 @@ fn template_mutations_roll_back_with_audit_and_retain_captured_bundle_bytes() {
         assert_eq!(blobs.get_template_file(&key).await.unwrap(),files.iter().find(|(name,_)|name==&path).unwrap().1);
       }
     }).catch_unwind().await;
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       "ALTER TABLE admin_audit_log DROP CONSTRAINT IF EXISTS {constraint}"
-    ))
+    )))
     .execute(&pool)
     .await
     .unwrap();

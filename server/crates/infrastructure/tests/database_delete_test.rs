@@ -42,9 +42,9 @@ async fn database_children(pool: &PgPool, database_id: Uuid) -> serde_json::Valu
     "workspace_database_computed_values",
     "database_row_reminders",
   ] {
-    let rows:serde_json::Value=sqlx::query_scalar(&format!(
+    let rows:serde_json::Value=sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
       "SELECT COALESCE(jsonb_agg(to_jsonb(item) ORDER BY to_jsonb(item)::text),'[]'::jsonb) FROM {table} item WHERE database_id=$1"
-    )).bind(database_id).fetch_one(pool).await.expect("read native child projection");
+    ))).bind(database_id).fetch_one(pool).await.expect("read native child projection");
     children.insert(table.into(), rows);
   }
   let edges:serde_json::Value=sqlx::query_scalar("SELECT COALESCE(jsonb_agg(to_jsonb(edge) ORDER BY to_jsonb(edge)::text),'[]'::jsonb) FROM workspace_database_relation_edges edge WHERE source_database_id=$1 OR target_database_id=$1")

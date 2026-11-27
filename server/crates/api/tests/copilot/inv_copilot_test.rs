@@ -1564,3 +1564,298 @@ async fn inv_cp_native_mcp_result_continues_as_authenticated_user() {
     std::panic::resume_unwind(panic);
   }
 }
+
+/// Native `create_file` must work without MCP expansion, reject invalid calls
+/// without attachments, return compact metadata for continuation, serve
+/// authenticated downloads, and remap IDs across chat forks.
+#[tokio::test]
+async fn inv_cp_create_file_tool_persists_once_continues_and_remaps_fork() {
+  use async_trait::async_trait;
+  use axum::{
+    body::Body,
+    http::{Request, StatusCode},
+  };
+  use futures_util::FutureExt;
+  use http_body_util::BodyExt;
+  use myoxus_application::{
+    auth::SessionContext,
+    copilot::{
+      ForkCopilotSession,
+      provider::{
+        LlmFinishReason, LlmModelInfo, LlmProvider, LlmProviderError, LlmProviderRegistry, LlmRequest, LlmResponse,
+        LlmRole, LlmStreamEvent, LlmTokenStream, LlmToolCallDelta,
+      },
+    },
+    workspace::UpdateWorkspace,
+  };
+  use std::sync::Arc;
+  use tower::ServiceExt;
+
+  struct CreateFileProvider;
+  #[async_trait]
+  impl LlmProvider for CreateFileProvider {
+    fn provider_id(&self) -> &str {
+      "create-file-fixture"
+    }
+    fn supports_tools(&self, _: &str) -> bool {
+      true
+    }
+    async fn list_models(&self) -> Result<Vec<LlmModelInfo>, LlmProviderError> {
+      Ok(Vec::new())
+    }
+    async fn complete(&self, _: &LlmRequest) -> Result<LlmResponse, LlmProviderError> {
+      panic!("stream required")
+    }
+    async fn stream_chat(&self, request: &LlmRequest) -> Result<LlmTokenStream, LlmProviderError> {
+      let last = request.messages.last().unwrap();
+      let events = if last.role != LlmRole::Tool {
+        let tool = request
+          .tools
+          .iter()
+          .find(|tool| tool.name == "create_file")
+          .expect("create_file definition offered to tool-capable model");
+        assert_eq!(tool.input_schema["additionalProperties"], json!(false));
+        assert_eq!(tool.input_schema["required"], json!(["title", "format", "markdown"]));
+        vec![
+          // Call 1: invalid extra property -> must fail honestly without attachment
+          LlmStreamEvent::ToolCall(LlmToolCallDelta {
+            index: 0,
+            id: Some("opaque:file/bad-1".into()),
+            name: Some("create_file".into()),
+            arguments: json!({"title":"Bad","format":"html","markdown":"x","sessionId":"spoof"}).to_string(),
+          }),
+          // Call 2: valid portable HTML file -> must persist once and return compact metadata
+          LlmStreamEvent::ToolCall(LlmToolCallDelta {
+            index: 1,
+            id: Some("opaque:file/ok-2".into()),
+            name: Some("create_file".into()),
+            arguments: json!({
+              "title": "Release Checklist",
+              "format": "html",
+              "markdown": "# Release Checklist\n\n- Verify backup\n- Confirm probes"
+            })
+            .to_string(),
+          }),
+          LlmStreamEvent::Finish(LlmFinishReason::ToolCalls),
+        ]
+      } else {
+        // Inspect the two Tool messages fed back into continuation
+        let bad_msg = &request.messages[request.messages.len() - 2];
+        assert_eq!(bad_msg.role, LlmRole::Tool);
+        assert_eq!(bad_msg.tool_call_id.as_deref(), Some("opaque:file/bad-1"));
+        let bad_val: serde_json::Value = serde_json::from_str(bad_msg.content.as_text().unwrap()).unwrap();
+        assert!(
+          bad_val["error"].as_str().is_some(),
+          "bad call must report error: {bad_val}"
+        );
+
+        let ok_msg = request.messages.last().unwrap();
+        assert_eq!(ok_msg.tool_call_id.as_deref(), Some("opaque:file/ok-2"));
+        let ok_val: serde_json::Value = serde_json::from_str(ok_msg.content.as_text().unwrap()).unwrap();
+        assert!(ok_val["fileId"].as_str().is_some());
+        assert_eq!(ok_val["fileName"], "Release Checklist.html");
+        assert_eq!(ok_val["format"], "html");
+        assert_eq!(ok_val["mimeType"], "text/html; charset=utf-8");
+        assert!(ok_val["sizeBytes"].as_i64().is_some_and(|n| n > 0));
+        assert!(
+          ok_val.get("downloadUrl").is_none(),
+          "never expose storage/download URLs in tool metadata"
+        );
+        assert!(
+          ok_val.get("markdown").is_none(),
+          "never echo raw markdown in tool metadata"
+        );
+        vec![
+          LlmStreamEvent::Text("Created Release Checklist.html.".into()),
+          LlmStreamEvent::Finish(LlmFinishReason::Stop),
+        ]
+      };
+      Ok(Box::pin(futures_util::stream::iter(events.into_iter().map(Ok))))
+    }
+  }
+
+  let mut config = myoxus_api::config::AppConfig::load().unwrap();
+  config.copilot.enabled = true;
+  config.copilot.default_provider = "create-file-fixture".into();
+  config.copilot.fallback_providers.clear();
+  config.copilot.providers.clear();
+  config.copilot.providers.insert(
+    "create-file-fixture".into(),
+    serde_json::from_value(json!({
+      "enabled":true,"kind":"local","models":["file-model"],"model_options":{"file-model":{"supports_tools":true}}
+    }))
+    .unwrap(),
+  );
+  let mut registry = LlmProviderRegistry::new();
+  registry.register(Arc::new(CreateFileProvider));
+  let (_, pool, _, state) =
+    helpers::setup_app_with_config_override_and_state(move |target| target.copilot = config.copilot).await;
+  let state = state.with_llm_provider_registry(registry);
+  if let Some(previous) = state
+    .auth()
+    .store
+    .get_user_by_email("create-file-fixture@example.test")
+    .await
+    .unwrap()
+  {
+    helpers::cleanup_users(&pool, &[previous.id]).await;
+  }
+  let user = state
+    .auth()
+    .store
+    .fulfill_user("create-file-fixture@example.test", None, None)
+    .await
+    .unwrap();
+  let mut workspace_cleanup: Option<Uuid> = None;
+  let mut blob_cleanup: Option<String> = None;
+  let outcome = std::panic::AssertUnwindSafe(async {
+    let auth = state
+      .auth()
+      .create_user_session(
+        user.id,
+        SessionContext {
+          user_agent: None,
+          ip_address: None,
+        },
+      )
+      .await
+      .unwrap();
+    let workspace = state
+      .workspace()
+      .create_workspace(user.id, Some("Create File Fixture".into()), None)
+      .await
+      .unwrap();
+    workspace_cleanup = Some(workspace.id);
+    state
+      .workspace()
+      .update_workspace(
+        workspace.id,
+        UpdateWorkspace {
+          enable_ai: Some(true),
+          ..Default::default()
+        },
+      )
+      .await
+      .unwrap();
+    let copilot = state.copilot();
+    let session = copilot
+      .create_session(
+        user.id,
+        Some(workspace.id),
+        None,
+        None,
+        Some("file-model".into()),
+        json!({}),
+      )
+      .await
+      .unwrap();
+    let app = myoxus_api::build_router_for_integration_tests(state.clone());
+    let response = app
+      .clone()
+      .oneshot(
+        Request::builder()
+          .uri(format!(
+            "/api/copilot/chat/{}/stream-object?message=create-checklist&toolsConfig=%7B%22searchWorkspace%22%3Afalse%7D",
+            session.id
+          ))
+          .header("cookie", format!("affine_session={}", auth.id))
+          .body(Body::empty())
+          .unwrap(),
+      )
+      .await
+      .unwrap();
+    let wire = String::from_utf8(response.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
+    assert!(wire.contains("Created Release Checklist.html."), "{wire}");
+    assert!(wire.contains("event: done\n"), "{wire}");
+    let messages = copilot.list_messages(session.id, 10, 0).await.unwrap();
+    let answer = messages.last().unwrap();
+    assert_eq!(answer.tool_calls.len(), 2);
+    assert_eq!(
+      answer.tool_calls[0].status,
+      myoxus_domain::entities::CopilotToolCallStatus::Failed
+    );
+    assert_eq!(
+      answer.tool_calls[1].status,
+      myoxus_domain::entities::CopilotToolCallStatus::Completed
+    );
+    assert_eq!(answer.attachment_refs.len(), 1, "only the valid call creates an attachment");
+    let file = &answer.attachment_refs[0];
+    blob_cleanup = Some(file.blob_key.clone());
+    assert_eq!(file.generated_file().unwrap().source_id, answer.tool_calls[1].id);
+    assert_eq!(
+      answer.tool_calls[1].result.as_ref().unwrap()["fileId"],
+      file.id.to_string()
+    );
+
+    // Download original created file
+    let dl = app
+      .clone()
+      .oneshot(
+        Request::builder()
+          .uri(format!("/api/copilot/messages/{}/files/{}", answer.id, file.id))
+          .header("cookie", format!("affine_session={}", auth.id))
+          .body(Body::empty())
+          .unwrap(),
+      )
+      .await
+      .unwrap();
+    assert_eq!(dl.status(), StatusCode::OK);
+    let body = String::from_utf8(dl.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
+    assert!(body.contains("Release Checklist"));
+    assert!(body.contains("Verify backup"));
+
+    // Fork session and verify tool-result fileId/messageId and download path remap cleanly
+    let fork = copilot
+      .fork_session(ForkCopilotSession {
+        user_id: user.id,
+        workspace_id: workspace.id,
+        source_session_id: session.id,
+        doc_id: workspace.id,
+        latest_message_id: None,
+        can_read_attachments: true,
+      })
+      .await
+      .unwrap();
+    let forked_messages = copilot.list_messages(fork.id, 10, 0).await.unwrap();
+    let forked_answer = forked_messages.last().unwrap();
+    assert_eq!(forked_answer.attachment_refs.len(), 1);
+    let forked_file = &forked_answer.attachment_refs[0];
+    assert_ne!(forked_file.id, file.id);
+    assert_eq!(forked_file.generated_file().unwrap().source_id, forked_answer.tool_calls[1].id);
+    assert_eq!(
+      forked_answer.tool_calls[1].result.as_ref().unwrap()["fileId"],
+      forked_file.id.to_string()
+    );
+    assert_eq!(
+      forked_answer.tool_calls[1].result.as_ref().unwrap()["messageId"],
+      forked_answer.id.to_string()
+    );
+    let forked_dl = app
+      .clone()
+      .oneshot(
+        Request::builder()
+          .uri(format!(
+            "/api/copilot/messages/{}/files/{}",
+            forked_answer.id, forked_file.id
+          ))
+          .header("cookie", format!("affine_session={}", auth.id))
+          .body(Body::empty())
+          .unwrap(),
+      )
+      .await
+      .unwrap();
+    assert_eq!(forked_dl.status(), StatusCode::OK);
+  })
+  .catch_unwind()
+  .await;
+  if let Some(key) = blob_cleanup {
+    let _ = state.storage().delete_blob(&key).await;
+  }
+  if let Some(ws) = workspace_cleanup {
+    let _ = tokio::fs::remove_dir_all(format!("./test-storage/copilot-output/{ws}")).await;
+  }
+  helpers::cleanup_users(&pool, &[user.id]).await;
+  if let Err(panic) = outcome {
+    std::panic::resume_unwind(panic);
+  }
+}

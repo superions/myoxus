@@ -125,15 +125,19 @@ an upload/download check before removing the snapshot.
 The server fails hard at startup if Redis is unreachable:
 
 ```bash
-# Check Redis is running
-redis-cli --host localhost --port 6379 ping
+# Check Valkey / Redis is running
+valkey-cli --host localhost --port 6379 ping # or: redis-cli --host localhost --port 6379 ping
 
 # Check from inside the Docker network
 docker compose -f build/server/docker-compose.selfhost.yml exec api \
   curl -v telnet://redis:6379
 ```
 
-Redis is a hard dependency — the server will refuse to start if Redis is unreachable. Ensure Redis is running and `redis.url` is correctly configured.
+Redis (Valkey 9 by default in containers; Valkey 8+ or Redis 8+ supported) is a hard dependency — the server will refuse to start if it is unreachable. Ensure the service is running and `redis.url` is correctly configured.
+
+### Valkey 9 fails to start on an existing Redis 7.4+ / 8 volume
+
+Valkey 9 cannot load RDB or AOF persistence files produced by Redis 7.4+ or Redis 8 (for example `Can't handle RDB format version 12`). Because Redis/Valkey holds only non-authoritative cache, session, lock and queue state, stop the API and `redis` container, clear the old persistence files in `myoxus-redis-data` (or `$MYOXUS_SWARM_STATE_ROOT/redis`), and start Valkey 9 and the API again.
 
 ### Redis roles misconfigured
 

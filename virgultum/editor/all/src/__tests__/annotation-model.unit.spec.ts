@@ -348,7 +348,7 @@ function snapshotAnnotations(
   });
 }
 
-// Exercise the real custom element; the generic Lit setup stubs registration.
+// Exercise the real custom element; the shared test setup stubs registration.
 vi.unstubAllGlobals();
 
 describe("canonical annotations", () => {

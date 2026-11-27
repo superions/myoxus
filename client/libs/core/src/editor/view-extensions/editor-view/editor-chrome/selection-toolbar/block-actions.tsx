@@ -32,11 +32,11 @@ export function preserveEditorCommandFocus(event: PointerEvent<HTMLElement>) {
 
 export const ActionButton = forwardRef<
   HTMLButtonElement,
-  { action: SelectionAction } & Omit<
-    ButtonHTMLAttributes<HTMLButtonElement>,
-    "prefix"
-  >
->(function ActionButton({ action, onClick, ...props }, ref) {
+  {
+    action: SelectionAction;
+    size?: "default" | "large" | "extraLarge";
+  } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "prefix">
+>(function ActionButton({ action, size, onClick, ...props }, ref) {
   if (!action.run && !action.control)
     return <MyoxusText>{action.label}</MyoxusText>;
   const icon = selectionGlyph(action.icon);
@@ -54,6 +54,7 @@ export const ActionButton = forwardRef<
       <MenuTrigger
         {...props}
         ref={ref}
+        size={size}
         data-testid={action.id}
         aria-label={action.label}
         tooltip={action.label}
@@ -75,6 +76,7 @@ export const ActionButton = forwardRef<
     <IconButton
       {...props}
       ref={ref}
+      size={size}
       data-testid={action.id}
       aria-label={action.label}
       tooltip={action.label}
@@ -96,6 +98,7 @@ export const ActionButton = forwardRef<
       <Button
         {...props}
         ref={ref}
+        size={size}
         prefix={icon ?? undefined}
         data-testid={action.id}
         disabled={action.disabled}

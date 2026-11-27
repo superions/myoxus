@@ -346,7 +346,7 @@ async fn inv_userspace_load_04_owner_streams_durable_snapshot_and_tail_without_d
     .expect("delete owned compaction event");
 
   for table in ["doc_updates", "doc_snapshots"] {
-    sqlx::query(&format!("DELETE FROM {table} WHERE doc_id=$1"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("DELETE FROM {table} WHERE doc_id=$1")))
       .bind(doc_id)
       .execute(&pool)
       .await

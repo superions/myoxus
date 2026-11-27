@@ -84,7 +84,7 @@ mod tests {
         .await
         .expect("test DB admin");
       let database = format!("registered_worker_{}", Uuid::new_v4().simple());
-      sqlx::query(&format!("CREATE DATABASE {database}"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("CREATE DATABASE {database}")))
         .execute(&admin)
         .await
         .expect("create isolated scheduler DB");
@@ -92,7 +92,7 @@ mod tests {
       let pool = match PgPoolOptions::new().max_connections(5).connect(&url).await {
         Ok(pool) => pool,
         Err(error) => {
-          sqlx::query(&format!("DROP DATABASE {database}"))
+          sqlx::query(sqlx::AssertSqlSafe(format!("DROP DATABASE {database}")))
             .execute(&admin)
             .await
             .expect("remove failed setup database");
@@ -178,7 +178,7 @@ mod tests {
     async fn cleanup(self) {
       let queue_cleanup = self.queue.empty_queue(self.job.queue()).await;
       self.pool.close().await;
-      let database_cleanup = sqlx::query(&format!("DROP DATABASE {}", self.database))
+      let database_cleanup = sqlx::query(sqlx::AssertSqlSafe(format!("DROP DATABASE {}", self.database)))
         .execute(&self.admin)
         .await;
       self.admin.close().await;

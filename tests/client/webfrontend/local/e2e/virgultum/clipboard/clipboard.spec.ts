@@ -238,10 +238,10 @@ test("should copy single image from edgeless and paste to page", async ({
 }) => {
   await clickEdgelessModeButton(page);
 
-  await page.locator("edgeless-note-tool-button").click();
+  await page.getByTestId("canvas-note").click();
   await importFile(page, "large-image.png", async () => {
     await page
-      .locator("edgeless-note-menu")
+      .getByTestId("canvas-note-menu")
       .getByRole("button", { name: "Image", exact: true })
       .click();
   });

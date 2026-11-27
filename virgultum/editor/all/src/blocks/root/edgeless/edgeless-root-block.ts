@@ -1,7 +1,10 @@
 import { effect } from "@preact/signals-core";
 import {
   EDGELESS_TOOLBAR_WIDGET,
+  mountAutoConnect,
+  mountCanvasDock,
   mountCanvasDraggingArea,
+  mountNoteSlicer,
   NOTE_SLICER_WIDGET,
 } from "@virgultum/canvas/widgets";
 import { NoteConfigExtension } from "@virgultum/embeds/blocks";
@@ -424,6 +427,9 @@ export class EdgelessRootController {
     this._initPanEvent();
     this._initPinchEvent();
     const overlay = this.root.overlayElm;
+    this.root.disposables.add(mountAutoConnect(this.root, overlay));
+    this.root.disposables.add(mountNoteSlicer(this.root, overlay));
+    this.root.disposables.add(mountCanvasDock(this.root, overlay));
     // Retain the existing stack order when a drag extends under the tool dock.
     const controls = overlay.querySelector(
       `:scope > ${NOTE_SLICER_WIDGET}, :scope > ${EDGELESS_TOOLBAR_WIDGET}`,

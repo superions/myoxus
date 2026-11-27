@@ -375,7 +375,12 @@ export function AIChatInput({
         messages: [
           ...messages.slice(0, -2),
           { ...localUser, id: user.id, params: user.params },
-          { ...last, id: assistant.id, params: assistant.params },
+          {
+            ...last,
+            id: assistant.id,
+            params: assistant.params,
+            generatedFiles: assistant.generatedFiles,
+          },
         ],
       });
     },

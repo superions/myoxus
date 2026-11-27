@@ -620,7 +620,7 @@ describe("Mermaid runtime integration contracts", () => {
       _restoreVisualObjectFocus: vi.fn(),
       renderRoot,
       updateComplete,
-      requestUpdate: vi.fn(),
+      _notifyProjectionChange: vi.fn(),
     };
     const reconcile = (
       MermaidBlockComponent.prototype as unknown as {
@@ -628,7 +628,7 @@ describe("Mermaid runtime integration contracts", () => {
       }
     )._reconcileVisualSelectionProjection;
     reconcile.call(component);
-    expect(component.requestUpdate).toHaveBeenCalled();
+    expect(component._notifyProjectionChange).toHaveBeenCalled();
     expect(selection.apply).toHaveBeenCalledWith("replace", [
       { kind: "node", editKey: "repaired", gfxElementId: "new-gfx" },
     ]);
@@ -681,7 +681,7 @@ describe("Mermaid runtime integration contracts", () => {
       _scheduleScopedGfxSelectionVisibility: vi.fn(),
       _selectVisualNode: prototype._selectVisualNode,
       _visualSelection: { apply: selectionApply },
-      requestUpdate: vi.fn(),
+      _notifyProjectionChange: vi.fn(),
     };
 
     (

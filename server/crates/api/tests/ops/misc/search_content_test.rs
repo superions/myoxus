@@ -139,7 +139,7 @@ async fn inv_search_field_refresh_respects_workspace_revision_kind_and_owner() {
     "bump_workspace_document_metadata_index_revision",
     "bump_workspace_database_page_inventory_revision",
   ] {
-    sqlx::query(&format!("SELECT {function}($1)"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("SELECT {function}($1)")))
       .bind(workspaces[0])
       .execute(&mut *tx)
       .await

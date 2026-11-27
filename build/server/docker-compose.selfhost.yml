@@ -35,10 +35,10 @@ services:
     restart: unless-stopped
 
   redis:
-    image: ${REDIS_IMAGE:-redis:${REDIS_IMAGE_TAG:-8}}
-    command: ["redis-server", "--appendonly", "yes", "--save", ""]
+    image: ${REDIS_IMAGE:-valkey/valkey:${REDIS_IMAGE_TAG:-9}}
+    command: ["--appendonly", "yes", "--save", ""]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "valkey-cli ping 2>/dev/null || redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 20

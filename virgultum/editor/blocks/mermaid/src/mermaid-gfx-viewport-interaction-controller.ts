@@ -110,7 +110,6 @@ export type MermaidGfxViewportInteractionHost = {
     maxViewDelta?: number,
   ): { dx: number; dy: number } | null;
   previewVisualNodeReparent(nodeId: string, targetSubgraphId: string): void;
-  requestUpdate(): void;
   restoreViewport(snapshot: MermaidGfxDragViewportSnapshot | null): void;
   selectVisualEdge(edgeId: string): void;
   selectVisualNode(nodeId: string, additive?: boolean): boolean;
@@ -368,7 +367,6 @@ export class MermaidGfxViewportInteractionController {
         },
       }),
     );
-    this.host.requestUpdate();
   }
 
   handleViewportPointerDown(event: PointerEvent) {

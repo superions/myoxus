@@ -30,12 +30,13 @@ pub enum MailTemplate {
   CalendarInvitation,
   CalendarUpdate,
   CalendarCancellation,
+  McpApiKeyCreated,
   SmtpTest,
   GeneralNotification,
 }
 
 impl MailTemplate {
-  pub const ALL: [Self; 25] = [
+  pub const ALL: [Self; 26] = [
     Self::PasswordReset,
     Self::SetPassword,
     Self::VerifyEmail,
@@ -59,6 +60,7 @@ impl MailTemplate {
     Self::CalendarInvitation,
     Self::CalendarUpdate,
     Self::CalendarCancellation,
+    Self::McpApiKeyCreated,
     Self::SmtpTest,
     Self::GeneralNotification,
   ];
@@ -88,6 +90,7 @@ impl MailTemplate {
       Self::CalendarInvitation => "calendar-invitation",
       Self::CalendarUpdate => "calendar-update",
       Self::CalendarCancellation => "calendar-cancellation",
+      Self::McpApiKeyCreated => "mcp-api-key-created",
       Self::SmtpTest => "smtp-test",
       Self::GeneralNotification => "general-notification",
     }

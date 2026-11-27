@@ -230,7 +230,7 @@ impl CopilotEmbeddingRepository for SqlxCopilotEmbeddingRepository {
     let query_literal = Self::vec_to_pgvector_literal(query_embedding);
     let dimensions = query_embedding.len();
     let distance = Self::distance_sql(dimensions)?;
-    let rows = sqlx::query(&format!(
+    let rows = sqlx::query(sqlx::AssertSqlSafe(format!(
       "SELECT id, workspace_id, source_type, source_id, chunk_index, chunk_text, \
               token_count, embedding::text AS embedding_text, model, metadata, created_at, \
                {distance} AS distance \
@@ -241,7 +241,7 @@ impl CopilotEmbeddingRepository for SqlxCopilotEmbeddingRepository {
            AND NOT EXISTS (SELECT 1 FROM (SELECT state FROM copilot_jobs j WHERE j.workspace_id=e.workspace_id AND j.job_type='copilot.embedding.add' AND j.payload->>'model'=e.model AND COALESCE(j.payload->>'dimensions','1536')=vector_dims(e.embedding)::text AND j.payload->>'sourceId'=e.source_id AND j.payload->>'sourceType'=e.source_type ORDER BY created_at DESC,id DESC LIMIT 1) latest WHERE latest.state<>'finished') \
         ORDER BY {distance} \
        LIMIT $3",
-    ))
+    )))
     .bind(&query_literal)
     .bind(workspace_id)
     .bind(limit)
@@ -278,7 +278,7 @@ impl CopilotEmbeddingRepository for SqlxCopilotEmbeddingRepository {
     let query_literal = Self::vec_to_pgvector_literal(query_embedding);
     let dimensions = query_embedding.len();
     let distance = Self::distance_sql(dimensions)?;
-    let rows = sqlx::query(&format!(
+    let rows = sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"SELECT e.source_id AS file_id, e.chunk_text AS content, b.key AS blob_id,
                 COALESCE(e.metadata->>'name',b.key) AS file_name, b.mime AS mime_type,
                 e.chunk_index AS chunk,
@@ -292,7 +292,7 @@ impl CopilotEmbeddingRepository for SqlxCopilotEmbeddingRepository {
             AND ($4::double precision IS NULL OR {distance} <= $4)
           ORDER BY {distance}
          LIMIT $3"#,
-    ))
+    )))
     .bind(query_literal)
     .bind(workspace_id)
     .bind(limit.clamp(1, 100))
@@ -331,7 +331,7 @@ impl CopilotEmbeddingRepository for SqlxCopilotEmbeddingRepository {
     let query_literal = Self::vec_to_pgvector_literal(query_embedding);
     let dimensions = query_embedding.len();
     let distance = Self::distance_sql(dimensions)?;
-    let rows = sqlx::query(&format!(
+    let rows = sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"SELECT d.id AS doc_id, e.chunk_text AS content, e.chunk_index AS chunk,
                  {distance} AS distance
          FROM copilot_embeddings e
@@ -344,7 +344,7 @@ impl CopilotEmbeddingRepository for SqlxCopilotEmbeddingRepository {
             AND ($4::double precision IS NULL OR {distance} <= $4)
           ORDER BY {distance}
          LIMIT $3"#,
-    ))
+    )))
     .bind(query_literal)
     .bind(workspace_id)
     .bind(limit.clamp(1, 100))

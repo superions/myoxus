@@ -42,12 +42,14 @@ export function TopRightCornerPanels() {
   const { i18n } = useBpmnEditorI18n();
   const t = useI18n();
   const flow = RF.useReactFlow();
-  const hasSelection = RF.useStore(
-    (state) =>
-      state.nodes.some((node) => node.selected) ||
-      state.edges.some((edge) => edge.selected),
+  const hasSelectedNode = RF.useNodesStore((state) =>
+    state.nodes.some((node) => node.selected),
   );
-  const locked = RF.useStore((state) => state.nodesDraggable === false);
+  const hasSelectedEdge = RF.useEdgesStore((state) =>
+    state.edges.some((edge) => edge.selected),
+  );
+  const hasSelection = hasSelectedNode || hasSelectedEdge;
+  const locked = RF.useOptionsStore((state) => state.nodesDraggable === false);
   const readOnly = useBpmnEditorStore((state) => state.settings.isReadOnly);
   const diagram = useBpmnEditorStore((s) => s.diagram);
   const propertiesPanel = useBpmnEditorStore((s) => s.propertiesPanel);

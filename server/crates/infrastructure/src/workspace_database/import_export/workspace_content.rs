@@ -126,9 +126,9 @@ impl PgDatabaseRepository {
       ));
     }
     for table in MOVE_DATABASE_OWNERSHIP_TABLES {
-      let updated = sqlx::query(&format!(
+      let updated = sqlx::query(sqlx::AssertSqlSafe(format!(
         "UPDATE {table} SET workspace_id = $2 WHERE workspace_id = $1 AND database_id = $3"
-      ))
+      )))
       .bind(source_workspace_id)
       .bind(target_workspace_id)
       .bind(id)

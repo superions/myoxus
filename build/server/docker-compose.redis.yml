@@ -17,11 +17,11 @@ services:
       - myoxus-postgres-data:/var/lib/postgresql/data
 
   redis:
-    image: redis:8
+    image: valkey/valkey:9
     container_name: myoxus-redis
-    command: ["redis-server", "--appendonly", "yes", "--save", ""]
+    command: ["valkey-server", "--appendonly", "yes", "--save", ""]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 20

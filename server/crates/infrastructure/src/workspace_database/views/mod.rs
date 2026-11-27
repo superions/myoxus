@@ -631,7 +631,7 @@ impl DatabaseViewRepository for PgDatabaseRepository {
     let started_at = std::time::Instant::now();
 
     let count_sql = plan.count_sql();
-    let mut count_query = sqlx::query_scalar::<_, i64>(&count_sql).bind(database_id);
+    let mut count_query = sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(count_sql.as_str())).bind(database_id);
     for bind in plan.predicate_binds() {
       count_query = match bind {
         DatabaseRowQueryBind::Uuid(value) => count_query.bind(*value),
@@ -646,7 +646,7 @@ impl DatabaseViewRepository for PgDatabaseRepository {
     let total_count = count_query.fetch_one(&mut *tx).await.map_err(Self::map_sqlx_error)?;
 
     let rows_sql = plan.rows_sql();
-    let mut row_query = sqlx::query(&rows_sql).bind(database_id);
+    let mut row_query = sqlx::query(sqlx::AssertSqlSafe(rows_sql.as_str())).bind(database_id);
     for bind in plan.row_binds() {
       row_query = match bind {
         DatabaseRowQueryBind::Uuid(value) => row_query.bind(value),
@@ -789,7 +789,7 @@ impl DatabaseViewRepository for PgDatabaseRepository {
       DATABASE_QUERY_TABLES,
     )?;
     let sql = plan.group_sql(group_field_type, subgroup_field_type);
-    let mut sql_query = sqlx::query(&sql).bind(database_id);
+    let mut sql_query = sqlx::query(sqlx::AssertSqlSafe(sql.as_str())).bind(database_id);
     for bind in plan.group_binds(group_field_id, subgroup_field_id) {
       sql_query = match bind {
         DatabaseRowQueryBind::Uuid(value) => sql_query.bind(value),
@@ -855,7 +855,7 @@ impl DatabaseViewRepository for PgDatabaseRepository {
       DATABASE_QUERY_TABLES,
     )?;
     let sql = plan.progress_sql(&spec, group_field_type);
-    let mut sql_query = sqlx::query(&sql).bind(database_id);
+    let mut sql_query = sqlx::query(sqlx::AssertSqlSafe(sql.as_str())).bind(database_id);
     for bind in plan.progress_binds(&spec) {
       sql_query = match bind {
         DatabaseRowQueryBind::Uuid(value) => sql_query.bind(value),

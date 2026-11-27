@@ -110,7 +110,7 @@ export class DefaultEditorI18nService
   }
 
   translate(message: EditorI18nMessage) {
-    // Reading the signal makes SignalWatcher-backed Lit renderers reactive.
+    // Reading the signal makes signal-backed renderers reactive to locale changes.
     void this.locale$.value;
     const translated = this.adapter?.translate(message);
     if (translated?.trim() && translated !== message.key) return translated;

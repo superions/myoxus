@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import { signal } from "@preact/signals-core";
+
 export type MermaidPageSelectionItem = {
   readonly editKey: string;
   readonly gfxElementId: string;
@@ -34,7 +36,7 @@ function uniqueItems(items: readonly MermaidPageSelectionItem[]) {
  * is projected to native SurfaceSelection in the same synchronous step.
  */
 export class MermaidPageSelectionController {
-  private _items: readonly MermaidPageSelectionItem[] = [];
+  private readonly _items$ = signal<readonly MermaidPageSelectionItem[]>([]);
 
   constructor(
     private readonly writeScopedSelection: (
@@ -47,22 +49,22 @@ export class MermaidPageSelectionController {
   ) {}
 
   get items() {
-    return this._items;
+    return this._items$.value;
   }
 
   get anchor() {
-    return this._items.at(-1) ?? null;
+    return this._items$.value.at(-1) ?? null;
   }
 
   itemsOfKind(kind: MermaidPageSelectionItem["kind"]) {
-    return this._items.filter((item) => item.kind === kind);
+    return this._items$.value.filter((item) => item.kind === kind);
   }
 
   apply(
     operation: MermaidPageSelectionOperation,
     candidates: readonly MermaidPageSelectionItem[],
   ) {
-    this.applyAgainst(this._items, operation, candidates);
+    this.applyAgainst(this._items$.peek(), operation, candidates);
   }
 
   applyAgainst(
@@ -100,24 +102,24 @@ export class MermaidPageSelectionController {
       }
     }
     this.commit(next);
-    this.onSelectionTransition?.(this._items);
+    this.onSelectionTransition?.(this._items$.peek());
   }
 
   clear() {
     this.commit([]);
-    this.onSelectionTransition?.(this._items);
+    this.onSelectionTransition?.(this._items$.peek());
   }
 
   /** Accepts the complete, already scoped native selection without echoing it. */
   hydrate(items: readonly MermaidPageSelectionItem[]) {
-    this._items = uniqueItems(items);
+    this._items$.value = uniqueItems(items);
   }
 
   /** Re-resolves projection ids after source/GFX replacement, then writes once. */
   remap(
     resolveGfxElementId: (item: MermaidPageSelectionItem) => string | null,
   ) {
-    const remapped = this._items.flatMap((item) => {
+    const remapped = this._items$.peek().flatMap((item) => {
       const gfxElementId = resolveGfxElementId(item);
       return gfxElementId ? [{ ...item, gfxElementId }] : [];
     });
@@ -125,11 +127,12 @@ export class MermaidPageSelectionController {
   }
 
   project() {
-    this.writeScopedSelection(this._items);
+    this.writeScopedSelection(this._items$.peek());
   }
 
   private commit(items: readonly MermaidPageSelectionItem[]) {
-    this._items = uniqueItems(items);
-    this.writeScopedSelection(this._items);
+    const unique = uniqueItems(items);
+    this._items$.value = unique;
+    this.writeScopedSelection(unique);
   }
 }

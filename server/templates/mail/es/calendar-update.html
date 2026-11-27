@@ -4,148 +4,210 @@ información actualizada y tu participación.{% endblock preheader %} {% block
 category %}TU CALENDARIO{% endblock category %} {% block heading %}El evento ha
 cambiado.{% endblock heading %} {% block introduction %}La persona organizadora
 ha actualizado este evento. Abajo encontrarás el nuevo horario y el anterior.{%
-endblock introduction %} {% block details %}{% if event_title %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
+endblock introduction %} {% block details %}
+<table
+  role="presentation"
+  width="100%"
+  cellpadding="0"
+  cellspacing="0"
+  style="width: 100%; border-collapse: collapse"
 >
-  EVENTO
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ event_title }}
-</p>
-{% endif %}{% if actor %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Organizado por
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ actor }}
-</p>
-{% endif %}{% if starts_at %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Nuevo horario
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ starts_at }}
-</p>
-{% endif %}{% if previous_starts_at %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Horario anterior
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ previous_starts_at }}
-</p>
-{% endif %}{% if ends_at %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Fin
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ ends_at }}
-</p>
-{% endif %}{% if location %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Lugar
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ location }}
-</p>
-{% endif %}{% endblock details %} {% block next_step %}Abre el evento para
-revisar la información actualizada y tu participación.{% endblock next_step %}
-{% block action %}Ver cambios{% endblock action %} {% block note %}El correo
-incluye un archivo iCalendar. Ábrelo en tu aplicación de calendario para
-consultar la invitación, el cambio o la cancelación.{% endblock note %} {% block
-reason %}Recibes este correo porque se ha modificado un evento al que te han
+  {% set has_prev = false %} {% if event_title %}
+  <tr>
+    <td style="padding: 13px 0">
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        EVENTO
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 15.5px;
+          line-height: 1.45;
+          font-weight: 600;
+          color: #162230;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ event_title }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if actor %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Organizado por
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ actor }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if starts_at %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Nuevo horario
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ starts_at }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if previous_starts_at %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Horario anterior
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ previous_starts_at }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if ends_at %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Fin
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ ends_at }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if location %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Lugar
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ location }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %}
+</table>
+{% endblock details %} {% block next_step %}Abre el evento para revisar la
+información actualizada y tu participación.{% endblock next_step %} {% block
+action %}Ver cambios{% endblock action %} {% block note %}El correo incluye un
+archivo iCalendar. Ábrelo en tu aplicación de calendario para consultar la
+invitación, el cambio o la cancelación.{% endblock note %} {% block reason
+%}Recibes este correo porque se ha modificado un evento al que te han
 invitado.{% endblock reason %}

@@ -144,10 +144,11 @@ describe("host-service migration contract", () => {
         "client/libs/core/src/editor/virgultum/doc-editor/virgultum-editor.tsx",
       );
 
-      // `std`, `host`, `origin` and `updateComplete` depend on Lit refs that are
-      // populated after the React render. `Object.assign` would eagerly evaluate
-      // getters and permanently freeze these fields as undefined, causing the
-      // editor bootstrap to crash before the document surface is rendered.
+      // `std`, `host`, `origin` and `updateComplete` depend on native element
+      // refs that are populated after the React render. `Object.assign` would
+      // eagerly evaluate getters and permanently freeze these fields as
+      // undefined, causing the editor bootstrap to crash before the document
+      // surface is rendered.
       expect(source).not.toMatch(
         /const adapter:\s*MyoxusEditorContainer\s*=\s*Object\.assign/,
       );

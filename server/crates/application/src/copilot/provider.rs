@@ -497,12 +497,34 @@ pub enum EmbeddingPurpose {
   Query,
 }
 
+/// Request-scoped identity and active stream/call lease owned by the chat
+/// execution boundary, never supplied by untrusted tool JSON arguments.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LlmToolExecutionContext {
+  pub user_id: uuid::Uuid,
+  pub session_id: uuid::Uuid,
+  pub message_id: uuid::Uuid,
+  pub stream_id: uuid::Uuid,
+  pub local_call_id: uuid::Uuid,
+}
+
 /// Port for executing tool calls produced by an LLM.
 #[async_trait]
 pub trait LlmToolExecutor: Send + Sync {
   /// Execute a named tool with the given arguments.  Returns a JSON value
   /// result or an error message string.
   async fn execute(&self, tool_name: &str, arguments: &Value) -> Result<Value, String>;
+
+  /// Execute a named tool with optional request-scoped execution identity.
+  /// Tools that do not need session/message/call leases inherit [`execute`](Self::execute).
+  async fn execute_with_context(
+    &self,
+    tool_name: &str,
+    arguments: &Value,
+    _context: Option<LlmToolExecutionContext>,
+  ) -> Result<Value, String> {
+    self.execute(tool_name, arguments).await
+  }
 }
 
 /// Normalise a legacy-shaped tool call JSON object (using `toolCallId` /
@@ -531,6 +553,38 @@ pub fn normalize_legacy_tool_call(raw: &Value) -> Result<LlmToolCall, LlmProvide
   })
 }
 
+/// Execute one tool call via `executor` with optional request-scoped execution
+/// identity and return a `Tool`-role message. Errors are serialised as JSON
+/// `{"error": "..."}` so the model can observe them.
+#[instrument(skip(executor, call))]
+pub async fn execute_tool_call_with_context(
+  executor: &dyn LlmToolExecutor,
+  call: &LlmToolCall,
+  context: Option<LlmToolExecutionContext>,
+) -> LlmMessage {
+  match executor
+    .execute_with_context(&call.name, &call.arguments, context)
+    .await
+  {
+    Ok(result) => LlmMessage {
+      role: LlmRole::Tool,
+      content: result.to_string().into(),
+      name: Some(call.name.clone()),
+      tool_calls: Vec::new(),
+      reasoning: None,
+      tool_call_id: Some(call.id.clone()),
+    },
+    Err(err) => LlmMessage {
+      role: LlmRole::Tool,
+      content: serde_json::json!({ "error": err }).to_string().into(),
+      name: Some(call.name.clone()),
+      tool_calls: Vec::new(),
+      reasoning: None,
+      tool_call_id: Some(call.id.clone()),
+    },
+  }
+}
+
 /// Execute a batch of tool calls via `executor` and return one `Tool`-role
 /// message per call.  Errors are serialised as JSON `{"error": "..."}` so
 /// the model can observe them.
@@ -538,28 +592,7 @@ pub fn normalize_legacy_tool_call(raw: &Value) -> Result<LlmToolCall, LlmProvide
 pub async fn execute_tool_calls(executor: &dyn LlmToolExecutor, tool_calls: &[LlmToolCall]) -> Vec<LlmMessage> {
   let mut outputs = Vec::with_capacity(tool_calls.len());
   for call in tool_calls {
-    match executor.execute(&call.name, &call.arguments).await {
-      Ok(result) => {
-        outputs.push(LlmMessage {
-          role: LlmRole::Tool,
-          content: result.to_string().into(),
-          name: Some(call.name.clone()),
-          tool_calls: Vec::new(),
-          reasoning: None,
-          tool_call_id: Some(call.id.clone()),
-        });
-      }
-      Err(err) => {
-        outputs.push(LlmMessage {
-          role: LlmRole::Tool,
-          content: serde_json::json!({ "error": err }).to_string().into(),
-          name: Some(call.name.clone()),
-          tool_calls: Vec::new(),
-          reasoning: None,
-          tool_call_id: Some(call.id.clone()),
-        });
-      }
-    }
+    outputs.push(execute_tool_call_with_context(executor, call, None).await);
   }
   outputs
 }

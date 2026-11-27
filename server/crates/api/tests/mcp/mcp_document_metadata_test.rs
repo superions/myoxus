@@ -369,7 +369,7 @@ fn inner_json(value: Value) -> Value {
 
 async fn reference_id(pool: &sqlx::PgPool, table: &str, key: &str) -> Uuid {
   let sql = format!("SELECT id FROM {table} WHERE key = $1");
-  sqlx::query_scalar(&sql)
+  sqlx::query_scalar(sqlx::AssertSqlSafe(sql.as_str()))
     .bind(key)
     .fetch_one(pool)
     .await

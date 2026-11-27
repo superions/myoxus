@@ -5,8 +5,8 @@ export const noteSeniorTool = SeniorToolExtension("note", ({ block }) => {
   return {
     name: editorMessage("com.myoxus.editor.callout.note", "Note"),
     content: {
-      type: "hosts",
-      tags: ["edgeless-note-senior-button"],
+      type: "popover-tool",
+      tool: "note",
       edgeless: block,
     },
   };

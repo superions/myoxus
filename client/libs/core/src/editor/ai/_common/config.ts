@@ -21,7 +21,7 @@ import type {
   AISubItemConfig,
 } from "../components/ai-item/types";
 import { AIProvider } from "../provider";
-import { getAIPanelWidget } from "../utils/ai-widgets";
+import { getAIPanelController } from "../utils/ai-widgets";
 import { getEdgelessCopilotWidget } from "../utils/get-edgeless-copilot-widget";
 import {
   AIImageIconWithAnimation,
@@ -382,7 +382,7 @@ const OthersAIGroup: AIItemGroupConfig = {
       ...continueInChat,
       icon: "CommentIcon",
       handler: (host) => {
-        const panel = getAIPanelWidget(host);
+        const panel = getAIPanelController(host);
         const edgelessCopilot = getEdgelessCopilotWidget(host);
         AIProvider.slots.requestOpenWithChat.next({
           host,

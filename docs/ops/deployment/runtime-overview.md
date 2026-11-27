@@ -21,7 +21,7 @@ flowchart TB
   Edge --> APIN[Myoxus API N]
   API1 --> PG[(PostgreSQL 16 and pgvector)]
   APIN --> PG
-  API1 --> Redis[(Redis 8\nsessions, queues, locks, cache, sockets)]
+  API1 --> Redis[(Valkey 9 / Redis 8+\nsessions, queues, locks, cache, sockets)]
   APIN --> Redis
   API1 --> Blob[(Shared blob namespace)]
   APIN --> Blob
@@ -29,13 +29,13 @@ flowchart TB
 
 ## Services and ports
 
-| Service      | Role                                                             | Default port |
-| ------------ | ---------------------------------------------------------------- | -----------: |
-| `myoxus-api` | HTTP API, GraphQL, real-time synchronization, and worker runtime |       `3001` |
-| `postgres`   | Primary persistent authority with pgvector                       |       `5432` |
-| `redis`      | Sessions, queues, locks, cache, and socket fan-out               |       `6379` |
-| `frontend`   | Nginx serving Web and Admin and proxying API traffic             |       `3010` |
-| `verapdf`    | Optional PDF/A validation profile                                |       `8080` |
+| Service      | Role                                                                            | Default port |
+| ------------ | ------------------------------------------------------------------------------- | -----------: |
+| `myoxus-api` | HTTP API, GraphQL, real-time synchronization, and worker runtime                |       `3001` |
+| `postgres`   | Primary persistent authority with pgvector                                      |       `5432` |
+| `redis`      | Valkey 9 (Redis-compatible): sessions, queues, locks, cache, and socket fan-out |       `6379` |
+| `frontend`   | Nginx serving Web and Admin and proxying API traffic                            |       `3010` |
+| `verapdf`    | Optional PDF/A validation profile                                               |       `8080` |
 
 PostgreSQL and Redis ports should remain private in production. The public edge
 must forward HTTP, GraphQL, and WebSocket traffic consistently.

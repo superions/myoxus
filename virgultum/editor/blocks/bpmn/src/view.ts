@@ -5,7 +5,7 @@ import {
 
 import { BpmnBlockSpec } from "./bpmn-spec.js";
 import { effects } from "./effects.js";
-import { bpmnQuickTool } from "./edgeless-toolbar.js";
+import { bpmnDiagramTemplate } from "./edgeless-toolbar.js";
 
 export class BpmnViewExtension extends ViewExtensionProvider {
   override name = "myoxus-bpmn-block";
@@ -18,6 +18,6 @@ export class BpmnViewExtension extends ViewExtensionProvider {
   override setup(context: ViewExtensionContext) {
     super.setup(context);
     context.register(BpmnBlockSpec);
-    if (this.isEdgeless(context.scope)) context.register(bpmnQuickTool);
+    if (this.isEdgeless(context.scope)) context.register(bpmnDiagramTemplate);
   }
 }

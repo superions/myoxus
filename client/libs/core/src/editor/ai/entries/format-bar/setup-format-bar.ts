@@ -4,7 +4,7 @@ import {
   type ToolbarModuleConfig,
 } from "@virgultum/editor/shared/services";
 import { BlockSelection, TextSelection } from "@virgultum/editor/std";
-import { getAIPanelWidget } from "../../utils/ai-widgets";
+import { AIPanelControllerIdentifier } from "../../widgets/ai-panel/controller";
 import { extractSelectedContent } from "../../utils/extract";
 import { AIProvider } from "../../provider";
 import { aiToolbarActions } from "../toolbar-actions";
@@ -26,9 +26,9 @@ export function toolbarAIEntryConfig(): ToolbarModuleConfig {
             type: "menu",
             items: aiToolbarActions(ctx, pageAIGroups, true),
             onOpen: () => {
-              const host = ctx.host,
-                panel = getAIPanelWidget(host);
-              if (!panel.config) return;
+              const host = ctx.host;
+              const panel = host.std.getOptional(AIPanelControllerIdentifier);
+              if (!panel?.config) return;
               panel.config.generateAnswer = ({ finish, input }) => {
                 finish("success");
                 panel.hide();

@@ -22,7 +22,7 @@ import { SelectionActions } from "./selection-toolbar/block-actions";
 vi.unmock("@myoxus/i18n");
 afterEach(cleanup);
 
-// The former Lit highlight test follows its actual native consuming renderer.
+// Highlight localization coverage follows the actual native consuming renderer.
 it("localizes mounted highlight choices without translating the saved CSS value", async () => {
   const locale$ = signal<"de" | "fr">("de");
   const locales = { de, fr };

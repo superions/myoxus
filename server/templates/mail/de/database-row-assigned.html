@@ -1,59 +1,85 @@
 {% extends "_layout.html" %} {% block subject %}Du bist für „{{ row_title }}“
-eingetragen{% endblock subject %} {% block preheader %}Die Zuweisung findest du
-im unten genannten Personenfeld.{% endblock preheader %} {% block category
+eingetragen{% endblock subject %} {% block preheader %}Du findest die Zuweisung
+in dem oben gezeigten Personenfeld.{% endblock preheader %} {% block category
 %}DEINE AUFGABEN{% endblock category %} {% block heading %}Ein Eintrag wurde dir
 zugewiesen.{% endblock heading %} {% block introduction %}du wurdest im
 Personenfeld eines Datenbank-Eintrags eingetragen. Öffne den Eintrag, um den
 Kontext und die zugehörigen Informationen anzusehen.{% endblock introduction %}
-{% block details %}{% if row_title %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
+{% block details %}
+<table
+  role="presentation"
+  width="100%"
+  cellpadding="0"
+  cellspacing="0"
+  style="width: 100%; border-collapse: collapse"
 >
-  DATENBANK-EINTRAG
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ row_title }}
-</p>
-{% endif %}{% if field_name %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Personenfeld
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ field_name }}
-</p>
-{% endif %}{% endblock details %} {% block next_step %}Die Zuweisung findest du
-im unten genannten Personenfeld.{% endblock next_step %} {% block action
-%}Eintrag öffnen{% endblock action %} {% block note %}Die aktuellen
-Informationen und verfügbaren Aktionen findest du direkt in Myoxus.{% endblock
-note %} {% block reason %}Du erhältst diese E-Mail, weil du einem
-Datenbank-Eintrag zugewiesen wurdest.{% endblock reason %}
+  {% set has_prev = false %} {% if row_title %}
+  <tr>
+    <td style="padding: 13px 0">
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        DATENBANK-EINTRAG
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 15.5px;
+          line-height: 1.45;
+          font-weight: 600;
+          color: #162230;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ row_title }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if field_name %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Personenfeld
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ field_name }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %}
+</table>
+{% endblock details %} {% block next_step %}Du findest die Zuweisung in dem oben
+gezeigten Personenfeld.{% endblock next_step %} {% block action %}Eintrag
+öffnen{% endblock action %} {% block note %}Die aktuellen Informationen und
+verfügbaren Aktionen findest du direkt in Myoxus.{% endblock note %} {% block
+reason %}Du erhältst diese E-Mail, weil du einem Datenbank-Eintrag zugewiesen
+wurdest.{% endblock reason %}

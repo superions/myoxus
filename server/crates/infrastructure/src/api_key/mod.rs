@@ -79,9 +79,35 @@ impl ApiKeyStore for SqlxApiKeyStore {
     .await
     .map_err(Self::map_err)?;
 
+    let key = Self::row_to_api_key(&row);
+
+    // Emit a durable notification intent in the same transaction so the user
+    // always receives a security email when a personal MCP API key is created.
+    // Never include plaintext or hashed key material in outbox payloads.
+    let outbox_payload = serde_json::json!({
+      "apiKeyId": key.id,
+      "userId": key.user_id,
+      "name": key.name,
+      "scopes": key.scopes,
+      "createdAt": key.created_at.to_rfc3339(),
+      "expiresAt": key.expires_at.map(|value| value.to_rfc3339()),
+    });
+    sqlx::query(
+      r#"
+      INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at)
+      VALUES ($1, 'mcp_api_key', $2, 'mcp_api_key_created', $3, now())
+      "#,
+    )
+    .bind(Uuid::new_v4())
+    .bind(key.id.to_string())
+    .bind(outbox_payload)
+    .execute(&mut *transaction)
+    .await
+    .map_err(Self::map_err)?;
+
     transaction.commit().await.map_err(Self::map_err)?;
 
-    Ok(Self::row_to_api_key(&row))
+    Ok(key)
   }
 
   #[instrument(skip(self, hash))]

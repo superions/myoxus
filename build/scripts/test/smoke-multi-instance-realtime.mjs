@@ -69,7 +69,7 @@ function sql(statement) {
   ).trim();
 }
 function redis(...args) {
-  return docker("exec", "-T", "redis-mi", "redis-cli", "--raw", ...args);
+  return docker("exec", "-T", "redis-mi", "valkey-cli", "--raw", ...args);
 }
 async function login(address, userEmail) {
   const response = await fetch(`${address}/api/auth/sign-in`, {

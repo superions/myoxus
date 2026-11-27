@@ -742,7 +742,7 @@ async fn install_insert_failure(pool: &PgPool, doc_id: Uuid) -> (String, String)
   let suffix = Uuid::new_v4().simple().to_string();
   let function = format!("test_page_lifecycle_fail_{suffix}");
   let trigger = format!("test_page_lifecycle_trigger_{suffix}");
-  sqlx::query(&format!(
+  sqlx::query(sqlx::AssertSqlSafe(format!(
     "CREATE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$
        BEGIN
          IF NEW.doc_id = '{doc_id}'::uuid THEN
@@ -750,14 +750,14 @@ async fn install_insert_failure(pool: &PgPool, doc_id: Uuid) -> (String, String)
          END IF;
          RETURN NEW;
        END $$"
-  ))
+  )))
   .execute(pool)
   .await
   .expect("failure function must install");
-  sqlx::query(&format!(
+  sqlx::query(sqlx::AssertSqlSafe(format!(
     "CREATE TRIGGER {trigger} BEFORE INSERT ON doc_updates
      FOR EACH ROW EXECUTE FUNCTION {function}()"
-  ))
+  )))
   .execute(pool)
   .await
   .expect("failure trigger must install");
@@ -765,11 +765,11 @@ async fn install_insert_failure(pool: &PgPool, doc_id: Uuid) -> (String, String)
 }
 
 async fn remove_insert_failure(pool: &PgPool, trigger: &str, function: &str) {
-  sqlx::query(&format!("DROP TRIGGER {trigger} ON doc_updates"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger} ON doc_updates")))
     .execute(pool)
     .await
     .expect("failure trigger must be removed");
-  sqlx::query(&format!("DROP FUNCTION {function}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {function}()")))
     .execute(pool)
     .await
     .expect("failure function must be removed");
@@ -779,7 +779,7 @@ async fn install_metadata_update_failure(pool: &PgPool, doc_id: Uuid) -> (String
   let suffix = Uuid::new_v4().simple().to_string();
   let function = format!("test_page_metadata_fail_{suffix}");
   let trigger = format!("test_page_metadata_trigger_{suffix}");
-  sqlx::query(&format!(
+  sqlx::query(sqlx::AssertSqlSafe(format!(
     "CREATE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$
        BEGIN
          IF NEW.id = '{doc_id}'::uuid THEN
@@ -787,14 +787,14 @@ async fn install_metadata_update_failure(pool: &PgPool, doc_id: Uuid) -> (String
          END IF;
          RETURN NEW;
        END $$"
-  ))
+  )))
   .execute(pool)
   .await
   .expect("metadata failure function must install");
-  sqlx::query(&format!(
+  sqlx::query(sqlx::AssertSqlSafe(format!(
     "CREATE TRIGGER {trigger} BEFORE UPDATE ON docs
      FOR EACH ROW EXECUTE FUNCTION {function}()"
-  ))
+  )))
   .execute(pool)
   .await
   .expect("metadata failure trigger must install");
@@ -802,11 +802,11 @@ async fn install_metadata_update_failure(pool: &PgPool, doc_id: Uuid) -> (String
 }
 
 async fn remove_metadata_update_failure(pool: &PgPool, trigger: &str, function: &str) {
-  sqlx::query(&format!("DROP TRIGGER {trigger} ON docs"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger} ON docs")))
     .execute(pool)
     .await
     .expect("metadata failure trigger must be removed");
-  sqlx::query(&format!("DROP FUNCTION {function}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {function}()")))
     .execute(pool)
     .await
     .expect("metadata failure function must be removed");

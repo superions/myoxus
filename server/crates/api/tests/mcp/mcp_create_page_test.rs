@@ -3168,13 +3168,13 @@ async fn inv_mcp_compat_mcp_document_normalization_loss_is_explicit_and_strictly
     assert_eq!(document_write_effect_counts(&pool, workspace).await, after_import);
     // A real SQL acknowledgement fault leaves the atomic fallback receipt.
     // It must retain the loss warnings and cannot authorize a second mutation.
-    sqlx::query(&format!("CREATE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF OLD.mutation_committed AND NEW.user_id='{owner}'::uuid AND NEW.idempotency_key='lossy-after-commit' THEN RAISE EXCEPTION 'owned normalization acknowledgement interruption'; END IF; RETURN NEW; END $$")).execute(&pool).await.expect("install owned completion fault");
-    sqlx::query(&format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON mcp_idempotency_keys FOR EACH ROW EXECUTE FUNCTION {function}()")).execute(&pool).await.expect("install owned trigger");
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF OLD.mutation_committed AND NEW.user_id='{owner}'::uuid AND NEW.idempotency_key='lossy-after-commit' THEN RAISE EXCEPTION 'owned normalization acknowledgement interruption'; END IF; RETURN NEW; END $$"))).execute(&pool).await.expect("install owned completion fault");
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON mcp_idempotency_keys FOR EACH ROW EXECUTE FUNCTION {function}()"))).execute(&pool).await.expect("install owned trigger");
     let crash = json!({"workspace_id":workspace,"external_id":external,"operation":"append_blocks","content_markdown":lossy,"idempotency_key":"lossy-after-commit"});
     let failure = document_read_rpc(&app, &token, "tools/call", json!({"name":"doc_patch","arguments":crash})).await;
     assert_eq!(failure["result"]["structuredContent"]["code"], "RECOVERY_REQUIRED");
     let committed_counts = document_write_effect_counts(&pool, workspace).await;
-    sqlx::query(&format!("DROP TRIGGER {trigger} ON mcp_idempotency_keys")).execute(&pool).await.expect("remove owned fault");
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger} ON mcp_idempotency_keys"))).execute(&pool).await.expect("remove owned fault");
     let receipt = document_read_call(&app, &token, "doc_patch", crash.clone()).await;
     assert_eq!(receipt["readback"]["status"], "unavailable");
     assert!(receipt["normalizationDiagnostics"].as_array().unwrap().iter().any(|finding| finding["code"] == "markdown_UnsupportedMath"));
@@ -3218,11 +3218,13 @@ async fn inv_mcp_compat_mcp_document_normalization_loss_is_explicit_and_strictly
     let clean_read = document_read_call(&app, &token, "read_doc", json!({"workspace_id":workspace,"external_id":clean["externalId"],"representation":"markdown"})).await;
     assert!(clean_read.to_string().contains("café 😀") && clean_read.to_string().contains("Child"));
   }).catch_unwind().await;
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger} ON mcp_idempotency_keys"))
-    .execute(&pool)
-    .await
-    .expect("clean owned completion trigger");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {function}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {trigger} ON mcp_idempotency_keys"
+  )))
+  .execute(&pool)
+  .await
+  .expect("clean owned completion trigger");
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {function}()")))
     .execute(&pool)
     .await
     .expect("clean owned completion function");
@@ -3917,9 +3919,9 @@ async fn inv_mcp_document_import_persisted_interruptions_never_duplicate_or_orph
         "placed" => format!("NEW.user_id='{owner}'::uuid AND NEW.tool_name='document_import' AND NEW.idempotency_key='{key}' AND NOT (NEW.response_json ? '_mcpImportRecovery')"),
         _ => format!("NEW.workspace_id='{workspace}'::uuid AND NEW.title='{title}' AND OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL"),
       };
-      sqlx::query(&format!("CREATE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF {condition} THEN PERFORM pg_advisory_xact_lock({gate_key}); END IF; RETURN NEW; END $$"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF {condition} THEN PERFORM pg_advisory_xact_lock({gate_key}); END IF; RETURN NEW; END $$")))
         .execute(&pool).await.expect("install owned crash-point function");
-      sqlx::query(&format!("CREATE TRIGGER {trigger} BEFORE {} ON {table} FOR EACH ROW EXECUTE FUNCTION {function}()", if stage=="created" {"INSERT"} else {"UPDATE"}))
+      sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {trigger} BEFORE {} ON {table} FOR EACH ROW EXECUTE FUNCTION {function}()", if stage=="created" {"INSERT"} else {"UPDATE"})))
         .execute(&pool).await.expect("install owned crash-point trigger");
       installed_table = Some(table);
       let mut connection = sqlx::PgConnection::connect_with(pool.connect_options().as_ref()).await.expect("owned gate connection");
@@ -3946,8 +3948,8 @@ async fn inv_mcp_document_import_persisted_interruptions_never_duplicate_or_orph
       writer.join().expect("writer runtime stopped");
       assert!(sqlx::query_scalar::<_,bool>("SELECT pg_terminate_backend($1)").bind(pid).fetch_one(&pool).await.expect("terminate exact interrupted backend"));
       writer_pid=None;gate.rollback().await.expect("release gate");
-      sqlx::query(&format!("DROP TRIGGER {trigger} ON {table}")).execute(&pool).await.expect("remove gate trigger");
-      sqlx::query(&format!("DROP FUNCTION {function}()")).execute(&pool).await.expect("remove gate function");installed_table=None;
+      sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger} ON {table}"))).execute(&pool).await.expect("remove gate trigger");
+      sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {function}()"))).execute(&pool).await.expect("remove gate function");installed_table=None;
       let counts=document_write_effect_counts(&pool,workspace).await;
       let mut restarted_state=observed_tool_state(&pool).0;
       restarted_state.idempotency=Arc::new(myoxus_infrastructure::mcp_idempotency::SqlxMcpIdempotencyRepository::new(pool.clone()));
@@ -4043,12 +4045,14 @@ async fn inv_mcp_document_import_persisted_interruptions_never_duplicate_or_orph
       .expect("clean exact owned backend");
   }
   if let Some(table) = installed_table {
-    sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger} ON {table}"))
-      .execute(&pool)
-      .await
-      .expect("clean owned gate trigger");
+    sqlx::query(sqlx::AssertSqlSafe(format!(
+      "DROP TRIGGER IF EXISTS {trigger} ON {table}"
+    )))
+    .execute(&pool)
+    .await
+    .expect("clean owned gate trigger");
   }
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {function}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {function}()")))
     .execute(&pool)
     .await
     .expect("clean owned gate function");
@@ -4201,12 +4205,12 @@ async fn inv_mcp_document_write_recovery_is_atomic_fenced_and_authenticated() {
     // The first receipt update belongs to the document transaction and passes.
     // Its post-commit acknowledgement update fails persistently at the SQL
     // boundary, including after rebuilding the application/router below.
-    sqlx::query(&format!("CREATE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$
       BEGIN IF OLD.mutation_committed AND NEW.user_id='{owner}'::uuid THEN
-        RAISE EXCEPTION 'owned post-commit acknowledgement interrupted'; END IF; RETURN NEW; END $$"))
+        RAISE EXCEPTION 'owned post-commit acknowledgement interrupted'; END IF; RETURN NEW; END $$")))
       .execute(&pool).await.expect("install owned acknowledgement fault");
-    sqlx::query(&format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON mcp_idempotency_keys
-      FOR EACH ROW EXECUTE FUNCTION {function}()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {trigger} BEFORE UPDATE ON mcp_idempotency_keys
+      FOR EACH ROW EXECUTE FUNCTION {function}()")))
       .execute(&pool).await.expect("install owned ledger trigger");
     let recover=|name:&'static str,args:Value| {
       let app=&app;let pool=&pool;let token=&token;
@@ -4282,11 +4286,13 @@ async fn inv_mcp_document_write_recovery_is_atomic_fenced_and_authenticated() {
       .await
       .expect("clean owned blocked backend");
   }
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger} ON mcp_idempotency_keys"))
-    .execute(&pool)
-    .await
-    .expect("remove owned ledger trigger");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {function}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {trigger} ON mcp_idempotency_keys"
+  )))
+  .execute(&pool)
+  .await
+  .expect("remove owned ledger trigger");
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {function}()")))
     .execute(&pool)
     .await
     .expect("remove owned fault function");

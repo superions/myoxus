@@ -999,7 +999,7 @@ mod tests {
       Bytes::from_static(b"{not json"),
     )
     .await;
-    assert_eq!(malformed.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
+    assert_eq!(malformed.status(), StatusCode::BAD_REQUEST);
 
     let prometheus = state.tool_state.metrics_service.render_prometheus();
     assert!(

@@ -79,7 +79,7 @@ async fn explicit_release_recovery_replaces_sources_preserves_work_and_is_idempo
     .await
     .unwrap();
   let name = format!("myoxus_test_recovery_{}", Uuid::new_v4().simple());
-  sqlx::query(&format!("CREATE DATABASE {name}"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("CREATE DATABASE {name}")))
     .execute(&admin)
     .await
     .unwrap();
@@ -104,7 +104,7 @@ async fn explicit_release_recovery_replaces_sources_preserves_work_and_is_idempo
   })
   .await;
   pool.close().await;
-  sqlx::query(&format!("DROP DATABASE {name} WITH (FORCE)"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP DATABASE {name} WITH (FORCE)")))
     .execute(&admin)
     .await
     .expect("remove owned recovery database");
@@ -430,7 +430,7 @@ async fn journey(pool: &PgPool, url: &str, storage: &Path) {
   .unwrap()
   .content_bytes;
   let edited_orphan_hex: String = edited_orphan_body.iter().map(|byte| format!("{byte:02x}")).collect();
-  sqlx::raw_sql(&format!(
+  sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
     r#"
     CREATE FUNCTION recovery_edit_after_materialization() RETURNS trigger LANGUAGE plpgsql AS $$
     BEGIN
@@ -446,7 +446,7 @@ async fn journey(pool: &PgPool, url: &str, storage: &Path) {
       FOR EACH ROW EXECUTE FUNCTION recovery_edit_after_materialization();
   "#,
     ids[0]
-  ))
+  )))
   .execute(pool)
   .await
   .unwrap();

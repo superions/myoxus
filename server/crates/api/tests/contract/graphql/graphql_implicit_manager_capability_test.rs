@@ -498,16 +498,16 @@ async fn inv_manual_membership_transaction_rolls_back_and_serializes_manager_tar
   };
   let result = AssertUnwindSafe(async {
     // Fail after inserting the scoped row to exercise transaction rollback.
-    sqlx::query(&format!("CREATE FUNCTION {failure_name}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.user_id = '{target}'::uuid THEN RAISE EXCEPTION 'owned capability failure'; END IF; RETURN NEW; END $$"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {failure_name}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.user_id = '{target}'::uuid THEN RAISE EXCEPTION 'owned capability failure'; END IF; RETURN NEW; END $$")))
       .execute(&pool).await.expect("create owned failure function");
-    sqlx::query(&format!("CREATE TRIGGER {failure_name} AFTER INSERT OR UPDATE ON organization_unit_member FOR EACH ROW EXECUTE FUNCTION {failure_name}()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {failure_name} AFTER INSERT OR UPDATE ON organization_unit_member FOR EACH ROW EXECUTE FUNCTION {failure_name}()")))
       .execute(&pool).await.expect("create owned failure trigger");
     assert!(writer.commit(&change).await.is_err(), "capability fault must reject aggregate");
     assert!(!sqlx::query_scalar::<_,bool>("SELECT EXISTS(SELECT 1 FROM organization_unit_member WHERE unit_id=$1 AND user_id=$2)")
       .bind(unit).bind(target).fetch_one(&pool).await.expect("read rollback membership"));
     assert_eq!(read_manager_feature(&pool,target).await, None);
-    sqlx::query(&format!("DROP TRIGGER {failure_name} ON organization_unit_member")).execute(&pool).await.expect("drop fault trigger");
-    sqlx::query(&format!("DROP FUNCTION {failure_name}()")).execute(&pool).await.expect("drop fault function");
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {failure_name} ON organization_unit_member"))).execute(&pool).await.expect("drop fault trigger");
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {failure_name}()"))).execute(&pool).await.expect("drop fault function");
     let (a,b) = tokio::join!(writer.commit(&change), writer.commit(&change));
     assert_eq!(usize::from(a.is_ok())+usize::from(b.is_ok()),1,"add-only must have one winner");
     assert_eq!(read_manager_feature(&pool,target).await,Some(true));
@@ -540,13 +540,13 @@ async fn inv_manual_membership_transaction_rolls_back_and_serializes_manager_tar
     assert_eq!(response["data"]["addOrganizationUnitMemberAsManager"]["role"],"Member");
     assert_eq!(read_manager_feature(&pool,target).await,None);
   }).catch_unwind().await;
-  sqlx::query(&format!(
+  sqlx::query(sqlx::AssertSqlSafe(format!(
     "DROP TRIGGER IF EXISTS {failure_name} ON organization_unit_member"
-  ))
+  )))
   .execute(&pool)
   .await
   .expect("cleanup owned trigger");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {failure_name}()"))
+  sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {failure_name}()")))
     .execute(&pool)
     .await
     .expect("cleanup owned function");

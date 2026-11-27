@@ -1,5 +1,5 @@
 import {
-  EdgelessTemplatePanel,
+  builtInTemplates,
   type Template,
   type TemplateManager,
 } from "@virgultum/editor/gfx/template";
@@ -30,14 +30,14 @@ test("extension api", async () => {
     },
   } satisfies TemplateManager;
 
-  EdgelessTemplatePanel.templates.extend(customTemplate);
+  builtInTemplates.extend(customTemplate);
 
-  const categories = await EdgelessTemplatePanel.templates.categories();
+  const categories = await builtInTemplates.categories();
   expect(categories).toContain("custom");
 
-  const templates = await EdgelessTemplatePanel.templates.list("any");
+  const templates = await builtInTemplates.list("any");
   expect(templates).toContain(mockTemplate);
 
-  const searchTemplates = await EdgelessTemplatePanel.templates.search("any");
+  const searchTemplates = await builtInTemplates.search("any");
   expect(searchTemplates).toContain(mockTemplate);
 });

@@ -4,56 +4,81 @@ Unterhaltung, um die Antwort zu lesen und bei Bedarf weiterzuschreiben.{%
 endblock preheader %} {% block category %}DOKUMENTE{% endblock category %} {%
 block heading %}Eine Antwort auf deinen Kommentar.{% endblock heading %} {%
 block introduction %}{{ actor }} hat auf deinen Kommentar in einem Dokument
-geantwortet.{% endblock introduction %} {% block details %}{% if document_title
-%}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
+geantwortet.{% endblock introduction %} {% block details %}
+<table
+  role="presentation"
+  width="100%"
+  cellpadding="0"
+  cellspacing="0"
+  style="width: 100%; border-collapse: collapse"
 >
-  DOKUMENT
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ document_title }}
-</p>
-{% endif %}{% if actor %}
-<p
-  style="
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #4b5363;
-  "
->
-  Von
-</p>
-<p
-  style="
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.5;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  "
->
-  {{ actor }}
-</p>
-{% endif %}{% endblock details %} {% block next_step %}Öffne die Unterhaltung,
-um die Antwort zu lesen und bei Bedarf weiterzuschreiben.{% endblock next_step
-%} {% block action %}Antwort ansehen{% endblock action %} {% block note %}Die
+  {% set has_prev = false %} {% if document_title %}
+  <tr>
+    <td style="padding: 13px 0">
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        DOKUMENT
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 15.5px;
+          line-height: 1.45;
+          font-weight: 600;
+          color: #162230;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ document_title }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %} {% if actor %}
+  <tr>
+    <td
+      style="padding: 12px 0; {% if has_prev %}border-top: 1px solid #e7ecf3;{% endif %}"
+    >
+      <p
+        style="
+          margin: 0 0 4px;
+          font-size: 10.5px;
+          line-height: 1.3;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #647082;
+        "
+      >
+        Von
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-size: 14.5px;
+          line-height: 1.45;
+          font-weight: 500;
+          color: #2b3547;
+          overflow-wrap: anywhere;
+        "
+      >
+        {{ actor }}
+      </p>
+    </td>
+  </tr>
+  {% set_global has_prev = true %} {% endif %}
+</table>
+{% endblock details %} {% block next_step %}Öffne die Unterhaltung, um die
+Antwort zu lesen und bei Bedarf weiterzuschreiben.{% endblock next_step %} {%
+block action %}Antwort ansehen{% endblock action %} {% block note %}Die
 aktuellen Informationen und verfügbaren Aktionen findest du direkt in Myoxus.{%
 endblock note %} {% block reason %}Du erhältst diese E-Mail, weil auf deinen
 Kommentar geantwortet wurde.{% endblock reason %}

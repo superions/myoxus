@@ -19,6 +19,5 @@ yrs            = { workspace = true }
 # Yjs v1 codec dependencies
 byteorder     = { workspace = true }
 log           = { workspace = true }
-nom           = { workspace = true }
 ordered-float = { workspace = true }
 thiserror     = { workspace = true }

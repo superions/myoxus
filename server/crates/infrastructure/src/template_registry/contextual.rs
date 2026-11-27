@@ -140,7 +140,7 @@ impl SqlxTemplateRegistryStore {
       ORDER BY page.available DESC,page.score DESC,page.title COLLATE "C",page.slug COLLATE "C",page.template_id
     "#
     );
-    let rows = sqlx::query(&sql)
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(query.workspace_id)
       .bind(query.category)
       .bind(query.exclude_building_blocks)
@@ -217,7 +217,7 @@ impl SqlxTemplateRegistryStore {
       ORDER BY c.slug
     "#
     );
-    sqlx::query(&sql)
+    sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace)
       .fetch_all(&self.pool)
       .await

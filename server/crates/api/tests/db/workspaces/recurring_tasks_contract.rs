@@ -323,9 +323,9 @@ fn recurring_task_admission_and_native_effect_are_durable_without_optional_autom
       assert_eq!(rows,4);
       let second = myoxus_application::scheduling::next_after(&rule,first_due,CalculationBudget::default()).unwrap().unwrap();
       for id in &ids {run_ids.push(Uuid::new_v5(&occurrence_id(*id,second.nominal),b"run"));}
-      sqlx::query(&format!("CREATE FUNCTION {failure}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.instance_id='{}' THEN RAISE EXCEPTION 'owned recurrence snapshot failure'; END IF; RETURN NEW; END $$",run_ids[2]))
+      sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {failure}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.instance_id='{}' THEN RAISE EXCEPTION 'owned recurrence snapshot failure'; END IF; RETURN NEW; END $$",run_ids[2])))
         .execute(&pool).await.unwrap();
-      sqlx::query(&format!("CREATE TRIGGER {failure} BEFORE INSERT ON sayiir_workflow_snapshots FOR EACH ROW EXECUTE FUNCTION {failure}()"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {failure} BEFORE INSERT ON sayiir_workflow_snapshots FOR EACH ROW EXECUTE FUNCTION {failure}()")))
         .execute(&pool).await.unwrap();
       let (a,b) = tokio::join!(scheduler.dispatch_due(first_due,50),scheduler.dispatch_due(first_due,50));
       let reports = (a.unwrap(),b.unwrap());
@@ -342,8 +342,8 @@ fn recurring_task_admission_and_native_effect_are_durable_without_optional_autom
         .bind(ids[0]).fetch_one(&pool).await.unwrap();
       assert_eq!(pending.0,Some(serde_json::to_value(second.nominal).unwrap()));
       assert_eq!(pending.1.as_deref(),Some("taskDestinationUnavailable"));
-      sqlx::query(&format!("DROP TRIGGER {failure} ON sayiir_workflow_snapshots")).execute(&pool).await.unwrap();
-      sqlx::query(&format!("DROP FUNCTION {failure}()")).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {failure} ON sayiir_workflow_snapshots"))).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {failure}()"))).execute(&pool).await.unwrap();
       scheduler.dispatch_due(first_due+Duration::seconds(31),50).await.unwrap();
       runtime.start().await.unwrap();
       wait_for_effects(&pool,&run_ids,2).await;
@@ -421,9 +421,9 @@ fn recurring_task_admission_and_native_effect_are_durable_without_optional_autom
       let relative_id = relative.series.id;
       let initial_member = relative.series.current_member_id.unwrap();
       let event = Uuid::new_v5(&initial_member,b"completion-wake");
-      sqlx::query(&format!("CREATE FUNCTION {failure}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id='{event}' THEN RAISE EXCEPTION 'owned recurrence intent failure'; END IF; RETURN NEW; END $$"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {failure}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id='{event}' THEN RAISE EXCEPTION 'owned recurrence intent failure'; END IF; RETURN NEW; END $$")))
         .execute(&pool).await.unwrap();
-      sqlx::query(&format!("CREATE TRIGGER {failure} BEFORE INSERT ON outbox_events FOR EACH ROW EXECUTE FUNCTION {failure}()"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {failure} BEFORE INSERT ON outbox_events FOR EACH ROW EXECUTE FUNCTION {failure}()")))
         .execute(&pool).await.unwrap();
       let status_revision = original.cells.iter().find(|cell|cell.field_id==status_field).unwrap().edit_revision;
       assert!(services.editing.update_cell_value_with_precondition(actor,database,original.row.id,status_field,
@@ -434,8 +434,8 @@ fn recurring_task_admission_and_native_effect_are_durable_without_optional_autom
       let rolled_back:(Option<chrono::DateTime<Utc>>,Option<serde_json::Value>) = sqlx::query_as("SELECT m.advanced_at,s.next_nominal FROM task_recurrence_members m JOIN scheduling_schedules s ON s.id=m.series_id WHERE m.id=$1")
         .bind(initial_member).fetch_one(&pool).await.unwrap();
       assert_eq!(rolled_back,(None,None),"receipt and timing intent share the Cell transaction");
-      sqlx::query(&format!("DROP TRIGGER {failure} ON outbox_events")).execute(&pool).await.unwrap();
-      sqlx::query(&format!("DROP FUNCTION {failure}()")).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {failure} ON outbox_events"))).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {failure}()"))).execute(&pool).await.unwrap();
       let (first_complete,racing_complete) = tokio::join!(
         services.editing.update_cell_value_with_precondition(actor,database,original.row.id,status_field,
           DatabaseCellValueData::Status(complete.clone()),Some(status_revision),false),
@@ -522,15 +522,15 @@ fn recurring_task_admission_and_native_effect_are_durable_without_optional_autom
         expected_revision:paused.schedule.revision,expected_row_revision:next.row.edit_revision,
         expected_status_revision:next.cells.iter().find(|cell|cell.field_id==status_field).unwrap().edit_revision};
       let skip_event=Uuid::new_v5(&resumed_occurrence,b"completion-wake");
-      sqlx::query(&format!("CREATE FUNCTION {failure}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id='{skip_event}' THEN RAISE EXCEPTION 'owned recurrence Skip intent failure'; END IF; RETURN NEW; END $$"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {failure}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id='{skip_event}' THEN RAISE EXCEPTION 'owned recurrence Skip intent failure'; END IF; RETURN NEW; END $$")))
         .execute(&pool).await.unwrap();
-      sqlx::query(&format!("CREATE TRIGGER {failure} BEFORE INSERT ON outbox_events FOR EACH ROW EXECUTE FUNCTION {failure}()"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {failure} BEFORE INSERT ON outbox_events FOR EACH ROW EXECUTE FUNCTION {failure}()")))
         .execute(&pool).await.unwrap();
       assert!(skip_graphql(&app,&state,actor_session,skip.clone()).await.is_err());
       let unchanged=services.views.get_row(actor,database,next.row.id).await.unwrap().unwrap();
       assert_eq!(unchanged.cells.iter().find(|cell|cell.field_id==status_field).unwrap().value,DatabaseCellValueData::Status(open.clone()));
-      sqlx::query(&format!("DROP TRIGGER {failure} ON outbox_events")).execute(&pool).await.unwrap();
-      sqlx::query(&format!("DROP FUNCTION {failure}()")).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {failure} ON outbox_events"))).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {failure}()"))).execute(&pool).await.unwrap();
       let (a,b)=tokio::join!(skip_graphql(&app,&state,actor_session,skip.clone()),skip_graphql(&app,&state,actor_session,skip.clone()));
       assert!(a.is_ok() || b.is_ok());
       let skipped=skip_graphql(&app,&state,actor_session,skip).await.unwrap();
@@ -702,17 +702,19 @@ fn recurring_task_admission_and_native_effect_are_durable_without_optional_autom
         .any(|member|member["rowId"]==created.row.id.to_string()),"a retained deleted member also stays addressable");
     }).catch_unwind().await;
     runtime.shutdown(StdDuration::from_secs(10)).await.unwrap();
-    sqlx::query(&format!("DROP TRIGGER IF EXISTS {failure} ON outbox_events"))
-      .execute(&pool)
-      .await
-      .unwrap();
-    sqlx::query(&format!(
-      "DROP TRIGGER IF EXISTS {failure} ON sayiir_workflow_snapshots"
-    ))
+    sqlx::query(sqlx::AssertSqlSafe(format!(
+      "DROP TRIGGER IF EXISTS {failure} ON outbox_events"
+    )))
     .execute(&pool)
     .await
     .unwrap();
-    sqlx::query(&format!("DROP FUNCTION IF EXISTS {failure}()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!(
+      "DROP TRIGGER IF EXISTS {failure} ON sayiir_workflow_snapshots"
+    )))
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {failure}()")))
       .execute(&pool)
       .await
       .unwrap();

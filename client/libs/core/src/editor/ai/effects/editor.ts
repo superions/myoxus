@@ -1,8 +1,4 @@
 import {
-  MYOXUS_AI_PANEL_WIDGET,
-  MyoxusAIPanelWidget,
-} from "../widgets/ai-panel/ai-panel";
-import {
   MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK,
   MyoxusBlockDiffWidgetForBlock,
 } from "../widgets/block-diff/block";
@@ -29,7 +25,6 @@ export function registerAIEditorEffects() {
   registerAISharedEffects();
   const elements = {
     [MYOXUS_BLOCK_DIFF_PLAYGROUND]: BlockDiffPlayground,
-    [MYOXUS_AI_PANEL_WIDGET]: MyoxusAIPanelWidget,
     [MYOXUS_EDGELESS_COPILOT_WIDGET]: EdgelessCopilotWidget,
     [MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK]: MyoxusBlockDiffWidgetForBlock,
     [MYOXUS_BLOCK_DIFF_WIDGET_FOR_PAGE]: MyoxusBlockDiffWidgetForPage,

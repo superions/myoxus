@@ -12,7 +12,7 @@ import {
 import { StreamObjectSchema } from "../components/ai-chat-messages";
 import { type AIError, AIProvider } from "../provider";
 import { reportResponse } from "../utils/action-reporter";
-import { getAIPanelWidget } from "../utils/ai-widgets";
+import { getAIPanelController } from "../utils/ai-widgets";
 import { AIContext } from "../utils/context";
 import {
   getSelectedImagesAsBlobs,
@@ -21,7 +21,7 @@ import {
   selectAboveBlocks,
 } from "../utils/selection-utils";
 import { mergeStreamObjects } from "../utils/stream-objects";
-import type { MyoxusAIPanelWidget } from "../widgets/ai-panel/ai-panel";
+import type { AIPanelController } from "../widgets/ai-panel/controller";
 import type { AIActionAnswer } from "../widgets/ai-panel/type";
 import { actionToAnswerRenderer } from "./answer-renderer";
 
@@ -171,7 +171,7 @@ function actionToGenerateAnswer<T extends keyof VirgultumPresets.AIActions>(
  * Currently, only support text action
  */
 function updateAIPanelConfig<T extends keyof VirgultumPresets.AIActions>(
-  aiPanel: MyoxusAIPanelWidget,
+  aiPanel: AIPanelController,
   id: T,
   generatingIcon: MyoxusIconExportName,
   variants?: Omit<
@@ -210,7 +210,7 @@ export function actionToHandler<T extends keyof VirgultumPresets.AIActions>(
   trackerOptions?: VirgultumPresets.TrackerOptions,
 ) {
   return (host: EditorHost) => {
-    const aiPanel = getAIPanelWidget(host);
+    const aiPanel = getAIPanelController(host);
     updateAIPanelConfig(aiPanel, id, generatingIcon, variants, trackerOptions);
     const { selectedBlocks: blocks } = getSelections(aiPanel.host);
     if (!blocks || blocks.length === 0) return;
@@ -232,7 +232,7 @@ export function actionToHandler<T extends keyof VirgultumPresets.AIActions>(
 }
 
 export function handleInlineAskAIAction(host: EditorHost) {
-  const panel = getAIPanelWidget(host);
+  const panel = getAIPanelController(host);
   const selection = host.selection.find(TextSelection);
   const lastBlockPath = selection
     ? (selection.to?.blockId ?? selection.blockId)

@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::io::{Read, Write};
 use std::path::Path;
 
-use rusqlite::{Connection, DatabaseName, OpenFlags, OptionalExtension};
+use rusqlite::{Connection, MAIN_DB, OpenFlags, OptionalExtension};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
@@ -468,7 +468,10 @@ fn read_legacy_metadata(
     .query_row(
       "SELECT length(data) FROM sync_metadata WHERE key = 'workspace:meta' LIMIT 1",
       [],
-      |row| row.get::<_, u64>(0),
+      |row| {
+        let size = row.get::<_, i64>(0)?;
+        u64::try_from(size).map_err(|_| rusqlite::Error::IntegralValueOutOfRange(0, size))
+      },
     )
     .optional()
     .map_err(|_| {
@@ -577,7 +580,9 @@ fn read_assets(
   })?;
   let rows = statement
     .query_map([], |row| {
-      Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?, row.get::<_, u64>(2)?))
+      let size = row.get::<_, i64>(2)?;
+      let size = u64::try_from(size).map_err(|_| rusqlite::Error::IntegralValueOutOfRange(2, size))?;
+      Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?, size))
     })
     .map_err(|_| {
       diagnostic(
@@ -608,7 +613,7 @@ fn read_assets(
   let mut assets = BTreeMap::<String, DecodedAsset>::new();
   for (row_id, source_key, size_bytes) in asset_rows {
     let mut blob = connection
-      .blob_open(DatabaseName::Main, "blobs", "data", row_id, true)
+      .blob_open(MAIN_DB, "blobs", "data", row_id, true)
       .map_err(|_| {
         diagnostic(
           WorkspaceImportDiagnosticCode::MixWorkspaceImportSqliteInvalid,
@@ -719,7 +724,7 @@ pub(crate) fn copy_asset_to<W: Write>(
     )
   })?;
   let mut blob = connection
-    .blob_open(DatabaseName::Main, "blobs", "data", row_id, true)
+    .blob_open(MAIN_DB, "blobs", "data", row_id, true)
     .map_err(|_| {
       diagnostic(
         WorkspaceImportDiagnosticCode::MixWorkspaceImportSqliteInvalid,

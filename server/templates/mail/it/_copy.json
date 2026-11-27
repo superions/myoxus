@@ -16,5 +16,7 @@
   "eventFallback": "Evento senza titolo",
   "documentFallback": "Documento senza titolo",
   "workspaceFallback": "Spazio di lavoro",
-  "rowFallback": "Riga senza titolo"
+  "rowFallback": "Riga senza titolo",
+  "keyFallback": "Chiave API MCP",
+  "noExpiration": "Nessuna scadenza"
 }

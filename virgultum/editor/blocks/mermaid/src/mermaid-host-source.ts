@@ -90,7 +90,7 @@ export abstract class MermaidHostSource extends MermaidHostLifecycle {
       this._cancelPageSelectionMode();
       this._clearPendingVisualSelectionProjection();
       this._scheduleRender();
-      this.requestUpdate();
+      this._notifyProjectionChange();
       return;
     }
     const currentMode = this._getShellMode();
@@ -137,7 +137,7 @@ export abstract class MermaidHostSource extends MermaidHostLifecycle {
       }, false);
     }
     this._scheduleRender();
-    this.requestUpdate();
+    this._notifyProjectionChange();
   }
 
   protected _getDisplayMode(): MermaidDisplayMode {
@@ -194,7 +194,7 @@ export abstract class MermaidHostSource extends MermaidHostLifecycle {
     this.model.props.viewportHeight = next;
     this._visualAutoViewportHeight = null;
     this._lastScopedGfxFitKey = "";
-    this.requestUpdate();
+    this._notifyProjectionChange();
   }
 
   protected _applyVisualSelectionPatch(patch: MermaidGfxSelectionPatch) {
@@ -224,7 +224,6 @@ export abstract class MermaidHostSource extends MermaidHostLifecycle {
     // Invalidate the old output before the debounce, and reject async results
     // from an earlier source or mode so they cannot replace the current preview.
     this._renderState = "loading";
-    this.requestUpdate();
     this._renderTimer = setTimeout(() => {
       this._renderMermaid(generation).catch((error) => {
         console.error("[mermaid:block] render failed", error);
@@ -287,7 +286,7 @@ export abstract class MermaidHostSource extends MermaidHostLifecycle {
     });
     if (commit && !commit.deferUpdate) {
       this._scheduleRender();
-      this.requestUpdate();
+      this._notifyProjectionChange();
     }
   }
 
@@ -329,7 +328,7 @@ export abstract class MermaidHostSource extends MermaidHostLifecycle {
     ) {
       this._acceptProjectionOwnerSourceSyncKey();
     }
-    this.requestUpdate();
+    this._notifyProjectionChange();
   }
 
   protected async _renderMermaid(generation: number) {
@@ -355,7 +354,6 @@ export abstract class MermaidHostSource extends MermaidHostLifecycle {
       }
 
       this._renderState = "loading";
-      this.requestUpdate();
       const runtime = isMermaidProductDiagramType(diagramType)
         ? getMermaidFamilyRuntime(diagramType)
         : null;
@@ -391,7 +389,7 @@ export abstract class MermaidHostSource extends MermaidHostLifecycle {
       this._renderErrorLine = line ? Number(line) : null;
       this._renderErrorMessage = concreteMermaidRenderError(error);
     } finally {
-      if (generation === this._renderGeneration) this.requestUpdate();
+      if (generation === this._renderGeneration) this._notifyProjectionChange();
     }
   }
 }

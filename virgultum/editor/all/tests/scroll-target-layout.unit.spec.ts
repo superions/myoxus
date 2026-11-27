@@ -79,7 +79,7 @@ test("keeps the actual target highlight aligned when external title layout moves
     aligned();
     const unchangedHostHeight = host.getBoundingClientRect().height;
     title.style.height = "78px";
-    // Wait for the native ResizeObserver and Lit render, not a manual refresh.
+    // Wait for the native ResizeObserver and reactive render, not a manual refresh.
     await expect
       .poll(() => highlight.getBoundingClientRect().top)
       .toBe(target.getBoundingClientRect().top);

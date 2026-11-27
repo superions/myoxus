@@ -1558,7 +1558,7 @@ async fn install_apply_failure_trigger(pool: &PgPool, import_id: WorkspaceImport
     $$
     "#,
   );
-  sqlx::query(&function)
+  sqlx::query(sqlx::AssertSqlSafe(function.as_str()))
     .execute(pool)
     .await
     .expect("install workspace import failure function");

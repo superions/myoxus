@@ -267,7 +267,7 @@ export abstract class MermaidHostGfxViewport extends MermaidHostGfxActions {
 
   protected _reconcileScopedGfxSelectionViewport() {
     this._ensureScopedGfxSelectionVisible();
-    this.requestUpdate();
+    this._notifyProjectionChange();
   }
 
   protected _scheduleScopedGfxSelectionVisibility() {

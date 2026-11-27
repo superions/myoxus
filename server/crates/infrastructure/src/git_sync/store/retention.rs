@@ -77,7 +77,7 @@ impl SqlxGitSyncStore {
       if remaining == 0 {
         break;
       }
-      let deleted = sqlx::query(query)
+      let deleted = sqlx::query(*query)
         .bind(profile_id)
         .bind(cutoff)
         .bind(remaining as i64)
@@ -112,7 +112,7 @@ impl SqlxGitSyncStore {
         SELECT v.id FROM git_sync_version_links v JOIN expired r ON r.id=v.run_id
         WHERE v.profile_id=$1 AND v.created_at<$2 ORDER BY v.created_at,v.id LIMIT $3)"
     );
-    let deleted = sqlx::query(&links)
+    let deleted = sqlx::query(sqlx::AssertSqlSafe(links.as_str()))
       .bind(profile_id)
       .bind(cutoff)
       .bind(i64::from(limit))
@@ -131,7 +131,7 @@ impl SqlxGitSyncStore {
             AND NOT EXISTS(SELECT 1 FROM git_sync_version_links v WHERE v.run_id=r.id)
           ORDER BY r.finished_at,r.id LIMIT $3)"
       );
-      let deleted = sqlx::query(&runs)
+      let deleted = sqlx::query(sqlx::AssertSqlSafe(runs.as_str()))
         .bind(profile_id)
         .bind(cutoff)
         .bind(remaining as i64)

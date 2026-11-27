@@ -2,7 +2,7 @@
 
 import { type MantineThemeOverride, rem } from "@mantine/core";
 
-/** Shared density for the Facade provider and isolated Lit consumers.
+/** Shared density for the Facade provider and isolated non-React consumers.
  * Keep this data-only: consuming spacing must not require mounting a React shell.
  * Colors and typography remain owned by the server theme projection. */
 export const myoxusMantineDensity = {

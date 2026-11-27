@@ -35,7 +35,7 @@ export function useAIChatConfig() {
   const collectionService = framework.get(CollectionService);
   const docsService = framework.get(DocsService);
 
-  // Portal updates rerender the host. Stable adapters prevent a React/Lit
+  // Portal updates rerender the host. Stable adapters prevent a React/host
   // feedback loop without freezing the services' reactive values.
   return useMemo(() => {
     const reasoningConfig = {

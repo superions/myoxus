@@ -26,10 +26,7 @@ import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
 import type { AIItemGroupConfig } from "../../components/ai-item/types.js";
 import { AIProvider } from "../../provider/index.js";
 import { extractSelectedContent } from "../../utils/extract.js";
-import {
-  MYOXUS_AI_PANEL_WIDGET,
-  MyoxusAIPanelWidget,
-} from "../ai-panel/ai-panel.js";
+import { AIPanelControllerIdentifier } from "../ai-panel/controller";
 import { EdgelessCopilotPanel } from "../edgeless-copilot-panel/index.js";
 import { MYOXUS_EDGELESS_COPILOT_WIDGET } from "./constant.js";
 
@@ -79,17 +76,10 @@ export class EdgelessCopilotWidget extends NativeEditorWidget<RootBlockModel> {
       if (!referenceElement || !referenceElement.isConnected) return;
 
       // show ai input
-      const rootBlockId = this.host.store.root?.id;
-      if (!rootBlockId) return;
+      const aiPanel = this.std.getOptional(AIPanelControllerIdentifier);
 
-      const input = this.host.view.getWidget(
-        MYOXUS_AI_PANEL_WIDGET,
-        rootBlockId,
-      );
-
-      if (input instanceof MyoxusAIPanelWidget) {
-        input.setState("input", referenceElement);
-        const aiPanel = input;
+      if (aiPanel) {
+        aiPanel.setState("input", referenceElement);
         // TODO: @xiaojun refactor these scattered config overrides
         if (aiPanel.config && !aiPanel.config.generateAnswer) {
           aiPanel.config.generateAnswer = ({ finish, input }) => {
@@ -114,7 +104,7 @@ export class EdgelessCopilotWidget extends NativeEditorWidget<RootBlockModel> {
         }
         requestAnimationFrame(() => {
           this._createCopilotPanel();
-          this._updateCopilotPanel(input);
+          this._updateCopilotPanel(aiPanel.element);
         });
       }
     }, this);

@@ -6,7 +6,7 @@ import type {
   ToolbarContext,
 } from "@virgultum/editor/shared/services";
 import type { AIItemGroupConfig } from "../components/ai-item/types";
-import { getAIPanelWidget } from "../utils/ai-widgets";
+import { getAIPanelController } from "../utils/ai-widgets";
 
 /** Present the existing AI catalogue; handlers remain the only command authority. */
 export function aiToolbarActions(
@@ -15,7 +15,7 @@ export function aiToolbarActions(
   restoreSelection = false,
 ): ToolbarActions {
   const run = (handler?: AIItemGroupConfig["items"][number]["handler"]) => {
-    if (restoreSelection) getAIPanelWidget(context.host).restoreSelection();
+    if (restoreSelection) getAIPanelController(context.host).restoreSelection();
     handler?.(context.host);
   };
   return groups.map((group, index) => ({

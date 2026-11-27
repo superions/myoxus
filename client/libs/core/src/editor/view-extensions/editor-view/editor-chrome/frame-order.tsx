@@ -13,7 +13,7 @@ import {
 import type { EditorFrameOrderControls } from "@virgultum/editor/shared/services";
 import { useRef, useState, type DragEvent } from "react";
 
-/** Native drag preview and shared drop indicator replace the old cloned Lit row. */
+/** Native drag preview and shared drop indicator for frame ordering. */
 export function EditorFrameOrder({
   controls: c,
 }: {

@@ -15,10 +15,7 @@ import { on } from "@virgultum/core/utils";
 import { isEqual } from "lodash-es";
 import { Subject } from "rxjs";
 
-import {
-  MYOXUS_AI_PANEL_WIDGET,
-  type MyoxusAIPanelWidget,
-} from "../widgets/ai-panel/ai-panel.js";
+import { AIPanelControllerIdentifier } from "../widgets/ai-panel/controller";
 
 export class CopilotTool extends BaseTool {
   static override toolName: string = "copilot";
@@ -49,11 +46,8 @@ export class CopilotTool extends BaseTool {
 
   // AI processing
   get processing() {
-    const aiPanel = this.gfx.std.view.getWidget(
-      MYOXUS_AI_PANEL_WIDGET,
-      this.doc.root!.id,
-    ) as MyoxusAIPanelWidget;
-    return aiPanel && aiPanel.state !== "hidden";
+    const aiPanel = this.gfx.std.getOptional(AIPanelControllerIdentifier);
+    return Boolean(aiPanel && aiPanel.state !== "hidden");
   }
 
   get selectedElements() {

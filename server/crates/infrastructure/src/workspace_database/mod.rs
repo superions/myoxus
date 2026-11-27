@@ -149,7 +149,7 @@ impl PgDatabaseRepository {
           VALUES ($1, $2, $12, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         "#,
       );
-      sqlx::query(&insert_row_sql)
+      sqlx::query(sqlx::AssertSqlSafe(insert_row_sql.as_str()))
         .bind(row_record.row.id)
         .bind(database_id)
         .bind(row_record.row.row_kind.as_str())
@@ -212,7 +212,7 @@ impl PgDatabaseRepository {
             VALUES ($1, $2, $3, $7, $4, $5, $6)
           "#,
         );
-        sqlx::query(&insert_cell_sql)
+        sqlx::query(sqlx::AssertSqlSafe(insert_cell_sql.as_str()))
           .bind(cell.row_id)
           .bind(cell.field_id)
           .bind(value_json)
@@ -254,7 +254,7 @@ impl PgDatabaseRepository {
              WHERE database_id = $1 AND is_default = true
           "#,
         );
-        sqlx::query(&clear_default_template_sql)
+        sqlx::query(sqlx::AssertSqlSafe(clear_default_template_sql.as_str()))
           .bind(database_id)
           .execute(&mut **tx)
           .await
@@ -270,7 +270,7 @@ impl PgDatabaseRepository {
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         "#,
       );
-      sqlx::query(&insert_template_sql)
+      sqlx::query(sqlx::AssertSqlSafe(insert_template_sql.as_str()))
         .bind(template.id)
         .bind(template.workspace_id)
         .bind(template.database_id)
@@ -363,7 +363,7 @@ impl PgDatabaseRepository {
       let update_row_sql = format!(
         "UPDATE {DATABASE_ROWS_TABLE}\n            SET title = $2,\n                doc_id = COALESCE($3, doc_id),\n                updated_by = $4,\n                edit_revision = edit_revision + 1,\n                updated_at = $5\n          WHERE id = $1 AND database_id = $6 AND deleted_at IS NULL",
       );
-      let result = sqlx::query(&update_row_sql)
+      let result = sqlx::query(sqlx::AssertSqlSafe(update_row_sql.as_str()))
         .bind(row_record.row.id)
         .bind(&row_record.row.title)
         // A portable body explicitly replaces the Row association with its
@@ -394,7 +394,7 @@ impl PgDatabaseRepository {
                   updated_at = EXCLUDED.updated_at
           "#,
         );
-        sqlx::query(&upsert_cell_sql)
+        sqlx::query(sqlx::AssertSqlSafe(upsert_cell_sql.as_str()))
           .bind(row_record.row.id)
           .bind(cell.field_id)
           .bind(value_json)

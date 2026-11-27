@@ -113,7 +113,7 @@ describe("registered native note callout codec", () => {
         id,
       );
       const std = new BlockStdScope({ store, extensions: testStoreExtensions });
-      // Commands use the real store/selection; only Lit's focus-scheduling
+      // Commands use the real store/selection; only the host's focus-scheduling
       // boundary is supplied here. Actual focus is verified in the served editor.
       vi.spyOn(std, "host", "get").mockReturnValue({
         store,

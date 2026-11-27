@@ -23,8 +23,6 @@ export const peek = (e: HTMLElement): void => {
 
 /**
  * Mark a class as peekable, which means the class can be peeked by the peek view service.
- *
- * Note: This class must be syntactically below the `@customElement` decorator (it will be applied before customElement).
  */
 export const Peekable =
   <T extends PeekableClass, C extends Constructor<PeekableClass>>(

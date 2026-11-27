@@ -31,8 +31,18 @@ export interface SeniorTool {
 export type ToolBuilder<T> = (options: {
   block: BlockComponent;
   gfx: GfxController;
-  toolbarContainer: HTMLElement;
+  closeActivePopover: () => void;
 }) => T;
+
+export type DiagramToolbarTemplateCategory =
+  "processes" | "software" | "planning" | "data";
+
+export interface DiagramToolbarTemplate {
+  id: string;
+  label: string | EditorI18nMessage;
+  category: DiagramToolbarTemplateCategory;
+  run: (options: { block: BlockComponent; gfx: GfxController }) => void;
+}
 
 export const QuickToolIdentifier = createIdentifier<ToolBuilder<QuickTool>>(
   "edgeless-quick-tool",
@@ -40,6 +50,8 @@ export const QuickToolIdentifier = createIdentifier<ToolBuilder<QuickTool>>(
 export const SeniorToolIdentifier = createIdentifier<ToolBuilder<SeniorTool>>(
   "edgeless-senior-tool",
 );
+export const DiagramToolbarTemplateIdentifier =
+  createIdentifier<DiagramToolbarTemplate>("edgeless-diagram-toolbar-template");
 
 export const QuickToolExtension = (
   id: string,
@@ -59,6 +71,21 @@ export const SeniorToolExtension = (
   return {
     setup: (di) => {
       di.addImpl(SeniorToolIdentifier(id), () => builder);
+    },
+  };
+};
+
+/**
+ * Registers a diagram template entry inside the Edgeless Diagram templates
+ * menu without coupling sibling diagram block packages to each other.
+ */
+export const DiagramToolbarTemplateExtension = (
+  id: string,
+  template: DiagramToolbarTemplate,
+): ExtensionType => {
+  return {
+    setup: (di) => {
+      di.addImpl(DiagramToolbarTemplateIdentifier(id), () => template);
     },
   };
 };

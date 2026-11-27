@@ -64,13 +64,10 @@ export type BpmnEditorDiagramClipboard = {
   processIo?: Normalized<BPMN20__tInputOutputSpecification>;
 };
 export function buildClipboardFromDiagram(
-  xyFlowState: Pick<
-    RF.ReactFlowState<
-      RF.Node<BpmnDiagramNodeData, BpmnNodeType>,
-      RF.Edge<BpmnDiagramEdgeData>
-    >,
-    "nodes" | "edges"
-  >,
+  xyFlowState: {
+    nodes: RF.Node<BpmnDiagramNodeData, BpmnNodeType>[];
+    edges: RF.Edge<BpmnDiagramEdgeData>[];
+  },
   bpmnEditorState: State,
 ) {
   const copiedEdgesById = new Map<string, RF.Edge<BpmnDiagramEdgeData>>();

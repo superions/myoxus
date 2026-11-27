@@ -38,7 +38,7 @@ impl PgDatabaseRepository {
       .bind(read.workspace_id).fetch_one(&mut *tx).await.map_err(Self::map_sqlx_error)?;
     // Validate semantic role metadata even when a filter matches no Rows.
     // Invalid configuration must never masquerade as a healthy zero count.
-    let roles = sqlx::query(&task_roles_sql(PROJECTS))
+    let roles = sqlx::query(sqlx::AssertSqlSafe(task_roles_sql(PROJECTS).as_str()))
       .bind(read.workspace_id)
       .fetch_all(&mut *tx)
       .await
@@ -65,7 +65,7 @@ impl PgDatabaseRepository {
     if read.query.scope == DatabaseTaskScope::Following {
       // Missing optional Watchers means no membership. A present malformed or
       // aliased role cannot turn assignment into an implicit subscription.
-      let invalid: bool = sqlx::query_scalar(&format!(
+      let invalid: bool = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
         r#"
         WITH projects AS ({PROJECTS})
         SELECT EXISTS (
@@ -80,7 +80,7 @@ impl PgDatabaseRepository {
               AND other.field_id=role.field_id AND other.row_kind_scope='task' AND other.role_key<>'task.watchers'))
         )
       "#
-      ))
+      )))
       .bind(read.workspace_id)
       .fetch_one(&mut *tx)
       .await
@@ -106,7 +106,7 @@ impl PgDatabaseRepository {
       DatabaseTaskDuePreset::NextSevenDays => "nextSevenDays",
       DatabaseTaskDuePreset::Unscheduled => "unscheduled",
     });
-    let raw = sqlx::query(&sql)
+    let raw = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(read.workspace_id)
       .bind(&read.query.project_ids)
       .bind(read.actor_id)
@@ -170,7 +170,7 @@ impl PgDatabaseRepository {
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     read: &DatabaseTasksRead,
   ) -> RepoResult<Value> {
-    let rows = sqlx::query(&format!(
+    let rows = sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"WITH projects AS ({PROJECTS})
       SELECT p.id AS database_id, role.role_key, role.row_kind_scope, role.field_id,
         field.field_type, field.config_json
@@ -178,7 +178,7 @@ impl PgDatabaseRepository {
       LEFT JOIN database_field_roles role ON role.database_id=p.id
       LEFT JOIN workspace_database_fields field ON field.id=role.field_id AND field.database_id=p.id
       WHERE cardinality($2::uuid[])=0 OR p.id=ANY($2)"#
-    ))
+    )))
     .bind(read.workspace_id)
     .bind(&read.query.project_ids)
     .fetch_all(&mut **tx)
@@ -735,7 +735,7 @@ impl PgDatabaseRepository {
       .into_iter()
       .map(|row| (row.get::<Uuid, _>("database_id"), row.get::<Uuid, _>("id")))
       .unzip();
-    let roles = sqlx::query(&task_roles_sql(REFERENCE_PROJECTS))
+    let roles = sqlx::query(sqlx::AssertSqlSafe(task_roles_sql(REFERENCE_PROJECTS).as_str()))
       .bind(read.workspace_id)
       .bind(&database_ids)
       .fetch_all(&mut *tx)
@@ -764,7 +764,7 @@ impl PgDatabaseRepository {
     let invalid = task_invalid_sql("p");
     let sql =
       format!("{ctes} SELECT {summary} AS task, p.project_deleted_at, ({invalid}) AS unavailable FROM projected p");
-    let raw = sqlx::query(&sql)
+    let raw = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(read.workspace_id)
       .bind(valid)
       .bind(database_ids)
@@ -914,7 +914,7 @@ impl PgDatabaseRepository {
       return Ok(result);
     }
     result.available = true;
-    let role_rows = sqlx::query(&task_roles_sql(CHILD_PROJECT))
+    let role_rows = sqlx::query(sqlx::AssertSqlSafe(task_roles_sql(CHILD_PROJECT).as_str()))
       .bind(read.workspace_id)
       .bind(read.database_id)
       .fetch_all(&mut *tx)
@@ -954,7 +954,7 @@ impl PgDatabaseRepository {
       (SELECT COALESCE(jsonb_agg({summary} ORDER BY p.id), '[]'::jsonb) FROM child_page p) AS rows
     FROM projected"#
     );
-    let raw = sqlx::query(&sql)
+    let raw = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(read.workspace_id)
       .bind(read.database_id)
       .bind(read.parent_row_id)
@@ -1104,7 +1104,7 @@ impl PgDatabaseRepository {
     let limit = read.limit.clamp(1, DATABASE_MAX_ROWS_PER_PAGE) as usize;
     let mut ids = if read.inverse {
       let readable = task_relation_readable_sql("cell.value_json");
-      sqlx::query_scalar::<_, Uuid>(&format!(
+      sqlx::query_scalar::<_, Uuid>(sqlx::AssertSqlSafe(format!(
         r#"
         SELECT row.id FROM workspace_database_rows row
         JOIN workspace_database_cell_values cell ON cell.row_id=row.id AND cell.field_id=$3
@@ -1119,7 +1119,7 @@ impl PgDatabaseRepository {
           AND ($4::uuid IS NULL OR row.id>$4)
         ORDER BY row.id LIMIT $5
       "#,
-      ))
+      )))
       .bind(read.database_id)
       .bind(read.row_id)
       .bind(field)
@@ -1143,7 +1143,7 @@ impl PgDatabaseRepository {
     ids.truncate(limit);
     let mut summary_ids = ids.clone();
     summary_ids.push(read.row_id);
-    let role_rows = sqlx::query(&task_roles_sql(CHILD_PROJECT))
+    let role_rows = sqlx::query(sqlx::AssertSqlSafe(task_roles_sql(CHILD_PROJECT).as_str()))
       .bind(read.workspace_id)
       .bind(read.database_id)
       .fetch_all(&mut *tx)
@@ -1160,7 +1160,7 @@ impl PgDatabaseRepository {
     let valid_status = valid_roles.iter().any(|key| key == "task.status");
     let ctes = task_projection_ctes_with_roles(CHILD_PROJECT, "r.id=ANY($3::uuid[])", Some("$4"));
     let summary = task_summary_sql();
-    let raw = sqlx::query(&format!(
+    let raw = sqlx::query(sqlx::AssertSqlSafe(format!(
       r#"{ctes}
       SELECT p.id, p.deleted_at, p.status_id, p.status_group,
         EXISTS (
@@ -1176,7 +1176,7 @@ impl PgDatabaseRepository {
         ) AS malformed_status,
         {summary} AS task
       FROM projected p"#
-    ))
+    )))
     .bind(read.workspace_id)
     .bind(read.database_id)
     .bind(summary_ids)

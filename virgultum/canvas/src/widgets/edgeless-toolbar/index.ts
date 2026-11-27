@@ -1,5 +1,3 @@
 export * from "./config";
-export * from "./draggable";
-export * from "./edgeless-toolbar";
+export * from "./dock-host";
 export * from "./extension";
-export * from "./mixins";

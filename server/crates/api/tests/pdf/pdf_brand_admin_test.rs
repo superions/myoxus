@@ -883,7 +883,7 @@ fn workspace_pdf_mutations_are_atomic_and_logo_captures_are_immutable() {
       };
       let before = snapshot().await;
       // Enforce the fault on new writes without rejecting existing audit history.
-      sqlx::query(&format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK (target_id IS DISTINCT FROM '{ws}') NOT VALID"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK (target_id IS DISTINCT FROM '{ws}') NOT VALID")))
         .execute(&pool).await.expect("inject scoped audit failure");
       let mutations = vec![
         assign(templates[2]),
@@ -907,7 +907,7 @@ fn workspace_pdf_mutations_are_atomic_and_logo_captures_are_immutable() {
       assert_eq!(storage.operator().read(&old_key).await.unwrap().to_vec(),original,"failed replacement must preserve actual old bytes");
       let files = storage.operator().list_with("pdf-brand/").recursive(true).await.unwrap();
       assert_eq!(files.iter().filter(|e|e.metadata().mode().is_file()).count(),1,"only committed original remains; staged loser is removed");
-      sqlx::query(&format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}")).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}"))).execute(&pool).await.unwrap();
 
       // Successful calls now commit their corresponding state and audit.
       let success = [mutations[0].clone(),mutations[2].clone(),
@@ -956,9 +956,9 @@ fn workspace_pdf_mutations_are_atomic_and_logo_captures_are_immutable() {
         .bind(ws).fetch_one(&pool).await.unwrap();
       assert_eq!(settings,("fr".into(),templates[1]),"reset preserves export settings and default");
     }).catch_unwind().await;
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       "ALTER TABLE admin_audit_log DROP CONSTRAINT IF EXISTS {constraint}"
-    ))
+    )))
     .execute(&pool)
     .await
     .expect("remove failure injector");

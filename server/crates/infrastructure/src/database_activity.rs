@@ -60,7 +60,7 @@ impl DatabaseActivityStore for PgDatabaseActivityStore {
     take: i64,
   ) -> Result<Vec<DatabaseActivityEntry>, DatabaseActivityError> {
     let (sql, params) = build_list_query(&filter, skip, take);
-    let mut q = sqlx::query(&sql);
+    let mut q = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()));
     for p in &params {
       q = bind_param(q, p);
     }
@@ -71,7 +71,7 @@ impl DatabaseActivityStore for PgDatabaseActivityStore {
   #[tracing::instrument(skip(self), level = "debug")]
   async fn count(&self, filter: DatabaseActivityFilter) -> Result<i64, DatabaseActivityError> {
     let (sql, params) = build_count_query(&filter);
-    let mut q = sqlx::query_scalar::<_, i64>(&sql);
+    let mut q = sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql.as_str()));
     for p in &params {
       q = bind_scalar_param(q, p);
     }

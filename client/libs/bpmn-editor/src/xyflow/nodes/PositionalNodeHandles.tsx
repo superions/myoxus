@@ -38,7 +38,7 @@ export function PositionalNodeHandles(props: {
   nodeId: string;
   sourceEdgeType?: string;
 }) {
-  const connectable = RF.useStore((s) => s.nodesConnectable);
+  const connectable = RF.useOptionsStore((s) => s.nodesConnectable);
   const updateNodeInternals = RF.useUpdateNodeInternals();
   React.useLayoutEffect(() => {
     updateNodeInternals(props.nodeId);
@@ -46,10 +46,10 @@ export function PositionalNodeHandles(props: {
   const connecting = RF.useConnection().inProgress;
   // A selected target must not expose source hit regions above its target
   // handles during an ordinary drag. Reverse source reconnection is separate.
-  const activeSource = RF.useStore(
+  const activeSource = RF.useConnectionStore(
     (s) => s.connection.fromHandle?.nodeId === props.nodeId,
   );
-  const reconnectingSource = RF.useStore(
+  const reconnectingSource = RF.useConnectionStore(
     (s) => s.connection.fromHandle?.type === "target",
   );
   const targetsStyle: React.CSSProperties = useMemo(

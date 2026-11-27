@@ -172,7 +172,7 @@ if phase == "package":
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0
     info, _ = entry("/opt/myoxus/templates/features")
     assert info.isdir()
-    for path in ["licenses/biblatex/LICENSE-MIT", "licenses/hayagriva/NOTICE", "licenses/simba/LICENSE",
+    for path in ["licenses/biblatex/LICENSE-MIT", "licenses/hayagriva/NOTICE",
                  "licenses/safer-bytes/DECLARED-MIT.txt", "provenance/paste-consumers-source.json"]:
         assert access(f"/usr/share/doc/myoxus-server/{path}", 4)
     for path in ["/run/myoxus", "/opt/myoxus/runtime-config", "/opt/myoxus/runtime-assets/style"]:
@@ -332,19 +332,19 @@ docker run -d --name "$POSTGRES_CONTAINER" --network "$NETWORK" --network-alias 
   -e POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password \
   -v "$FIXTURE_ROOT/secrets/postgres_password:/run/secrets/postgres_password:ro" \
   pgvector/pgvector:pg16 >/dev/null
-docker run -d --name "$REDIS_CONTAINER" --network "$NETWORK" --network-alias redis redis:8 >/dev/null
+docker run -d --name "$REDIS_CONTAINER" --network "$NETWORK" --network-alias redis valkey/valkey:9 >/dev/null
 
 # The image's temporary init server accepts Unix sockets before restarting.
 # TCP readiness belongs to the final server that the API can actually reach.
 for _ in $(seq 1 60); do
   if docker exec "$POSTGRES_CONTAINER" pg_isready -h 127.0.0.1 -U myoxus -d myoxus >/dev/null 2>&1 \
-    && docker exec "$REDIS_CONTAINER" redis-cli ping >/dev/null 2>&1; then
+    && docker exec "$REDIS_CONTAINER" valkey-cli ping >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
 docker exec "$POSTGRES_CONTAINER" pg_isready -h 127.0.0.1 -U myoxus -d myoxus >/dev/null
-docker exec "$REDIS_CONTAINER" redis-cli ping >/dev/null
+docker exec "$REDIS_CONTAINER" valkey-cli ping >/dev/null
 
 docker run -d --name "$API_CONTAINER" --network "$NETWORK" \
   -p 127.0.0.1::3001 \

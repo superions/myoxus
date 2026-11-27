@@ -426,6 +426,165 @@ fn inv_mcp_audit_graphql_filters_category_and_folder_prefix() {
   });
 }
 
+#[test]
+fn inv_mcp_api_key_creation_emits_outbox_and_dispatches_localized_security_mail() {
+  helpers::block_on_large_stack("inv-mcp-api-key-mail-e2e", || async {
+    use myoxus_api::mcp_api_key_notification::{
+      dispatch_mcp_api_key_created_notification, enqueue_mcp_api_key_created_notification,
+    };
+    use myoxus_application::auth::{AuthStore, UserPreferencesPatch};
+    use myoxus_infrastructure::mail::TestMailAdapter;
+    use myoxus_worker::RedisQueue;
+
+    let (app, pool, auth_store, state) = helpers::setup_app_with_state().await;
+    let (user_id, session_id) = helpers::seed_user(&pool, &auth_store, "mcp-api-key-mail").await;
+    let user = auth_store
+      .get_user_by_id(user_id)
+      .await
+      .expect("lookup seeded user")
+      .expect("seeded user exists");
+    auth_store
+      .patch_user_preferences(
+        user_id,
+        UserPreferencesPatch {
+          locale: Some(Some("de-DE".into())),
+          timezone: Some(Some("Europe/Berlin".into())),
+          time_format: Some(Some("24-hour".into())),
+          ..Default::default()
+        },
+      )
+      .await
+      .expect("set user mail preferences");
+
+    let redis_url = std::env::var("TEST_REDIS_URL").expect("isolated Redis URL");
+    let prefix = format!("mcp-key-mail-{}", Uuid::new_v4());
+    let queue = RedisQueue::new(&redis_url, prefix.clone()).expect("redis queue");
+
+    let create = helpers::gql(
+      &app,
+      session_id,
+      json!({
+        "query": r#"
+          mutation CreateMcpApiKey($name: String!, $scopes: [String!]!, $expiresInDays: Int) {
+            apiKeys {
+              createApiKey(name: $name, scopes: $scopes, expiresInDays: $expiresInDays) {
+                id
+                key
+                name
+                scopes
+                expiresAt
+              }
+            }
+          }
+        "#,
+        "variables": {
+          "name": "mcp:security-alert-test",
+          "scopes": ["read:workspaces", "read:docs", "write:docs"],
+          "expiresInDays": 30,
+        }
+      }),
+    )
+    .await;
+    assert!(create.get("errors").is_none(), "createApiKey failed: {create}");
+    let created = &create["data"]["apiKeys"]["createApiKey"];
+    let key_id = created["id"].as_str().expect("key id");
+    let plaintext = created["key"].as_str().expect("plaintext secret");
+
+    let row = sqlx::query(
+      "SELECT id, payload FROM outbox_events WHERE event_type = 'mcp_api_key_created' AND aggregate_id = $1",
+    )
+    .bind(key_id)
+    .fetch_one(&pool)
+    .await
+    .expect("atomic mcp_api_key_created outbox row must exist");
+    let event_id: Uuid = row.get("id");
+    let payload: Value = row.get("payload");
+    let payload_text = payload.to_string();
+    assert!(
+      !payload_text.contains(plaintext),
+      "outbox payload must never contain the plaintext API key"
+    );
+    assert!(
+      !payload_text.contains("key_hash"),
+      "outbox payload must never contain hashed key material"
+    );
+    assert_eq!(payload["userId"], user_id.to_string());
+    assert_eq!(payload["apiKeyId"], key_id);
+    assert_eq!(payload["name"], "mcp:security-alert-test");
+
+    // Idempotent handoff onto the shared notification worker queue.
+    enqueue_mcp_api_key_created_notification(&queue, event_id, &payload)
+      .await
+      .expect("first enqueue");
+    enqueue_mcp_api_key_created_notification(&queue, event_id, &payload)
+      .await
+      .expect("idempotent duplicate enqueue");
+    assert_eq!(queue.queue_stats("notification").await.unwrap().waiting, 1);
+
+    let job = queue
+      .dequeue("notification", 1)
+      .await
+      .expect("dequeue")
+      .expect("queued mcp key mail job");
+    let mail_adapter =
+      TestMailAdapter::default().with_rendering_config("https://myoxus.example.test".into(), "en".into());
+    let delivered = dispatch_mcp_api_key_created_notification(&state, &mail_adapter, &job.data)
+      .await
+      .expect("dispatch mcp key security mail");
+    assert!(delivered, "active owner must receive creation email");
+
+    let mails = mail_adapter.sent_mails.lock().expect("mail lock");
+    assert_eq!(mails.len(), 1);
+    assert_eq!(mails[0].to, user.email);
+    assert!(
+      mails[0].subject.contains("mcp:security-alert-test"),
+      "subject must name key: {}",
+      mails[0].subject
+    );
+    assert!(
+      mails[0].subject.contains("MCP-API-Key"),
+      "subject must use German locale preference: {}",
+      mails[0].subject
+    );
+    assert!(mails[0].body.contains("lang=\"de\""));
+    assert!(mails[0].body.contains("read:workspaces"));
+    assert!(mails[0].body.contains("write:docs"));
+    assert!(
+      !mails[0].body.contains(plaintext),
+      "email body must never leak the plaintext API key"
+    );
+    drop(mails);
+
+    // Disabled accounts must suppress delivery cleanly.
+    sqlx::query("UPDATE users SET status = 'disabled' WHERE id = $1")
+      .bind(user_id)
+      .execute(&pool)
+      .await
+      .expect("disable user");
+    let suppressed = dispatch_mcp_api_key_created_notification(&state, &mail_adapter, &job.data)
+      .await
+      .expect("disabled user suppresses delivery");
+    assert!(!suppressed);
+    assert_eq!(mail_adapter.sent_mails.lock().expect("mail lock").len(), 1);
+
+    let client = redis::Client::open(redis_url).unwrap();
+    let mut connection = client.get_multiplexed_async_connection().await.unwrap();
+    let keys: Vec<String> = redis::cmd("KEYS")
+      .arg(format!("{prefix}:*"))
+      .query_async(&mut connection)
+      .await
+      .unwrap();
+    if !keys.is_empty() {
+      let _: u64 = redis::cmd("UNLINK")
+        .arg(keys)
+        .query_async(&mut connection)
+        .await
+        .unwrap();
+    }
+    helpers::cleanup_users(&pool, &[user_id]).await;
+  });
+}
+
 fn assert_scope_set(value: &Value, expected: &[&str]) {
   let scopes = value["scopes"].as_array().expect("scopes must be an array");
   for scope in expected {

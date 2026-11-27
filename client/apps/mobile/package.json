@@ -16,7 +16,7 @@
     "@myoxus/storage": "workspace:*",
     "@myoxus/theme": "workspace:*",
     "@myoxus/track": "workspace:*",
-    "@sentry/react": "10.75.0",
+    "@sentry/react": "11.10.0",
     "@virgultum/editor": "workspace:*",
     "react": "19.3.1",
     "react-dom": "19.3.1",

@@ -704,14 +704,14 @@ fn font_audit_failure_rolls_back_upload_status_and_delete_without_losing_bytes()
     cleanup_font_by_sha(&pool, &sha).await;
     let constraint = format!("font_audit_{}", admin.simple());
     let result=std::panic::AssertUnwindSafe(async {
-      sqlx::query(&format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK(actor_user_id IS DISTINCT FROM '{admin}') NOT VALID"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK(actor_user_id IS DISTINCT FROM '{admin}') NOT VALID")))
         .execute(&pool).await.expect("inject new-write audit failure");
       let failed=upload_font(&app,session,"lato.ttf",&bytes,None).await;
       assert!(failed["errors"].as_array().unwrap().iter().any(|e|e["message"].as_str().unwrap().contains(&constraint)),"audit failure must reject upload: {failed}");
       let rows:i64=sqlx::query_scalar("SELECT count(*) FROM pdf_fonts WHERE sha256=$1").bind(&sha).fetch_one(&pool).await.unwrap();
       assert_eq!(rows,0);
       assert_eq!(stored_asset_file_count(dir.path()),0,"failed upload removes only its fresh staging");
-      sqlx::query(&format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}")).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}"))).execute(&pool).await.unwrap();
       // An independent connection leaves both fixture-pool connections free.
       // Block INSERT until both prechecks have staged their immutable files.
       let mut barrier_conn=sqlx::PgConnection::connect_with(&pool.connect_options()).await.expect("race barrier connection");
@@ -734,7 +734,7 @@ fn font_audit_failure_rolls_back_upload_status_and_delete_without_losing_bytes()
       let id=Uuid::parse_str(uploaded["data"]["admin"]["uploadPdfFont"]["id"].as_str().unwrap()).unwrap();
       let (before,key):(Value,String)=sqlx::query_as("SELECT to_jsonb(f),blob_key FROM pdf_fonts f WHERE id=$1").bind(id).fetch_one(&pool).await.unwrap();
       let audit_before:i64=sqlx::query_scalar("SELECT count(*) FROM admin_audit_log WHERE actor_user_id=$1").bind(admin).fetch_one(&pool).await.unwrap();
-      sqlx::query(&format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK(actor_user_id IS DISTINCT FROM '{admin}') NOT VALID"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK(actor_user_id IS DISTINCT FROM '{admin}') NOT VALID")))
         .execute(&pool).await.unwrap();
       for fields in [format!("approvePdfFont(id:\"{id}\"){{licenseStatus}}"),
         format!("rejectPdfFont(id:\"{id}\",reason:\"License review pending\"){{licenseStatus}}"),
@@ -747,7 +747,7 @@ fn font_audit_failure_rolls_back_upload_status_and_delete_without_losing_bytes()
         let audits:i64=sqlx::query_scalar("SELECT count(*) FROM admin_audit_log WHERE actor_user_id=$1").bind(admin).fetch_one(&pool).await.unwrap();
         assert_eq!(audits,audit_before);
       }
-      sqlx::query(&format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}")).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}"))).execute(&pool).await.unwrap();
       for fields in [format!("approvePdfFont(id:\"{id}\"){{licenseStatus}}"),
         format!("rejectPdfFont(id:\"{id}\",reason:\"License review pending\"){{licenseStatus}}"),
         format!("deletePdfFont(id:\"{id}\")")] {
@@ -773,9 +773,9 @@ fn font_audit_failure_rolls_back_upload_status_and_delete_without_losing_bytes()
       let count:i64=sqlx::query_scalar("SELECT count(*) FROM pdf_fonts WHERE id=$1").bind(id).fetch_one(&pool).await.unwrap();
       assert_eq!(count,1);
     }).catch_unwind().await;
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       "ALTER TABLE admin_audit_log DROP CONSTRAINT IF EXISTS {constraint}"
-    ))
+    )))
     .execute(&pool)
     .await
     .unwrap();
@@ -800,12 +800,12 @@ fn icc_audit_failure_and_duplicate_upload_preserve_bytes_and_default_references(
     let sha = format!("{:x}", sha2::Sha256::digest(&bytes));
     let constraint = format!("icc_audit_{}", admin.simple());
     let result=std::panic::AssertUnwindSafe(async {
-      sqlx::query(&format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK(actor_user_id IS DISTINCT FROM '{admin}') NOT VALID")).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK(actor_user_id IS DISTINCT FROM '{admin}') NOT VALID"))).execute(&pool).await.unwrap();
       let failed=upload_icc(&app,session,&name,&bytes).await;
       assert!(failed["errors"].as_array().unwrap().iter().any(|e|e["message"].as_str().unwrap().contains(&constraint)),"upload failure: {failed}");
       let rows:i64=sqlx::query_scalar("SELECT count(*) FROM pdf_icc_profiles WHERE sha256=$1").bind(&sha).fetch_one(&pool).await.unwrap();
       assert_eq!(rows,0);assert_eq!(stored_asset_file_count(dir.path()),0);
-      sqlx::query(&format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}")).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}"))).execute(&pool).await.unwrap();
       let (one,two)=tokio::join!(upload_icc(&app,session,&name,&bytes),upload_icc(&app,session,&name,&bytes));
       let winners=[&one,&two].into_iter().filter(|r|r.get("errors").is_none()).collect::<Vec<_>>();
       assert_eq!(winners.len(),1,"row dedup keeps one winner: {one} {two}");
@@ -814,7 +814,7 @@ fn icc_audit_failure_and_duplicate_upload_preserve_bytes_and_default_references(
       assert_eq!(blobs.get_template_file(&key).await.unwrap(),bytes,"duplicate loser preserves winner's real profile bytes");
       assert_eq!(stored_asset_file_count(dir.path()),1,"loser cleans only its own staging");
       sqlx::query("INSERT INTO pdf_export_settings(scope,workspace_id,default_color_profile_id) VALUES('workspace',$1,$2)").bind(ws).bind(id).execute(&pool).await.unwrap();
-      sqlx::query(&format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK(actor_user_id IS DISTINCT FROM '{admin}') NOT VALID")).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log ADD CONSTRAINT {constraint} CHECK(actor_user_id IS DISTINCT FROM '{admin}') NOT VALID"))).execute(&pool).await.unwrap();
       let fields=format!("mutation{{admin{{deleteIccProfile(id:\"{id}\")}}}}");
       let failed=helpers::gql(&app,session,json!({"query":fields})).await;
       assert!(failed["errors"].as_array().unwrap().iter().any(|e|e["message"].as_str().unwrap().contains(&constraint)),"delete failure: {failed}");
@@ -824,7 +824,7 @@ fn icc_audit_failure_and_duplicate_upload_preserve_bytes_and_default_references(
       assert_eq!(reference,Some(id));assert_eq!(blobs.get_template_file(&key).await.unwrap(),bytes);
       let audits:i64=sqlx::query_scalar("SELECT count(*) FROM admin_audit_log WHERE actor_user_id=$1 AND target_id=$2").bind(admin).bind(id.to_string()).fetch_one(&pool).await.unwrap();
       assert_eq!(audits,1,"failed delete cannot add an audit");
-      sqlx::query(&format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}")).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("ALTER TABLE admin_audit_log DROP CONSTRAINT {constraint}"))).execute(&pool).await.unwrap();
       let deleted=helpers::gql(&app,session,json!({"query":fields})).await;
       assert_eq!(deleted["data"]["admin"]["deleteIccProfile"],true);
       let reference:Option<Uuid>=sqlx::query_scalar("SELECT default_color_profile_id FROM pdf_export_settings WHERE workspace_id=$1").bind(ws).fetch_one(&pool).await.unwrap();
@@ -840,9 +840,9 @@ fn icc_audit_failure_and_duplicate_upload_preserve_bytes_and_default_references(
       let deleted=helpers::gql(&app,session,json!({"query":format!("mutation{{admin{{deleteIccProfile(id:\"{system}\")}}}}")})).await;
       assert_eq!(deleted["data"]["admin"]["deleteIccProfile"],true);
     }).catch_unwind().await;
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       "ALTER TABLE admin_audit_log DROP CONSTRAINT IF EXISTS {constraint}"
-    ))
+    )))
     .execute(&pool)
     .await
     .unwrap();

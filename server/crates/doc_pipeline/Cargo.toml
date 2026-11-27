@@ -24,14 +24,12 @@ splitting = ["dep:text-splitter", "tokenizer-tiktoken"]
 tokenizer-tiktoken = ["dep:tiktoken-rs"]
 
 [dependencies]
-infer      = { workspace = true }
-mime       = { workspace = true }
-mime_guess = { workspace = true }
-thiserror  = { workspace = true }
-tracing    = { workspace = true }
+infer     = { workspace = true }
+thiserror = { workspace = true }
+tracing   = { workspace = true }
 
 # PDF
-pdf-extract = { version = "0.12.0", optional = true }
+pdf-extract = { version = "0.12.1", optional = true }
 
 # DOCX (manual ZIP + XML parsing — lightweight, no image dependency)
 quick-xml = { workspace = true, optional = true }

@@ -825,7 +825,7 @@ export function renderVisualEditorForSource(source: string, readonly = false) {
       },
       yBlock: yMapFromRecord({}),
     },
-    requestUpdate: () => undefined,
+    _notifyProjectionChange: () => undefined,
     _renderArchitectureEditor: prototype._renderArchitectureEditor,
     _renderBlockDiagramEditor: prototype._renderBlockDiagramEditor,
     _renderC4Editor: prototype._renderC4Editor,
@@ -1140,7 +1140,7 @@ export function renderBlockForSource({
     _updatePageSelectionAvailability:
       prototype._updatePageSelectionAvailability,
     _visualSelection: { items: [] },
-    requestUpdate: () => undefined,
+    _notifyProjectionChange: () => undefined,
   } as unknown as {
     _mode: "source" | "visual";
     _renderState: string;

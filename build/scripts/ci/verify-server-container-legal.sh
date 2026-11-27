@@ -45,7 +45,6 @@ for package in biblatex hayagriva; do
   cmp -s "vendor/cargo/$package/LICENSE-APACHE" "$work_dir/legal/licenses/$package/LICENSE-APACHE"
 done
 cmp -s vendor/cargo/hayagriva/NOTICE "$work_dir/legal/licenses/hayagriva/NOTICE"
-cmp -s vendor/cargo/simba/LICENSE "$work_dir/legal/licenses/simba/LICENSE"
 cmp -s build/dependencies/safer-bytes-license.txt "$work_dir/legal/licenses/safer-bytes/DECLARED-MIT.txt"
 grep -Fq "Git revision: \`$revision\`" "$work_dir/legal/SOURCE.md"
 # A retained image must carry the requested mapping too; adding references only

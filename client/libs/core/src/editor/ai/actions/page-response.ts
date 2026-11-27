@@ -16,7 +16,7 @@ import {
 import { type BlockProps, Text } from "@virgultum/editor/store";
 import * as Y from "yjs";
 
-import { getAIPanelWidget } from "../utils/ai-widgets";
+import { getAIPanelController } from "../utils/ai-widgets";
 import type { MyoxusNode, AIContext } from "../utils/context";
 import { insertAbove, insertBelow, replace } from "../utils/editor-actions";
 import { preprocessHtml } from "../utils/html";
@@ -55,7 +55,7 @@ export async function pageResponseHandler<
 
 function responseToMakeItReal(host: EditorHost, ctx: AIContext, place: Place) {
   const surface = getSurfaceBlock(host.store);
-  const aiPanel = getAIPanelWidget(host);
+  const aiPanel = getAIPanelController(host);
   if (!aiPanel.answer || !surface) return;
 
   const { width, height } = ctx.get();
@@ -139,7 +139,7 @@ async function responseToCreateSlides(
 }
 
 export function responseToCreateImage(host: EditorHost, place: Place) {
-  const aiPanel = getAIPanelWidget(host);
+  const aiPanel = getAIPanelController(host);
   const { answer } = aiPanel;
   if (!answer) return;
   const filename = "image";
@@ -158,7 +158,7 @@ export function responseToCreateImage(host: EditorHost, place: Place) {
 }
 
 export async function replaceWithMarkdown(host: EditorHost) {
-  const aiPanel = getAIPanelWidget(host);
+  const aiPanel = getAIPanelController(host);
   const { answer } = aiPanel;
   const selection = getSelection(host);
   if (!answer || !selection) return;
@@ -168,7 +168,7 @@ export async function replaceWithMarkdown(host: EditorHost) {
 }
 
 async function insertMarkdownBelow(host: EditorHost) {
-  const aiPanel = getAIPanelWidget(host);
+  const aiPanel = getAIPanelController(host);
   const { answer } = aiPanel;
   const selection = getSelection(host);
   if (!answer || !selection) return;
@@ -178,7 +178,7 @@ async function insertMarkdownBelow(host: EditorHost) {
 }
 
 async function insertMarkdownAbove(host: EditorHost) {
-  const aiPanel = getAIPanelWidget(host);
+  const aiPanel = getAIPanelController(host);
   const { answer } = aiPanel;
   const selection = getSelection(host);
   if (!answer || !selection) return;

@@ -17,7 +17,8 @@ describe("ai effects registration split", () => {
 
   test("registerAIEditorEffects registers editor widgets only and retires preview custom elements", () => {
     expect(editorTags.has("myoxus-ai-chat")).toBe(true);
-    expect(editorTags.has("myoxus-ai-panel-widget")).toBe(true);
+    expect(editorTags.has("myoxus-edgeless-copilot-widget")).toBe(true);
+    expect(editorTags.has("myoxus-ai-panel-widget")).toBe(false);
     expect(editorTags.has("ai-slides-renderer")).toBe(false);
     expect(editorTags.has("mini-mindmap-preview")).toBe(false);
     expect(editorTags.has("chat-panel")).toBe(false);

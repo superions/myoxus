@@ -56,7 +56,7 @@ impl SqlxAdminStore {
     AuthError::Storage(err.to_string())
   }
 
-  fn append_workspace_filters<'a>(query: &mut QueryBuilder<'a, Postgres>, filter: &AdminWorkspaceFilter) {
+  fn append_workspace_filters(query: &mut QueryBuilder<Postgres>, filter: &AdminWorkspaceFilter) {
     if let Some(public) = filter.public {
       query.push(" AND w.public = ");
       query.push_bind(public);

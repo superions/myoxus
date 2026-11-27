@@ -19,7 +19,6 @@ function createSessionHost({
   >;
 } = {}) {
   const commandExec = vi.fn(() => [true, { edgeId: "edge-A-B" }]);
-  const requestUpdate = vi.fn();
   const selectVisualEdge = vi.fn();
   const findVisualNodeByClientPoint = vi.fn(() => hoveredNodeId);
   const getSelectedVisualNodeHandles = vi.fn(() => [
@@ -50,7 +49,6 @@ function createSessionHost({
     getVisualNodeConnectionHandles,
     findVisualNodeByClientPoint,
     isReadonly: () => false,
-    requestUpdate,
     selectVisualEdge,
   } as unknown as MermaidGfxSessionHost;
 
@@ -59,7 +57,6 @@ function createSessionHost({
     findVisualNodeByClientPoint,
     getSelectedVisualNodeHandles,
     getVisualNodeConnectionHandles,
-    requestUpdate,
     selectVisualEdge,
     session: new MermaidGfxSessionController(host),
   };
@@ -91,9 +88,9 @@ describe("Mermaid GFX session", () => {
     const {
       findVisualNodeByClientPoint,
       getVisualNodeConnectionHandles,
-      requestUpdate,
       session,
     } = createSessionHost();
+    const initialVersion = session.stateVersion$.value;
 
     expect(session.startVisualNodeConnection()).toBe(true);
     expect(Reflect.get(session, "connectVisualNodeSourceId")).toBe("A");
@@ -117,12 +114,12 @@ describe("Mermaid GFX session", () => {
       targetPosition: [0, 0.5],
       validTarget: true,
     });
-    expect(requestUpdate).toHaveBeenCalled();
+    expect(session.stateVersion$.value).toBeGreaterThan(initialVersion);
     session.stopVisualNodeConnection();
   });
 
   test("previews reconnecting an edge endpoint to the hovered node", () => {
-    const { requestUpdate, session } = createSessionHost({
+    const { session } = createSessionHost({
       hoveredNodeId: "C",
       selectedEdgeId: "edge-A-B",
       visualModel: {
@@ -131,6 +128,7 @@ describe("Mermaid GFX session", () => {
         nodes: [],
       } as never,
     });
+    const initialVersion = session.stateVersion$.value;
 
     session.handleVisualEdgeReconnectPointerDown(
       new PointerEvent("pointerdown", { clientX: 50, clientY: 60 }),
@@ -150,7 +148,7 @@ describe("Mermaid GFX session", () => {
       targetPosition: [0, 0.5],
       validTarget: true,
     });
-    expect(requestUpdate).toHaveBeenCalled();
+    expect(session.stateVersion$.value).toBeGreaterThan(initialVersion);
     Reflect.get(session, "stopVisualEdgeReconnect").call(session);
   });
 

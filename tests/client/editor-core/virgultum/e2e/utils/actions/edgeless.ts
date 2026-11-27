@@ -216,20 +216,25 @@ export async function switchEditorEmbedMode(page: Page) {
 
 export async function enterPresentationMode(page: Page) {
   // Core starts this tool from its app header, absent from this editor fixture.
-  // Mount the registered editor control; do not recreate the Core toolbar.
   await page.evaluate(() => {
-    const button = document.createElement(
-      "edgeless-present-button",
-    ) as HTMLElement & {
-      edgeless: HTMLElementTagNameMap["myoxus-edgeless-root"];
-    };
-    button.edgeless = document.querySelector("myoxus-edgeless-root")!;
-    // Like the app header, keep the control in the canvas viewport; appending
-    // it in document flow would scroll the page when Playwright clicks it.
-    Object.assign(button.style, { position: "fixed", top: "0", left: "0" });
-    document.body.append(button);
+    const root = document.querySelector("myoxus-edgeless-root") as
+      | (HTMLElement & {
+          gfx?: {
+            tool: {
+              get: (tool: { toolName: string }) => { constructor: unknown };
+              setTool: (tool: unknown) => void;
+            };
+          };
+        })
+      | null;
+    if (!root?.gfx) {
+      throw new Error(
+        "Cannot enter presentation mode: edgeless root not found",
+      );
+    }
+    const presentTool = root.gfx.tool.get({ toolName: "frameNavigator" });
+    root.gfx.tool.setTool(presentTool.constructor);
   });
-  await page.locator(".edgeless-frame-navigator-button").click();
   await expect(page.locator("presentation-toolbar")).toBeVisible();
 }
 
@@ -741,7 +746,7 @@ export async function selectBrushColor(page: Page, label: string) {
     return color;
   }, label);
   await page
-    .locator("edgeless-pen-menu")
+    .getByTestId("canvas-pen-menu")
     .getByRole("button", { name: color, exact: true })
     .click();
 }
@@ -757,7 +762,7 @@ export async function selectBrushSize(page: Page, size: string) {
   };
   const value = sizes[size];
   if (!value) throw new Error("Unknown brush size: " + size);
-  const menu = page.locator("edgeless-pen-menu");
+  const menu = page.getByTestId("canvas-pen-menu");
   const slider = menu.getByRole("slider", { name: "Thickness", exact: true });
   const min = Number(await slider.getAttribute("aria-valuemin"));
   const max = Number(await slider.getAttribute("aria-valuemax"));

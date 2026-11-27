@@ -7,7 +7,6 @@ import { RegisteredTableControl } from "./table-control";
 import { EditorDisclosureToggle } from "./disclosure-toggle";
 import { EditorIconPickerPopup } from "./icon-picker-popup";
 import { EditorCanvasPopover } from "./canvas-popover";
-import { EditorPresentationToolbar } from "./presentation-toolbar";
 import { EditorSurfaceRefPlaceholder } from "./surface-ref-placeholder";
 import { EditorHtmlEmbedCard } from "./html-embed-card";
 import { EditorDocumentCard } from "./document-card";
@@ -22,15 +21,12 @@ import { EditorLoomCard } from "./loom-card";
 
 import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import {
-  EditorAutoCompleteTrigger,
-  EditorAutoCompletePanel,
-  EditorAutoConnectLabel,
-  EditorAutoConnectNavigator,
+  EditorAutoComplete,
+  EditorAutoConnect,
+  EditorNoteSlicer,
 } from "./auto-complete";
-import { EditorCanvasTemplates } from "./canvas-templates";
-import { EditorFrameOrder } from "./frame-order";
 import { EditorCanvasMenu } from "./canvas-menu";
-import { RegisteredCanvasToolbar, EditorCanvasTool } from "./canvas-toolbar";
+import { EditorCanvasDock } from "./canvas-toolbar";
 
 import { EditorSelectionToolbar } from "./selection-toolbar";
 
@@ -38,7 +34,6 @@ import type { ReadonlySignal } from "@preact/signals-core";
 import { useSyncExternalStore, type ComponentType } from "react";
 import {
   EditorChromeHostExtension,
-  type EditorCanvasToolControls,
   type EditorOutlineEntryControls,
 } from "@virgultum/editor/shared/services";
 import { EditorSlashMenu } from "./slash-menu";
@@ -78,14 +73,6 @@ function RegisteredStateControl<Controls>({
     () => state.peek(),
   );
   return controls ? <View controls={controls} /> : null;
-}
-
-function RegisteredCanvasTool({
-  controls,
-}: {
-  controls: EditorCanvasToolControls;
-}) {
-  return <EditorCanvasTool {...controls} />;
 }
 
 function RegisteredOutlineEntry({
@@ -129,41 +116,17 @@ export function patchEditorChromeHost(mountPortal: MountReactPortal) {
     mountDisclosureControl: mountStateControl(EditorDisclosureToggle, true),
     mountIconPicker: mountControl(EditorIconPickerPopup),
     mountCanvasPopover: mountStateControl(EditorCanvasPopover, true),
-    mountPresentationToolbar: mountStateControl(
-      EditorPresentationToolbar,
-      true,
-    ),
     mountSurfaceRefPlaceholder: mountStateControl(
       EditorSurfaceRefPlaceholder,
       true,
     ),
     mountHtmlEmbed: mountStateControl(EditorHtmlEmbedCard, true),
-    mountAutoCompleteTrigger: mountStateControl(
-      EditorAutoCompleteTrigger,
-      true,
-    ),
-    mountAutoCompletePanel: mountStateControl(EditorAutoCompletePanel, true),
-    mountAutoConnectLabel: mountStateControl(EditorAutoConnectLabel, true),
-    mountAutoConnectNavigator: mountStateControl(
-      EditorAutoConnectNavigator,
-      true,
-    ),
-    mountCanvasTemplates: mountStateControl(EditorCanvasTemplates),
+    mountNoteSlicer: mountStateControl(EditorNoteSlicer, true),
+    mountAutoConnect: mountStateControl(EditorAutoConnect, true),
+    mountAutoComplete: mountStateControl(EditorAutoComplete, true),
     mountCanvasMenu: mountStateControl(EditorCanvasMenu, true),
-    mountCanvasToolbar: (anchor, state) =>
-      mountPortal(anchor, <RegisteredCanvasToolbar state={state} />),
-    mountCanvasTool: (anchor, state) => {
-      if ("peek" in state) {
-        return mountStateControl(RegisteredCanvasTool, true)(anchor, state);
-      }
-      return mountPortal(
-        anchor,
-        <EditorEmbeddedUIRoot portalRoot={anchor}>
-          <EditorCanvasTool {...state} />
-        </EditorEmbeddedUIRoot>,
-      );
-    },
-    mountFrameOrder: mountStateControl(EditorFrameOrder, true),
+    mountCanvasDock: (anchor, controls) =>
+      mountPortal(anchor, <EditorCanvasDock controls={controls} />),
     mountFrameNavigator: mountStateControl(EditorFrameNavigator),
     mountFrameCard: mountStateControl(EditorFrameCard),
     mountFrameTitle: mountStateControl(EditorFrameTitle),

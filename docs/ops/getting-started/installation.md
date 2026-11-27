@@ -27,7 +27,8 @@ For a server installation, provide:
 
 - PostgreSQL 16 with pgvector available; the database owner must be permitted
   to create the `vector` extension and apply migrations;
-- Redis 8 and private network access from the API;
+- Valkey 8+ (container default: Valkey 9) or compatible Redis 8+ and private
+  network access from the API;
 - persistent blob storage and a persistent PDF-font backend;
 - a public DNS name and HTTPS reverse proxy;
 - protected database and application-encryption secrets;
@@ -75,8 +76,8 @@ sudo zypper install ./myoxus-server-VERSION-1.x86_64.rpm
 ```
 
 Packages provide the API, CLI, PDF compiler and server runtime assets. Supply
-PostgreSQL 16 with pgvector, Redis 8, matching Web/Admin delivery and TLS
-separately. Installation creates the service account and directories; it does
+PostgreSQL 16 with pgvector, Valkey 8+ (or Redis 8+), matching Web/Admin
+delivery and TLS separately. Installation creates the service account and directories; it does
 not start the server or run migrations.
 
 Configure the connection details, public origin and encryption key in

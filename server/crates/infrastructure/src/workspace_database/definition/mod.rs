@@ -195,7 +195,7 @@ impl PgDatabaseRepository {
           "project profile databases require an explicit structure preset".to_string(),
         ));
       }
-      sqlx::query(&insert_profile_sql)
+      sqlx::query(sqlx::AssertSqlSafe(insert_profile_sql.as_str()))
         .bind(database.id)
         .bind(requested_profile_kind.as_str())
         .bind(structure_preset)
@@ -267,7 +267,7 @@ impl PgDatabaseRepository {
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         "#,
       );
-      sqlx::query(&insert_role_sql)
+      sqlx::query(sqlx::AssertSqlSafe(insert_role_sql.as_str()))
         .bind(role.database_id)
         .bind(role.profile_kind.as_str())
         .bind(role.role_key)
@@ -290,7 +290,7 @@ impl PgDatabaseRepository {
           VALUES ($1, $2, $3, $4, $5, $6, $7)
         "#,
       );
-      sqlx::query(&insert_role_sql)
+      sqlx::query(sqlx::AssertSqlSafe(insert_role_sql.as_str()))
         .bind(role.database_id)
         .bind(role.profile_kind.as_str())
         .bind(role.role_key)
@@ -404,7 +404,7 @@ impl PgDatabaseRepository {
       Self::lock_managed_admission(tx, owner).await?;
     }
     let sql = format!("SELECT edit_revision FROM {table} WHERE id = $1 FOR UPDATE");
-    sqlx::query_scalar::<_, i64>(&sql)
+    sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(id)
       .fetch_optional(&mut **tx)
       .await
@@ -555,7 +555,7 @@ impl PgDatabaseRepository {
         ORDER BY profile_kind ASC, role_key ASC, row_kind_scope ASC NULLS FIRST
       "#,
     );
-    let rows = sqlx::query(&sql)
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(database_id)
       .fetch_all(executor)
       .await
@@ -576,7 +576,7 @@ impl PgDatabaseRepository {
         ORDER BY role_key ASC
       "#,
     );
-    let rows = sqlx::query(&sql)
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(database_id)
       .fetch_all(executor)
       .await

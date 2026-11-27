@@ -2163,6 +2163,15 @@ pub async fn cleanup_users(pool: &PgPool, user_ids: &[Uuid]) {
     .await
     .ok();
 
+  // Clean up MCP API-key outbox intents created for these test users so tests
+  // remain atomic and leave no durable outbox rows behind.
+  let user_id_strings: Vec<String> = user_ids.iter().map(Uuid::to_string).collect();
+  sqlx::query("DELETE FROM outbox_events WHERE event_type = 'mcp_api_key_created' AND payload->>'userId' = ANY($1)")
+    .bind(&user_id_strings)
+    .execute(pool)
+    .await
+    .expect("cleanup mcp_api_key_created outbox rows");
+
   // Organization domain — covers test artefacts created by the
   // `organization_*` GraphQL test suite (Paket D-T01..). Order matters:
   // children before parents.

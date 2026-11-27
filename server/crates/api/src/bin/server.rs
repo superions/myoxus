@@ -2628,6 +2628,16 @@ impl myoxus_worker::JobHandler for NotificationQueueHandler {
       return Ok(Some(serde_json::json!({"delivered":true})));
     }
 
+    if job_name == myoxus_api::mcp_api_key_notification::MCP_API_KEY_CREATED_JOB_NAME {
+      let delivered = myoxus_api::mcp_api_key_notification::dispatch_mcp_api_key_created_notification(
+        &self.state,
+        self.mail.as_ref(),
+        data,
+      )
+      .await?;
+      return Ok(Some(serde_json::json!({"delivered": delivered})));
+    }
+
     if job_name == "notification.sendDatabaseRowReminder" {
       myoxus_api::database_reminder_notification::dispatch_database_row_reminder_notification(
         &self.notification_service,
@@ -5083,6 +5093,12 @@ async fn process_outbox_batch(
             data,
             myoxus_worker::JobOptions::default(),
           )
+          .await?;
+        outbox.mark_event_processed(event_id, chrono::Utc::now()).await?;
+        continue;
+      }
+      "mcp_api_key_created" => {
+        myoxus_api::mcp_api_key_notification::enqueue_mcp_api_key_created_notification(redis_queue, event_id, &payload)
           .await?;
         outbox.mark_event_processed(event_id, chrono::Utc::now()).await?;
         continue;

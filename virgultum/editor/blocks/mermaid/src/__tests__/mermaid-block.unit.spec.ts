@@ -191,7 +191,7 @@ describe("Mermaid block host contracts", () => {
           getParent: () => null,
         },
       },
-      requestUpdate: () => calls.push("request-update"),
+      _notifyProjectionChange: () => calls.push("request-update"),
     } as unknown as MermaidBlockComponent;
 
     (

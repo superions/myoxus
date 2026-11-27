@@ -7,8 +7,8 @@ editor and Myoxus clients.
 
 The generator, remaining Myoxus source geometry, generated facade code, and
 keyword metadata in this package are licensed under `AGPL-3.0-or-later`.
-Reviewed Tabler SVG geometry embedded in the generated React and Lit artifacts
-is licensed under the Tabler MIT license recorded in
+Reviewed Tabler SVG geometry embedded in the generated React and native SVG
+artifacts is licensed under the Tabler MIT license recorded in
 `THIRD_PARTY_LICENSES.md`.
 
 The non-exported comparison artifact contains attributed Phosphor and Tabler
@@ -42,9 +42,9 @@ vs. export, unchecked vs. checked, or text-left vs. generic type into the same
 shape.
 
 UI glyph output is intentionally monochrome. The generator may keep historical
-`*DuotoneIcon` export names, but generated React/Lit components must not contain
-grey `opacity` layers or Duotone backgrounds; all schematic UI icons render as
-single-`currentColor` geometry.
+`*DuotoneIcon` export names, but generated React and native SVG components must
+not contain grey `opacity` layers or Duotone backgrounds; all schematic UI icons
+render as single-`currentColor` geometry.
 
 Text-like glyphs must use the committed typographic path table instead of
 hand-drawn pseudo-letter or seven-segment geometry. This rule covers heading
@@ -82,10 +82,11 @@ after the Tabler selection; current usage analysis and Tabler review remain.
 Product and editor code must not import external icon packages.
 
 The 2026-07-17 review selected Tabler. The generator materializes the reviewed
-Top-200, obvious and open-review mappings in the React and Lit outputs; explicit
-Myoxus fallbacks remain with their existing geometry. `@tabler/icons-react`
-remains a pinned build-time input, not a product runtime dependency. The current
-mapping inventory is documented in `docs/dev/myoxus-icon-system.md`.
+Top-200, obvious and open-review mappings in the React and native SVG outputs;
+explicit Myoxus fallbacks remain with their existing geometry.
+`@tabler/icons-react` remains a pinned build-time input, not a product runtime
+dependency. The current mapping inventory is documented in
+`docs/dev/myoxus-icon-system.md`.
 
 ## Legacy Block
 

@@ -16,5 +16,7 @@
   "eventFallback": "Untitled event",
   "documentFallback": "Untitled document",
   "workspaceFallback": "Workspace",
-  "rowFallback": "Untitled row"
+  "rowFallback": "Untitled row",
+  "keyFallback": "MCP API key",
+  "noExpiration": "No expiration"
 }

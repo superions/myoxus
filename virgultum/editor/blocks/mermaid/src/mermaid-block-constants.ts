@@ -19,11 +19,8 @@
  * graph is the only thing that changes.
  *
  * **Why this is a separate file, not a partial class.**
- * The block file uses a single `MermaidBlockComponent`
- * Lit class with 371 private fields. Partial classes
- * (mixin patterns) would change the runtime shape of
- * the class and would risk subtle `this` binding bugs.
- * Pure-value modules have no runtime instance, so
+ * The block host uses a single `MermaidBlockComponent`
+ * custom-element class hierarchy. Pure-value modules have no runtime instance, so
  * moving the constants and types out is risk-free.
  *
  * **Dependencies of the new file.**

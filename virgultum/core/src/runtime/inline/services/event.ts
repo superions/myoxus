@@ -72,9 +72,8 @@ export class EventService<TextAttributes extends BaseTextAttributes> {
       return;
     }
 
-    // Always prevent native DOM mutations inside inline editor. Browsers (notably
-    // Firefox) may remove Lit marker comment nodes during native edits, which
-    // will crash subsequent Lit updates with `ChildPart has no parentNode`.
+    // Always prevent native DOM mutations inside the inline editor so the
+    // Y.Text-backed v-line renderer remains the sole owner of text nodes.
     event.preventDefault();
 
     let inlineRange = this.editor.toInlineRange(range);
@@ -99,7 +98,7 @@ export class EventService<TextAttributes extends BaseTextAttributes> {
     }
     if (!inlineRange && startInRoot !== endInRoot) {
       // Clamp a partially-outside selection to this editor so native editing
-      // won't touch Lit marker nodes.
+      // stays within the managed inline text boundary.
       const pointRange = document.createRange();
       if (startInRoot) {
         pointRange.setStart(range.startContainer, range.startOffset);

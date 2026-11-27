@@ -12,5 +12,11 @@ export {
   brushToolbarExtension,
   highlighterToolbarConfig,
   highlighterToolbarExtension,
+  EdgelessEraserDarkIcon,
+  EdgelessEraserLightIcon,
+  penIconMap,
+  penInfoMap,
+  type Pen,
+  type PenMap,
   penSeniorTool,
 } from "@virgultum/canvas/gfx";

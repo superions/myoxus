@@ -504,7 +504,7 @@ export function VirgultumPageEditor(props: PageViewProps) {
   );
 
   // Preserve dedicated Mermaid/BPMN initial diagram bootstrap and editBpmn=1
-  // catalog navigation intent directly on Store without a Lit EditorHost.
+  // catalog navigation intent directly on Store without a native EditorHost.
   useEffect(() => {
     if (readonly || shared || !mermaidDiagramsService) return;
     let canceled = false;

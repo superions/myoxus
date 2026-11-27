@@ -17,7 +17,7 @@ import {
 import { type BlockModel, Slice } from "@virgultum/editor/store";
 
 import { insertFromMarkdown, markDownToDoc } from "../../utils";
-import type { MyoxusAIPanelWidget } from "../widgets/ai-panel/ai-panel";
+import type { AIPanelController } from "../widgets/ai-panel/controller";
 
 const getNoteId = (blockElement: BlockComponent) => {
   let element = blockElement;
@@ -159,7 +159,7 @@ export const replace = async (
   }
 };
 
-export const copyTextAnswer = async (panel: MyoxusAIPanelWidget) => {
+export const copyTextAnswer = async (panel: AIPanelController) => {
   if (!panel.answer) {
     return false;
   }

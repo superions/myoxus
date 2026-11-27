@@ -6,8 +6,8 @@ export const connectorQuickTool = QuickToolExtension(
     return {
       type: "connector",
       content: {
-        type: "hosts",
-        tags: ["edgeless-connector-tool-button"],
+        type: "popover-tool",
+        tool: "connector",
         edgeless: block,
       },
       priority: 80,

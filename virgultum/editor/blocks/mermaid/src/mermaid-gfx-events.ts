@@ -25,7 +25,7 @@ export function isMermaidGfxInterfaceControlEventPath(
 ) {
   return path.some((target) => {
     if (!(target instanceof HTMLElement)) return false;
-    // The existing Lit toolbar menu is portalled too. Its action rows are
+    // Native toolbar menus can be portalled too. Their action rows are
     // divs, so tag/ARIA checks for Mantine inputs alone miss their clicks.
     if (target.tagName.toLowerCase() === "myoxus-menu") return true;
     if (

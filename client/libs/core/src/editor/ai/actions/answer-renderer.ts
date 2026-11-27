@@ -9,12 +9,12 @@ import {
 import { createSlidesRenderer } from "../messages/slides-renderer";
 import { createIframeRenderer, createImageRenderer } from "../messages/wrapper";
 import type { AIContext } from "../utils/context";
-import type { MyoxusAIPanelWidget } from "../widgets/ai-panel/ai-panel";
+import type { AIPanelController } from "../widgets/ai-panel/controller";
 import { IMAGE_ACTIONS } from "./consts";
 import { responseToExpandMindmap } from "./edgeless-response";
 
 type AnswerRenderer = NonNullable<
-  MyoxusAIPanelWidget["config"]
+  AIPanelController["config"]
 >["answerRenderer"];
 
 export function actionToAnswerRenderer<

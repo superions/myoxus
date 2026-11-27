@@ -28,7 +28,7 @@ import { getContentFromSlice } from "../../utils";
 import { AIChatBlockModel } from "../blocks";
 import { type AIError, AIProvider } from "../provider";
 import { reportResponse } from "../utils/action-reporter";
-import { getAIPanelWidget } from "../utils/ai-widgets";
+import { getAIPanelController } from "../utils/ai-widgets";
 import { AIContext } from "../utils/context";
 import {
   getEdgelessCopilotWidget,
@@ -41,7 +41,7 @@ import {
   getSelectedNoteAnchor,
   getSelections,
 } from "../utils/selection-utils";
-import type { MyoxusAIPanelWidget } from "../widgets/ai-panel/ai-panel";
+import type { AIPanelController } from "../widgets/ai-panel/controller";
 import type { AIActionAnswer } from "../widgets/ai-panel/type";
 import type { EdgelessCopilotWidget } from "../widgets/edgeless-copilot";
 import { actionToAnswerRenderer } from "./answer-renderer";
@@ -236,7 +236,7 @@ function actionToStream<T extends keyof VirgultumPresets.AIActions>(
     let stream: VirgultumPresets.TextStream | undefined;
     return {
       async *[Symbol.asyncIterator]() {
-        const panel = getAIPanelWidget(host);
+        const panel = getAIPanelController(host);
         const models = getCopilotSelectedElems(host);
         const markdown = await getTextFromSelected(panel.host);
 
@@ -314,7 +314,7 @@ function actionToGeneration<T extends keyof VirgultumPresets.AIActions>(
 function updateEdgelessAIPanelConfig<
   T extends keyof VirgultumPresets.AIActions,
 >(
-  aiPanel: MyoxusAIPanelWidget,
+  aiPanel: AIPanelController,
   edgelessCopilot: EdgelessCopilotWidget,
   id: T,
   generatingIcon: MyoxusIconExportName,
@@ -363,17 +363,13 @@ function updateEdgelessAIPanelConfig<
     reportResponse("result:discard");
   };
   config.hideCallback = () => {
-    aiPanel.updateComplete
-      .finally(() => {
-        edgelessCopilot.gfx.tool.setTool(DefaultTool);
-        edgelessCopilot.gfx.selection.set({
-          elements: [],
-          editing: false,
-        });
-        host.selection.clear();
-        edgelessCopilot.lockToolbar(false);
-      })
-      .catch(console.error);
+    edgelessCopilot.gfx.tool.setTool(DefaultTool);
+    edgelessCopilot.gfx.selection.set({
+      elements: [],
+      editing: false,
+    });
+    host.selection.clear();
+    edgelessCopilot.lockToolbar(false);
   };
 }
 
@@ -396,7 +392,7 @@ export function actionToHandler<T extends keyof VirgultumPresets.AIActions>(
   trackerOptions?: VirgultumPresets.TrackerOptions,
 ) {
   return (host: EditorHost) => {
-    const aiPanel = getAIPanelWidget(host);
+    const aiPanel = getAIPanelController(host);
     const edgelessCopilot = getEdgelessCopilotWidget(host);
     const selectedElements = getCopilotSelectedElems(host);
     const { selectedBlocks } = getSelections(host);

@@ -13,9 +13,13 @@ use axum::{
   response::{IntoResponse, Json, Sse, sse::Event as SseEvent},
 };
 use futures_util::StreamExt;
-use myoxus_application::copilot::provider::{
-  LlmFinishReason, LlmMessage, LlmProviderError, LlmRequest, LlmRole, LlmStreamEvent, LlmToolCallBuffer,
-  execute_tool_calls, map_provider_error_to_legacy,
+use myoxus_application::copilot::{
+  files::{CREATE_FILE_TOOL_NAME, create_file_tool_definition, create_file_tool_result},
+  provider::{
+    LlmFinishReason, LlmMessage, LlmProviderError, LlmRequest, LlmRole, LlmStreamEvent, LlmToolCallBuffer,
+    LlmToolDefinition, LlmToolExecutionContext, LlmToolExecutor, execute_tool_call_with_context,
+    map_provider_error_to_legacy,
+  },
 };
 use myoxus_domain::entities::CopilotMessageRole;
 use myoxus_infrastructure::copilot::embedding_store::build_context_window;
@@ -87,6 +91,67 @@ pub(crate) struct CopilotChatSseQuery {
 #[serde(rename_all = "camelCase")]
 struct CopilotRetrievalOptions {
   search_workspace: Option<bool>,
+}
+
+/// Request-scoped chat tool dispatcher combining existing native MCP read tools
+/// with the internal `create_file` executor over one [`LlmToolExecutor`] owner.
+struct CopilotChatTools {
+  read_tools: Option<myoxus_mcp::copilot::CopilotReadTools>,
+  file_tools: Option<(std::sync::Arc<ApiState>, Uuid, String)>,
+}
+
+impl CopilotChatTools {
+  fn definitions(&self, search_workspace: Option<bool>) -> Vec<LlmToolDefinition> {
+    let mut tools = self
+      .read_tools
+      .as_ref()
+      .map(|executor| executor.definitions())
+      .unwrap_or_default();
+    tools.retain(|tool| tool.name != "search_docs" || search_workspace != Some(false));
+    if self.file_tools.is_some() {
+      tools.push(create_file_tool_definition());
+    }
+    tools
+  }
+}
+
+#[async_trait::async_trait]
+impl LlmToolExecutor for CopilotChatTools {
+  async fn execute(&self, tool_name: &str, arguments: &serde_json::Value) -> Result<serde_json::Value, String> {
+    self.execute_with_context(tool_name, arguments, None).await
+  }
+
+  #[instrument(skip_all, fields(tool = tool_name))]
+  async fn execute_with_context(
+    &self,
+    tool_name: &str,
+    arguments: &serde_json::Value,
+    context: Option<LlmToolExecutionContext>,
+  ) -> Result<serde_json::Value, String> {
+    if tool_name == CREATE_FILE_TOOL_NAME {
+      let Some((state, user_id, locale)) = &self.file_tools else {
+        return Err("File creation is unavailable in this chat".into());
+      };
+      let Some(context) = context.filter(|ctx| ctx.user_id == *user_id) else {
+        return Err("File creation requires an authenticated chat execution context".into());
+      };
+      let file = file_service(state.clone(), *user_id)
+        .create_for_tool_call(context, arguments, locale.clone())
+        .await
+        .map_err(|error| match error {
+          myoxus_application::auth::AuthError::InvalidInput(message) => message,
+          myoxus_application::auth::AuthError::ActionForbidden => {
+            "You do not have permission to create files in this chat".into()
+          }
+          _ => "The file could not be created".into(),
+        })?;
+      return create_file_tool_result(&file).map_err(|_| "File metadata unavailable".into());
+    }
+    let Some(read_tools) = &self.read_tools else {
+      return Err("Tool is unavailable".into());
+    };
+    read_tools.execute(tool_name, arguments).await
+  }
 }
 
 /// `GET /api/copilot/chat/{session_id}/{endpoint}` — Copilot SSE streaming.
@@ -669,21 +734,26 @@ pub(crate) async fn copilot_chat_sse_handler(
   );
 
   let tool_byte_limit = state.config.mcp.document_export_max_bytes;
-  let tool_executor = native_tools
-    .zip(session.workspace_id)
-    .map(|(axum::Extension(tools), workspace)| myoxus_mcp::copilot::CopilotReadTools::new(tools, user_id, workspace));
+  let user_locale = state
+    .auth()
+    .get_user_preferences(user_id)
+    .await
+    .ok()
+    .and_then(|prefs| prefs.values.locale)
+    .unwrap_or_else(|| state.config.i18n.default_locale.clone());
+  let tool_executor = CopilotChatTools {
+    read_tools: native_tools
+      .zip(session.workspace_id)
+      .map(|(axum::Extension(tools), workspace)| myoxus_mcp::copilot::CopilotReadTools::new(tools, user_id, workspace)),
+    file_tools: session
+      .workspace_id
+      .map(|_| (std::sync::Arc::new(state.clone()), user_id, user_locale)),
+  };
   let tools = if state.llm_provider_registry().supports_tools(&default_provider, &model) {
-    tool_executor
-      .as_ref()
-      .map(|executor| executor.definitions())
-      .unwrap_or_default()
+    tool_executor.definitions(retrieval.search_workspace)
   } else {
     Vec::new()
   };
-  let tools = tools
-    .into_iter()
-    .filter(|tool| tool.name != "search_docs" || retrieval.search_workspace != Some(false))
-    .collect();
   let mut llm_request = LlmRequest {
     reasoning: params.reasoning.map(Into::into),
     model: model.clone(),
@@ -782,9 +852,6 @@ pub(crate) async fn copilot_chat_sse_handler(
       if llm_request.tools.is_empty() {
         failure = Some(LlmProviderError::Unavailable("provider requested unavailable chat tool execution".into())); break;
       }
-      let Some(executor) = tool_executor.as_ref() else {
-        failure = Some(LlmProviderError::Unavailable("No tool executor available".into())); break;
-      };
       if calls.is_empty() || calls.iter().any(|call| !llm_request.tools.iter().any(|tool| tool.name == call.name)) {
         failure = Some(LlmProviderError::InvalidRequest("provider requested an unavailable tool".into())); break;
       }
@@ -804,23 +871,31 @@ pub(crate) async fn copilot_chat_sse_handler(
           None => { failure = Some(LlmProviderError::Upstream("Invalid persisted tool identity".into())); break 'generation; }
         };
         yield Ok(SseEvent::default().event("message").data(event.to_string()));
-        let outputs = match tokio::time::timeout_at(deadline, execute_tool_calls(executor, std::slice::from_ref(&call))).await {
-          Ok(outputs) => outputs,
+        let exec_ctx = LlmToolExecutionContext {
+          user_id,
+          session_id: session_id_for_stream,
+          message_id: guard.message_id(),
+          stream_id,
+          local_call_id: local_id,
+        };
+        let output = match tokio::time::timeout_at(
+          deadline,
+          execute_tool_call_with_context(&tool_executor, &call, Some(exec_ctx)),
+        ).await {
+          Ok(output) => output,
           Err(_) => { failure = Some(LlmProviderError::Timeout("generation deadline exceeded".into())); break 'generation; }
         };
-        for output in outputs {
-          let value: serde_json::Value = match output.content.as_text().and_then(|text| serde_json::from_str(text).ok()) {
-            Some(value) => value,
-            None => { failure = Some(LlmProviderError::Upstream("Invalid tool result".into())); break 'generation; }
-          };
-          let result = if let Some(error) = value.get("error").and_then(|error| error.as_str()) { Err(error.to_owned()) } else { Ok(value) };
-          let event = match copilot_for_stream.append_stream_tool_result(stream_id, local_id, result).await {
-            Ok(event) => event,
-            Err(_) => { failure = Some(LlmProviderError::Upstream("Failed to save tool result".into())); break 'generation; }
-          };
-          yield Ok(SseEvent::default().event("message").data(event.to_string()));
-          llm_request.messages.push(output);
-        }
+        let value: serde_json::Value = match output.content.as_text().and_then(|text| serde_json::from_str(text).ok()) {
+          Some(value) => value,
+          None => { failure = Some(LlmProviderError::Upstream("Invalid tool result".into())); break 'generation; }
+        };
+        let result = if let Some(error) = value.get("error").and_then(|error| error.as_str()) { Err(error.to_owned()) } else { Ok(value) };
+        let event = match copilot_for_stream.append_stream_tool_result(stream_id, local_id, result).await {
+          Ok(event) => event,
+          Err(_) => { failure = Some(LlmProviderError::Upstream("Failed to save tool result".into())); break 'generation; }
+        };
+        yield Ok(SseEvent::default().event("message").data(event.to_string()));
+        llm_request.messages.push(output);
       }
     }
 

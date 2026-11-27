@@ -595,7 +595,7 @@ type RecordingEventArgs = {
 };
 
 type ApplyModelArgs = {
-  /*  ​​User's complete instruction */
+  /* User's complete instruction */
   instruction?: string;
   /* Split individual semantic change requests */
   operation?: string;

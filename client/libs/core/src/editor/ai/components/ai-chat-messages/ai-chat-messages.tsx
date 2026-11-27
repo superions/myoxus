@@ -407,6 +407,7 @@ export const AIChatMessages = forwardRef<
               ...requestMessages.at(-1)!,
               id: current.id,
               params: current.params,
+              generatedFiles: current.generatedFiles,
             },
           ],
         });

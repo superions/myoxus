@@ -494,9 +494,7 @@ async fn password_reset_email_sent_to_authenticated_user_not_attacker() {
   );
   assert_ne!(reset_mail.to, "attacker@evil.com", "must NEVER send to attacker email");
   assert!(
-    reset_mail
-      .body
-      .contains("href=\"http:&#x2F;&#x2F;localhost:3001&#x2F;reset-password?"),
+    reset_mail.body.contains("href=\"http://localhost:3001/reset-password?"),
     "mail must link to the server-origin reset route using an escaped HTML attribute"
   );
   assert!(!reset_mail.body.contains("attacker@evil.com"));

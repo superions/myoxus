@@ -20,7 +20,6 @@ const migratedFiles = [
   "virgultum/embeds/src/embed-doc/embed-linked-doc-block/configs/toolbar.ts",
   "virgultum/embeds/src/embed-doc/embed-synced-doc-block/configs/toolbar.ts",
   "client/libs/core/src/editor/view-extensions/editor-view/editor-chrome/reference-editor.tsx",
-  "virgultum/canvas/src/blocks/frame/present/present-button.ts",
 ] as const;
 
 const sourcePropertyPattern =

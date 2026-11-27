@@ -141,7 +141,7 @@ fn inv_mail04_comment_mention_template_renders_variables() {
   assert!(body.contains("Bobby"), "body must contain mentioned_by: {body}");
   assert!(body.contains("Design Doc"), "body must contain doc_title: {body}");
   assert!(
-    body.contains("href=\"https:&#x2F;&#x2F;myoxus.test&#x2F;doc&#x2F;99\""),
+    body.contains("href=\"https://myoxus.test/doc/99\""),
     "body must link to the escaped document URL: {body}"
   );
 }
@@ -157,7 +157,7 @@ fn inv_mail05_doc_shared_template_renders_variables() {
   assert!(body.contains("Alice"), "body must contain shared_by: {body}");
   assert!(body.contains("Q1 Roadmap"), "body must contain doc_title: {body}");
   assert!(
-    body.contains("href=\"https:&#x2F;&#x2F;myoxus.test&#x2F;doc&#x2F;42\""),
+    body.contains("href=\"https://myoxus.test/doc/42\""),
     "body must link to the escaped document URL: {body}"
   );
 }

@@ -206,7 +206,7 @@ impl DocumentTemplateRepository for PgDocumentMetadataRepository {
       LIMIT $2 OFFSET $3
       "#
     );
-    let rows = sqlx::query(&sql)
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace_id)
       .bind(limit)
       .bind(offset)
@@ -237,7 +237,7 @@ impl DocumentTemplateRepository for PgDocumentMetadataRepository {
         AND {NATIVE_TEMPLATE_SOURCE_PREDICATE}
       "#
     );
-    let row = sqlx::query(&sql)
+    let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(workspace_id)
       .bind(doc_id)
       .fetch_optional(&self.pool)

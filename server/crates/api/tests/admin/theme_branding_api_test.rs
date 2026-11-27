@@ -1442,11 +1442,13 @@ fn inv_theme_db_api_06_workspace_delete_cleans_theme_overrides() {
       ("color_schemas", color_schema_slug.as_str()),
       ("typography_sets", typography_slug.as_str()),
     ] {
-      let count: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*) FROM {table} WHERE slug = $1"))
-        .bind(slug)
-        .fetch_one(&pool)
-        .await
-        .unwrap_or_else(|err| panic!("count {table}.{slug}: {err}"));
+      let count: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+        "SELECT COUNT(*) FROM {table} WHERE slug = $1"
+      )))
+      .bind(slug)
+      .fetch_one(&pool)
+      .await
+      .unwrap_or_else(|err| panic!("count {table}.{slug}: {err}"));
       assert_eq!(
         count, 0,
         "admin deleteWorkspace must clean orphaned workspace theme override row {table}.{slug}"

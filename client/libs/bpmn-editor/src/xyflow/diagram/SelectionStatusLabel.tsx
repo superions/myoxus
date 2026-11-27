@@ -31,7 +31,7 @@ import { Group, IconButton, Text } from "@myoxus/ui-facade";
 
 export function SelectionStatusLabel() {
   const t = useI18n();
-  const xyFlowStoreApi = RF.useStoreApi();
+  const xyFlowStoreApi = RF.useReactFlowStoreApi();
 
   const selectedNodesCount = useXyFlowReactKieDiagramStore(
     (s) => s.computed(s).getDiagramData().selectedNodesById.size,
@@ -42,7 +42,9 @@ export function SelectionStatusLabel() {
   const xyFlowReactKieDiagramStoreApi = useXyFlowReactKieDiagramStoreApi();
 
   React.useEffect(() => {
-    xyFlowStoreApi.setState({ nodesSelectionActive: selectedNodesCount >= 2 });
+    xyFlowStoreApi.optionsStore.setState({
+      nodesSelectionActive: selectedNodesCount >= 2,
+    });
   }, [xyFlowStoreApi, selectedNodesCount]);
 
   const onClose = React.useCallback(

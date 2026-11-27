@@ -816,15 +816,15 @@ async fn inv_p102_rootmeta_11_projection_failure_rolls_back_leaf_and_retries() {
       .await
       .expect("count leaf updates before failure");
 
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       "CREATE FUNCTION {function_name}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'injected title projection failure'; END $$"
-    ))
+    )))
     .execute(&pool)
     .await
     .expect("create projection failure function");
-    sqlx::query(&format!(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
       "CREATE TRIGGER {trigger_name} BEFORE UPDATE OF title ON docs FOR EACH ROW WHEN (NEW.id = '{page_id}'::uuid) EXECUTE FUNCTION {function_name}()"
-    ))
+    )))
     .execute(&pool)
     .await
     .expect("create projection failure trigger");
@@ -847,11 +847,11 @@ async fn inv_p102_rootmeta_11_projection_failure_rolls_back_leaf_and_retries() {
       "leaf persistence must roll back with projection"
     );
 
-    sqlx::query(&format!("DROP TRIGGER {trigger_name} ON docs"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger_name} ON docs")))
       .execute(&pool)
       .await
       .expect("drop projection failure trigger");
-    sqlx::query(&format!("DROP FUNCTION {function_name}()"))
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {function_name}()")))
       .execute(&pool)
       .await
       .expect("drop projection failure function");
@@ -869,14 +869,18 @@ async fn inv_p102_rootmeta_11_projection_failure_rolls_back_leaf_and_retries() {
   .catch_unwind()
   .await;
 
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger_name} ON docs"))
-    .execute(&pool)
-    .await
-    .expect("remove owned projection failure trigger");
-  sqlx::query(&format!("DROP FUNCTION IF EXISTS {function_name}()"))
-    .execute(&pool)
-    .await
-    .expect("remove owned projection failure function");
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP TRIGGER IF EXISTS {trigger_name} ON docs"
+  )))
+  .execute(&pool)
+  .await
+  .expect("remove owned projection failure trigger");
+  sqlx::query(sqlx::AssertSqlSafe(format!(
+    "DROP FUNCTION IF EXISTS {function_name}()"
+  )))
+  .execute(&pool)
+  .await
+  .expect("remove owned projection failure function");
   cleanup(&pool, ws_id, page_id, user_id).await;
   if let Err(panic) = outcome {
     std::panic::resume_unwind(panic);

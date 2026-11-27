@@ -15,7 +15,6 @@ const versions = {
   biblatex: "0.12.0",
   hayagriva: "0.10.1",
   "safer-bytes": "0.2.0",
-  simba: "0.9.1",
 };
 assert.deepEqual(Object.keys(provenance), Object.keys(versions));
 assert.equal(
@@ -72,5 +71,5 @@ for (const [name, version] of Object.entries(versions)) {
   }
 }
 console.log(
-  "Four reviewed vendored sources match their provenance and licenses",
+  "Three reviewed vendored sources match their provenance and licenses",
 );

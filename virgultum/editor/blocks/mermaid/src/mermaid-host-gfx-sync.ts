@@ -125,7 +125,7 @@ export abstract class MermaidHostGfxSync extends MermaidHostGfxSelection {
       this._acceptProjectionOwnerSourceSyncKey();
       if (result.visualsReprojected) {
         this._scheduleRender();
-        this.requestUpdate();
+        this._notifyProjectionChange();
       }
       return false;
     }
@@ -144,7 +144,7 @@ export abstract class MermaidHostGfxSync extends MermaidHostGfxSelection {
     });
     this._acceptProjectionOwnerSourceSyncKey();
     this._scheduleRender();
-    this.requestUpdate();
+    this._notifyProjectionChange();
     return true;
   }
 
@@ -194,7 +194,7 @@ export abstract class MermaidHostGfxSync extends MermaidHostGfxSelection {
       this._acceptProjectionOwnerSourceSyncKey();
       this._ownerSourceSync.clearPause();
       this._scheduleRender();
-      this.requestUpdate();
+      this._notifyProjectionChange();
     }, 0);
   }
 

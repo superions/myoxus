@@ -3499,16 +3499,16 @@ mod mcp_export {
         "template_id":"report", "locale":"de", "image_quality":"med", "paper_size":"A4",
         "orientation":"portrait", "compliance_profile":"standard", "toc_behavior":"off", "cover_page":true,
         "typed_inputs":{"title":"Typed report title", "executive_summary":"Typed summary marker."}});
-        sqlx::query(&format!("CREATE FUNCTION {ack}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF OLD.mutation_committed AND NEW.api_key_id='{key_id}'::uuid AND NEW.tool_name='pdf_export_create' AND NEW.completed_at IS NOT NULL THEN RAISE EXCEPTION 'owned PDF acknowledgement lost'; END IF; RETURN NEW; END $$")).execute(&pool).await.unwrap();
-        sqlx::query(&format!("CREATE TRIGGER {ack} BEFORE UPDATE ON mcp_idempotency_keys FOR EACH ROW EXECUTE FUNCTION {ack}()" )).execute(&pool).await.unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!("CREATE FUNCTION {ack}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF OLD.mutation_committed AND NEW.api_key_id='{key_id}'::uuid AND NEW.tool_name='pdf_export_create' AND NEW.completed_at IS NOT NULL THEN RAISE EXCEPTION 'owned PDF acknowledgement lost'; END IF; RETURN NEW; END $$"))).execute(&pool).await.unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!("CREATE TRIGGER {ack} BEFORE UPDATE ON mcp_idempotency_keys FOR EACH ROW EXECUTE FUNCTION {ack}()" ))).execute(&pool).await.unwrap();
         let interrupted=rpc(&app,&raw,"pdf_export_create",args.clone()).await;
         assert_eq!(interrupted["result"]["structuredContent"]["code"],"RECOVERY_REQUIRED", "real post-commit acknowledgement failure: {interrupted}");
         let receipt: Value=sqlx::query_scalar("SELECT response_json FROM mcp_idempotency_keys WHERE api_key_id=$1 AND tool_name='pdf_export_create' AND mutation_committed")
           .bind(key_id).fetch_one(&pool).await.unwrap();
         let created = success(&rpc(&app, &raw, "pdf_export_create", args.clone()).await);
         assert_eq!(created,serde_json::from_str::<Value>(receipt["content"][0]["text"].as_str().unwrap()).unwrap(),"retry exposes the committed PDF receipt");
-        sqlx::query(&format!("DROP TRIGGER {ack} ON mcp_idempotency_keys")).execute(&pool).await.unwrap();
-        sqlx::query(&format!("DROP FUNCTION {ack}()")).execute(&pool).await.unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {ack} ON mcp_idempotency_keys"))).execute(&pool).await.unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {ack}()"))).execute(&pool).await.unwrap();
         assert_eq!(created["status"], "done");
         assert_eq!(created["execution"], "sync");
         assert_eq!(created["externalId"], external);
@@ -3680,11 +3680,13 @@ mod mcp_export {
       })
       .catch_unwind()
       .await;
-      sqlx::query(&format!("DROP TRIGGER IF EXISTS {ack} ON mcp_idempotency_keys"))
-        .execute(&pool)
-        .await
-        .unwrap();
-      sqlx::query(&format!("DROP FUNCTION IF EXISTS {ack}()"))
+      sqlx::query(sqlx::AssertSqlSafe(format!(
+        "DROP TRIGGER IF EXISTS {ack} ON mcp_idempotency_keys"
+      )))
+      .execute(&pool)
+      .await
+      .unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {ack}()")))
         .execute(&pool)
         .await
         .unwrap();
@@ -3735,10 +3737,10 @@ mod mcp_export {
       let sql = format!(
         "CREATE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.workspace_id='{ws}'::uuid THEN RAISE EXCEPTION 'owned PDF job rollback'; END IF; RETURN NEW; END $$"
       );
-      sqlx::query(&sql).execute(&pool).await.unwrap();
-      sqlx::query(&format!(
+      sqlx::query(sqlx::AssertSqlSafe(sql.as_str())).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!(
         "CREATE TRIGGER {trigger} BEFORE INSERT ON pdf_export_jobs FOR EACH ROW EXECUTE FUNCTION {function}()"
-      ))
+      )))
       .execute(&pool)
       .await
       .unwrap();
@@ -3771,7 +3773,7 @@ mod mcp_export {
         .execute(&mut *blocker)
         .await
         .unwrap();
-      sqlx::query(&format!("CREATE OR REPLACE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.workspace_id='{ws}'::uuid THEN PERFORM pg_advisory_xact_lock({lock_id}); END IF; RETURN NEW; END $$")).execute(&pool).await.unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("CREATE OR REPLACE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.workspace_id='{ws}'::uuid THEN PERFORM pg_advisory_xact_lock({lock_id}); END IF; RETURN NEW; END $$"))).execute(&pool).await.unwrap();
       let app_request = app.clone();
       let raw_request = raw.clone();
       let args_request = args.clone();
@@ -3811,11 +3813,11 @@ mod mcp_export {
           tokio::time::sleep(std::time::Duration::from_millis(20)).await;
         }
       }).await.expect("admitted creation finishes after HTTP abort");
-      sqlx::query(&format!("DROP TRIGGER {trigger} ON pdf_export_jobs"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER {trigger} ON pdf_export_jobs")))
         .execute(&pool)
         .await
         .unwrap();
-      sqlx::query(&format!("DROP FUNCTION {function}()"))
+      sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION {function}()")))
         .execute(&pool)
         .await
         .unwrap();
@@ -3834,7 +3836,7 @@ mod mcp_export {
       let job_id: Uuid = queued["jobId"].as_str().unwrap().parse().unwrap();
       assert_eq!(success(&rpc(&app, &raw, "pdf_export_create", args).await), queued);
       for table in ["pdf_export_jobs", "doc_histories", "document_version"] {
-        let count: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*) FROM {table} WHERE workspace_id=$1"))
+        let count: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!("SELECT COUNT(*) FROM {table} WHERE workspace_id=$1")))
           .bind(ws)
           .fetch_one(&pool)
           .await
@@ -3936,11 +3938,13 @@ mod mcp_export {
       assert!(text.contains("Imageunavailable") && text.contains("Visibleoriginalbody."));
       assert!(!text.contains("private/missing.png"));
       }).catch_unwind().await;
-      sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger} ON pdf_export_jobs"))
-        .execute(&pool)
-        .await
-        .unwrap();
-      sqlx::query(&format!("DROP FUNCTION IF EXISTS {function}()"))
+      sqlx::query(sqlx::AssertSqlSafe(format!(
+        "DROP TRIGGER IF EXISTS {trigger} ON pdf_export_jobs"
+      )))
+      .execute(&pool)
+      .await
+      .unwrap();
+      sqlx::query(sqlx::AssertSqlSafe(format!("DROP FUNCTION IF EXISTS {function}()")))
         .execute(&pool)
         .await
         .unwrap();

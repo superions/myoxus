@@ -57,7 +57,7 @@ impl MailTemplateRenderer {
     for language in MAIL_LANGUAGES {
       let localized_copy = fs::read_to_string(resolve(&format!("{language}/_copy.json"))?)
         .map_err(|_| PortError::InvalidInput(format!("Missing mail copy: {language}/_copy.json")))?;
-      let localized_copy: Value = serde_json::from_str(&localized_copy)
+      let mut localized_copy: Value = serde_json::from_str(&localized_copy)
         .map_err(|_| PortError::InvalidInput(format!("Invalid mail copy: {language}/_copy.json")))?;
       for key in [
         "greeting",
@@ -76,6 +76,30 @@ impl MailTemplateRenderer {
           )));
         }
       }
+      // Deployed template volumes preserve operator-editable _copy.json across
+      // upgrades. Fill newly introduced optional keys with localized defaults so
+      // existing installations upgrade without failing startup.
+      if let Some(object) = localized_copy.as_object_mut() {
+        let (default_key_fallback, default_no_expiration) = match language {
+          "de" => ("MCP-API-Key", "Kein Ablaufdatum"),
+          "fr" => ("Clé API MCP", "Aucune expiration"),
+          "es" => ("Clave API de MCP", "Sin caducidad"),
+          "it" => ("Chiave API MCP", "Nessuna scadenza"),
+          _ => ("MCP API key", "No expiration"),
+        };
+        for (key, fallback) in [
+          ("keyFallback", default_key_fallback),
+          ("noExpiration", default_no_expiration),
+        ] {
+          if object
+            .get(key)
+            .and_then(Value::as_str)
+            .is_none_or(|value| value.trim().is_empty())
+          {
+            object.insert(key.into(), Value::String(fallback.into()));
+          }
+        }
+      }
       copy.insert(language.into(), localized_copy);
       for template in MailTemplate::ALL {
         let name = format!("{language}/{}.html", template.name());
@@ -85,22 +109,11 @@ impl MailTemplateRenderer {
         files.push((resolve(&name)?, Some(name)));
       }
     }
-    for (path, name) in &files {
-      let source = fs::read_to_string(path)
-        .map_err(|error| PortError::InvalidInput(format!("Mail file {}: {error}", path.display())))?;
-      tera::Template::new(name.as_deref().expect("named mail template"), None, &source)
-        .map_err(|_| PortError::InvalidInput(format!("Mail file {}: invalid Tera syntax", path.display())))?;
-    }
     let mut tera = Tera::default();
+    // Tera 2 validates syntax, inheritance, blocks, and include references when finalizing templates.
     tera
       .add_template_files(files)
       .map_err(|_| PortError::InvalidInput("Mail catalog has missing files or invalid Tera syntax".into()))?;
-    // Tera checks inheritance and macro imports when loading, but includes are
-    // otherwise resolved only when sending. Validate their parsed dependencies
-    // now so a missing required include cannot activate a broken catalog.
-    for template in tera.templates.values() {
-      validate_includes(&template.ast, &tera, &root.join(&template.name))?;
-    }
     let mut assets = Vec::new();
     for (name, id, content_type) in [
       ("product-mark.png", "myoxus-mark", "image/png"),
@@ -139,8 +152,11 @@ impl MailTemplateRenderer {
   /// projected from visible semantic elements of the same rendered document.
   pub fn render(&self, template: MailTemplate, language: &str, data: &Value) -> PortResult<RenderedMail> {
     let name = format!("{language}/{}.html", template.name());
-    let mut context = Context::from_value(data.clone())
-      .map_err(|_| PortError::InvalidInput("Mail context must be an object".into()))?;
+    if !data.is_object() {
+      return Err(PortError::InvalidInput("Mail context must be an object".into()));
+    }
+    let mut context =
+      Context::from_serialize(data).map_err(|_| PortError::InvalidInput("Mail context must be an object".into()))?;
     context.insert("locale", language);
     context.insert(
       "copy",
@@ -157,6 +173,7 @@ impl MailTemplateRenderer {
       ("document_title", "documentFallback"),
       ("workspace_name", "workspaceFallback"),
       ("row_title", "rowFallback"),
+      ("key_name", "keyFallback"),
     ] {
       if data[field].as_str().is_none_or(|value| value.trim().is_empty()) {
         context.insert(field, &self.copy[language][copy_key]);
@@ -214,40 +231,4 @@ impl MailTemplateRenderer {
       .unwrap_or(role)
       .to_string()
   }
-}
-
-fn validate_includes(nodes: &[tera::ast::Node], tera: &Tera, path: &std::path::Path) -> PortResult<()> {
-  use tera::ast::Node;
-  for node in nodes {
-    match node {
-      Node::Include(_, names, ignore_missing) => {
-        if !ignore_missing && !names.iter().any(|name| tera.templates.contains_key(name)) {
-          return Err(PortError::InvalidInput(format!(
-            "Mail file {}: missing required include {}",
-            path.display(),
-            names.join(", ")
-          )));
-        }
-      }
-      Node::Block(_, block, _) => validate_includes(&block.body, tera, path)?,
-      Node::MacroDefinition(_, definition, _) => validate_includes(&definition.body, tera, path)?,
-      Node::FilterSection(_, section, _) => validate_includes(&section.body, tera, path)?,
-      Node::Forloop(_, body, _) => {
-        validate_includes(&body.body, tera, path)?;
-        if let Some(empty) = &body.empty_body {
-          validate_includes(empty, tera, path)?;
-        }
-      }
-      Node::If(condition, _) => {
-        for (_, _, body) in &condition.conditions {
-          validate_includes(body, tera, path)?;
-        }
-        if let Some((_, body)) = &condition.otherwise {
-          validate_includes(body, tera, path)?;
-        }
-      }
-      _ => {}
-    }
-  }
-  Ok(())
 }

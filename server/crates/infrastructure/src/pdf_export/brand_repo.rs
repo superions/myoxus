@@ -538,7 +538,7 @@ impl PdfWorkspaceBrandAssetRepository for PgPdfWorkspaceBrandAssetRepository {
         updated_by = EXCLUDED.updated_by
       "#
     );
-    sqlx::query(&sql)
+    sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
       .bind(ws)
       .bind(asset_id)
       .bind(updated_at)
