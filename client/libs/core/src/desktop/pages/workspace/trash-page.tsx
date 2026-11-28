@@ -1,17 +1,5 @@
-/**
- * Trash page — workspace recycle-bin view.
- *
- * Lists all documents that have been moved to trash, ordered by most-recently
- * updated. Provides two bulk-action operations (admin/owner only):
- * - **Restore**: moves selected docs back to the workspace.
- * - **Permanently delete**: shows a confirmation modal before deleting.
- *
- * Also sets `globalContext.isTrash = true` while this view is active so that
- * other parts of the UI (for example the app sidebar) can adapt their behaviour.
- *
- * When the trash is empty, a compact Facade empty state is shown instead of the
- * document list.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import {
   createDocExplorerContext,
@@ -71,8 +59,7 @@ import {
 } from "../../../modules/workbench";
 import { TrashDatabaseList } from "./trash-database-list";
 
-/** Header bar for the trash page with the primary destructive bulk action visible. */
-export const TrashHeader = ({
+export function TrashHeader({
   canEmptyTrash,
   itemCount,
   onEmptyTrash,
@@ -80,7 +67,7 @@ export const TrashHeader = ({
   canEmptyTrash: boolean;
   itemCount: number;
   onEmptyTrash: () => void;
-}) => {
+}) {
   const t = useI18n();
   const countLabel = t["com.myoxus.trashOperation.itemCount"]({
     count: itemCount.toString(),
@@ -121,9 +108,9 @@ export const TrashHeader = ({
       }
     />
   );
-};
+}
 
-export const EmptyTrashState = () => {
+export function EmptyTrashState() {
   const t = useI18n();
 
   return (
@@ -145,16 +132,9 @@ export const EmptyTrashState = () => {
       />
     </PageContentRail>
   );
-};
+}
 
-/**
- * Trash workbench view component.
- *
- * Subscribes to `CollectionRulesService` with a filter for `trash === true` to
- * get a live-updating list of trashed documents. Bulk restore and delete
- * operations are gated on admin/owner permission.
- */
-export const TrashPage = () => {
+export function TrashPage() {
   const t = useI18n();
   const collectionRulesService = useService(CollectionRulesService);
   const docsService = useService(DocsService);
@@ -174,7 +154,6 @@ export const TrashPage = () => {
     mutation: deleteDatabasePermanentlyMutation,
   });
   const revalidate = useMutateQueryResource();
-
   const { restoreFromTrash, permanentlyDeletePages, emptyTrash } =
     useDocumentOperations();
   const isActiveView = useIsActiveView();
@@ -211,19 +190,17 @@ export const TrashPage = () => {
     trashedDocIds.length === 0 &&
     databaseTrash.records.length === 0 &&
     (databaseTrash.status === "ready" || databaseTrash.status === "refreshing");
-  const canManageTrash = !!isAdmin || !!isOwner;
+  const canManageTrash = Boolean(isAdmin || isOwner);
 
   useEffect(() => {
-    // Destructive workspace actions must not depend on a permission cache that
-    // happened to be populated by another route earlier in the session.
     permissionService.permission.revalidate();
   }, [permissionService.permission]);
 
   const handleMultiRestore = useCallback(
     (ids: string[]) => {
-      ids.forEach((id) => {
+      for (const id of ids) {
         restoreFromTrash(id);
-      });
+      }
       notify({
         title: t["com.myoxus.toastMessage.restored"]({
           title: ids.length > 1 ? "docs" : "doc",
@@ -231,17 +208,6 @@ export const TrashPage = () => {
       });
     },
     [restoreFromTrash, t],
-  );
-
-  const deletePermanently = useCallback(
-    async (ids: string[]) => {
-      const uniqueIds = Array.from(new Set(ids));
-      if (uniqueIds.length === 0) {
-        return 0;
-      }
-      return await permanentlyDeletePages(uniqueIds);
-    },
-    [permanentlyDeletePages],
   );
 
   const onConfirmPermanentlyDelete = useCallback(
@@ -252,7 +218,8 @@ export const TrashPage = () => {
         onAbort?: () => void;
       },
     ) => {
-      if (ids.length === 0) {
+      const uniqueIds = Array.from(new Set(ids));
+      if (uniqueIds.length === 0) {
         return;
       }
       openConfirmModal({
@@ -260,11 +227,9 @@ export const TrashPage = () => {
         description: t["com.myoxus.trashOperation.deleteDescription"](),
         cancelText: t["Cancel"](),
         confirmText: t["com.myoxus.trashOperation.delete"](),
-        confirmButtonOptions: {
-          variant: "error",
-        },
+        confirmButtonOptions: { variant: "error" },
         onConfirm: async () => {
-          await deletePermanently(ids);
+          await permanentlyDeletePages(uniqueIds);
           notify({ title: t["com.myoxus.toastMessage.permanentlyDeleted"]() });
           callbacks?.onFinished?.();
           closeConfirmModal();
@@ -274,7 +239,7 @@ export const TrashPage = () => {
         },
       });
     },
-    [closeConfirmModal, deletePermanently, openConfirmModal, t],
+    [closeConfirmModal, openConfirmModal, permanentlyDeletePages, t],
   );
 
   const onConfirmEmptyTrash = useCallback(() => {
@@ -288,22 +253,13 @@ export const TrashPage = () => {
       }),
       cancelText: t["Cancel"](),
       confirmText: t["com.myoxus.trashOperation.emptyTrash.confirm"](),
-      confirmButtonOptions: {
-        variant: "error",
-      },
+      confirmButtonOptions: { variant: "error" },
       onConfirm: async () => {
-        // Use the rendered trash set that made the destructive action visible.
-        // Re-reading `trashDocs$.value` at confirm time can be empty after a
-        // stale root-meta replay, while the visible trash list still contains
-        // rows that the user explicitly asked to delete.
-        const operations = [
+        // Operate on the rendered trash IDs so a stale root-meta replay cannot
+        // silently skip items that the user explicitly confirmed for removal.
+        const tasks = [
           ...(trashedDocIds.length > 0
-            ? [
-                {
-                  database: null,
-                  run: () => emptyTrash(trashedDocIds),
-                },
-              ]
+            ? [{ database: null, run: () => emptyTrash(trashedDocIds) }]
             : []),
           ...databaseTrash.records.map((database) => ({
             database,
@@ -318,17 +274,20 @@ export const TrashPage = () => {
           })),
         ];
         const results = await Promise.allSettled(
-          operations.map((operation) => operation.run()),
+          tasks.map((task) => task.run()),
         );
         let deletedCount = 0;
         results.forEach((result, index) => {
-          if (result.status !== "fulfilled") return;
-          const operation = operations[index];
-          if (!operation) return;
-          const database = operation.database;
-          if (database) {
+          if (result.status !== "fulfilled") {
+            return;
+          }
+          const task = tasks[index];
+          if (!task) {
+            return;
+          }
+          if (task.database) {
             cleanupDatabasePageProjections(
-              database.id,
+              task.database.id,
               favoriteService,
               organizeService,
             );
@@ -367,7 +326,7 @@ export const TrashPage = () => {
   }, [
     closeConfirmModal,
     databasePagesService,
-    databaseTrash,
+    databaseTrash.records,
     emptyTrash,
     favoriteService,
     openConfirmModal,
@@ -384,43 +343,30 @@ export const TrashPage = () => {
     const subscription = collectionRulesService
       .watch({
         filters: [
-          {
-            type: "system",
-            key: "trash",
-            method: "is",
-            value: "true",
-          },
+          { type: "system", key: "trash", method: "is", value: "true" },
         ],
-        orderBy: {
-          type: "system",
-          key: "updatedAt",
-          desc: true,
-        },
+        orderBy: { type: "system", key: "updatedAt", desc: true },
       })
       .subscribe((result) => {
         explorerContextValue.groups$.next(result.groups);
       });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [collectionRulesService, explorerContextValue.groups$]);
 
   useEffect(() => {
-    if (isActiveView) {
-      globalContextService.globalContext.isTrash.set(true);
-
-      return () => {
-        globalContextService.globalContext.isTrash.set(false);
-      };
+    if (!isActiveView) {
+      return;
     }
-    return;
+    globalContextService.globalContext.isTrash.set(true);
+    return () => {
+      globalContextService.globalContext.isTrash.set(false);
+    };
   }, [globalContextService.globalContext.isTrash, isActiveView]);
 
   return (
     <DocExplorerContext.Provider value={explorerContextValue}>
       <ViewTitle title={t["Trash"]()} />
-      <ViewIcon icon={"trash"} />
+      <ViewIcon icon="trash" />
       <ViewHeader>
         <TrashHeader
           canEmptyTrash={!isEmpty && canManageTrash}
@@ -475,8 +421,8 @@ export const TrashPage = () => {
       </ViewBody>
     </DocExplorerContext.Provider>
   );
-};
+}
 
-export const Component = () => {
+export function Component() {
   return <TrashPage />;
-};
+}

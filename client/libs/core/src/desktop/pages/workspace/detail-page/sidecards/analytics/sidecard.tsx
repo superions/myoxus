@@ -1,5 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
-// SPDX-License-Identifier: MIT
 
 import { ViewContextSurface } from "@myoxus/core/modules/workbench";
 import { useI18n } from "@myoxus/i18n";
@@ -7,11 +7,9 @@ import { ChartPanelIcon } from "@myoxus/icons/react";
 import { Scrollable, WorkbenchContextScrollRoot } from "@myoxus/ui-facade";
 import { lazy, Suspense } from "react";
 
-const EditorAnalyticsPanel = lazy(() =>
-  import("./panel").then((module) => ({
-    default: module.EditorAnalyticsPanel,
-  })),
-);
+const EditorAnalyticsPanel = lazy(async () => ({
+  default: (await import("./panel")).EditorAnalyticsPanel,
+}));
 
 const DOCUMENT_VIEW_FAMILIES = [
   "document-page",
@@ -19,10 +17,6 @@ const DOCUMENT_VIEW_FAMILIES = [
   "journal",
 ] as const;
 
-/**
- * Registers document analytics for every server-backed workspace. Local
- * workspaces have no authoritative server analytics and remain excluded.
- */
 export function AnalyticsSidecard({
   docId,
   workspaceFlavour,

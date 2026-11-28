@@ -1,40 +1,8 @@
-/**
- * `StructureTreeNode` — the fundamental building block of the
- * structure tree.
- *
- * Each node can:
- * - Render an optional icon (custom component or auto-extracted emoji).
- * - Be collapsible, showing child nodes indented below it.
- * - Navigate to a route (`to` prop) or invoke a callback (`onClick`).
- * - Display inline operation buttons and a `...` context-menu populated by
- *   `NodeOperation` entries.
- * - Be renamed in-place via `StructureTreeNodeRenameModal` (which is
- *   extracted into a separate component to avoid re-rendering the whole tree
- *   when the sidebar width changes).
- * - Participate in drag-and-drop: draggable with `dndData` / droppable with
- *   `onDrop` + `canDrop` / visual `DropEffect` overlay showing tree
- *   instruction (insert-above, insert-below, make-child).
- *
- * ### Context
- * The node reads `StructureTreeContext` to discover its nesting `level`
- * and provides a new context (level + 1) to its children.
- *
- * ### Permission guard
- * When `renameableGuard` is supplied the rename action is wrapped in a
- * `<Guard action={...}>` component that hides the rename trigger when the
- * current user lacks the required document permission.
- *
- * ### Types exported from this file
- * - `BaseStructureTreeNodeProps` — props shared by both the base node
- *   and its web-only extension (`WebStructureTreeNodeProps`).
- * - `StructureTreeNodeIcon` — render-prop type for the icon slot.
- * - `StructureTreeNodeDropEffect` / `StructureTreeNodeDropEffectData`
- *   — callback types for computing the visual drop cursor during DnD.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { Guard } from "@myoxus/core/components/guard";
-import { AppSidebarService } from "@myoxus/core/modules/app-sidebar";
 import { ExplorerIconService } from "@myoxus/core/modules/explorer-icon/services/explorer-icon";
-import type { ExplorerType } from "@myoxus/core/modules/explorer-icon/store/explorer-icon";
 import type { DocPermissionActions } from "@myoxus/core/modules/permissions";
 import { WorkbenchLink } from "@myoxus/core/modules/workbench";
 import type { MyoxusDNDData } from "@myoxus/core/types/dnd";
@@ -47,13 +15,10 @@ import {
   type DropTargetDropEvent,
   type DropTargetOptions,
   type DropTargetTreeInstruction,
-  IconAndNameEditorMenu,
-  type IconData,
   IconRenderer,
   Menu,
   MenuItem,
   STRUCTURE_TREE_INDENT_PER_LEVEL,
-  STRUCTURE_TREE_RENAME_MENU_CONTENT_OPTIONS,
   StructureTreeActionButton,
   StructureTreeActions,
   StructureTreeChildren,
@@ -66,15 +31,15 @@ import {
   StructureTreeLink,
   StructureTreeMain,
   StructureTreeNodeRoot,
-  StructureTreeRenameAnchor,
-  structureTreeRenameMenuWidth,
   StructureTreeRow,
   useDraggable,
   useDropTarget,
 } from "@myoxus/ui-facade";
-import type { To } from "react-router";
 import {
+  type ComponentType,
   Fragment,
+  type PropsWithChildren,
+  type ReactNode,
   type RefAttributes,
   useCallback,
   useContext,
@@ -84,19 +49,28 @@ import {
   useRef,
   useState,
 } from "react";
+import type { To } from "react-router";
 
 import { StructureTreeContext } from "./context";
 import { DropEffect } from "./drop-effect";
+import {
+  type ExplorerIconConfig,
+  StructureTreeNodeRenameModal,
+} from "./rename-modal";
 import type { NodeOperation } from "./types";
+
+export { StructureTreeNodeRenameModal };
 
 export type StructureTreeNodeDropEffectData = {
   source: { data: MyoxusDNDData["draggable"] };
   treeInstruction: DropTargetTreeInstruction | null;
 };
+
 export type StructureTreeNodeDropEffect = (
   data: StructureTreeNodeDropEffectData,
 ) => "copy" | "move" | "link" | undefined;
-export type StructureTreeNodeIcon = React.ComponentType<{
+
+export type StructureTreeNodeIcon = ComponentType<{
   className?: string;
   draggedOver?: boolean;
   treeInstruction?: DropTargetTreeInstruction | null;
@@ -106,7 +80,7 @@ export type StructureTreeNodeIcon = React.ComponentType<{
 export interface BaseStructureTreeNodeProps {
   name?: string;
   icon?: StructureTreeNodeIcon;
-  children?: React.ReactNode;
+  children?: ReactNode;
   active?: boolean;
   extractEmojiAsIcon?: boolean;
   collapsed: boolean;
@@ -115,102 +89,29 @@ export interface BaseStructureTreeNodeProps {
   disabled?: boolean;
   onClick?: () => void;
   to?: To;
-  postfix?: React.ReactNode;
+  postfix?: ReactNode;
   operations?: NodeOperation[];
   childrenOperations?: NodeOperation[];
-  childrenPlaceholder?: React.ReactNode;
-
-  linkComponent?: React.ComponentType<
-    React.PropsWithChildren<{ to: To; className?: string }> &
+  childrenPlaceholder?: ReactNode;
+  linkComponent?: ComponentType<
+    PropsWithChildren<{ to: To; className?: string }> &
       RefAttributes<any> & { draggable?: boolean }
   >;
   [key: `data-${string}`]: any;
 }
 
-type ExplorerIconConfig = {
-  where: ExplorerType;
-  id: string;
-};
 interface WebStructureTreeNodeProps extends BaseStructureTreeNodeProps {
   renameable?: boolean;
   onRename?: (newName: string) => void;
   renameableGuard?: { docId: string; action: DocPermissionActions };
   defaultRenaming?: boolean;
-
   explorerIconConfig?: ExplorerIconConfig | null;
-
   canDrop?: DropTargetOptions<MyoxusDNDData>["canDrop"];
   reorderable?: boolean;
   dndData?: MyoxusDNDData;
   onDrop?: (data: DropTargetDropEvent<MyoxusDNDData>) => void;
   dropEffect?: StructureTreeNodeDropEffect;
 }
-
-/**
- * specific rename modal for a structure tree node,
- * Separate it into a separate component to prevent re-rendering the entire component when width changes.
- */
-export const StructureTreeNodeRenameModal = ({
-  setRenaming,
-  handleRename,
-  rawName,
-  explorerIconConfig,
-  className,
-  fallbackIcon,
-}: {
-  setRenaming: (renaming: boolean) => void;
-  handleRename: (newName: string) => void;
-  rawName: string | undefined;
-  className?: string;
-  explorerIconConfig?: ExplorerIconConfig | null;
-  fallbackIcon?: React.ReactNode;
-}) => {
-  const explorerIconService = useService(ExplorerIconService);
-  const appSidebarService = useService(AppSidebarService).sidebar;
-  const sidebarWidth = useLiveData(appSidebarService.width$);
-
-  const explorerIcon = useLiveData(
-    useMemo(
-      () =>
-        explorerIconConfig
-          ? explorerIconService.icon$(
-              explorerIconConfig.where,
-              explorerIconConfig.id,
-            )
-          : null,
-      [explorerIconConfig, explorerIconService],
-    ),
-  );
-
-  const onIconChange = useCallback(
-    (data?: IconData) => {
-      if (!explorerIconConfig) return;
-      explorerIconService.setIcon({
-        where: explorerIconConfig.where,
-        id: explorerIconConfig.id,
-        icon: data,
-      });
-    },
-    [explorerIconConfig, explorerIconService],
-  );
-
-  return (
-    <IconAndNameEditorMenu
-      open
-      onOpenChange={setRenaming}
-      onIconChange={onIconChange}
-      onNameChange={handleRename}
-      name={rawName ?? ""}
-      icon={explorerIcon?.icon}
-      width={structureTreeRenameMenuWidth(sidebarWidth)}
-      contentOptions={STRUCTURE_TREE_RENAME_MENU_CONTENT_OPTIONS}
-      iconPlaceholder={fallbackIcon}
-      inputTestId="rename-modal-input"
-    >
-      <StructureTreeRenameAnchor className={className} />
-    </IconAndNameEditorMenu>
-  );
-};
 
 export const StructureTreeNode = ({
   children,
@@ -241,25 +142,26 @@ export const StructureTreeNode = ({
   dropEffect,
   ...otherProps
 }: WebStructureTreeNodeProps) => {
-  const explorerIconService = useService(ExplorerIconService);
   const t = useI18n();
-  const cid = useId();
-  const context = useContext(StructureTreeContext);
-  const level = context?.level ?? 0;
-  // If no onClick or to is provided, clicking on the node will toggle the collapse state
-  const clickForCollapse = !onClick && !to && !disabled;
+  const explorerIconService = useService(ExplorerIconService);
+  const instanceId = useId();
+  const parentContext = useContext(StructureTreeContext);
+  const level = parentContext?.level ?? 0;
+  const clickTogglesCollapse = !onClick && !to && !disabled;
+
   const [childCount, setChildCount] = useState(0);
-  const [renaming, setRenaming] = useState(defaultRenaming);
-  const [operationsMenuOpen, setOperationsMenuOpen] = useState(false);
+  const [renaming, setRenaming] = useState(Boolean(defaultRenaming));
+  const [menuOpen, setMenuOpen] = useState(false);
   const [lastInGroup, setLastInGroup] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+
   const explorerIcon = useLiveData(
     useMemo(
       () =>
         explorerIconConfig
           ? explorerIconService.icon$(
-              explorerIconConfig?.where,
-              explorerIconConfig?.id,
+              explorerIconConfig.where,
+              explorerIconConfig.id,
             )
           : null,
       [explorerIconConfig, explorerIconService],
@@ -270,12 +172,13 @@ export const StructureTreeNode = ({
     MyoxusDNDData & { draggable: { __cid: string } }
   >(
     () => ({
-      data: { ...dndData?.draggable, __cid: cid },
+      data: { ...dndData?.draggable, __cid: instanceId },
       dragPreviewPosition: "pointer-outside",
     }),
-    [cid, dndData],
+    [dndData, instanceId],
   );
-  const handleCanDrop = useMemo<DropTargetOptions<MyoxusDNDData>["canDrop"]>(
+
+  const evaluateCanDrop = useMemo<DropTargetOptions<MyoxusDNDData>["canDrop"]>(
     () => (args) => {
       if (!reorderable && args.treeInstruction?.type !== "make-child") {
         return false;
@@ -307,163 +210,149 @@ export const StructureTreeNode = ({
             ? ["reorder-above", "reorder-below", "reparent"]
             : [],
       },
-      onDrop: (data) => {
+      onDrop: (event) => {
         if (
-          data.source.data.__cid === cid &&
-          data.treeInstruction?.type !== "reparent"
+          event.source.data.__cid === instanceId &&
+          event.treeInstruction?.type !== "reparent"
         ) {
-          // Do nothing if dropped on self
           return;
         }
-        onDrop?.(data);
-        if (data.treeInstruction?.type === "make-child" && collapsible) {
+        onDrop?.(event);
+        if (event.treeInstruction?.type === "make-child" && collapsible) {
           setCollapsed(false);
         }
       },
-      canDrop: handleCanDrop,
+      canDrop: evaluateCanDrop,
       allowExternal: true,
     }),
     [
-      dndData?.dropTarget,
-      level,
       collapsed,
-      lastInGroup,
-      reorderable,
-      handleCanDrop,
-      cid,
-      onDrop,
       collapsible,
+      dndData?.dropTarget,
+      evaluateCanDrop,
+      instanceId,
+      lastInGroup,
+      level,
+      onDrop,
+      reorderable,
       setCollapsed,
     ],
   );
-  const isSelfDraggedOver = draggedOverDraggable?.data.__cid === cid;
 
-  useEffect(() => context?.registerChild(), [context]);
+  const isSelfHover = draggedOverDraggable?.data.__cid === instanceId;
+
+  useEffect(() => parentContext?.registerChild(), [parentContext]);
 
   useEffect(() => {
     if (
-      draggedOver &&
-      treeInstruction?.type === "make-child" &&
-      !isSelfDraggedOver
+      !collapsible ||
+      !draggedOver ||
+      isSelfHover ||
+      treeInstruction?.type !== "make-child"
     ) {
-      if (!collapsible) return;
-      // auto expand when dragged over
-      const timeout = setTimeout(() => {
-        setCollapsed(false);
-      }, 1000);
-      return () => clearTimeout(timeout);
+      return;
     }
-    return;
+    const timer = setTimeout(() => setCollapsed(false), 1000);
+    return () => clearTimeout(timer);
   }, [
     collapsible,
     draggedOver,
-    isSelfDraggedOver,
+    isSelfHover,
     setCollapsed,
     treeInstruction?.type,
   ]);
 
   useEffect(() => {
-    if (rootRef.current) {
-      const parent = rootRef.current.parentElement;
-      if (parent) {
-        const updateLastInGroup = () => {
-          setLastInGroup(parent?.lastElementChild === rootRef.current);
-        };
-        updateLastInGroup();
-        const observer = new MutationObserver(updateLastInGroup);
-        observer.observe(parent, {
-          childList: true,
-        });
-        return () => observer.disconnect();
-      }
-    }
-    return;
+    const parent = rootRef.current?.parentElement;
+    if (!parent) return;
+
+    const syncLastInGroup = () => {
+      setLastInGroup(parent.lastElementChild === rootRef.current);
+    };
+    syncLastInGroup();
+    const observer = new MutationObserver(syncLastInGroup);
+    observer.observe(parent, { childList: true });
+    return () => observer.disconnect();
   }, []);
 
-  const presetOperations = useMemo(
-    () =>
-      (
-        [
-          renameable
-            ? {
-                index: 0,
-                view: renameableGuard ? (
-                  <Guard
-                    permission={renameableGuard.action}
-                    docId={renameableGuard.docId}
-                  >
-                    {(can) => (
-                      <MenuItem
-                        key={"structure-tree-rename"}
-                        type={"default"}
-                        prefixIcon={<EditIcon />}
-                        onClick={() => setRenaming(true)}
-                        disabled={!can}
-                      >
-                        {t["com.myoxus.menu.rename"]()}
-                      </MenuItem>
-                    )}
-                  </Guard>
-                ) : (
-                  <MenuItem
-                    key={"structure-tree-rename"}
-                    type={"default"}
-                    prefixIcon={<EditIcon />}
-                    onClick={() => setRenaming(true)}
-                  >
-                    {t["com.myoxus.menu.rename"]()}
-                  </MenuItem>
-                ),
-              }
-            : null,
-        ] as (NodeOperation | null)[]
-      ).filter((t): t is NodeOperation => t !== null),
-    [renameable, renameableGuard, t],
-  );
+  const builtInOperations = useMemo<NodeOperation[]>(() => {
+    if (!renameable) return [];
+    return [
+      {
+        index: 0,
+        view: renameableGuard ? (
+          <Guard
+            permission={renameableGuard.action}
+            docId={renameableGuard.docId}
+          >
+            {(allowed) => (
+              <MenuItem
+                key="structure-tree-rename"
+                type="default"
+                prefixIcon={<EditIcon />}
+                onClick={() => setRenaming(true)}
+                disabled={!allowed}
+              >
+                {t["com.myoxus.menu.rename"]()}
+              </MenuItem>
+            )}
+          </Guard>
+        ) : (
+          <MenuItem
+            key="structure-tree-rename"
+            type="default"
+            prefixIcon={<EditIcon />}
+            onClick={() => setRenaming(true)}
+          >
+            {t["com.myoxus.menu.rename"]()}
+          </MenuItem>
+        ),
+      },
+    ];
+  }, [renameable, renameableGuard, t]);
 
   const { menuOperations, inlineOperations } = useMemo(() => {
-    const sorted = [...presetOperations, ...operations].sort(
+    const sorted = [...builtInOperations, ...operations].sort(
       (a, b) => a.index - b.index,
     );
     return {
-      menuOperations: sorted.filter(({ inline }) => !inline),
-      inlineOperations: sorted.filter(({ inline }) => !!inline),
+      menuOperations: sorted.filter((op) => !op.inline),
+      inlineOperations: sorted.filter((op) => Boolean(op.inline)),
     };
-  }, [presetOperations, operations]);
+  }, [builtInOperations, operations]);
 
-  const contextValue = useMemo(() => {
-    return {
+  const childContext = useMemo(
+    () => ({
       operations: childrenOperations,
-      level: (context?.level ?? 0) + 1,
+      level: level + 1,
       registerChild: () => {
-        setChildCount((c) => c + 1);
-        return () => setChildCount((c) => c - 1);
+        setChildCount((count) => count + 1);
+        return () => setChildCount((count) => count - 1);
       },
-    };
-  }, [childrenOperations, context?.level]);
+    }),
+    [childrenOperations, level],
+  );
 
   const handleRename = useCallback(
-    (newName: string) => {
-      onRename?.(newName);
+    (nextName: string) => {
+      onRename?.(nextName);
     },
     [onRename],
   );
 
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.defaultPrevented) {
-        return;
-      }
-      if (!clickForCollapse) {
+  const handleRowClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (event.defaultPrevented) return;
+      if (!clickTogglesCollapse) {
         onClick?.();
       } else if (collapsible) {
         setCollapsed(!collapsed);
       }
     },
-    [clickForCollapse, collapsed, collapsible, onClick, setCollapsed],
+    [clickTogglesCollapse, collapsed, collapsible, onClick, setCollapsed],
   );
 
-  const handleCollapsedChange = useCallback(
+  const handleCollapseToggle = useCallback(
     (event: React.MouseEvent) => {
       event.stopPropagation();
       event.preventDefault();
@@ -472,7 +361,7 @@ export const StructureTreeNode = ({
     [collapsed, setCollapsed],
   );
 
-  const handleKeyDown = useCallback(
+  const handleRowKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
       if (
         event.target !== event.currentTarget ||
@@ -489,63 +378,40 @@ export const StructureTreeNode = ({
     },
     [collapsed, collapsible, onClick, setCollapsed],
   );
-  const keyboardInteractive = Boolean(
-    onClick || (clickForCollapse && collapsible),
+
+  const isKeyboardInteractive = Boolean(
+    onClick || (clickTogglesCollapse && collapsible),
   );
 
-  const fallbackIcon = Icon && (
+  const fallbackIcon = Icon ? (
     <Icon
-      draggedOver={draggedOver && !isSelfDraggedOver}
+      draggedOver={draggedOver && !isSelfHover}
       treeInstruction={treeInstruction}
       collapsed={collapsed}
     />
-  );
+  ) : null;
 
-  const collapseControl =
-    !clickForCollapse && collapsible ? (
+  const disclosureButton =
+    !clickTogglesCollapse && collapsible ? (
       <StructureTreeCollapseButton
-        aria-label={collapsed === false ? "Collapse" : "Expand"}
+        aria-label={collapsed ? "Expand" : "Collapse"}
         collapsed={collapsed}
         collapsible
         data-testid="structure-tree-collapsed-button"
         disabled={disabled}
-        onClick={handleCollapsedChange}
+        onClick={handleCollapseToggle}
       />
     ) : null;
 
-  const rowLabel = (
-    <StructureTreeMain>
-      <StructureTreeLabel>{rawName}</StructureTreeLabel>
-      {postfix}
-      {renameable && renaming && (
-        <StructureTreeNodeRenameModal
-          setRenaming={setRenaming}
-          handleRename={handleRename}
-          rawName={rawName}
-          explorerIconConfig={explorerIconConfig}
-          fallbackIcon={fallbackIcon}
-        />
-      )}
-    </StructureTreeMain>
-  );
-
-  const rowActions =
+  const actionsSlot =
     inlineOperations.length > 0 || menuOperations.length > 0 ? (
-      <StructureTreeActions
-        onClick={(e) => {
-          // prevent jump to page
-          e.preventDefault();
-        }}
-      >
+      <StructureTreeActions onClick={(event) => event.preventDefault()}>
         {inlineOperations.map(({ view, index }) => (
           <Fragment key={index}>{view}</Fragment>
         ))}
-        {menuOperations.length > 0 && (
+        {menuOperations.length > 0 ? (
           <Menu
-            rootOptions={{
-              open: operationsMenuOpen,
-              onOpenChange: setOperationsMenuOpen,
-            }}
+            rootOptions={{ open: menuOpen, onOpenChange: setMenuOpen }}
             items={menuOperations.map(({ view, index }) => (
               <Fragment key={index}>{view}</Fragment>
             ))}
@@ -554,39 +420,59 @@ export const StructureTreeNode = ({
               <MoreHorizontalIcon />
             </StructureTreeActionButton>
           </Menu>
-        )}
+        ) : null}
       </StructureTreeActions>
     ) : undefined;
 
-  const content = (
+  const row = (
     <StructureTreeRow
-      onClick={handleClick}
+      onClick={handleRowClick}
       active={active}
-      aria-expanded={clickForCollapse && collapsible ? !collapsed : undefined}
+      aria-expanded={
+        clickTogglesCollapse && collapsible ? !collapsed : undefined
+      }
       disabled={disabled}
       collapsible={collapsible}
       dragging={dragging}
-      onKeyDown={keyboardInteractive ? handleKeyDown : undefined}
-      role={keyboardInteractive ? "treeitem" : undefined}
-      tabIndex={keyboardInteractive ? 0 : undefined}
-      label={rowLabel}
+      onKeyDown={isKeyboardInteractive ? handleRowKeyDown : undefined}
+      role={isKeyboardInteractive ? "treeitem" : undefined}
+      tabIndex={isKeyboardInteractive ? 0 : undefined}
+      label={
+        <StructureTreeMain>
+          <StructureTreeLabel>{rawName}</StructureTreeLabel>
+          {postfix}
+          {renameable && renaming ? (
+            <StructureTreeNodeRenameModal
+              setRenaming={setRenaming}
+              handleRename={handleRename}
+              rawName={rawName}
+              explorerIconConfig={explorerIconConfig}
+              fallbackIcon={fallbackIcon}
+            />
+          ) : null}
+        </StructureTreeMain>
+      }
       leftSection={
         <StructureTreeLeading
           alignDisclosure={level > 0}
-          disclosure={collapseControl}
+          disclosure={disclosureButton}
         >
           <StructureTreeIconSlot>
             <IconRenderer data={explorerIcon?.icon} fallback={fallbackIcon} />
           </StructureTreeIconSlot>
         </StructureTreeLeading>
       }
-      rightSection={rowActions}
+      rightSection={actionsSlot}
       rightSectionAlwaysVisible={
-        operationsMenuOpen ||
-        inlineOperations.some(({ alwaysVisible }) => alwaysVisible)
+        menuOpen || inlineOperations.some((op) => op.alwaysVisible)
       }
     />
   );
+
+  const showDropIndicator =
+    Boolean(treeInstruction) &&
+    !(treeInstruction?.type !== "reparent" && isSelfHover) &&
+    treeInstruction?.type !== "instruction-blocked";
 
   return (
     <StructureTreeNodeRoot
@@ -603,7 +489,7 @@ export const StructureTreeNode = ({
       >
         <StructureTreeContent
           open={!collapsed}
-          selfDraggedOver={isSelfDraggedOver}
+          selfDraggedOver={isSelfHover}
           treeInstruction={treeInstruction}
           ref={dropTargetRef}
         >
@@ -614,38 +500,39 @@ export const StructureTreeNode = ({
               ref={dragRef}
               draggable={false}
             >
-              {content}
+              {row}
             </StructureTreeLink>
           ) : (
-            <div ref={dragRef}>{content}</div>
+            <div ref={dragRef}>{row}</div>
           )}
+
           <CustomDragPreview>
-            <StructureTreeDragPreview>{content}</StructureTreeDragPreview>
+            <StructureTreeDragPreview>{row}</StructureTreeDragPreview>
           </CustomDragPreview>
-          {treeInstruction &&
-            // Do not show drop indicator for self dragged over
-            !(treeInstruction.type !== "reparent" && isSelfDraggedOver) &&
-            treeInstruction.type !== "instruction-blocked" && (
-              <DropIndicator instruction={treeInstruction} />
-            )}
+
+          {showDropIndicator && treeInstruction ? (
+            <DropIndicator instruction={treeInstruction} />
+          ) : null}
+
           {draggedOver &&
-            dropEffect &&
-            draggedOverPosition &&
-            !isSelfDraggedOver &&
-            draggedOverDraggable && (
-              <DropEffect
-                dropEffect={dropEffect({
-                  source: draggedOverDraggable,
-                  treeInstruction: treeInstruction,
-                })}
-                position={draggedOverPosition}
-              />
-            )}
+          dropEffect &&
+          draggedOverPosition &&
+          !isSelfHover &&
+          draggedOverDraggable ? (
+            <DropEffect
+              dropEffect={dropEffect({
+                source: draggedOverDraggable,
+                treeInstruction,
+              })}
+              position={draggedOverPosition}
+            />
+          ) : null}
         </StructureTreeContent>
       </ContextMenu>
+
       <StructureTreeChildren hidden={dragging}>
         {childCount === 0 && !collapsed ? childrenPlaceholder : null}
-        <StructureTreeContext.Provider value={contextValue}>
+        <StructureTreeContext.Provider value={childContext}>
           {collapsed ? null : children}
         </StructureTreeContext.Provider>
       </StructureTreeChildren>

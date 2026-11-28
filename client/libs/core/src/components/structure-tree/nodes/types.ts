@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { MyoxusDNDData } from "@myoxus/core/types/dnd";
 import type { DropTargetDropEvent, DropTargetOptions } from "@myoxus/ui-facade";
 
@@ -5,50 +8,16 @@ import type { StructureTreeNodeDropEffect } from "../tree";
 import type { NodeOperation } from "../tree/types";
 
 /**
- * The interface for a generic structure tree node.
- *
- * # Drop controlled area
- *
- * When an element is dragged over the node, there are two controlled areas depending on the mouse position.
- *
- * **Make Child Area**:
- * When the mouse is in the center area of the node, it is in `Make Child Area`,
- * `canDrop`, `onDrop`, and `dropEffect` are handled by the node itself.
- *
- * **Edge Area**:
- * When the mouse is at the upper edge, lower edge, or front of a node, it is located in the `Edge Area`,
- * and all drop events are handled by the node's parent, which callbacks in this interface.
- *
- * The controlled area can be distinguished by `data.treeInstruction.type` in the callback parameter.
+ * Shared contract implemented by every typed structure-tree node.
+ * Center drops (`make-child`) are handled by the node itself while edge drops
+ * (`reorder-above`, `reorder-below`, `reparent`) delegate to the parent node.
  */
 export interface GenericStructureTreeNode {
-  /**
-   * Tell the node and dropTarget where the node is located in the tree
-   */
   location?: MyoxusDNDData["draggable"]["from"];
-  /**
-   * Whether the node is allowed to reorder with its sibling nodes
-   */
   reorderable?: boolean;
-  /**
-   * Additional operations to be displayed in the node
-   */
   operations?: NodeOperation[];
-  /**
-   * Control whether drop is allowed, the callback will be called when dragging.
-   */
   canDrop?: DropTargetOptions<MyoxusDNDData>["canDrop"];
-  /**
-   * Called when an element is dropped over the node.
-   */
   onDrop?: (data: DropTargetDropEvent<MyoxusDNDData>) => void;
-  /**
-   * The drop effect to be used when an element is dropped over the node.
-   */
   dropEffect?: StructureTreeNodeDropEffect;
-  /**
-   * The path segments to the parent node in the structure tree.
-   * Used to persist the node's collapsed/expanded state in cache storage.
-   */
   parentPath: string[];
 }

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useI18n } from "@myoxus/i18n";
 import { FavoritedIcon, FavoriteIcon } from "@myoxus/icons/react";
 import { IconButton, type IconButtonProps } from "@myoxus/ui-facade";
@@ -8,16 +11,18 @@ export const FavoriteTag = forwardRef<
   {
     active: boolean;
   } & Omit<IconButtonProps, "children" | "iconClassName" | "iconStyle" | "size">
->(({ active, onClick, ...props }, ref) => {
+>(function FavoriteTag({ active, onClick, ...props }, ref) {
   const t = useI18n();
+
   const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.stopPropagation();
-      e.preventDefault();
-      onClick?.(e);
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+      event.preventDefault();
+      onClick?.(event);
     },
     [onClick],
   );
+
   return (
     <IconButton
       tooltip={active ? t["Favorited"]() : t["Favorite"]()}
@@ -39,4 +44,3 @@ export const FavoriteTag = forwardRef<
     </IconButton>
   );
 });
-FavoriteTag.displayName = "FavoriteTag";

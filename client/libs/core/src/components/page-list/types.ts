@@ -1,16 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { CollectionMeta } from "@myoxus/core/modules/collection";
 import type { TagColorRole } from "@myoxus/ui-facade";
 import type { DocMeta, Workspace } from "@virgultum/editor/store";
-import type { JSX, PropsWithChildren, ReactNode } from "react";
+import type {
+  CSSProperties,
+  HTMLAttributes,
+  JSX,
+  PropsWithChildren,
+  ReactNode,
+} from "react";
 import type { To } from "react-router";
-
-export type ListItem =
-  | DocMeta
-  | (CollectionMeta & {
-      createDate?: Date | number;
-      updatedDate?: Date | number;
-    })
-  | TagMeta;
 
 export type TagMeta = {
   id: string;
@@ -21,22 +22,29 @@ export type TagMeta = {
   createDate?: Date | number;
   updatedDate?: Date | number;
 };
-// TODO(@JimmFly): consider reducing the number of props here
-// using type instead of interface to make it Record compatible
+
+export type ListItem =
+  | DocMeta
+  | (CollectionMeta & {
+      createDate?: Date | number;
+      updatedDate?: Date | number;
+    })
+  | TagMeta;
+
 export type PageListItemProps = {
   pageId: string;
   pageIds?: string[];
   icon: JSX.Element;
-  title: ReactNode; // using ReactNode to allow for rich content rendering
-  preview?: ReactNode; // using ReactNode to allow for rich content rendering
+  title: ReactNode;
+  preview?: ReactNode;
   createDate: Date;
   updatedDate?: Date;
   isPublicPage?: boolean;
-  to?: To; // whether or not to render this item as a Link
-  draggable?: boolean; // whether or not to allow dragging this item
-  selectable?: boolean; // show selection checkbox
+  to?: To;
+  draggable?: boolean;
+  selectable?: boolean;
   selected?: boolean;
-  operations?: ReactNode; // operations to show on the right side of the item
+  operations?: ReactNode;
   onClick?: () => void;
   onSelectedChange?: () => void;
 };
@@ -44,14 +52,14 @@ export type PageListItemProps = {
 export type CollectionListItemProps = {
   collectionId: string;
   icon: JSX.Element;
-  title: ReactNode; // using ReactNode to allow for rich content rendering
+  title: ReactNode;
   createDate?: Date;
   updatedDate?: Date;
-  to?: To; // whether or not to render this item as a Link
-  draggable?: boolean; // whether or not to allow dragging this item
-  selectable?: boolean; // show selection checkbox
+  to?: To;
+  draggable?: boolean;
+  selectable?: boolean;
   selected?: boolean;
-  operations?: ReactNode; // operations to show on the right side of the item
+  operations?: ReactNode;
   onClick?: () => void;
   onSelectedChange?: () => void;
 };
@@ -60,84 +68,84 @@ export type TagListItemProps = {
   tagId: string;
   color: TagColorRole;
   archived?: boolean;
-  title: ReactNode; // using ReactNode to allow for rich content rendering
+  title: ReactNode;
   createDate?: Date | number;
   updatedDate?: Date | number;
-  to?: To; // whether or not to render this item as a Link
-  draggable?: boolean; // whether or not to allow dragging this item
-  selectable?: boolean; // show selection checkbox
+  to?: To;
+  draggable?: boolean;
+  selectable?: boolean;
   selected?: boolean;
-  operations?: ReactNode; // operations to show on the right side of the item
+  operations?: ReactNode;
   onClick?: () => void;
   onSelectedChange?: () => void;
 };
 
 export interface ItemListHeaderProps {}
 
-// TODO(@JimmFly): a temporary solution. may need to be refactored later
-export type ItemGroupByType = "createDate" | "updatedDate";
+export type DateKey = "createDate" | "updatedDate";
+export type ItemGroupByType = DateKey;
+
 export interface SortBy {
-  key: "createDate" | "updatedDate";
+  key: DateKey;
   order: "asc" | "desc";
 }
 
-export type DateKey = "createDate" | "updatedDate";
 export type PageGroupByType =
   "createDate" | "updatedDate" | "tag" | "favourites" | "none";
 
-export interface ListProps<T> {
-  // required data:
-  items: T[];
-  docCollection: Workspace;
-  className?: string;
-  hideHeader?: boolean; // whether or not to hide the header. default is false (showing header)
-  groupBy?: ItemGroupDefinition<T>[] | false;
-  rowAsLink?: boolean;
-  selectable?: "toggle" | boolean; // show selection checkbox. toggle means showing a toggle selection in header on click; boolean == true means showing a selection checkbox for each item
-  selectedIds?: string[]; // selected page ids
-  onSelectedIdsChange?: (selected: string[]) => void;
-  onSelectionActiveChange?: (active: boolean) => void;
-  draggable?: boolean; // whether or not to allow dragging this page item
-  // we also need the following to make sure the page list functions properly
-  // maybe we could also give a function to render PageListItem?
-  operationsRenderer?: (item: T) => ReactNode;
-}
-
-export interface VirtualizedListProps<T> extends ListProps<T> {
-  heading?: ReactNode; // the user provided heading part (non sticky, above the original header)
-  headerRenderer?: (item?: T) => ReactNode; // the user provided header renderer
-  itemRenderer?: (item: T) => ReactNode; // the user provided item renderer
-  atTopThreshold?: number; // the threshold to determine whether or not the user has scrolled to the top. default is 0
-  atTopStateChange?: (atTop: boolean) => void; // called when the user scrolls to the top or not
-}
-
-export interface ItemListHandle {
-  toggleSelectable: () => void;
-}
-
 export interface ItemGroupDefinition<T> {
   id: string;
-  // using a function to render custom group header
   label: ((count: number) => ReactNode) | ReactNode;
   match: (item: T) => boolean;
 }
 
 export interface ItemGroupProps<T> {
   id: string;
-  label?: ReactNode; // if there is no label, it is a default group (without header)
+  label?: ReactNode;
   items: T[];
   allItems: T[];
 }
 
-type MakeRecord<T> = {
-  [P in keyof T]: T[P];
-};
+export interface ListProps<T> {
+  items: T[];
+  docCollection: Workspace;
+  className?: string;
+  hideHeader?: boolean;
+  groupBy?: ItemGroupDefinition<T>[] | false;
+  rowAsLink?: boolean;
+  selectable?: "toggle" | boolean;
+  selectedIds?: string[];
+  onSelectedIdsChange?: (selected: string[]) => void;
+  onSelectionActiveChange?: (active: boolean) => void;
+  draggable?: boolean;
+  operationsRenderer?: (item: T) => ReactNode;
+}
 
-export type MetaRecord<T> = MakeRecord<T>;
+export interface VirtualizedListProps<T> extends ListProps<T> {
+  heading?: ReactNode;
+  headerRenderer?: (item?: T) => ReactNode;
+  itemRenderer?: (item: T) => ReactNode;
+  atTopThreshold?: number;
+  atTopStateChange?: (atTop: boolean) => void;
+}
+
+export interface ItemListHandle {
+  toggleSelectable: () => void;
+}
+
+export type MetaRecord<T> = { [K in keyof T]: T[K] };
 
 export type DraggableTitleCellData = {
   preview: ReactNode;
 };
+
+export type ColWrapperProps = PropsWithChildren<{
+  flex?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+  alignment?: "start" | "center" | "end";
+  styles?: CSSProperties;
+  hideInSmallContainer?: boolean;
+}> &
+  HTMLAttributes<Element>;
 
 export type HeaderColDef = {
   key: string;
@@ -148,14 +156,6 @@ export type HeaderColDef = {
   hideInSmallContainer?: boolean;
   hidden?: boolean;
 };
-
-export type ColWrapperProps = PropsWithChildren<{
-  flex?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
-  alignment?: "start" | "center" | "end";
-  styles?: React.CSSProperties;
-  hideInSmallContainer?: boolean;
-}> &
-  React.HTMLAttributes<Element>;
 
 export type PageDisplayProperties = {
   bodyNotes: boolean;

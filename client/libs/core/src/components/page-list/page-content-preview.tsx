@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { DocsService } from "@myoxus/core/modules/doc";
 import { DocSummaryService } from "@myoxus/core/modules/doc-summary";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
@@ -8,10 +11,10 @@ import type { Store as VirgultumStore } from "@virgultum/editor/store";
 import { useAtomValue } from "jotai";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
-import { useVirgultumPagePreview } from "./use-virgultum-page-preview";
 import { ServerPagePreview } from "./server-page-preview";
+import { useVirgultumPagePreview } from "./use-virgultum-page-preview";
 
-interface PagePreviewProps {
+export interface PagePreviewProps {
   fill?: boolean;
   inventoryPreview?: "grid" | "masonry";
   variant?: "text" | "image";
@@ -23,19 +26,18 @@ interface PagePreviewProps {
   visibleListSnippet?: boolean;
 }
 
-function useDocPrimaryMode(pageId: string): DocMode | undefined {
+const usePagePrimaryMode = (pageId: string): DocMode | undefined => {
   const docsService = useService(DocsService);
-  const docRecord = useLiveData(
+  const record = useLiveData(
     useMemo(() => docsService.list.doc$(pageId), [docsService, pageId]),
   );
+  return useLiveData(record?.primaryMode$ ?? null) ?? undefined;
+};
 
-  return useLiveData(docRecord?.primaryMode$ ?? null) ?? undefined;
-}
-
-function useOpenedVirgultumPreviewStore(
+const useLocalPreviewStore = (
   pageId: string,
   enabled: boolean,
-): VirgultumStore | null {
+): VirgultumStore | null => {
   const docsService = useService(DocsService);
   const [store, setStore] = useState<VirgultumStore | null>(null);
 
@@ -58,9 +60,9 @@ function useOpenedVirgultumPreviewStore(
   }, [docsService, enabled, pageId]);
 
   return store;
-}
+};
 
-const PagePreviewInner = ({
+const TextPagePreview = ({
   edgelessFallback,
   enableLocalTextFallback = false,
   pageId,
@@ -69,7 +71,8 @@ const PagePreviewInner = ({
   visibleListSnippet = false,
 }: PagePreviewProps) => {
   const docSummary = useService(DocSummaryService);
-  const primaryMode = useDocPrimaryMode(pageId);
+  const primaryMode = usePagePrimaryMode(pageId);
+
   const summary = useLiveData(
     useMemo(
       () =>
@@ -82,47 +85,43 @@ const PagePreviewInner = ({
       [docSummary, pageId, visibleListSnippet],
     ),
   );
-  const localTextFallbackStore = useOpenedVirgultumPreviewStore(
+
+  const fallbackStore = useLocalPreviewStore(
     pageId,
     enableLocalTextFallback && summary === "" && primaryMode === "page",
   );
-  const localTextFallback = useAtomValue(
-    useVirgultumPagePreview(localTextFallbackStore),
-  );
+  const localSnippet = useAtomValue(useVirgultumPagePreview(fallbackStore));
 
-  // A visible-list subscription starts with undefined before its first result;
-  // keep the same fallback as the not-yet-subscribed state.
   if (summary === null || summary === undefined) {
     return fallback;
   }
 
-  // Edgeless needs a visual preview contract; do not derive card previews from
-  // page text snippets while that mode has no server-provided summary.
+  // Edgeless surfaces require a visual preview contract rather than text fallbacks.
   if (primaryMode === "edgeless") {
     return edgelessFallback ?? emptyFallback;
   }
 
   if (summary === "") {
-    return localTextFallback || emptyFallback;
+    return localSnippet || emptyFallback;
   }
 
   return summary;
 };
 
-const VisibleListPagePreview = (props: PagePreviewProps) => {
-  const element = useRef<HTMLSpanElement>(null);
+const LazyVisiblePreview = (props: PagePreviewProps) => {
+  const hostRef = useRef<HTMLSpanElement>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!element.current) return;
-    return observeIntersection(element.current, (entry) =>
-      setVisible(entry.isIntersecting),
-    );
+    if (!hostRef.current) return;
+    return observeIntersection(hostRef.current, (entry) => {
+      setVisible(entry.isIntersecting);
+    });
   }, []);
 
   return (
-    <Box component="span" ref={element}>
-      {visible ? <PagePreviewInner {...props} /> : props.fallback}
+    <Box component="span" ref={hostRef}>
+      {visible ? <TextPagePreview {...props} /> : props.fallback}
     </Box>
   );
 };
@@ -139,7 +138,7 @@ export const PagePreview = (props: PagePreviewProps) => {
     );
   }
   if (props.visibleListSnippet) {
-    return <VisibleListPagePreview {...props} />;
+    return <LazyVisiblePreview {...props} />;
   }
-  return <PagePreviewInner {...props} />;
+  return <TextPagePreview {...props} />;
 };

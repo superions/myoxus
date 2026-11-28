@@ -1,11 +1,6 @@
-/**
- * Shared constants for the auth callback pages (magic-link, OAuth callback).
- *
- * The `supportedClient` schema validates the `client` query parameter that
- * native apps append to auth callback URLs so the web handler knows to build
- * a deep-link and redirect to the native app instead of completing the flow
- * in the browser.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { z } from "zod";
 
 export const SIGN_IN_PATH = "/sign-in";
@@ -13,14 +8,6 @@ export const CLOSE_POPUP_REDIRECT_TARGET = "CLOSE_POPUP";
 
 export type AuthContext = "admin";
 
-/**
- * Zod enum of all client identifiers that auth callback pages recognise.
- *
- * - `web` — complete the flow in the browser (also the default when absent).
- * - `myoxus` / `myoxus-beta` / `myoxus-internal` — redirect via a custom URL
- *   scheme to the corresponding Electron build.
- * - `myoxus-dev` — only available in debug builds.
- */
 export const supportedClient = z.enum([
   "web",
   "myoxus",
@@ -29,80 +16,52 @@ export const supportedClient = z.enum([
   ...(BUILD_CONFIG.debug ? ["myoxus-dev"] : []),
 ]);
 
-export function parseAuthContext(value: string | null | undefined) {
+export function parseAuthContext(
+  value: string | null | undefined,
+): AuthContext | undefined {
   return value === "admin" ? value : undefined;
 }
 
-/**
- * Admin routes are served by a separate frontend bundle. Auth pages run inside
- * the Web bundle, so returning to `/adminfrontend/*` must replace the document
- * instead of asking the Web React router to render an Admin route.
- */
-export function requiresDocumentAuthRedirect(
-  value: string | null | undefined,
-  origin = defaultOrigin(),
-) {
-  const target = sanitizeAuthRedirectTarget(value, origin);
-
-  if (!target || target === CLOSE_POPUP_REDIRECT_TARGET) {
-    return false;
-  }
-
-  try {
-    const parsed = new URL(target, new URL(origin));
-    return (
-      parsed.pathname === "/adminfrontend" ||
-      parsed.pathname.startsWith("/adminfrontend/")
-    );
-  } catch {
-    return false;
-  }
+function defaultOrigin(): string {
+  return typeof location !== "undefined"
+    ? location.origin
+    : "https://app.myoxus.local";
 }
 
-function defaultOrigin() {
-  if (typeof location !== "undefined") {
-    return location.origin;
-  }
-
-  return "https://app.myoxus.local";
-}
-
-function startsWithEncodedSlash(value: string) {
+function hasEncodedLeadingSlash(value: string): boolean {
   return /^\/(?:%2f|%5c)/i.test(value);
 }
 
+function isUnsafeRelativeTarget(value: string): boolean {
+  return (
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.startsWith("/\\") ||
+    hasEncodedLeadingSlash(value)
+  );
+}
+
 /**
- * Normalizes an auth redirect target to a same-origin relative URL.
- *
- * The auth flow accepts only app-local paths. Full URLs, protocol-relative
- * URLs, backslash variants, and encoded protocol-relative tricks are rejected.
- * `CLOSE_POPUP` remains an explicit desktop OAuth compatibility target.
+ * Restricts post-auth redirects to normalized same-origin relative paths (or
+ * the desktop OAuth `CLOSE_POPUP` sentinel).
  */
 export function sanitizeAuthRedirectTarget(
   value: string | null | undefined,
   origin = defaultOrigin(),
-) {
+): string | undefined {
   const trimmed = value?.trim();
-
   if (!trimmed) {
     return undefined;
   }
-
   if (trimmed.toUpperCase() === CLOSE_POPUP_REDIRECT_TARGET) {
     return CLOSE_POPUP_REDIRECT_TARGET;
   }
-
-  if (
-    !trimmed.startsWith("/") ||
-    trimmed.startsWith("//") ||
-    trimmed.startsWith("/\\") ||
-    startsWithEncodedSlash(trimmed)
-  ) {
+  if (isUnsafeRelativeTarget(trimmed)) {
     return undefined;
   }
 
-  let parsed: URL;
   let base: URL;
+  let parsed: URL;
   try {
     base = new URL(origin);
     parsed = new URL(trimmed, base);
@@ -115,17 +74,30 @@ export function sanitizeAuthRedirectTarget(
   }
 
   const normalized = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  return isUnsafeRelativeTarget(normalized) ? undefined : normalized;
+}
 
-  if (
-    !normalized.startsWith("/") ||
-    normalized.startsWith("//") ||
-    normalized.startsWith("/\\") ||
-    startsWithEncodedSlash(normalized)
-  ) {
-    return undefined;
+/**
+ * Returns true when the redirect target belongs to the separately bundled
+ * `/adminfrontend` app and therefore requires a full document navigation.
+ */
+export function requiresDocumentAuthRedirect(
+  value: string | null | undefined,
+  origin = defaultOrigin(),
+): boolean {
+  const target = sanitizeAuthRedirectTarget(value, origin);
+  if (!target || target === CLOSE_POPUP_REDIRECT_TARGET) {
+    return false;
   }
-
-  return normalized;
+  try {
+    const parsed = new URL(target, new URL(origin));
+    return (
+      parsed.pathname === "/adminfrontend" ||
+      parsed.pathname.startsWith("/adminfrontend/")
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function buildSignInUrl({
@@ -136,21 +108,17 @@ export function buildSignInUrl({
   error?: string;
   redirectUri?: string;
   authContext?: AuthContext;
-} = {}) {
+} = {}): string {
   const params = new URLSearchParams();
-
   if (error) {
     params.set("error", error);
   }
-
   if (redirectUri) {
     params.set("redirect_uri", redirectUri);
   }
-
   if (authContext) {
     params.set("auth_context", authContext);
   }
-
   const query = params.toString();
   return query ? `${SIGN_IN_PATH}?${query}` : SIGN_IN_PATH;
 }

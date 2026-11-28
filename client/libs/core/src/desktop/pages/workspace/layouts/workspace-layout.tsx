@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { AiLoginRequiredModal } from "@myoxus/core/components/myoxus/auth/ai-login-required";
 import { SWRConfigProvider } from "@myoxus/core/components/providers/swr-config-provider";
 import { WorkspaceRuntime } from "@myoxus/core/components/providers/workspace-runtime";
@@ -13,27 +16,29 @@ import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { LiveData, useLiveData, useService } from "@myoxus/infra";
 import type { PropsWithChildren } from "react";
 
-/**
- * Root layout component wrapping all workspace-scoped content.
- *
- * Renders the full provider + side-effect layer on top of the workbench
- * content area. Should be used as the direct parent of `<WorkbenchRoot>`.
- *
- * @param children - The workbench content; typically `<WorkbenchRoot />`.
- */
-export const WorkspaceLayout = function WorkspaceLayout({
-  children,
-}: PropsWithChildren) {
-  const currentWorkspace = useService(WorkspaceService).workspace;
+function WorkspaceLayoutContainer({ children }: PropsWithChildren) {
+  const workbench = useService(WorkbenchService).workbench;
+  const currentPath = useLiveData(
+    LiveData.computed(
+      (get) => get(workbench.basename$) + get(workbench.location$).pathname,
+    ),
+  );
+
+  return (
+    <AppContainer data-current-path={currentPath}>{children}</AppContainer>
+  );
+}
+
+export function WorkspaceLayout({ children }: PropsWithChildren) {
+  const workspace = useService(WorkspaceService).workspace;
+
   return (
     <SWRConfigProvider>
       <WorkspaceContentOperationResume />
       <WorkspaceDialogs />
-
-      {/* ---- some side-effect components ---- */}
-      {currentWorkspace?.flavour !== "local" ? (
+      {workspace?.flavour !== "local" ? (
         <>
-          <QuotaCheck workspaceMeta={currentWorkspace.meta} />
+          <QuotaCheck workspaceMeta={workspace.meta} />
           <QuotaUploadWatcher />
         </>
       ) : null}
@@ -41,40 +46,8 @@ export const WorkspaceLayout = function WorkspaceLayout({
       <WorkspaceRuntime />
       <PeekViewManagerModal />
       <DocumentTitle />
-
-      <WorkspaceLayoutInner>{children}</WorkspaceLayoutInner>
+      <WorkspaceLayoutContainer>{children}</WorkspaceLayoutContainer>
       <AIIsland />
     </SWRConfigProvider>
   );
-};
-
-/**
- * Inner UI container that tracks the current workbench path.
- *
- * Attaches `data-current-path` to the `<AppContainer>` root so that CSS
- * selectors and end-to-end tests can inspect the active route without parsing
- * the URL. Responsive sidebar behavior is owned by the shared UI facade, not by
- * this workspace layout.
- */
-const WorkspaceLayoutUIContainer = ({ children }: PropsWithChildren) => {
-  const workbench = useService(WorkbenchService).workbench;
-  const currentPath = useLiveData(
-    LiveData.computed((get) => {
-      return get(workbench.basename$) + get(workbench.location$).pathname;
-    }),
-  );
-
-  return (
-    <AppContainer data-current-path={currentPath}>{children}</AppContainer>
-  );
-};
-/**
- * Thin adapter between `WorkspaceLayout` and `WorkspaceLayoutUIContainer`.
- *
- * Exists as a separate component so that additional providers or layout
- * concerns can be inserted here in the future without touching the outer
- * layout's public API.
- */
-const WorkspaceLayoutInner = ({ children }: PropsWithChildren) => {
-  return <WorkspaceLayoutUIContainer>{children}</WorkspaceLayoutUIContainer>;
-};
+}

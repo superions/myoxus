@@ -1,103 +1,106 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { CopilotChatHistoryFragment } from "@myoxus/graphql";
 import { describe, expect, test, vi } from "vitest";
 
 import {
-  resolveInitialSession,
   consumeSessionIdFromUrl,
+  resolveInitialSession,
   type SessionService,
   type WorkbenchLike,
 } from "./session";
 
-const createWorkbench = (search: string) => {
+function makeWorkbench(search: string) {
   const updateQueryString = vi.fn();
-  const workbench = {
+  const workbench: WorkbenchLike = {
     location$: { value: { search } },
     activeView$: { value: { updateQueryString } },
-  } satisfies WorkbenchLike;
-
+  };
   return { workbench, updateQueryString };
-};
+}
 
-const doc = { id: "doc-1", workspace: { id: "ws-1" } };
-
-test("returns undefined without session service or doc", async () => {
-  await expect(
-    resolveInitialSession({ sessionService: null, doc, workbench: null }),
-  ).resolves.toBeUndefined();
-  await expect(
-    resolveInitialSession({
-      sessionService: {
-        getSessions: vi.fn(),
-        getSession: vi.fn(),
-      },
-      doc: null,
-      workbench: null,
-    }),
-  ).resolves.toBeUndefined();
-});
+const sampleDoc = { id: "doc-1", workspace: { id: "ws-1" } };
 
 describe("resolveInitialSession", () => {
-  test("prefers pinned session and leaves URL consumption to the active host", async () => {
-    const pinnedSession = {
+  test("returns undefined until both session service and document are ready", async () => {
+    await expect(
+      resolveInitialSession({
+        sessionService: null,
+        doc: sampleDoc,
+        workbench: null,
+      }),
+    ).resolves.toBeUndefined();
+
+    await expect(
+      resolveInitialSession({
+        sessionService: { getSessions: vi.fn(), getSession: vi.fn() },
+        doc: null,
+        workbench: null,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  test("prioritizes a pinned session and defers URL handoff cleanup to the caller", async () => {
+    const pinned = {
       sessionId: "pinned-session",
       pinned: true,
     } as CopilotChatHistoryFragment;
-
     const sessionService: SessionService = {
-      getSessions: vi.fn().mockResolvedValueOnce([pinnedSession]),
+      getSessions: vi.fn().mockResolvedValueOnce([pinned]),
       getSession: vi.fn(),
     };
-
-    const { workbench, updateQueryString } = createWorkbench(
+    const { workbench, updateQueryString } = makeWorkbench(
       "?sessionId=from-url",
     );
 
-    const result = await resolveInitialSession({
+    const resolved = await resolveInitialSession({
       sessionService,
-      doc,
+      doc: sampleDoc,
       workbench,
     });
 
-    expect(result).toBe(pinnedSession);
+    expect(resolved).toBe(pinned);
+    expect(sessionService.getSession).not.toHaveBeenCalled();
     expect(updateQueryString).not.toHaveBeenCalled();
+
     consumeSessionIdFromUrl(workbench, "from-url");
     expect(updateQueryString).toHaveBeenCalledWith(
       { sessionId: undefined },
       { replace: true },
     );
-    expect(sessionService.getSession).not.toHaveBeenCalled();
   });
 
-  test("loads session from url when no pinned session", async () => {
-    const sessionFromUrl = {
+  test("resolves the URL handoff session and only consumes matching navigation state", async () => {
+    const urlSession = {
       sessionId: "url-session",
       pinned: false,
     } as CopilotChatHistoryFragment;
-
     const sessionService: SessionService = {
       getSessions: vi.fn().mockResolvedValueOnce([]),
-      getSession: vi.fn().mockResolvedValueOnce(sessionFromUrl),
+      getSession: vi.fn().mockResolvedValueOnce(urlSession),
     };
-
-    const { workbench, updateQueryString } = createWorkbench(
+    const { workbench, updateQueryString } = makeWorkbench(
       "?sessionId=url-session",
     );
 
-    const result = await resolveInitialSession({
+    const resolved = await resolveInitialSession({
       sessionService,
-      doc,
+      doc: sampleDoc,
       workbench,
     });
 
-    expect(result).toBe(sessionFromUrl);
+    expect(resolved).toBe(urlSession);
     expect(sessionService.getSession).toHaveBeenCalledWith(
-      doc.workspace.id,
+      sampleDoc.workspace.id,
       "url-session",
     );
     expect(updateQueryString).not.toHaveBeenCalled();
-    workbench.location$.value.search = "?sessionId=newer-navigation";
+
+    workbench.location$.value.search = "?sessionId=other-session";
     consumeSessionIdFromUrl(workbench, "url-session");
     expect(updateQueryString).not.toHaveBeenCalled();
+
     workbench.location$.value.search = "?sessionId=url-session";
     consumeSessionIdFromUrl(workbench, "url-session");
     expect(updateQueryString).toHaveBeenCalledWith(
@@ -106,12 +109,11 @@ describe("resolveInitialSession", () => {
     );
   });
 
-  test("falls back to latest doc session", async () => {
+  test("falls back to the most recent document session when no pinned or URL session exists", async () => {
     const docSession = {
       sessionId: "doc-session",
       pinned: false,
     } as CopilotChatHistoryFragment;
-
     const sessionService: SessionService = {
       getSessions: vi
         .fn()
@@ -119,36 +121,34 @@ describe("resolveInitialSession", () => {
         .mockResolvedValueOnce([docSession]),
       getSession: vi.fn(),
     };
+    const { workbench } = makeWorkbench("");
 
-    const { workbench } = createWorkbench("");
-
-    const result = await resolveInitialSession({
+    const resolved = await resolveInitialSession({
       sessionService,
-      doc,
+      doc: sampleDoc,
       workbench,
     });
 
-    expect(result).toBe(docSession);
+    expect(resolved).toBe(docSession);
     expect(sessionService.getSessions).toHaveBeenCalledWith(
-      doc.workspace.id,
-      doc.id,
+      sampleDoc.workspace.id,
+      sampleDoc.id,
       { action: false, fork: false, limit: 1 },
     );
   });
 
-  test("missing URL conversation fails recoverably without consuming the handoff", async () => {
+  test("throws when a requested URL session does not exist and keeps the URL untouched", async () => {
     const sessionService: SessionService = {
       getSessions: vi.fn().mockResolvedValueOnce([]),
       getSession: vi.fn().mockResolvedValueOnce(null),
     };
-
     const { workbench, updateQueryString } =
-      createWorkbench("?sessionId=missing");
+      makeWorkbench("?sessionId=missing");
 
     await expect(
       resolveInitialSession({
         sessionService,
-        doc,
+        doc: sampleDoc,
         workbench,
       }),
     ).rejects.toThrow("Requested conversation unavailable");

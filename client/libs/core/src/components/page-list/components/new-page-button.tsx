@@ -1,7 +1,10 @@
-import {
-  type LoadTemplateSuggestionsOptions,
-  type TemplateCategoryFilter,
-  type TemplateSuggestionSurface,
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
+import type {
+  LoadTemplateSuggestionsOptions,
+  TemplateCategoryFilter,
+  TemplateSuggestionSurface,
 } from "@myoxus/core/modules/template-doc";
 import { TemplateListMenuContentScrollable } from "@myoxus/core/modules/template-doc/view/template-list-menu";
 import { useI18n } from "@myoxus/i18n";
@@ -21,18 +24,21 @@ import {
   useState,
 } from "react";
 
-type NewPageButtonProps = Omit<
+type CreateAction = (
+  event?: MouseEvent,
+) => boolean | void | Promise<boolean | void>;
+type CreateTemplateAction = (
+  templateDocId: string,
+) => boolean | void | Promise<boolean | void>;
+
+export type NewPageButtonProps = Omit<
   HTMLAttributes<HTMLDivElement>,
   "children" | "onClick"
 > & {
-  createNewDoc: (e?: MouseEvent) => boolean | void | Promise<boolean | void>;
-  createNewPage: (e?: MouseEvent) => boolean | void | Promise<boolean | void>;
-  createNewEdgeless: (
-    e?: MouseEvent,
-  ) => boolean | void | Promise<boolean | void>;
-  createNewFromTemplate?: (
-    templateDocId: string,
-  ) => boolean | void | Promise<boolean | void>;
+  createNewDoc: CreateAction;
+  createNewPage: CreateAction;
+  createNewEdgeless: CreateAction;
+  createNewFromTemplate?: CreateTemplateAction;
   templateSuggestionSurface?: TemplateSuggestionSurface;
   templateCategoryFilter?: TemplateCategoryFilter;
   templateSuggestionInput?: Omit<
@@ -43,6 +49,9 @@ type NewPageButtonProps = Omit<
   disabled?: boolean;
 };
 
+const POPUP_ICON_SIZE =
+  "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))";
+
 export const CreateNewPagePopup = ({
   createNewPage,
   createNewEdgeless,
@@ -52,14 +61,13 @@ export const CreateNewPagePopup = ({
   templateSuggestionInput,
 }: NewPageButtonProps) => {
   const t = useI18n();
-  const iconSize =
-    "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))";
+
   return (
     <MenuPanel data-testid="new-page-menu">
       <BlockCard
         title={t["com.myoxus.new.page-mode"]()}
         desc={t["com.myoxus.write_with_a_blank_page"]()}
-        right={<PageIcon width={iconSize} height={iconSize} />}
+        right={<PageIcon width={POPUP_ICON_SIZE} height={POPUP_ICON_SIZE} />}
         onClick={createNewPage}
         onAuxClick={createNewPage}
         data-testid="new-page-button-in-all-page"
@@ -67,7 +75,9 @@ export const CreateNewPagePopup = ({
       <BlockCard
         title={t["com.myoxus.new_edgeless"]()}
         desc={t["com.myoxus.draw_with_a_blank_whiteboard"]()}
-        right={<EdgelessIcon width={iconSize} height={iconSize} />}
+        right={
+          <EdgelessIcon width={POPUP_ICON_SIZE} height={POPUP_ICON_SIZE} />
+        }
         onClick={createNewEdgeless}
         onAuxClick={createNewEdgeless}
         data-testid="new-edgeless-button-in-all-page"
@@ -101,38 +111,34 @@ export const NewPageButton = ({
 }: PropsWithChildren<NewPageButtonProps>) => {
   const [open, setOpen] = useState(false);
 
-  const handleCreateNewDoc: NewPageButtonProps["createNewDoc"] = useCallback(
-    async (e) => {
-      if ((await createNewDoc(e)) === false) return;
+  const handleNewDoc = useCallback<CreateAction>(
+    async (event) => {
+      if ((await createNewDoc(event)) === false) return;
       setOpen(false);
       track.allDocs.header.actions.createDoc();
     },
     [createNewDoc],
   );
 
-  const handleCreateNewPage: NewPageButtonProps["createNewPage"] = useCallback(
-    async (e) => {
-      if ((await createNewPage(e)) === false) return;
+  const handleNewPage = useCallback<CreateAction>(
+    async (event) => {
+      if ((await createNewPage(event)) === false) return;
       setOpen(false);
       track.allDocs.header.actions.createDoc({ mode: "page" });
     },
     [createNewPage],
   );
 
-  const handleCreateNewEdgeless: NewPageButtonProps["createNewEdgeless"] =
-    useCallback(
-      async (e) => {
-        if ((await createNewEdgeless(e)) === false) return;
-        setOpen(false);
-        track.allDocs.header.actions.createDoc({
-          mode: "edgeless",
-        });
-      },
-      [createNewEdgeless],
-    );
-  const handleCreateNewFromTemplate: NonNullable<
-    NewPageButtonProps["createNewFromTemplate"]
-  > = useCallback(
+  const handleNewEdgeless = useCallback<CreateAction>(
+    async (event) => {
+      if ((await createNewEdgeless(event)) === false) return;
+      setOpen(false);
+      track.allDocs.header.actions.createDoc({ mode: "edgeless" });
+    },
+    [createNewEdgeless],
+  );
+
+  const handleNewFromTemplate = useCallback<CreateTemplateAction>(
     async (templateDocId) => {
       if ((await createNewFromTemplate?.(templateDocId)) === false) return;
       setOpen(false);
@@ -141,6 +147,8 @@ export const NewPageButton = ({
     [createNewFromTemplate],
   );
 
+  const handleInteractOutside = useCallback(() => setOpen(false), []);
+
   return (
     <SplitMenuButton
       {...rootProps}
@@ -148,33 +156,28 @@ export const NewPageButton = ({
       label={children}
       menuItems={
         <CreateNewPagePopup
-          createNewDoc={handleCreateNewDoc}
-          createNewPage={handleCreateNewPage}
-          createNewEdgeless={handleCreateNewEdgeless}
+          createNewDoc={handleNewDoc}
+          createNewPage={handleNewPage}
+          createNewEdgeless={handleNewEdgeless}
           createNewFromTemplate={
-            createNewFromTemplate ? handleCreateNewFromTemplate : undefined
+            createNewFromTemplate ? handleNewFromTemplate : undefined
           }
           templateSuggestionSurface={templateSuggestionSurface}
           templateCategoryFilter={templateCategoryFilter}
           templateSuggestionInput={templateSuggestionInput}
         />
       }
-      menuRootOptions={{
-        open,
-        onOpenChange: setOpen,
-      }}
+      menuRootOptions={{ open, onOpenChange: setOpen }}
       menuContentOptions={{
         align: "end",
         panelPadding: "comfortable",
         hideWhenDetached: true,
-        onInteractOutside: useCallback(() => {
-          setOpen(false);
-        }, []),
+        onInteractOutside: handleInteractOutside,
       }}
       actionTestId="new-page-button-trigger"
       menuTestId="new-page-button-menu-trigger"
-      onActionAuxClick={handleCreateNewPage}
-      onClick={handleCreateNewDoc}
+      onActionAuxClick={handleNewPage}
+      onClick={handleNewDoc}
       fluid={false}
       variant="secondary"
     />

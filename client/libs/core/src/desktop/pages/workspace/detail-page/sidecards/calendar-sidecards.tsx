@@ -1,5 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
-// SPDX-License-Identifier: MIT
 
 import { ViewContextSurface } from "@myoxus/core/modules/workbench";
 import { useI18n } from "@myoxus/i18n";
@@ -24,10 +24,6 @@ const DOCUMENT_VIEW_FAMILIES = [
 ] as const;
 const JOURNAL_VIEW_FAMILY = ["journal"] as const;
 
-/**
- * Keeps Calendar and Agenda available in every document context while adding
- * the Journal-specific activity card only for journal documents.
- */
 export function CalendarSidecards({
   includeJournalActivity,
   readonly,

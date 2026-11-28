@@ -1,43 +1,16 @@
-/**
- * Workspace page — the outermost route component for `/workspace/:workspaceId/*`.
- *
- * This file wires three concerns together:
- *
- * 1. **Workspace resolution** (`Component`):
- *    Reads the `:workspaceId` URL param, looks it up in `WorkspacesService`,
- *    and handles the three possible states:
- *    - Loading: shows `<AppContainer fallback />` while the list revalidates.
- *    - Not found: renders a share page if the URL looks like a doc link (the
- *      user may be viewing a public share), or falls back to a 404 page.
- *    - Found: delegates to `<WorkspacePage>` inside the appropriate server's
- *      `FrameworkScope`.
- *    Also manages global context values (`serverId`, `workspaceId`, flavour)
- *    and handles the Electron-only "add selfhosted server" deep-link flow.
- *
- * 2. **Workspace lifecycle** (`WorkspacePage`):
- *    Opens the workspace via `WorkspacesService.open`, waits for the root doc
- *    to be ready, then renders the full `<WorkspaceLayout><WorkbenchRoot /></WorkspaceLayout>`
- *    tree. Exposes debug helpers (`window.currentWorkspace`,
- *    `window.exportWorkspaceSnapshot`,
- *    global `Y`) on the browser window in development.
- *
- * 3. **DnD context** (`DNDContextProvider`):
- *    Provides the DnD service's `fromExternalData`/`toExternalData` adapters
- *    to the component tree so that Virgultum editors can accept external
- *    drag-and-drop payloads.
- *
- * Exported `Component` is the lazy route entry point consumed by the router.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { workbenchRoutes } from "@myoxus/core/desktop/workbench-router";
 import { GlobalDialogService } from "@myoxus/core/modules/dialogs";
 import { DndService } from "@myoxus/core/modules/dnd/services";
 import { GlobalContextService } from "@myoxus/core/modules/global-context";
-import { exportWorkspaceLabels } from "@myoxus/core/modules/tag/export";
 import { OpenInAppGuard } from "@myoxus/core/modules/open-in-app";
 import {
   DefaultServerService,
   ServersService,
 } from "@myoxus/core/modules/server";
+import { exportWorkspaceLabels } from "@myoxus/core/modules/tag/export";
 import {
   getMyoxusWorkspaceSchema,
   type Workspace,
@@ -54,9 +27,9 @@ import {
 import { DNDContext } from "@myoxus/ui-facade";
 import {
   lazy,
-  Suspense,
   type PropsWithChildren,
   type ReactElement,
+  Suspense,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -76,19 +49,16 @@ import { WorkbenchRoot } from "../../../modules/workbench";
 import { AppContainer } from "../../components/app-container";
 import { PageNotFound } from "../404";
 import { WorkspaceLayout } from "./layouts/workspace-layout";
+
 const SharePage = lazy(async () => ({
   default: (await import("./share/share-page")).SharePage,
 }));
 
 declare global {
-  /**
-   * @internal debug only
-   */
   // oxlint-disable-next-line no-var
   var currentWorkspace: Workspace | undefined;
   // oxlint-disable-next-line no-var
   var exportWorkspaceSnapshot: (docs?: string[]) => Promise<void>;
-  // oxlint-disable-next-line no-var
   // oxlint-disable-next-line no-var
   var Y: typeof _Y;
   interface WindowEventMap {
@@ -98,15 +68,114 @@ declare global {
 
 globalThis.Y = _Y;
 
-/**
- * Lazy route component for `/workspace/:workspaceId/*`.
- *
- * Resolves the target workspace from the URL, handles loading / not-found
- * states, and renders `<WorkspacePage>` once a matching workspace is found.
- * Falls back to a `<SharePage>` when the workspace is absent but the URL
- * pattern matches a doc reference (public share link scenario).
- */
-export const Component = (): ReactElement => {
+function DNDContextProvider({ children }: PropsWithChildren) {
+  const dndService = useService(DndService);
+  const value = useMemo(
+    () => ({
+      fromExternalData: dndService.fromExternalData,
+      toExternalData: dndService.toExternalData,
+    }),
+    [dndService.fromExternalData, dndService.toExternalData],
+  );
+  return <DNDContext.Provider value={value}>{children}</DNDContext.Provider>;
+}
+
+function WorkspacePage({ meta }: { meta: WorkspaceMetadata }) {
+  const { workspacesService, globalContextService } = useServices({
+    WorkspacesService,
+    GlobalContextService,
+  });
+
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [isRootDocReady, setIsRootDocReady] = useState(false);
+
+  useLayoutEffect(() => {
+    const opened = workspacesService.open({ metadata: meta });
+    setWorkspace(opened.workspace);
+    return () => opened.dispose();
+  }, [meta, workspacesService]);
+
+  useEffect(() => {
+    setIsRootDocReady(false);
+    if (!workspace) {
+      return;
+    }
+    const controller = new AbortController();
+    void workspace.engine.doc
+      .waitForDocReady(workspace.id, controller.signal)
+      .then(() => {
+        if (!controller.signal.aborted) {
+          setIsRootDocReady(true);
+        }
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          console.error(error);
+        }
+      });
+    return () => controller.abort();
+  }, [workspace]);
+
+  useEffect(() => {
+    if (!workspace) {
+      return;
+    }
+    window.currentWorkspace = workspace;
+    window.dispatchEvent(
+      new CustomEvent("myoxus:workspace:change", {
+        detail: { id: workspace.id },
+      }),
+    );
+    window.exportWorkspaceSnapshot = async (docs?: string[]) => {
+      const exported = Array.from(workspace.docCollection.docs.values())
+        .filter((doc) => (docs ? docs.includes(doc.id) : true))
+        .map((doc) => doc.getStore());
+      const { ZipTransformer } = await import("@virgultum/editor/interchange");
+      await ZipTransformer.exportDocs(
+        workspace.docCollection,
+        getMyoxusWorkspaceSchema(),
+        exported,
+        await exportWorkspaceLabels(
+          workspace,
+          exported.map((doc) => doc.id),
+        ),
+      );
+    };
+    localStorage.setItem("last_workspace_id", workspace.id);
+    globalContextService.globalContext.workspaceId.set(workspace.id);
+    globalContextService.globalContext.workspaceFlavour.set(workspace.flavour);
+
+    return () => {
+      window.currentWorkspace = undefined;
+      globalContextService.globalContext.workspaceId.set(null);
+      globalContextService.globalContext.workspaceFlavour.set(null);
+    };
+  }, [globalContextService, workspace]);
+
+  if (!workspace) {
+    return null;
+  }
+
+  return (
+    <FrameworkScope scope={workspace.scope}>
+      <DNDContextProvider>
+        <OpenInAppGuard>
+          {isRootDocReady ? (
+            <MyoxusErrorBoundary height="100vh">
+              <WorkspaceLayout>
+                <WorkbenchRoot />
+              </WorkspaceLayout>
+            </MyoxusErrorBoundary>
+          ) : (
+            <AppContainer fallback />
+          )}
+        </OpenInAppGuard>
+      </DNDContextProvider>
+    </FrameworkScope>
+  );
+}
+
+export function Component(): ReactElement {
   const {
     workspacesService,
     globalDialogService,
@@ -125,122 +194,107 @@ export const Component = (): ReactElement => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
-  // check if we are in detail doc route, if so, maybe render share page
   const detailDocRoute = useMemo(() => {
     const match = matchPath(
       "/workspace/:workspaceId/:docId",
       location.pathname,
     );
     if (
-      match &&
-      match.params.docId &&
+      match?.params.docId &&
       match.params.workspaceId &&
-      // TODO(eyhn): need a better way to check if it's a docId
       workbenchRoutes.find((route) =>
-        matchPath(route.path, "/" + match.params.docId),
+        matchPath(route.path, `/${match.params.docId}`),
       )?.path === "/:pageId"
     ) {
       return {
         docId: match.params.docId,
         workspaceId: match.params.workspaceId,
       };
-    } else {
-      return null;
     }
+    return null;
   }, [location.pathname]);
 
   const [workspaceNotFound, setWorkspaceNotFound] = useState(false);
   const listLoading = useLiveData(workspacesService.list.isRevalidating$);
   const workspaces = useLiveData(workspacesService.list.workspaces$);
-  const meta = useMemo(() => {
-    return workspaces.find(({ id }) => id === params.workspaceId);
-  }, [workspaces, params.workspaceId]);
+  const meta = useMemo(
+    () => workspaces.find(({ id }) => id === params.workspaceId),
+    [params.workspaceId, workspaces],
+  );
 
-  // if listLoading is false, we can show 404 page, otherwise we should show loading page.
   useEffect(() => {
     if (listLoading === false && meta === undefined) {
       setWorkspaceNotFound(true);
-    }
-    if (meta) {
+    } else if (meta) {
       setWorkspaceNotFound(false);
     }
-  }, [listLoading, meta, workspacesService]);
+  }, [listLoading, meta]);
 
-  // if workspace is not found, we should retry
-  const retryTimesRef = useRef(3);
+  const retriesRemainingRef = useRef(3);
   useEffect(() => {
     if (params.workspaceId) {
-      retryTimesRef.current = 3; // reset retry times
+      retriesRemainingRef.current = 3;
       workspacesService.list.revalidate();
     }
   }, [params.workspaceId, workspacesService]);
+
   useEffect(() => {
-    if (listLoading === false && meta === undefined) {
-      const timer = setTimeout(() => {
-        if (retryTimesRef.current > 0 && reserveAutomaticRetry("livedata")) {
-          workspacesService.list.revalidate();
-          retryTimesRef.current--;
-        }
-      }, 5000);
-      return () => clearTimeout(timer);
+    if (listLoading !== false || meta !== undefined) {
+      return;
     }
-    return;
+    const timer = setTimeout(() => {
+      if (
+        retriesRemainingRef.current > 0 &&
+        reserveAutomaticRetry("livedata")
+      ) {
+        workspacesService.list.revalidate();
+        retriesRemainingRef.current -= 1;
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
   }, [listLoading, meta, workspaceNotFound, workspacesService]);
 
-  // server search params
+  const serverParam = searchParams.get("server");
   const serverFromSearchParams = useLiveData(
-    searchParams.has("server")
-      ? serversService.serverByBaseUrl$(searchParams.get("server") as string)
-      : undefined,
+    serverParam ? serversService.serverByBaseUrl$(serverParam) : undefined,
   );
-  // server from workspace
   const serverFromWorkspace = useLiveData(
     meta?.flavour && meta.flavour !== "local"
-      ? serversService.server$(meta?.flavour)
+      ? serversService.server$(meta.flavour)
       : undefined,
   );
   const server = serverFromWorkspace ?? serverFromSearchParams;
 
   useEffect(() => {
-    if (server) {
-      if (!BUILD_CONFIG.isElectron) serversService.selectServer(server.id);
-      globalContextService.globalContext.serverId.set(server.id);
-      return () => {
-        globalContextService.globalContext.serverId.set(
-          defaultServerService.server$.value?.id ?? null,
-        );
-      };
-    }
-    return;
-  }, [
-    defaultServerService,
-    serversService,
-    globalContextService.globalContext.serverId,
-    server,
-  ]);
-
-  // if server is not found, and we have server in search params, we should show add standalone dialog
-  const needAddStandalone = server === undefined && searchParams.has("server");
-  // use ref to avoid useEffect trigger twice
-  const addStandaloneDialogOpened = useRef<boolean>(false);
-
-  useEffect(() => {
-    if (addStandaloneDialogOpened.current) {
+    if (!server) {
       return;
     }
-    addStandaloneDialogOpened.current = true;
-    if (BUILD_CONFIG.isElectron && needAddStandalone) {
-      globalDialogService.open("sign-in", {
-        server: searchParams.get("server") as string,
-      });
+    if (!BUILD_CONFIG.isElectron) {
+      serversService.selectServer(server.id);
     }
-    return;
+    globalContextService.globalContext.serverId.set(server.id);
+    return () => {
+      globalContextService.globalContext.serverId.set(
+        defaultServerService.server$.value?.id ?? null,
+      );
+    };
   }, [
-    globalDialogService,
-    needAddStandalone,
-    searchParams,
-    serverFromSearchParams,
+    defaultServerService,
+    globalContextService.globalContext.serverId,
+    server,
+    serversService,
   ]);
+
+  const addStandaloneOpenedRef = useRef(false);
+  useEffect(() => {
+    if (addStandaloneOpenedRef.current) {
+      return;
+    }
+    addStandaloneOpenedRef.current = true;
+    if (BUILD_CONFIG.isElectron && server === undefined && serverParam) {
+      globalDialogService.open("sign-in", { server: serverParam });
+    }
+  }, [globalDialogService, server, serverParam]);
 
   if (workspaceNotFound) {
     if (detailDocRoute) {
@@ -261,6 +315,7 @@ export const Component = (): ReactElement => {
       </FrameworkScope>
     );
   }
+
   if (!meta) {
     return <AppContainer fallback />;
   }
@@ -270,142 +325,4 @@ export const Component = (): ReactElement => {
       <WorkspacePage meta={meta} />
     </FrameworkScope>
   );
-};
-
-/**
- * Provides drag-and-drop context values to the workspace tree.
- *
- * Reads `fromExternalData` and `toExternalData` adapters from `DndService` and
- * injects them via `DNDContext.Provider`. Both adapters are memoized to
- * prevent unnecessary re-renders in deeply nested editor components.
- */
-const DNDContextProvider = ({ children }: PropsWithChildren) => {
-  const dndService = useService(DndService);
-  const contextValue = useMemo(() => {
-    return {
-      fromExternalData: dndService.fromExternalData,
-      toExternalData: dndService.toExternalData,
-    };
-  }, [dndService.fromExternalData, dndService.toExternalData]);
-  return (
-    <DNDContext.Provider value={contextValue}>{children}</DNDContext.Provider>
-  );
-};
-
-/**
- * Workspace instance component.
- *
- * Opens the workspace identified by `meta` via `WorkspacesService`, waits for
- * the root doc to become ready, then renders the full
- * workspace UI. While loading it preserves the stable shell. After the
- * workspace is available it registers debug helpers on `window` and keeps the
- * global context (`workspaceId`, `workspaceFlavour`) up to date.
- *
- * @param meta - Workspace metadata (id, flavour) used to open the workspace.
- */
-const WorkspacePage = ({ meta }: { meta: WorkspaceMetadata }) => {
-  const { workspacesService, globalContextService } = useServices({
-    WorkspacesService,
-    GlobalContextService,
-  });
-
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
-
-  useLayoutEffect(() => {
-    const ref = workspacesService.open({ metadata: meta });
-    setWorkspace(ref.workspace);
-    return () => {
-      ref.dispose();
-    };
-  }, [meta, workspacesService]);
-
-  const [isRootDocReady, setIsRootDocReady] = useState(false);
-
-  useEffect(() => {
-    setIsRootDocReady(false);
-    if (!workspace) return;
-
-    const abortController = new AbortController();
-    void workspace.engine.doc
-      .waitForDocReady(workspace.id, abortController.signal)
-      .then(() => {
-        if (!abortController.signal.aborted) setIsRootDocReady(true);
-      })
-      .catch((error) => {
-        if (!abortController.signal.aborted) console.error(error);
-      });
-
-    return () => abortController.abort();
-  }, [workspace]);
-
-  useEffect(() => {
-    if (workspace) {
-      // for debug purpose
-      window.currentWorkspace = workspace ?? undefined;
-      window.dispatchEvent(
-        new CustomEvent("myoxus:workspace:change", {
-          detail: {
-            id: workspace.id,
-          },
-        }),
-      );
-      window.exportWorkspaceSnapshot = async (docs?: string[]) => {
-        const exported = Array.from(workspace.docCollection.docs.values())
-          .filter((doc) => (docs ? docs.includes(doc.id) : true))
-          .map((doc) => doc.getStore());
-        const { ZipTransformer } =
-          await import("@virgultum/editor/interchange");
-        await ZipTransformer.exportDocs(
-          workspace.docCollection,
-          getMyoxusWorkspaceSchema(),
-          exported,
-          await exportWorkspaceLabels(
-            workspace,
-            exported.map((doc) => doc.id),
-          ),
-        );
-      };
-      localStorage.setItem("last_workspace_id", workspace.id);
-      globalContextService.globalContext.workspaceId.set(workspace.id);
-      globalContextService.globalContext.workspaceFlavour.set(
-        workspace.flavour,
-      );
-      return () => {
-        window.currentWorkspace = undefined;
-        globalContextService.globalContext.workspaceId.set(null);
-        globalContextService.globalContext.workspaceFlavour.set(null);
-      };
-    }
-    return;
-  }, [globalContextService, workspace]);
-
-  if (!workspace) {
-    return null; // skip this, workspace will be set in layout effect
-  }
-
-  if (!isRootDocReady) {
-    return (
-      <FrameworkScope scope={workspace.scope}>
-        <DNDContextProvider>
-          <OpenInAppGuard>
-            <AppContainer fallback />
-          </OpenInAppGuard>
-        </DNDContextProvider>
-      </FrameworkScope>
-    );
-  }
-
-  return (
-    <FrameworkScope scope={workspace.scope}>
-      <DNDContextProvider>
-        <OpenInAppGuard>
-          <MyoxusErrorBoundary height="100vh">
-            <WorkspaceLayout>
-              <WorkbenchRoot />
-            </WorkspaceLayout>
-          </MyoxusErrorBoundary>
-        </OpenInAppGuard>
-      </DNDContextProvider>
-    </FrameworkScope>
-  );
-};
+}

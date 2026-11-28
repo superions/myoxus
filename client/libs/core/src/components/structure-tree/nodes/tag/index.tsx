@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useWorkspaceTagCommands } from "@myoxus/core/components/tags";
 import { GlobalContextService } from "@myoxus/core/modules/global-context";
 import { StructureTreeStateService } from "@myoxus/core/modules/structure-tree";
@@ -23,7 +26,7 @@ import type { GenericStructureTreeNode } from "../types";
 import { Empty } from "./empty";
 import { useStructureTreeTagNodeOperations } from "./operations";
 
-export const StructureTreeTagNode = ({
+export function StructureTreeTagNode({
   tagId,
   onDrop,
   location,
@@ -34,7 +37,7 @@ export const StructureTreeTagNode = ({
   parentPath,
 }: {
   tagId: string;
-} & GenericStructureTreeNode) => {
+} & GenericStructureTreeNode) {
   const t = useI18n();
   const commands = useWorkspaceTagCommands();
   const { tagService, globalContextService } = useServices({
@@ -42,6 +45,7 @@ export const StructureTreeTagNode = ({
     GlobalContextService,
   });
   const structureTreeStateService = useService(StructureTreeStateService);
+
   const active =
     useLiveData(globalContextService.globalContext.tagId.$) === tagId;
   const path = useMemo(
@@ -53,7 +57,7 @@ export const StructureTreeTagNode = ({
     (value: boolean) => {
       structureTreeStateService.setCollapsed(path, value);
     },
-    [structureTreeStateService, path],
+    [path, structureTreeStateService],
   );
 
   const tagRecord = useLiveData(tagService.tagList.tagByTagId$(tagId));
@@ -64,26 +68,22 @@ export const StructureTreeTagNode = ({
   const tagName = useLiveData(tagRecord?.value$);
 
   const Icon = useCallback(
-    ({ className }: { className?: string }) => {
-      return <StructureTreeColorIcon className={className} color={tagColor} />;
-    },
+    ({ className }: { className?: string }) => (
+      <StructureTreeColorIcon className={className} color={tagColor} />
+    ),
     [tagColor],
   );
 
-  const dndData = useMemo(() => {
-    return {
+  const dndData = useMemo<MyoxusDNDData>(
+    () => ({
       draggable: {
-        entity: {
-          type: "tag",
-          id: tagId,
-        },
+        entity: { type: "tag", id: tagId },
         from: location,
       },
-      dropTarget: {
-        at: "structure-tree:tag",
-      },
-    } satisfies MyoxusDNDData;
-  }, [location, tagId]);
+      dropTarget: { at: "structure-tree:tag" },
+    }),
+    [location, tagId],
+  );
 
   const handleRename = useCallback(
     async (newName: string) => {
@@ -91,12 +91,34 @@ export const StructureTreeTagNode = ({
         return;
       }
       if (await commands.renameTag(tagRecord.id, newName)) {
-        track.$.navigationPanel.organize.renameOrganizeItem({
-          type: "tag",
-        });
+        track.$.navigationPanel.organize.renameOrganizeItem({ type: "tag" });
       }
     },
     [commands, tagRecord, writable],
+  );
+
+  const tagDroppedDoc = useCallback(
+    async (data: DropTargetDropEvent<MyoxusDNDData>, trackDrop: boolean) => {
+      if (!tagRecord || !writable) {
+        return;
+      }
+      if (data.source.data.entity?.type !== "doc") {
+        notify({ title: t["com.myoxus.rootAppSidebar.tag.doc-only"]() });
+        return;
+      }
+      try {
+        await tagRecord.tag(data.source.data.entity.id);
+        if (trackDrop) {
+          track.$.navigationPanel.tags.tagDoc({ control: "drag" });
+          track.$.navigationPanel.tags.drop({
+            type: data.source.data.entity.type,
+          });
+        }
+      } catch (error) {
+        commands.reportError(error);
+      }
+    },
+    [commands, t, tagRecord, writable],
   );
 
   const handleDropOnTag = useCallback(
@@ -106,85 +128,51 @@ export const StructureTreeTagNode = ({
         tagRecord &&
         writable
       ) {
-        if (data.source.data.entity?.type === "doc") {
-          try {
-            await tagRecord.tag(data.source.data.entity.id);
-            track.$.navigationPanel.tags.tagDoc({
-              control: "drag",
-            });
-            track.$.navigationPanel.tags.drop({
-              type: data.source.data.entity.type,
-            });
-          } catch (error) {
-            commands.reportError(error);
-          }
-        } else {
-          notify({ title: t["com.myoxus.rootAppSidebar.tag.doc-only"]() });
-        }
-      } else {
-        onDrop?.(data);
+        await tagDroppedDoc(data, true);
+        return;
       }
+      onDrop?.(data);
     },
-    [commands, onDrop, t, tagRecord, writable],
+    [onDrop, tagDroppedDoc, tagRecord, writable],
   );
 
   const handleDropEffectOnTag = useCallback<StructureTreeNodeDropEffect>(
     (data) => {
       if (writable && data.treeInstruction?.type === "make-child") {
-        if (data.source.data.entity?.type === "doc") {
-          return "link";
-        }
-      } else {
-        return dropEffect?.(data);
+        return data.source.data.entity?.type === "doc" ? "link" : undefined;
       }
-      return;
+      return dropEffect?.(data);
     },
     [dropEffect, writable],
   );
 
   const handleDropOnPlaceholder = useCallback(
-    async (data: DropTargetDropEvent<MyoxusDNDData>) => {
-      if (tagRecord && writable) {
-        if (data.source.data.entity?.type === "doc") {
-          try {
-            await tagRecord.tag(data.source.data.entity.id);
-          } catch (error) {
-            commands.reportError(error);
-          }
-        } else {
-          notify({ title: t["com.myoxus.rootAppSidebar.tag.doc-only"]() });
-        }
-      }
-    },
-    [commands, t, tagRecord, writable],
+    (data: DropTargetDropEvent<MyoxusDNDData>) => tagDroppedDoc(data, false),
+    [tagDroppedDoc],
   );
 
   const handleCanDrop = useMemo<DropTargetOptions<MyoxusDNDData>["canDrop"]>(
-    () => (args) => {
-      const entityType = args.source.data.entity?.type;
-      return args.treeInstruction?.type !== "make-child"
+    () => (args) =>
+      args.treeInstruction?.type !== "make-child"
         ? ((typeof canDrop === "function" ? canDrop(args) : canDrop) ?? true)
-        : writable && entityType === "doc";
-    },
+        : writable && args.source.data.entity?.type === "doc",
     [canDrop, writable],
   );
 
   const operations = useStructureTreeTagNodeOperations(
     tagId,
     useMemo(
-      () => ({
-        openNodeCollapsed: () => setCollapsed(false),
-      }),
+      () => ({ openNodeCollapsed: () => setCollapsed(false) }),
       [setCollapsed],
     ),
   );
-
-  const finalOperations = useMemo(() => {
-    if (additionalOperations) {
-      return [...operations, ...additionalOperations];
-    }
-    return operations;
-  }, [additionalOperations, operations]);
+  const finalOperations = useMemo(
+    () =>
+      additionalOperations
+        ? [...operations, ...additionalOperations]
+        : operations,
+    [additionalOperations, operations],
+  );
 
   if (!tagRecord) {
     return null;
@@ -208,28 +196,21 @@ export const StructureTreeTagNode = ({
       operations={finalOperations}
       dropEffect={handleDropEffectOnTag}
       data-testid={`structure-tree-tag-${tagId}`}
-      explorerIconConfig={{
-        where: "tag",
-        id: tagId,
-      }}
+      explorerIconConfig={{ where: "tag", id: tagId }}
     >
       <StructureTreeTagNodeDocs tag={tagRecord} path={path} />
     </StructureTreeNode>
   );
-};
+}
 
-/**
- * the `tag.pageIds$` has a performance issue,
- * so we split the tag node children into a separate component,
- * so it won't be rendered when the tag node is collapsed.
- */
-export const StructureTreeTagNodeDocs = ({
+// Keep tag child subscriptions isolated so collapsed tag rows do not watch tag.pageIds$.
+export function StructureTreeTagNodeDocs({
   tag,
   path,
 }: {
   tag: Tag;
   path: string[];
-}) => {
+}) {
   const tagDocIds = useLiveData(tag.pageIds$);
 
   return tagDocIds.map((docId) => (
@@ -237,10 +218,8 @@ export const StructureTreeTagNodeDocs = ({
       key={docId}
       docId={docId}
       reorderable={false}
-      location={{
-        at: "structure-tree:tags:docs",
-      }}
+      location={{ at: "structure-tree:tags:docs" }}
       parentPath={path}
     />
   ));
-};
+}

@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { IsFavoriteIcon } from "@myoxus/core/components/pure/icons";
 import { useWorkspaceTagCommands } from "@myoxus/core/components/tags";
 import { usePageHelper } from "@myoxus/core/editor/virgultum/page-list/utils";
-import { DocsService } from "@myoxus/core/modules/doc";
 import { FavoriteService } from "@myoxus/core/modules/favorite";
 import { TagService } from "@myoxus/core/modules/tag";
 import { WorkbenchService } from "@myoxus/core/modules/workbench";
@@ -26,14 +28,10 @@ import { useCallback, useMemo } from "react";
 import { WorkspaceContentOperationMenuItems } from "../../../workspace-content-operation/menu-items";
 import type { NodeOperation } from "../../tree/types";
 
-export const useStructureTreeTagNodeOperations = (
+export function useStructureTreeTagNodeOperations(
   tagId: string,
-  {
-    openNodeCollapsed,
-  }: {
-    openNodeCollapsed: () => void;
-  },
-): NodeOperation[] => {
+  { openNodeCollapsed }: { openNodeCollapsed: () => void },
+): NodeOperation[] {
   const t = useI18n();
   const commands = useWorkspaceTagCommands();
   const { workbenchService, workspaceService, tagService, favoriteService } =
@@ -41,7 +39,6 @@ export const useStructureTreeTagNodeOperations = (
       WorkbenchService,
       WorkspaceService,
       TagService,
-      DocsService,
       FavoriteService,
     });
 
@@ -58,15 +55,16 @@ export const useStructureTreeTagNodeOperations = (
   );
 
   const handleNewDoc = useCallback(async () => {
-    if (tagRecord && writable) {
-      const newDoc = createPage();
-      try {
-        await tagRecord.tag(newDoc.id);
-        track.$.navigationPanel.tags.createDoc();
-        openNodeCollapsed();
-      } catch (error) {
-        commands.reportError(error);
-      }
+    if (!tagRecord || !writable) {
+      return;
+    }
+    const newDoc = createPage();
+    try {
+      await tagRecord.tag(newDoc.id);
+      track.$.navigationPanel.tags.createDoc();
+      openNodeCollapsed();
+    } catch (error) {
+      commands.reportError(error);
     }
   }, [commands, createPage, openNodeCollapsed, tagRecord, writable]);
 
@@ -80,23 +78,17 @@ export const useStructureTreeTagNodeOperations = (
   }, [commands, tagId, writable]);
 
   const handleOpenInSplitView = useCallback(() => {
-    workbenchService.workbench.openTag(tagId, {
-      at: "beside",
-    });
+    workbenchService.workbench.openTag(tagId, { at: "beside" });
     track.$.navigationPanel.organize.openInSplitView({ type: "tag" });
   }, [tagId, workbenchService]);
 
-  const handleToggleFavoriteTag = useCallback(() => {
+  const handleToggleFavorite = useCallback(() => {
     favoriteService.favoriteList.toggle("tag", tagId);
-    track.$.navigationPanel.organize.toggleFavorite({
-      type: "tag",
-    });
+    track.$.navigationPanel.organize.toggleFavorite({ type: "tag" });
   }, [favoriteService, tagId]);
 
   const handleOpenInNewTab = useCallback(() => {
-    workbenchService.workbench.openTag(tagId, {
-      at: "new-tab",
-    });
+    workbenchService.workbench.openTag(tagId, { at: "new-tab" });
     track.$.navigationPanel.organize.openInNewTab({ type: "tag" });
   }, [tagId, workbenchService]);
 
@@ -149,7 +141,7 @@ export const useStructureTreeTagNodeOperations = (
         view: (
           <MenuItem
             prefixIcon={<IsFavoriteIcon favorite={!!favorite} />}
-            onClick={handleToggleFavoriteTag}
+            onClick={handleToggleFavorite}
           >
             {favorite
               ? t["com.myoxus.favoritePageOperation.remove"]()
@@ -200,9 +192,10 @@ export const useStructureTreeTagNodeOperations = (
       handleNewDoc,
       handleOpenInNewTab,
       handleOpenInSplitView,
-      handleToggleFavoriteTag,
+      handleToggleFavorite,
       t,
+      tagId,
       writable,
     ],
   );
-};
+}

@@ -1,31 +1,6 @@
-/**
- * EditorAnalyticsPanel — document analytics sidebar tab.
- *
- * Displays two sections:
- *
- * ### 1. Page-view chart
- * A Mantine `AreaChart` with two series — total views and unique views — over
- * a configurable time window (7, 14, 30, 60, or 90 days). All configured
- * windows are available without plan gating.
- *
- * Data comes from `getDocPageAnalyticsQuery`.  The query is re-issued when
- * `workspaceId`, `docId`, `windowDays`, or the browser timezone
- * changes.  `keepPreviousData: true` prevents flash-of-empty-content during
- * window switches.
- *
- * The Y-axis domain is padded to 110 % of the max value (`Math.ceil(max * 1.1)`)
- * so line peaks never clip at the top of the chart.
- *
- * ### 2. Recent viewers list
- * A paginated list of workspace members who recently accessed the document,
- * fetched via `getDocLastAccessedMembersQuery`.  The first page shows
- * `INITIAL_MEMBERS_PAGE_SIZE` items; "Show all" loads up to
- * `MAX_MEMBERS_PAGE_SIZE`.  Page size is reset whenever `docId` changes so
- * switching documents does not carry over a stale expanded state.
- *
- * @param workspaceId - The workspace that owns the document.
- * @param docId       - The document whose analytics are displayed.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useQuery } from "@myoxus/core/components/hooks/use-query";
 import { WorkspacePermissionService } from "@myoxus/core/modules/permissions";
 import {
@@ -35,7 +10,6 @@ import {
 import { i18nTime, useI18n } from "@myoxus/i18n";
 import { ArrowDownSmallIcon, CalendarPanelIcon } from "@myoxus/icons/react";
 import { useService } from "@myoxus/infra";
-import { cssVar } from "@myoxus/theme";
 import {
   AreaChart,
   type AreaChartProps,
@@ -43,6 +17,7 @@ import {
   Button,
   Center,
   ColorDot,
+  type ColorDotTone,
   DashboardChartAxis,
   DashboardChartFrame,
   Divider,
@@ -71,26 +46,14 @@ import {
   MAX_MEMBERS_PAGE_SIZE,
 } from "./utils";
 
-/** Chart line/fill colour for the total-views series. */
-const totalViewsColor = cssVar("primaryColor");
-/** Chart line/fill colour for the unique-views series. */
-const uniqueViewsColor = cssVar("processingColor");
-
-/** Formats an ISO date string as a localised day label for chart axes/tooltips. */
-function formatChartDate(value: string) {
-  return i18nTime(value, { absolute: { accuracy: "day" } });
+function formatChartDay(isoDate: string) {
+  return i18nTime(isoDate, { absolute: { accuracy: "day" } });
 }
 
-function AnalyticsLegendRow({
-  color,
-  label,
-}: {
-  color: string;
-  label: ReactNode;
-}) {
+function LegendItem({ tone, label }: { tone: ColorDotTone; label: ReactNode }) {
   return (
     <Group data-myoxus-ui-role="analytics-legend-row" wrap="nowrap">
-      <ColorDot color={color} />
+      <ColorDot tone={tone} />
       <MyoxusText
         component="span"
         tone="secondary"
@@ -102,7 +65,7 @@ function AnalyticsLegendRow({
   );
 }
 
-function AnalyticsLoadingState() {
+function PanelLoader() {
   return (
     <Center data-myoxus-ui-role="analytics-loading-state" py="xl">
       <Loading />
@@ -110,13 +73,13 @@ function AnalyticsLoadingState() {
   );
 }
 
-export const EditorAnalyticsPanel = ({
+export function EditorAnalyticsPanel({
   workspaceId,
   docId,
 }: {
   workspaceId: string;
   docId: string;
-}) => {
+}) {
   const t = useI18n();
   const intFormatter = useMemo(
     () => new Intl.NumberFormat(t.language),
@@ -127,10 +90,7 @@ export const EditorAnalyticsPanel = ({
   const [membersPageSize, setMembersPageSize] = useState(
     INITIAL_MEMBERS_PAGE_SIZE,
   );
-  const allowedWindowOptions = useMemo(
-    () => getAvailableAnalyticsWindowOptions(),
-    [],
-  );
+  const windowOptions = useMemo(() => getAvailableAnalyticsWindowOptions(), []);
   const timezone = useMemo(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     [],
@@ -154,10 +114,7 @@ export const EditorAnalyticsPanel = ({
       variables: {
         workspaceId,
         docId,
-        input: {
-          windowDays: windowDays,
-          timezone,
-        },
+        input: { windowDays, timezone },
       },
     },
     {
@@ -178,10 +135,7 @@ export const EditorAnalyticsPanel = ({
       variables: {
         workspaceId,
         docId,
-        pagination: {
-          first: membersPageSize,
-          offset: 0,
-        },
+        pagination: { first: membersPageSize, offset: 0 },
         includeTotal: true,
       },
     },
@@ -202,19 +156,20 @@ export const EditorAnalyticsPanel = ({
   const chartData = useMemo(
     () =>
       chartPoints.map((point) => ({
-        dateLabel: formatChartDate(point.date),
+        dateLabel: formatChartDay(point.date),
         totalViews: point.totalViews,
         uniqueViews: point.uniqueViews,
       })),
     [chartPoints],
   );
   const yAxisMax = useMemo(() => {
-    const maxVal = chartPoints.reduce(
-      (acc, point) => Math.max(acc, point.totalViews, point.uniqueViews),
+    const peak = chartPoints.reduce(
+      (max, point) => Math.max(max, point.totalViews, point.uniqueViews),
       0,
     );
-    return Math.max(1, Math.ceil(maxVal * 1.1));
+    return Math.max(1, Math.ceil(peak * 1.1));
   }, [chartPoints]);
+
   const chartSeries = useMemo<AreaChartProps["series"]>(
     () => [
       {
@@ -240,6 +195,7 @@ export const EditorAnalyticsPanel = ({
   const hasMoreMembers =
     Boolean(membersConnection?.pageInfo.hasNextPage) &&
     membersPageSize < MAX_MEMBERS_PAGE_SIZE;
+
   return (
     <Stack data-myoxus-ui-role="analytics-panel" pt="sm">
       <Stack component="section" data-myoxus-ui-role="analytics-section">
@@ -274,13 +230,11 @@ export const EditorAnalyticsPanel = ({
             contentOptions={{ align: "end" }}
             items={
               <>
-                {allowedWindowOptions.map((option) => (
+                {windowOptions.map((option) => (
                   <MenuItem
                     key={option}
                     selected={windowDays === option}
-                    onSelect={() => {
-                      setWindowDays(option);
-                    }}
+                    onSelect={() => setWindowDays(option)}
                   >
                     {t.t("com.myoxus.doc.analytics.window.last-days", {
                       days: option,
@@ -319,12 +273,12 @@ export const EditorAnalyticsPanel = ({
         </SimpleGrid>
 
         {analyticsLoading && !analytics ? (
-          <AnalyticsLoadingState />
+          <PanelLoader />
         ) : analyticsError && !analytics ? (
           <EmptyState
             title={t["com.myoxus.doc.analytics.error.load-analytics"]()}
           />
-        ) : chartPoints.length ? (
+        ) : chartPoints.length > 0 ? (
           <>
             <DashboardChartFrame
               aria-label={t["com.myoxus.doc.analytics.title"]()}
@@ -352,16 +306,16 @@ export const EditorAnalyticsPanel = ({
             </DashboardChartFrame>
             <DashboardChartAxis
               data-myoxus-ui-role="analytics-axis-labels"
-              start={formatChartDate(chartPoints[0].date)}
-              end={formatChartDate(chartPoints[chartPoints.length - 1].date)}
+              start={formatChartDay(chartPoints[0].date)}
+              end={formatChartDay(chartPoints[chartPoints.length - 1].date)}
             />
             <Group data-myoxus-ui-role="analytics-chart-legend">
-              <AnalyticsLegendRow
-                color={totalViewsColor}
+              <LegendItem
+                tone="primary"
                 label={t["com.myoxus.doc.analytics.chart.total-views"]()}
               />
-              <AnalyticsLegendRow
-                color={uniqueViewsColor}
+              <LegendItem
+                tone="info"
                 label={t["com.myoxus.doc.analytics.chart.unique-views"]()}
               />
             </Group>
@@ -402,12 +356,12 @@ export const EditorAnalyticsPanel = ({
         </Group>
 
         {membersLoading && !membersConnection ? (
-          <AnalyticsLoadingState />
+          <PanelLoader />
         ) : membersError && !membersConnection ? (
           <EmptyState
             title={t["com.myoxus.doc.analytics.error.load-viewers"]()}
           />
-        ) : memberEdges.length ? (
+        ) : memberEdges.length > 0 ? (
           <>
             <SurfaceList>
               {memberEdges.map(({ cursor, node: member }) => (
@@ -455,4 +409,4 @@ export const EditorAnalyticsPanel = ({
       </Stack>
     </Stack>
   );
-};
+}

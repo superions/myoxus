@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { DocRecord } from "@myoxus/core/modules/doc";
 import { CompatibleFavoriteItemsAdapter } from "@myoxus/core/modules/favorite";
 import { GuardService } from "@myoxus/core/modules/permissions";
@@ -32,35 +35,31 @@ export interface QuickActionProps extends IconButtonProps {
 export const QuickFavorite = memo(function QuickFavorite({
   doc,
   onClick,
-  ...iconButtonProps
+  ...iconProps
 }: QuickActionProps) {
-  const contextValue = useContext(DocExplorerContext);
-  const quickFavorite = useLiveData(contextValue.quickFavorite$);
-
+  const enabled = useLiveData(useContext(DocExplorerContext).quickFavorite$);
   const favAdapter = useService(CompatibleFavoriteItemsAdapter);
-  const favourite = useLiveData(favAdapter.isFavorite$(doc.id, "doc"));
+  const isFavorite = useLiveData(favAdapter.isFavorite$(doc.id, "doc"));
 
-  const toggleFavorite = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      onClick?.(e);
-      e.stopPropagation();
-      e.preventDefault();
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onClick?.(event);
+      event.stopPropagation();
+      event.preventDefault();
       track.allDocs.list.docMenu.toggleFavorite();
       favAdapter.toggle(doc.id, "doc");
     },
     [doc.id, favAdapter, onClick],
   );
 
-  if (!quickFavorite) {
-    return null;
-  }
+  if (!enabled) return null;
 
   return (
     <IconButton
-      icon={<IsFavoriteIcon favorite={favourite} />}
-      onClick={toggleFavorite}
+      icon={<IsFavoriteIcon favorite={isFavorite} />}
+      onClick={handleClick}
       data-testid="doc-list-operation-favorite"
-      {...iconButtonProps}
+      {...iconProps}
     />
   );
 });
@@ -68,16 +67,16 @@ export const QuickFavorite = memo(function QuickFavorite({
 export const QuickTab = memo(function QuickTab({
   doc,
   onClick,
-  ...iconButtonProps
+  ...iconProps
 }: QuickActionProps) {
-  const contextValue = useContext(DocExplorerContext);
-  const quickTab = useLiveData(contextValue.quickTab$);
+  const enabled = useLiveData(useContext(DocExplorerContext).quickTab$);
   const workbench = useService(WorkbenchService).workbench;
-  const onOpenInNewTab = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      onClick?.(e);
-      e.stopPropagation();
-      e.preventDefault();
+
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onClick?.(event);
+      event.stopPropagation();
+      event.preventDefault();
       track.allDocs.list.doc.openDoc();
       track.allDocs.list.docMenu.openInNewTab();
       workbench.openDoc(doc.id, { at: "new-tab" });
@@ -85,33 +84,26 @@ export const QuickTab = memo(function QuickTab({
     [doc.id, onClick, workbench],
   );
 
-  if (!quickTab) {
-    return null;
-  }
+  if (!enabled) return null;
 
   return (
-    <IconButton
-      onClick={onOpenInNewTab}
-      icon={<OpenInNewIcon />}
-      {...iconButtonProps}
-    />
+    <IconButton onClick={handleClick} icon={<OpenInNewIcon />} {...iconProps} />
   );
 });
 
 export const QuickSplit = memo(function QuickSplit({
   doc,
   onClick,
-  ...iconButtonProps
+  ...iconProps
 }: QuickActionProps) {
-  const contextValue = useContext(DocExplorerContext);
-  const quickSplit = useLiveData(contextValue.quickSplit$);
+  const enabled = useLiveData(useContext(DocExplorerContext).quickSplit$);
   const workbench = useService(WorkbenchService).workbench;
 
-  const onOpenInSplitView = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      onClick?.(e);
-      e.stopPropagation();
-      e.preventDefault();
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onClick?.(event);
+      event.stopPropagation();
+      event.preventDefault();
       track.allDocs.list.doc.openDoc();
       track.allDocs.list.docMenu.openInSplitView();
       workbench.openDoc(doc.id, { at: "tail" });
@@ -119,39 +111,30 @@ export const QuickSplit = memo(function QuickSplit({
     [doc.id, onClick, workbench],
   );
 
-  if (!quickSplit) {
-    return null;
-  }
+  if (!enabled) return null;
 
   return (
-    <IconButton
-      onClick={onOpenInSplitView}
-      icon={<SplitViewIcon />}
-      {...iconButtonProps}
-    />
+    <IconButton onClick={handleClick} icon={<SplitViewIcon />} {...iconProps} />
   );
 });
 
 export const QuickDelete = memo(function QuickDelete({
   doc,
   onClick,
-  ...iconButtonProps
+  ...iconProps
 }: QuickActionProps) {
   const t = useI18n();
-  const { openConfirmModal } = useConfirmModal();
-  const contextValue = useContext(DocExplorerContext);
+  const enabled = useLiveData(useContext(DocExplorerContext).quickTrash$);
   const guardService = useService(GuardService);
-  const quickTrash = useLiveData(contextValue.quickTrash$);
+  const { openConfirmModal } = useConfirmModal();
   const { moveToTrash } = useDocumentOperations();
 
-  const onMoveToTrash = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      onClick?.(e);
-      e.stopPropagation();
-      e.preventDefault();
-      if (!doc) {
-        return;
-      }
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onClick?.(event);
+      event.stopPropagation();
+      event.preventDefault();
+      if (!doc) return;
 
       track.allDocs.list.docMenu.deleteDoc();
       openConfirmModal({
@@ -161,24 +144,20 @@ export const QuickDelete = memo(function QuickDelete({
         }),
         cancelText: t["com.myoxus.confirmModal.button.cancel"](),
         confirmText: t.Delete(),
-        confirmButtonOptions: {
-          variant: "error",
-        },
+        confirmButtonOptions: { variant: "error" },
         onConfirm: async () => {
           try {
-            const canTrash = await guardService.can("Doc_Trash", doc.id);
-            if (!canTrash) {
+            const allowed = await guardService.can("Doc_Trash", doc.id);
+            if (!allowed) {
               notify({ title: t["com.myoxus.no-permission"]() });
               return;
             }
             await moveToTrash(doc);
           } catch (error) {
             console.error(error);
-            const userFriendlyError = UserFriendlyError.fromAny(error);
+            const friendly = UserFriendlyError.fromAny(error);
             notify({
-              title: t[`error.${userFriendlyError.name}`](
-                userFriendlyError.data,
-              ),
+              title: t[`error.${friendly.name}`](friendly.data),
             });
           }
         },
@@ -187,17 +166,15 @@ export const QuickDelete = memo(function QuickDelete({
     [doc, guardService, moveToTrash, onClick, openConfirmModal, t],
   );
 
-  if (!quickTrash) {
-    return null;
-  }
+  if (!enabled) return null;
 
   return (
     <IconButton
-      onClick={onMoveToTrash}
+      onClick={handleClick}
       icon={<DeleteIcon />}
       variant="danger"
       data-testid="doc-list-operation-trash"
-      {...iconButtonProps}
+      {...iconProps}
     />
   );
 });
@@ -205,47 +182,45 @@ export const QuickDelete = memo(function QuickDelete({
 export const QuickSelect = memo(function QuickSelect({
   doc,
   onClick,
-  ...iconButtonProps
+  ...iconProps
 }: QuickActionProps) {
   const t = useI18n();
-  const contextValue = useContext(DocExplorerContext);
-  const quickSelect = useLiveData(contextValue.quickSelect$);
-  const selectedDocIds = useLiveData(contextValue.selectedDocIds$);
-
+  const context = useContext(DocExplorerContext);
+  const enabled = useLiveData(context.quickSelect$);
+  const selectedDocIds = useLiveData(context.selectedDocIds$);
   const selected = selectedDocIds.includes(doc.id);
 
-  const onChange = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      contextValue.selectMode$?.next(true);
-      onClick?.(e);
-      e.stopPropagation();
-      e.preventDefault();
-      contextValue.selectMode$?.next(true);
-      contextValue.selectedDocIds$?.next(
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onClick?.(event);
+      event.stopPropagation();
+      event.preventDefault();
+      context.selectMode$?.next(true);
+      context.selectedDocIds$.next(
         selected
           ? selectedDocIds.filter((id) => id !== doc.id)
           : [...selectedDocIds, doc.id],
       );
     },
-    [contextValue, doc.id, onClick, selected, selectedDocIds],
+    [context, doc.id, onClick, selected, selectedDocIds],
   );
 
-  if (!quickSelect) {
-    return null;
-  }
+  if (!enabled) return null;
+
+  const label = t["com.myoxus.all-docs.quick-action.select"]();
 
   return (
     <IconButton
-      aria-label={t["com.myoxus.all-docs.quick-action.select"]()}
-      onClick={onChange}
+      aria-label={label}
+      onClick={handleClick}
       icon={
         <Checkbox
-          aria-label={t["com.myoxus.all-docs.quick-action.select"]()}
+          aria-label={label}
           checked={selected}
           data-myoxus-ui-role="quick-action-passive-checkbox"
         />
       }
-      {...iconButtonProps}
+      {...iconProps}
     />
   );
 });
@@ -253,61 +228,54 @@ export const QuickSelect = memo(function QuickSelect({
 export const QuickDeletePermanently = memo(function QuickDeletePermanently({
   doc,
   onClick,
-  ...iconButtonProps
+  ...iconProps
 }: QuickActionProps) {
   const t = useI18n();
-  const guardService = useService(GuardService);
-  const contextValue = useContext(DocExplorerContext);
-  const { permanentlyDeletePage } = useDocumentOperations();
-  const quickDeletePermanently = useLiveData(
-    contextValue.quickDeletePermanently$,
+  const enabled = useLiveData(
+    useContext(DocExplorerContext).quickDeletePermanently$,
   );
+  const guardService = useService(GuardService);
+  const { permanentlyDeletePage } = useDocumentOperations();
   const { openConfirmModal } = useConfirmModal();
 
-  const handleDeletePermanently = useCallback(async () => {
-    const can = await guardService.can("Doc_Delete", doc.id);
-    if (!can) {
+  const runDelete = useCallback(async () => {
+    const allowed = await guardService.can("Doc_Delete", doc.id);
+    if (!allowed) {
       notify({ title: t["com.myoxus.no-permission"]() });
       return;
     }
-
-    // The confirm dialog awaits this callback. Keep the permission check and
-    // acknowledged permanent-delete mutation in the same promise chain so the
-    // trash row cannot be rechecked before local root-meta reconciliation ran.
+    // Keep the permission check and permanent-delete mutation in one awaited
+    // promise chain so the confirm dialog stays pending until reconciliation.
     await permanentlyDeletePage(doc.id);
     notify({ title: t["com.myoxus.toastMessage.permanentlyDeleted"]() });
   }, [doc.id, guardService, permanentlyDeletePage, t]);
 
-  const handleConfirmDeletePermanently = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      onClick?.(e);
-      e.stopPropagation();
-      e.preventDefault();
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onClick?.(event);
+      event.stopPropagation();
+      event.preventDefault();
       openConfirmModal({
         title: `${t["com.myoxus.trashOperation.deletePermanently"]()}?`,
         description: t["com.myoxus.trashOperation.deleteDescription"](),
         cancelText: t["Cancel"](),
         confirmText: t["com.myoxus.trashOperation.delete"](),
-        confirmButtonOptions: {
-          variant: "error",
-        },
-        onConfirm: handleDeletePermanently,
+        confirmButtonOptions: { variant: "error" },
+        onConfirm: runDelete,
       });
     },
-    [handleDeletePermanently, onClick, openConfirmModal, t],
+    [onClick, openConfirmModal, runDelete, t],
   );
 
-  if (!quickDeletePermanently) {
-    return null;
-  }
+  if (!enabled) return null;
 
   return (
     <IconButton
       data-testid="delete-page-button"
-      onClick={handleConfirmDeletePermanently}
+      onClick={handleClick}
       icon={<DeleteIcon />}
       variant="danger"
-      {...iconButtonProps}
+      {...iconProps}
     />
   );
 });
@@ -315,50 +283,47 @@ export const QuickDeletePermanently = memo(function QuickDeletePermanently({
 export const QuickRestore = memo(function QuickRestore({
   doc,
   onClick,
-  ...iconButtonProps
+  ...iconProps
 }: QuickActionProps) {
   const t = useI18n();
-  const contextValue = useContext(DocExplorerContext);
-  const quickRestore = useLiveData(contextValue.quickRestore$);
-  const { restoreFromTrash } = useDocumentOperations();
+  const enabled = useLiveData(useContext(DocExplorerContext).quickRestore$);
   const guardService = useService(GuardService);
+  const { restoreFromTrash } = useDocumentOperations();
 
-  const handleRestore = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      onClick?.(e);
-      e.stopPropagation();
-      e.preventDefault();
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onClick?.(event);
+      event.stopPropagation();
+      event.preventDefault();
       guardService
         .can("Doc_Delete", doc.id)
-        .then(async (can) => {
-          if (can) {
-            await restoreFromTrash(doc.id);
-            notify({
-              title: t["com.myoxus.toastMessage.restored"]({
-                title: doc.title$.value || "Untitled",
-              }),
-            });
-          } else {
+        .then(async (allowed) => {
+          if (!allowed) {
             notify({ title: t["com.myoxus.no-permission"]() });
+            return;
           }
+          await restoreFromTrash(doc.id);
+          notify({
+            title: t["com.myoxus.toastMessage.restored"]({
+              title: doc.title$.value || "Untitled",
+            }),
+          });
         })
-        .catch((e) => {
-          console.error(e);
+        .catch((error) => {
+          console.error(error);
         });
     },
     [doc.id, doc.title$, guardService, onClick, restoreFromTrash, t],
   );
 
-  if (!quickRestore) {
-    return null;
-  }
+  if (!enabled) return null;
 
   return (
     <IconButton
       data-testid="restore-page-button"
-      onClick={handleRestore}
+      onClick={handleClick}
       icon={<ArchiveRestoreIcon />}
-      {...iconButtonProps}
+      {...iconProps}
     />
   );
 });

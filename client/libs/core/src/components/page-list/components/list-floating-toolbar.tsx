@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useI18n } from "@myoxus/i18n";
 import {
   ArchiveRestoreIcon,
@@ -25,6 +28,7 @@ export const ListFloatingToolbar = ({
   onRestore?: () => void;
 }) => {
   const t = useI18n();
+
   return (
     <FloatingToolbar open={open} placement="bottom-overlay">
       <FloatingToolbar.Item>{content}</FloatingToolbar.Item>
@@ -34,16 +38,16 @@ export const ListFloatingToolbar = ({
         icon={<CloseIcon />}
         tooltip={t["admin.common.close"]()}
       />
-      {(!!onRestore || !!onDelete) && <FloatingToolbar.Separator />}
-      {!!onRestore && (
+      {onRestore || onDelete ? <FloatingToolbar.Separator /> : null}
+      {onRestore ? (
         <FloatingToolbar.Button
           onClick={onRestore}
           icon={<ArchiveRestoreIcon />}
           tooltip={t["com.myoxus.all-docs.quick-action.restore"]()}
           data-testid="list-toolbar-restore"
         />
-      )}
-      {!!onDelete && (
+      ) : null}
+      {onDelete ? (
         <FloatingToolbar.Button
           onClick={onDelete}
           icon={onRestore ? <DeletePermanentlyIcon /> : <DeleteIcon />}
@@ -55,7 +59,7 @@ export const ListFloatingToolbar = ({
           }
           data-testid="list-toolbar-delete"
         />
-      )}
+      ) : null}
     </FloatingToolbar>
   );
 };

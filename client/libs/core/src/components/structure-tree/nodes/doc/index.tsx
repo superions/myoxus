@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { Guard } from "@myoxus/core/components/guard";
 import { useUserPreferences } from "@myoxus/core/components/hooks/myoxus/use-user-preferences";
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
@@ -42,7 +45,15 @@ import type { GenericStructureTreeNode } from "../types";
 import { Empty } from "./empty";
 import { useStructureTreeDocNodeOperations } from "./operations";
 
-export const StructureTreeDocNode = ({
+export interface StructureTreeDocNodeProps extends GenericStructureTreeNode {
+  docId: string;
+  isLinked?: boolean;
+  targetParams?: URLSearchParams;
+  allowLinkedDocuments?: boolean;
+  forwardKey?: string;
+}
+
+export function StructureTreeDocNode({
   docId,
   onDrop,
   location,
@@ -54,13 +65,7 @@ export const StructureTreeDocNode = ({
   operations: additionalOperations,
   dropEffect,
   parentPath,
-}: {
-  docId: string;
-  isLinked?: boolean;
-  targetParams?: URLSearchParams;
-  allowLinkedDocuments?: boolean;
-  forwardKey?: string;
-} & GenericStructureTreeNode) => {
+}: StructureTreeDocNodeProps) {
   const t = useI18n();
   const {
     docsSearchService,
@@ -79,6 +84,8 @@ export const StructureTreeDocNode = ({
   });
   const structureTreeStateService = useService(StructureTreeStateService);
   const outgoing = useService(OutgoingNavigationService);
+  const workspaceDialogService = useService(WorkspaceDialogService);
+
   const serverTree =
     BUILD_CONFIG.isWeb && workspaceService.workspace.flavour !== "local";
   const { effectivePreferences } = useUserPreferences();
@@ -96,23 +103,21 @@ export const StructureTreeDocNode = ({
     (value: boolean) => {
       structureTreeStateService.setCollapsed(path, value);
     },
-    [structureTreeStateService, path],
+    [path, structureTreeStateService],
   );
   const isCollapsed = showLinkedDocuments ? collapsed : true;
 
   const docRecord = useLiveData(docsService.list.doc$(docId));
   const DocIcon = useLiveData(
-    docDisplayMetaService.icon$(docId, {
-      reference: isLinked,
-    }),
+    docDisplayMetaService.icon$(docId, { reference: isLinked }),
   );
   const docTitle = useLiveData(docDisplayMetaService.title$(docId));
   const isInTrash = useLiveData(docRecord?.trash$);
 
   const Icon = useCallback(
-    ({ className }: { className?: string }) => {
-      return <DocIcon className={className} />;
-    },
+    ({ className }: { className?: string }) => (
+      <DocIcon className={className} />
+    ),
     [DocIcon],
   );
 
@@ -133,7 +138,7 @@ export const StructureTreeDocNode = ({
               : docsSearchService.watchRefsFrom(docId),
           null,
         ),
-      [docsSearchService, docId, isCollapsed, outgoing, serverTree],
+      [docId, docsSearchService, isCollapsed, outgoing, serverTree],
     ),
   );
   const searching = children === null;
@@ -143,43 +148,37 @@ export const StructureTreeDocNode = ({
     if (serverTree || collapsed) {
       return;
     }
-    const abortController = new AbortController();
-    const undoSync = workspaceService.workspace.engine.doc.addPriority(
+    const controller = new AbortController();
+    const releaseSync = workspaceService.workspace.engine.doc.addPriority(
       docId,
       10,
     );
-    const undoIndexer = docsSearchService.indexer.addPriority(docId, 10);
+    const releaseIndex = docsSearchService.indexer.addPriority(docId, 10);
     docsSearchService.indexer
-      .waitForDocCompleted(docId, abortController.signal)
-      .then(() => {
-        setReferencesLoading(false);
-      })
-      .catch((err) => {
-        if (err !== MANUALLY_STOP) {
-          console.error(err);
+      .waitForDocCompleted(docId, controller.signal)
+      .then(() => setReferencesLoading(false))
+      .catch((error) => {
+        if (error !== MANUALLY_STOP) {
+          console.error(error);
         }
       });
     return () => {
-      undoSync();
-      undoIndexer();
-      abortController.abort(MANUALLY_STOP);
+      releaseSync();
+      releaseIndex();
+      controller.abort(MANUALLY_STOP);
     };
-  }, [docId, docsSearchService, workspaceService, collapsed, serverTree]);
+  }, [collapsed, docId, docsSearchService, serverTree, workspaceService]);
 
-  const dndData = useMemo(() => {
-    return {
+  const dndData = useMemo<MyoxusDNDData>(
+    () => ({
       draggable: {
-        entity: {
-          type: "doc",
-          id: docId,
-        },
+        entity: { type: "doc", id: docId },
         from: location,
       },
-      dropTarget: {
-        at: "structure-tree:doc",
-      },
-    } satisfies MyoxusDNDData;
-  }, [docId, location]);
+      dropTarget: { at: "structure-tree:doc" },
+    }),
+    [docId, location],
+  );
 
   const handleRename = useAsyncCallback(
     async (newName: string) => {
@@ -189,80 +188,53 @@ export const StructureTreeDocNode = ({
     [docId, docsService],
   );
 
+  const linkDroppedDoc = useAsyncCallback(
+    async (data: DropTargetDropEvent<MyoxusDNDData>) => {
+      if (data.source.data.entity?.type !== "doc") {
+        notify({ title: t["com.myoxus.rootAppSidebar.doc.link-doc-only"]() });
+        return;
+      }
+      const canEdit = await guardService.can("Doc_Update", docId);
+      if (!canEdit) {
+        notify({ title: t["com.myoxus.no-permission"]() });
+        return;
+      }
+      await docsService.addLinkedDoc(docId, data.source.data.entity.id);
+      track.$.navigationPanel.docs.linkDoc({ control: "drag" });
+      track.$.navigationPanel.docs.drop({ type: data.source.data.entity.type });
+    },
+    [docId, docsService, guardService, t],
+  );
+
   const handleDropOnDoc = useAsyncCallback(
     async (data: DropTargetDropEvent<MyoxusDNDData>) => {
       if (data.treeInstruction?.type === "make-child") {
-        if (data.source.data.entity?.type === "doc") {
-          const canEdit = await guardService.can("Doc_Update", docId);
-          if (!canEdit) {
-            notify({ title: t["com.myoxus.no-permission"]() });
-            return;
-          }
-          await docsService.addLinkedDoc(docId, data.source.data.entity.id);
-          track.$.navigationPanel.docs.linkDoc({
-            control: "drag",
-          });
-          track.$.navigationPanel.docs.drop({
-            type: data.source.data.entity.type,
-          });
-        } else {
-          notify({ title: t["com.myoxus.rootAppSidebar.doc.link-doc-only"]() });
-        }
-      } else {
-        onDrop?.(data);
+        await linkDroppedDoc(data);
+        return;
       }
+      onDrop?.(data);
     },
-    [docId, docsService, guardService, onDrop, t],
+    [linkDroppedDoc, onDrop],
   );
 
   const handleDropEffectOnDoc = useCallback<StructureTreeNodeDropEffect>(
     (data) => {
       if (data.treeInstruction?.type === "make-child") {
-        if (data.source.data.entity?.type === "doc") {
-          return "link";
-        }
-      } else {
-        return dropEffect?.(data);
+        return data.source.data.entity?.type === "doc" ? "link" : undefined;
       }
-      return;
+      return dropEffect?.(data);
     },
     [dropEffect],
   );
 
-  const handleDropOnPlaceholder = useAsyncCallback(
-    async (data: DropTargetDropEvent<MyoxusDNDData>) => {
-      if (data.source.data.entity?.type === "doc") {
-        const canEdit = await guardService.can("Doc_Update", docId);
-        if (!canEdit) {
-          notify({ title: t["com.myoxus.no-permission"]() });
-          return;
-        }
-        // TODO(eyhn): timeout&error handling
-        await docsService.addLinkedDoc(docId, data.source.data.entity.id);
-        track.$.navigationPanel.docs.linkDoc({
-          control: "drag",
-        });
-        track.$.navigationPanel.docs.drop({
-          type: data.source.data.entity.type,
-        });
-      } else {
-        notify({ title: t["com.myoxus.rootAppSidebar.doc.link-doc-only"]() });
-      }
-    },
-    [docId, docsService, guardService, t],
-  );
-
   const handleCanDrop = useMemo<DropTargetOptions<MyoxusDNDData>["canDrop"]>(
-    () => (args) => {
-      const entityType = args.source.data.entity?.type;
-      return args.treeInstruction?.type !== "make-child"
+    () => (args) =>
+      args.treeInstruction?.type !== "make-child"
         ? ((typeof canDrop === "function" ? canDrop(args) : canDrop) ?? true)
-        : entityType === "doc";
-    },
+        : args.source.data.entity?.type === "doc",
     [canDrop],
   );
 
-  const workspaceDialogService = useService(WorkspaceDialogService);
   const operations = useStructureTreeDocNodeOperations(
     docId,
     useMemo(
@@ -275,12 +247,13 @@ export const StructureTreeDocNode = ({
     ),
   );
 
-  const finalOperations = useMemo(() => {
-    if (additionalOperations) {
-      return [...operations, ...additionalOperations];
-    }
-    return operations;
-  }, [additionalOperations, operations]);
+  const finalOperations = useMemo(
+    () =>
+      additionalOperations
+        ? [...operations, ...additionalOperations]
+        : operations,
+    [additionalOperations, operations],
+  );
 
   if (isInTrash || !docRecord) {
     return null;
@@ -316,15 +289,12 @@ export const StructureTreeDocNode = ({
         )
       }
       reorderable={reorderable}
-      renameableGuard={{
-        docId,
-        action: "Doc_Update",
-      }}
+      renameableGuard={{ docId, action: "Doc_Update" }}
       onRename={handleRename}
       childrenPlaceholder={
         searching ? null : (
           <Empty
-            onDrop={handleDropOnPlaceholder}
+            onDrop={linkDroppedDoc}
             noAccessible={!!children && children.length > 0}
           />
         )
@@ -332,10 +302,7 @@ export const StructureTreeDocNode = ({
       operations={finalOperations}
       dropEffect={handleDropEffectOnDoc}
       data-testid={`structure-tree-doc-${docId}`}
-      explorerIconConfig={{
-        where: "doc",
-        id: docId,
-      }}
+      explorerIconConfig={{ where: "doc", id: docId }}
     >
       {showLinkedDocuments ? (
         <Guard docId={docId} permission="Doc_Read">
@@ -361,4 +328,4 @@ export const StructureTreeDocNode = ({
       ) : null}
     </StructureTreeNode>
   );
-};
+}

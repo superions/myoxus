@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { DesktopApiService } from "@myoxus/core/modules/desktop-api";
 import { useServiceOptional } from "@myoxus/infra";
 import { useCallback } from "react";
@@ -6,28 +9,20 @@ import { redirect } from "react-router";
 import { appConfigStorage } from "../../../components/hooks/use-app-config-storage";
 import { Onboarding } from "../../../components/myoxus/onboarding/onboarding";
 
-/**
- * /onboarding page
- *
- * only for electron
- */
-export const loader = () => {
+export function loader() {
   if (!BUILD_CONFIG.isElectron && !appConfigStorage.get("onBoarding")) {
-    // onboarding is off, redirect to index
     return redirect("/");
   }
-
   return null;
-};
+}
 
-export const Component = () => {
+export function Component() {
   const desktopApi = useServiceOptional(DesktopApiService);
-
-  const openApp = useCallback(() => {
-    desktopApi?.handler.ui.handleOpenMainApp().catch((err) => {
-      console.log("failed to open main app", err);
+  const handleOpenApp = useCallback(() => {
+    desktopApi?.handler.ui.handleOpenMainApp().catch((error) => {
+      console.error("Failed to open main app", error);
     });
   }, [desktopApi]);
 
-  return <Onboarding onOpenApp={openApp} />;
-};
+  return <Onboarding onOpenApp={handleOpenApp} />;
+}

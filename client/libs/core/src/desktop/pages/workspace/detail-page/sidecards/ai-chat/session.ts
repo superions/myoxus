@@ -1,47 +1,20 @@
-/**
- * Chat-panel session utilities — session initialisation and URL handoff logic.
- *
- * Provides two public functions used by `EditorChatPanel` (and the workspace
- * chat page) to determine which AI session to display on mount:
- *
- * Resolution does not mutate the URL. The host consumes a handoff only after
- * checking that the result still belongs to its active document/request.
- *
- * ### `resolveInitialSession`
- * Implements the session-priority waterfall used on chat-panel mount:
- *
- * 1. **Pinned session** — if the workspace has a pinned session it always
- *    takes precedence, regardless of the current document or URL.
- * 2. **URL session** — if `?sessionId=` was present, fetch and display that
- *    specific conversation (e.g. from a notification or cross-panel link).
- * 3. **Latest doc session** — fall back to the most recent chat session that
- *    belongs to the current document (excluding action and fork sessions).
- * 4. **null** — no prior conversation; the panel starts fresh.
- *
- * The function returns `undefined` when the required services are not yet
- * available (early return before any async work is done), allowing callers to
- * retry when the services become ready.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import type { CopilotChatHistoryFragment } from "@myoxus/graphql";
 
-/** Filter options accepted by `SessionService.getSessions`. */
-type SessionListOptions = {
+interface SessionListFilter {
   pinned?: boolean;
   action?: boolean;
   fork?: boolean;
   limit?: number;
-};
+}
 
-/**
- * Minimal interface over `CopilotClient` required by the session-resolution
- * logic.  Typed narrowly so it can be satisfied by mock objects in tests.
- */
 export interface SessionService {
   getSessions: (
     workspaceId: string,
     docId?: string,
-    options?: SessionListOptions,
+    options?: SessionListFilter,
   ) => Promise<CopilotChatHistoryFragment[] | null | undefined>;
   getSession: (
     workspaceId: string,
@@ -49,11 +22,6 @@ export interface SessionService {
   ) => Promise<CopilotChatHistoryFragment | null | undefined>;
 }
 
-/**
- * Structural interface over `Workbench` needed to read and clear the URL
- * `sessionId` query parameter.  Using a structural type keeps this module
- * free of a direct dependency on the workbench module.
- */
 export interface WorkbenchLike {
   location$: {
     value: {
@@ -70,7 +38,6 @@ export interface WorkbenchLike {
   };
 }
 
-/** Structural interface for the minimal doc shape needed for session resolution. */
 export interface DocLike {
   id: string;
   workspace: {
@@ -78,28 +45,41 @@ export interface DocLike {
   };
 }
 
-export const getSessionIdFromUrl = (workbench?: WorkbenchLike | null) => {
+export function getSessionIdFromUrl(
+  workbench?: WorkbenchLike | null,
+): string | undefined {
   if (!workbench) {
     return undefined;
   }
-  const searchParams = new URLSearchParams(workbench.location$.value.search);
-  return searchParams.get("sessionId") ?? undefined;
-};
+  return (
+    new URLSearchParams(workbench.location$.value.search).get("sessionId") ??
+    undefined
+  );
+}
 
-/** A late resolution must not consume a different navigation's handoff. */
-export const consumeSessionIdFromUrl = (
+/**
+ * Clears `?sessionId=` only if the active URL still matches the handoff that
+ * initiated resolution, preventing stale async responses from erasing newer
+ * navigation parameters.
+ */
+export function consumeSessionIdFromUrl(
   workbench: WorkbenchLike,
   expected: string | undefined,
-) => {
+): void {
   if (expected && getSessionIdFromUrl(workbench) === expected) {
     workbench.activeView$.value.updateQueryString(
       { sessionId: undefined },
       { replace: true },
     );
   }
-};
+}
 
-export const resolveInitialSession = async ({
+/**
+ * Resolves the initial AI chat session in priority order without mutating the
+ * URL: pinned workspace session, explicit `?sessionId=` handoff, latest
+ * non-action/non-fork document session, or `null` for a fresh chat.
+ */
+export async function resolveInitialSession({
   sessionService,
   doc,
   workbench,
@@ -107,48 +87,44 @@ export const resolveInitialSession = async ({
   sessionService?: SessionService | null;
   doc?: DocLike | null;
   workbench?: WorkbenchLike | null;
-}): Promise<CopilotChatHistoryFragment | null | undefined> => {
+}): Promise<CopilotChatHistoryFragment | null | undefined> {
   if (!sessionService || !doc) {
     return undefined;
   }
 
-  const sessionId = getSessionIdFromUrl(workbench);
+  const requestedSessionId = getSessionIdFromUrl(workbench);
 
-  const pinSessions = await sessionService.getSessions(
+  const pinnedSessions = await sessionService.getSessions(
     doc.workspace.id,
     undefined,
-    {
-      pinned: true,
-      limit: 1,
-    },
+    { pinned: true, limit: 1 },
   );
-  if (!Array.isArray(pinSessions))
+  if (!Array.isArray(pinnedSessions)) {
     throw new Error("Session lookup unavailable");
-
-  if (Array.isArray(pinSessions) && pinSessions[0]) {
-    return pinSessions[0];
+  }
+  if (pinnedSessions[0]) {
+    return pinnedSessions[0];
   }
 
-  if (sessionId) {
-    const session = await sessionService.getSession(
+  if (requestedSessionId) {
+    const requestedSession = await sessionService.getSession(
       doc.workspace.id,
-      sessionId,
+      requestedSessionId,
     );
-    if (!session) throw new Error("Requested conversation unavailable");
-    return session;
+    if (!requestedSession) {
+      throw new Error("Requested conversation unavailable");
+    }
+    return requestedSession;
   }
 
   const docSessions = await sessionService.getSessions(
     doc.workspace.id,
     doc.id,
-    {
-      action: false,
-      fork: false,
-      limit: 1,
-    },
+    { action: false, fork: false, limit: 1 },
   );
-  if (!Array.isArray(docSessions))
+  if (!Array.isArray(docSessions)) {
     throw new Error("Session lookup unavailable");
+  }
 
-  return docSessions?.[0] ?? null;
-};
+  return docSessions[0] ?? null;
+}

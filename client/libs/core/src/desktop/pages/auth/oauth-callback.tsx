@@ -1,21 +1,6 @@
-/**
- * OAuth callback page (`/oauth/callback`).
- *
- * Handles the server-side OAuth redirect after the user authorises the
- * application with a third-party provider (e.g. Google, GitHub).
- *
- * Flow:
- * 1. The **loader** runs before the component mounts. It reads `code` and
- *    `state` from the URL search params. Current Myoxus servers provide an
- *    opaque state token; older clients may still send a JSON wrapper that also
- *    names the target client.
- * 2. The **component** receives the loader data and calls
- *    `AuthService.signInOauth` once (guarded by `triggeredRef` to prevent
- *    StrictMode double-invocation). On success the popup window is closed;
- *    on failure the user is redirected to `/sign-in` with the error.
- *
- * The component renders a themed status shell while the side effect runs.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useI18n } from "@myoxus/i18n";
 import { useService } from "@myoxus/infra";
 import { useEffect, useRef } from "react";
@@ -40,40 +25,31 @@ import {
 } from "./common";
 import { AuthStatusPage } from "./status";
 
-/** Shape of the data returned by the route loader to the component. */
-interface LoaderData {
+interface OAuthCallbackLoaderData {
   state: string;
   code: string;
   provider: string;
 }
 
-/**
- * React Router loader for `/oauth/callback`.
- *
- * Runs on the server/SSR side (or synchronously before render in the browser).
- * Validates and routes the OAuth response parameters, returning a `LoaderData`
- * object for the web flow or preserving the older JSON-wrapped native handoff.
- */
 export const loader: LoaderFunction = async ({ request }) => {
   const url = new URL(request.url);
-  const queries = url.searchParams;
-  const code = queries.get("code");
-  let stateStr = queries.get("state") ?? "{}";
+  const code = url.searchParams.get("code");
+  let rawState = url.searchParams.get("state") ?? "{}";
 
-  if (!code || !stateStr) {
+  if (!code || !rawState) {
     return redirect(
       buildSignInUrl({ error: "Invalid oauth callback parameters" }),
     );
   }
 
   try {
-    const { state, client, provider } = JSON.parse(stateStr);
+    const { state, client, provider } = JSON.parse(rawState);
     if (typeof state !== "string" || !state) {
       throw new Error("Invalid oauth callback parameters");
     }
-    stateStr = state;
+    rawState = state;
 
-    const payload: LoaderData = {
+    const payload: OAuthCallbackLoaderData = {
       state,
       code,
       provider: typeof provider === "string" ? provider : "",
@@ -83,68 +59,63 @@ export const loader: LoaderFunction = async ({ request }) => {
       return payload;
     }
 
-    const clientCheckResult = supportedClient.safeParse(client);
-    if (!clientCheckResult.success) {
+    const parsedClient = supportedClient.safeParse(client);
+    if (!parsedClient.success) {
       return redirect(
         buildSignInUrl({ error: "Invalid oauth callback parameters" }),
       );
     }
 
-    const urlToOpen = buildAuthenticationDeepLink({
-      scheme: clientCheckResult.data,
+    const deepLink = buildAuthenticationDeepLink({
+      scheme: parsedClient.data,
       method: "oauth",
       payload,
       server: location.origin,
     });
-
-    return redirect(buildOpenAppUrlRoute(urlToOpen));
+    return redirect(buildOpenAppUrlRoute(deepLink));
   } catch {
     return {
-      state: stateStr,
+      state: rawState,
       code,
       provider: "",
-    } satisfies LoaderData;
+    } satisfies OAuthCallbackLoaderData;
   }
 };
 
-export const Component = () => {
+export function Component() {
   const auth = useService(AuthService);
-  const data = useLoaderData() as LoaderData;
+  const data = useLoaderData() as OAuthCallbackLoaderData;
   const i18n = useI18n();
-
-  // loader data from useLoaderData is not reactive, so that we can safely
-  // assume the effect below is only triggered once
-  const triggeredRef = useRef(false);
-
-  const nav = useNavigate();
+  const navigate = useNavigate();
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    if (triggeredRef.current) {
+    if (startedRef.current) {
       return;
     }
-    triggeredRef.current = true;
+    startedRef.current = true;
     auth
       .signInOauth(data.code, data.state, data.provider)
       .then(({ redirectUri }) => {
-        const redirectTarget = sanitizeAuthRedirectTarget(redirectUri);
+        const target = sanitizeAuthRedirectTarget(redirectUri);
         if (window.opener && !window.opener.closed) {
           window.close();
           return;
         }
-        if (redirectTarget === CLOSE_POPUP_REDIRECT_TARGET) {
+        if (target === CLOSE_POPUP_REDIRECT_TARGET) {
           window.close();
           return;
         }
-        if (requiresDocumentAuthRedirect(redirectTarget)) {
-          window.location.replace(redirectTarget ?? "/");
+        if (requiresDocumentAuthRedirect(target)) {
+          window.location.replace(target ?? "/");
           return;
         }
-        nav(redirectTarget ?? "/", { replace: true });
+        navigate(target ?? "/", { replace: true });
       })
-      .catch((e) => {
-        nav(buildSignInUrl({ error: e.message }));
+      .catch((error: Error) => {
+        navigate(buildSignInUrl({ error: error.message }));
       });
-  }, [data, auth, nav]);
+  }, [auth, data, navigate]);
 
   return (
     <AuthStatusPage
@@ -152,4 +123,4 @@ export const Component = () => {
       description={i18n.t("admin.auth.callback-status-description")}
     />
   );
-};
+}

@@ -1,25 +1,20 @@
-/**
- * The document route retains its live Doc/Editor scope while switching between
- * the editable document and readonly URL-addressed history. Each subview mounts
- * its own Workbench islands; only document mode binds editing commands and tools.
- */
-import { DocumentActivePeopleTool } from "@myoxus/core/modules/content-presence/document-active-people-tool";
-import { NavigateContext } from "@myoxus/core/components/hooks/use-navigate-helper";
-import { WorkspaceContentOperationService } from "@myoxus/core/modules/workspace-content-operation";
-import { ViewService } from "@myoxus/core/modules/workbench/services/view";
-import { WorkspaceContentResourceKindType } from "@myoxus/graphql";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useGuard } from "@myoxus/core/components/guard";
 import { useRegisterVirgultumEditorCommands } from "@myoxus/core/components/hooks/myoxus/use-register-virgultum-editor-commands";
 import { useDocumentViewContext } from "@myoxus/core/components/hooks/use-document-view-context";
+import { NavigateContext } from "@myoxus/core/components/hooks/use-navigate-helper";
 import { MyoxusErrorBoundary } from "@myoxus/core/components/myoxus/myoxus-error-boundary";
+import { PageDetailEditor } from "@myoxus/core/components/page-detail-editor";
+import { TrashPageFooter } from "@myoxus/core/components/pure/trash-page-footer";
+import { TopTip } from "@myoxus/core/components/top-tip";
+import { DocumentActivePeopleTool } from "@myoxus/core/modules/content-presence/document-active-people-tool";
+import { DocService, DocsService } from "@myoxus/core/modules/doc";
 import {
   HistoryNavigationProvider,
   useHistoryNavigation,
 } from "@myoxus/core/modules/doc-versioning/history-navigation";
-import { PageDetailEditor } from "@myoxus/core/components/page-detail-editor";
-import { TrashPageFooter } from "@myoxus/core/components/pure/trash-page-footer";
-import { TopTip } from "@myoxus/core/components/top-tip";
-import { DocService, DocsService } from "@myoxus/core/modules/doc";
 import { EditorService } from "@myoxus/core/modules/editor";
 import { JournalService } from "@myoxus/core/modules/journal";
 import { RecentWorkspaceItemsService } from "@myoxus/core/modules/quicksearch";
@@ -30,7 +25,10 @@ import {
   ViewHeader,
   WorkbenchToolLayoutBinding,
 } from "@myoxus/core/modules/workbench";
+import { ViewService } from "@myoxus/core/modules/workbench/services/view";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
+import { WorkspaceContentOperationService } from "@myoxus/core/modules/workspace-content-operation";
+import { WorkspaceContentResourceKindType } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
 import { useLiveData, useService, useServices } from "@myoxus/infra";
 import {
@@ -60,7 +58,8 @@ import { JournalConflictBlock } from "./sidecards/journal";
 const HistoryView = lazy(async () => ({
   default: (await import("./history-view")).HistoryView,
 }));
-const DocumentRouteFailure = ({ pageId }: { pageId: string }) => {
+
+function DocumentRouteFailure({ pageId }: { pageId: string }) {
   const docsService = useService(DocsService);
   const docRecord = useLiveData(docsService.list.doc$(pageId));
   const canAccess = useGuard("Doc_Read", pageId);
@@ -71,8 +70,9 @@ const DocumentRouteFailure = ({ pageId }: { pageId: string }) => {
   const [resolving, setResolving] = useState(
     !docRecord && workspace.flavour !== "local",
   );
+
   useEffect(() => {
-    // Live/denied local documents outrank redirects, including a reused route key.
+    // Live or denied local records take precedence over moved-document redirects.
     if (docRecord || workspace.flavour === "local" || !navigate) {
       setResolving(false);
       return;
@@ -88,21 +88,25 @@ const DocumentRouteFailure = ({ pageId }: { pageId: string }) => {
         },
       })
       .then(
-        (address) => {
-          if (cancelled) return;
+        (target) => {
+          if (cancelled) {
+            return;
+          }
           if (
-            address &&
-            (address.workspaceId !== workspace.id || address.id !== pageId)
+            target &&
+            (target.workspaceId !== workspace.id || target.id !== pageId)
           ) {
             void navigate(
-              `/workspace/${address.workspaceId}/${address.id}${location.search}${location.hash}`,
+              `/workspace/${target.workspaceId}/${target.id}${location.search}${location.hash}`,
               { replace: true },
             );
           }
           setResolving(false);
         },
         () => {
-          if (!cancelled) setResolving(false);
+          if (!cancelled) {
+            setResolving(false);
+          }
         },
       );
     return () => {
@@ -110,34 +114,25 @@ const DocumentRouteFailure = ({ pageId }: { pageId: string }) => {
     };
   }, [
     docRecord,
-    workspace,
-    pageId,
-    operations,
-    navigate,
-    location.search,
     location.hash,
+    location.search,
+    navigate,
+    operations,
+    pageId,
+    workspace,
   ]);
 
-  if (resolving && !docRecord) return <WorkbenchRouteLoading />;
+  if (resolving && !docRecord) {
+    return <WorkbenchRouteLoading />;
+  }
   return docRecord && canAccess === false ? (
     <WorkbenchRouteAccessDenied />
   ) : (
     <WorkbenchRouteNotFound />
   );
-};
+}
 
-/**
- * Core document editor component.
- *
- * Reads all necessary services from the DI context (workbench, view, editor,
- * doc, workspace, global context) and renders the full editor UI with all
- * contextual sidecards.
- *
- * This component assumes it is mounted inside a `FrameworkScope` that contains
- * valid `EditorService` and `DocService` instances (set up by
- * `<DetailPageWrapper>`).
- */
-const DocumentEditorView = () => {
+function DocumentEditorView() {
   const {
     editorService,
     docService,
@@ -149,19 +144,21 @@ const DocumentEditorView = () => {
     WorkspaceService,
     RecentWorkspaceItemsService,
   });
+  const journalService = useService(JournalService);
+  const t = useI18n();
+
   const editor = editorService.editor;
   const workspace = workspaceService.workspace;
   const doc = docService.doc;
-  const t = useI18n();
 
   const mode = useLiveData(editor.mode$);
   const isInTrash = useLiveData(doc.meta$.map((meta) => meta.trash));
   const editorContainer = useLiveData(editor.editorContainer$);
+  const journalDate = useLiveData(journalService.journalDate$(doc.id));
+  const isJournal = Boolean(journalDate);
 
   const scrollViewportRef = useWorkbenchSurfaceScrollViewport();
-
   const isActiveView = useIsActiveView();
-
   const canEdit = useGuard("Doc_Update", doc.id);
   const readonly = !canEdit || isInTrash;
 
@@ -178,12 +175,8 @@ const DocumentEditorView = () => {
     isInTrash,
     mode,
   });
-
   useRegisterVirgultumEditorCommands(editor, isActiveView);
 
-  const journalService = useService(JournalService);
-  const journalDate = useLiveData(journalService.journalDate$(doc.id));
-  const isJournal = Boolean(journalDate);
   const onLoad = useDocumentEditorLifecycle({
     editor,
     isJournal,
@@ -191,18 +184,18 @@ const DocumentEditorView = () => {
   });
 
   const [hasScrollTop, setHasScrollTop] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
     const viewport = scrollViewportRef.current;
-    if (!viewport) return;
-
-    const handleScroll = () => setHasScrollTop(viewport.scrollTop > 0);
-    handleScroll();
-    viewport.addEventListener("scroll", handleScroll, { passive: true });
-    return () => viewport.removeEventListener("scroll", handleScroll);
+    if (!viewport) {
+      return;
+    }
+    const syncScrollTop = () => setHasScrollTop(viewport.scrollTop > 0);
+    syncScrollTop();
+    viewport.addEventListener("scroll", syncScrollTop, { passive: true });
+    return () => viewport.removeEventListener("scroll", syncScrollTop);
   }, [scrollViewportRef]);
-
-  const [dragging, setDragging] = useState(false);
 
   return (
     <>
@@ -232,7 +225,6 @@ const DocumentEditorView = () => {
           {isJournal && journalDate ? (
             <JournalConflictBlock date={journalDate} />
           ) : null}
-          {/* Add a key to force rerender when page changed, to avoid error boundary persisting. */}
           <MyoxusErrorBoundary key={doc.id}>
             <TopTip pageId={doc.id} workspace={workspace} />
             <DetailPageEditorFrame editorMode={mode}>
@@ -254,7 +246,6 @@ const DocumentEditorView = () => {
         awareness={doc.virgultumDoc.awarenessStore.awareness}
       />
       <AiChatSidecard editor={editorContainer} />
-
       {!isJournal ? (
         <DocumentSidecards
           docId={doc.id}
@@ -265,20 +256,16 @@ const DocumentEditorView = () => {
           workspaceId={workspace.id}
         />
       ) : null}
-
       <CalendarSidecards
         includeJournalActivity={isJournal}
         readonly={Boolean(readonly)}
       />
-
       <FramesSidecard
         editor={editorContainer?.host ?? null}
         isJournal={isJournal}
         mode={mode}
       />
-
       <CommentsSidecard workspaceFlavour={workspace.flavour} />
-
       <AnalyticsSidecard
         docId={doc.id}
         workspaceFlavour={workspace.flavour}
@@ -286,10 +273,11 @@ const DocumentEditorView = () => {
       />
     </>
   );
-};
+}
 
-/** The live Doc/Editor scope survives; only the current editing renderer is replaced. */
-const DocumentDetailContent = () => {
+// Keep the live Doc/Editor scope mounted while toggling between the editable
+// document view and URL-addressed readonly HistoryView.
+function DocumentDetailContent() {
   const navigation = useHistoryNavigation();
   return navigation.state.open ? (
     <Suspense fallback={<WorkbenchRouteLoading />}>
@@ -298,31 +286,26 @@ const DocumentDetailContent = () => {
   ) : (
     <DocumentEditorView />
   );
-};
-const DocumentDetailView = () => {
+}
+
+function DocumentDetailView() {
   const doc = useService(DocService).doc;
   const workspace = useService(WorkspaceService).workspace;
   const view = useService(ViewService).view;
+
   return (
     <HistoryNavigationProvider key={`${workspace.id}:${doc.id}:${view.id}`}>
       <DocumentDetailContent />
     </HistoryNavigationProvider>
   );
-};
+}
 
-/**
- * Lazy route entry point for the document detail page.
- *
- * Reads `:pageId` from the URL, checks
- * whether the current user has `Doc_Read` permission, and renders either the
- * document wrapped in `<DetailPageWrapper>` or appropriate fallback UIs
- * (skeleton while loading, 404 when not found / no access).
- */
-export const Component = () => {
-  const params = useParams();
-
-  const pageId = params.pageId;
-  return pageId ? (
+export function Component() {
+  const { pageId } = useParams();
+  if (!pageId) {
+    return null;
+  }
+  return (
     <DetailPageWrapper
       pageId={pageId}
       skeleton={<WorkbenchRouteLoading />}
@@ -330,5 +313,5 @@ export const Component = () => {
     >
       <DocumentDetailView />
     </DetailPageWrapper>
-  ) : null;
-};
+  );
+}

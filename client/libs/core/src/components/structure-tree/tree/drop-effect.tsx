@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useI18n } from "@myoxus/i18n";
 import { CopyIcon, LinkIcon, MoveToIcon } from "@myoxus/icons/react";
 import {
@@ -11,34 +14,34 @@ export const DropEffect = ({
   dropEffect,
   position,
 }: {
-  dropEffect?: "copy" | "move" | "link" | undefined;
+  dropEffect?: "copy" | "move" | "link";
   position: ReturnType<typeof useDropTarget>["draggedOverPosition"];
 }) => {
   const t = useI18n();
-  if (dropEffect === undefined) return null;
+  if (dropEffect === undefined) {
+    return null;
+  }
+
+  const icon =
+    dropEffect === "copy" ? (
+      <CopyIcon />
+    ) : dropEffect === "move" ? (
+      <MoveToIcon />
+    ) : (
+      <LinkIcon />
+    );
+
+  const label =
+    dropEffect === "copy"
+      ? t["com.myoxus.rootAppSidebar.explorer.drop-effect.copy"]()
+      : dropEffect === "move"
+        ? t["com.myoxus.rootAppSidebar.explorer.drop-effect.move"]()
+        : t["com.myoxus.rootAppSidebar.explorer.drop-effect.link"]();
+
   return createPortal(
-    <StructureTreeDropEffect
-      style={{
-        // DnD reports viewport pointer coordinates in CSS pixels. Keep the
-        // pointer transform as geometry data while the visual chrome stays in
-        // the shared StructureTree facade.
-        transform: `translate(${position.clientX}px, ${position.clientY}px)`,
-      }}
-    >
-      <StructureTreeDropEffectIcon>
-        {dropEffect === "copy" ? (
-          <CopyIcon />
-        ) : dropEffect === "move" ? (
-          <MoveToIcon />
-        ) : (
-          <LinkIcon />
-        )}
-      </StructureTreeDropEffectIcon>
-      {dropEffect === "copy"
-        ? t["com.myoxus.rootAppSidebar.explorer.drop-effect.copy"]()
-        : dropEffect === "move"
-          ? t["com.myoxus.rootAppSidebar.explorer.drop-effect.move"]()
-          : t["com.myoxus.rootAppSidebar.explorer.drop-effect.link"]()}
+    <StructureTreeDropEffect x={position.clientX} y={position.clientY}>
+      <StructureTreeDropEffectIcon>{icon}</StructureTreeDropEffectIcon>
+      {label}
     </StructureTreeDropEffect>,
     document.body,
   );

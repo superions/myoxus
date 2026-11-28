@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { GroupByParams } from "@myoxus/core/modules/collection-rules/types";
 import { WorkspacePropertyService } from "@myoxus/core/modules/workspace-property";
 import { useI18n } from "@myoxus/i18n";
@@ -15,14 +18,15 @@ import {
   isSupportedWorkspacePropertyType,
   WorkspacePropertyTypes,
 } from "../../workspace-property-types";
-import { generateExplorerPropertyList } from "../properties";
+import {
+  type ExplorerPropertyEntry,
+  generateExplorerPropertyList,
+} from "../properties";
 
-const PropertyGroupByName = ({ groupBy }: { groupBy: GroupByParams }) => {
-  const workspacePropertyService = useService(WorkspacePropertyService);
+const WorkspaceGroupByLabel = ({ groupBy }: { groupBy: GroupByParams }) => {
   const propertyInfo = useLiveData(
-    workspacePropertyService.propertyInfo$(groupBy.key),
+    useService(WorkspacePropertyService).propertyInfo$(groupBy.key),
   );
-
   return propertyInfo ? (
     <WorkspacePropertyName propertyInfo={propertyInfo} />
   ) : null;
@@ -31,15 +35,75 @@ const PropertyGroupByName = ({ groupBy }: { groupBy: GroupByParams }) => {
 export const GroupByName = ({ groupBy }: { groupBy: GroupByParams }) => {
   const t = useI18n();
   if (groupBy.type === "property") {
-    return <PropertyGroupByName groupBy={groupBy} />;
+    return <WorkspaceGroupByLabel groupBy={groupBy} />;
   }
   if (groupBy.type === "system") {
-    const type = isSupportedSystemPropertyType(groupBy.key)
+    const descriptor = isSupportedSystemPropertyType(groupBy.key)
       ? SystemPropertyTypes[groupBy.key]
       : null;
-    return type ? t.t(type.name) : null;
+    return descriptor ? t.t(descriptor.name) : null;
   }
   return null;
+};
+
+const GroupByOption = ({
+  entry,
+  groupBy,
+  onChange,
+}: {
+  entry: ExplorerPropertyEntry;
+  groupBy?: GroupByParams;
+  onChange?: (next: GroupByParams) => void;
+}) => {
+  const t = useI18n();
+  const { systemProperty, workspaceProperty } = entry;
+
+  const allowed = systemProperty
+    ? "allowInGroupBy" in systemProperty && systemProperty.allowInGroupBy
+    : workspaceProperty
+      ? isSupportedWorkspacePropertyType(workspaceProperty.type) &&
+        WorkspacePropertyTypes[workspaceProperty.type].allowInGroupBy
+      : false;
+
+  if (!allowed) {
+    return null;
+  }
+
+  const nextValue: GroupByParams | null = systemProperty
+    ? { type: "system", key: systemProperty.type }
+    : workspaceProperty
+      ? { type: "property", key: workspaceProperty.id }
+      : null;
+
+  const selected = Boolean(
+    nextValue &&
+    groupBy?.type === nextValue.type &&
+    groupBy?.key === nextValue.key,
+  );
+
+  const label = workspaceProperty ? (
+    <WorkspacePropertyName propertyInfo={workspaceProperty} />
+  ) : systemProperty ? (
+    t.t(systemProperty.name)
+  ) : null;
+
+  return (
+    <MenuItem
+      selected={selected}
+      onClick={(event) => {
+        event.preventDefault();
+        track.allDocs.header.displayMenu.editDisplayMenu({
+          control: "groupBy",
+          type: systemProperty?.type ?? "custom-property",
+        });
+        if (nextValue) {
+          onChange?.(nextValue);
+        }
+      }}
+    >
+      {label}
+    </MenuItem>
+  );
 };
 
 export const GroupByList = ({
@@ -50,18 +114,20 @@ export const GroupByList = ({
   onChange?: (next: GroupByParams | undefined) => void;
 }) => {
   const t = useI18n();
-  const workspacePropertyService = useService(WorkspacePropertyService);
-  const propertyList = useLiveData(workspacePropertyService.sortedProperties$);
-  const explorerPropertyList = useMemo(() => {
-    return generateExplorerPropertyList(propertyList);
-  }, [propertyList]);
+  const properties = useLiveData(
+    useService(WorkspacePropertyService).sortedProperties$,
+  );
+  const entries = useMemo(
+    () => generateExplorerPropertyList(properties),
+    [properties],
+  );
 
   return (
     <>
-      {explorerPropertyList.map((property) => (
-        <GroupByListItem
-          key={property.systemProperty?.type ?? property.workspaceProperty?.id}
-          property={property}
+      {entries.map((entry) => (
+        <GroupByOption
+          key={entry.systemProperty?.type ?? entry.workspaceProperty?.id}
+          entry={entry}
           groupBy={groupBy}
           onChange={onChange}
         />
@@ -71,73 +137,5 @@ export const GroupByList = ({
         {t["com.myoxus.explorer.display-menu.grouping.remove"]()}
       </MenuItem>
     </>
-  );
-};
-
-const GroupByListItem = ({
-  property,
-  groupBy,
-  onChange,
-}: {
-  property: ReturnType<typeof generateExplorerPropertyList>[number];
-  groupBy?: GroupByParams;
-  onChange?: (next: GroupByParams) => void;
-}) => {
-  const t = useI18n();
-  const { systemProperty, workspaceProperty } = property;
-
-  const allowInGroupBy = systemProperty
-    ? "allowInGroupBy" in systemProperty && systemProperty.allowInGroupBy
-    : workspaceProperty
-      ? isSupportedWorkspacePropertyType(workspaceProperty.type) &&
-        WorkspacePropertyTypes[workspaceProperty.type].allowInGroupBy
-      : false;
-
-  if (!allowInGroupBy) {
-    return null;
-  }
-
-  const active =
-    (systemProperty &&
-      groupBy?.type === "system" &&
-      groupBy?.key === systemProperty.type) ||
-    (workspaceProperty &&
-      groupBy?.type === "property" &&
-      groupBy?.key === workspaceProperty.id);
-
-  const value = systemProperty
-    ? {
-        type: "system",
-        key: systemProperty.type,
-      }
-    : workspaceProperty
-      ? {
-          type: "property",
-          key: workspaceProperty.id,
-        }
-      : null;
-
-  const name = workspaceProperty ? (
-    <WorkspacePropertyName propertyInfo={workspaceProperty} />
-  ) : systemProperty ? (
-    t.t(systemProperty.name)
-  ) : null;
-
-  return (
-    <MenuItem
-      onClick={(e) => {
-        e.preventDefault();
-        track.allDocs.header.displayMenu.editDisplayMenu({
-          control: "groupBy",
-          type: property.systemProperty?.type ?? "custom-property",
-        });
-        if (value) {
-          onChange?.(value);
-        }
-      }}
-      selected={active}
-    >
-      {name}
-    </MenuItem>
   );
 };

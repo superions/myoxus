@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useI18n } from "@myoxus/i18n";
 import { DeleteIcon } from "@myoxus/icons/react";
 import {
@@ -7,16 +10,6 @@ import {
   type MenuItemProps,
 } from "@myoxus/ui-facade";
 
-export const MoveToTrash = (props: MenuItemProps) => {
-  const t = useI18n();
-
-  return (
-    <MenuItem prefixIcon={<DeleteIcon />} type="danger" {...props}>
-      {t["com.myoxus.moveToTrash.title"]()}
-    </MenuItem>
-  );
-};
-
 const MoveToTrashConfirm = ({
   titles,
   ...confirmModalProps
@@ -24,19 +17,20 @@ const MoveToTrashConfirm = ({
   titles: string[];
 } & ConfirmModalProps) => {
   const t = useI18n();
-  const multiple = titles.length > 1;
-  const title = multiple
+  const isMultiple = titles.length > 1;
+  const title = isMultiple
     ? t["com.myoxus.moveToTrash.confirmModal.title.multiple"]({
-        number: titles.length.toString(),
+        number: String(titles.length),
       })
     : t["com.myoxus.moveToTrash.confirmModal.title"]();
-  const description = multiple
+  const description = isMultiple
     ? t["com.myoxus.moveToTrash.confirmModal.description.multiple"]({
-        number: titles.length.toString(),
+        number: String(titles.length),
       })
     : t["com.myoxus.moveToTrash.confirmModal.description"]({
         title: titles[0] || t["Untitled"](),
       });
+
   return (
     <ConfirmModal
       title={title}
@@ -49,6 +43,15 @@ const MoveToTrashConfirm = ({
       }}
       {...confirmModalProps}
     />
+  );
+};
+
+export const MoveToTrash = (props: MenuItemProps) => {
+  const t = useI18n();
+  return (
+    <MenuItem prefixIcon={<DeleteIcon />} type="danger" {...props}>
+      {t["com.myoxus.moveToTrash.title"]()}
+    </MenuItem>
   );
 };
 

@@ -1,5 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
-// SPDX-License-Identifier: MIT
 
 import { ViewContextSurface } from "@myoxus/core/modules/workbench";
 import { useI18n } from "@myoxus/i18n";
@@ -22,13 +22,9 @@ import {
 } from "../context/document-context-overview";
 import { DocumentTagsSidecard } from "../context/document-tags-sidecard";
 
-const DOCUMENT_PAGE_VIEW_FAMILY = ["document-page"] as const;
+const PAGE_VIEW_FAMILY = ["document-page"] as const;
 const DOCUMENT_VIEW_FAMILIES = ["document-page", "document-edgeless"] as const;
 
-/**
- * Owns the document-specific cards and scopes their shared metadata/versioning
- * services to those cards instead of the complete editor route.
- */
 export function DocumentSidecards({
   docId,
   docTitle,
@@ -61,7 +57,7 @@ export function DocumentSidecards({
             label={t["com.myoxus.structureTree.sidebar.title"]()}
             tooltip={t["com.myoxus.structureTree.sidebar.title"]()}
             icon={<TreePanelIcon />}
-            viewFamilies={DOCUMENT_PAGE_VIEW_FAMILY}
+            viewFamilies={PAGE_VIEW_FAMILY}
           >
             <DocumentOutlineToolBody />
           </ViewContextSurface>
@@ -71,7 +67,7 @@ export function DocumentSidecards({
             label={t["Tags"]()}
             tooltip={t["Tags"]()}
             icon={<TagsIcon />}
-            viewFamilies={DOCUMENT_PAGE_VIEW_FAMILY}
+            viewFamilies={PAGE_VIEW_FAMILY}
           >
             <DocumentTagsSidecard docId={docId} readonly={readonly} />
           </ViewContextSurface>
@@ -81,7 +77,7 @@ export function DocumentSidecards({
             label={t["com.myoxus.document-metadata.tab.information"]()}
             tooltip={t["com.myoxus.document-metadata.tab.information"]()}
             icon={<InfoIcon />}
-            viewFamilies={DOCUMENT_PAGE_VIEW_FAMILY}
+            viewFamilies={PAGE_VIEW_FAMILY}
           >
             <DetailPageContextScrollRoot>
               <Scrollable.Viewport>

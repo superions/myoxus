@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   RouteLogic,
   useNavigateHelper,
@@ -17,15 +20,15 @@ import type { DocMode } from "@virgultum/editor/model";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router";
 
-export type TemplateImportRequest = {
+export interface TemplateImportRequest {
   templateName: string;
   templateMode: DocMode;
   snapshotUrl: string;
-};
+}
 
-export const parseTemplateImportRequest = (
+export function parseTemplateImportRequest(
   searchParams: URLSearchParams,
-): TemplateImportRequest | null => {
+): TemplateImportRequest | null {
   const templateName = searchParams.get("name")?.trim() ?? "";
   const templateMode = searchParams.get("mode") ?? "page";
   const snapshotUrl = searchParams.get("snapshotUrl")?.trim() ?? "";
@@ -46,43 +49,35 @@ export const parseTemplateImportRequest = (
     return null;
   }
 
-  return {
-    templateName,
-    templateMode,
-    snapshotUrl,
-  };
-};
+  return { templateName, templateMode, snapshotUrl };
+}
 
-/**
- * /template/import page, only for web
- *
- * no ui for this route, just open the dialog
- */
-export const Component = () => {
+export function Component() {
+  const t = useI18n();
   const globalDialogService = useService(GlobalDialogService);
   const [searchParams] = useSearchParams();
   const { jumpToIndex } = useNavigateHelper();
-  const t = useI18n();
   const returnFocusRef = useRef<HTMLButtonElement | null>(null);
+
   const request = useMemo(
     () => parseTemplateImportRequest(searchParams),
     [searchParams],
   );
-  const handleSafeReturn = useCallback(
+  const handleBack = useCallback(
     () => jumpToIndex(RouteLogic.REPLACE),
     [jumpToIndex],
   );
 
   useEffect(() => {
-    if (!request) return;
-
+    if (!request) {
+      return;
+    }
     returnFocusRef.current?.focus();
-    const id = globalDialogService.open("import-template", {
+    const dialogId = globalDialogService.open("import-template", {
       ...request,
     });
-
     return () => {
-      globalDialogService.close(id);
+      globalDialogService.close(dialogId);
     };
   }, [globalDialogService, request]);
 
@@ -103,7 +98,7 @@ export const Component = () => {
         }
         cta={
           <DialogFooterActions>
-            <Button ref={returnFocusRef} onClick={handleSafeReturn}>
+            <Button ref={returnFocusRef} onClick={handleBack}>
               {t["Go Back"]()}
             </Button>
           </DialogFooterActions>
@@ -114,4 +109,4 @@ export const Component = () => {
       />
     </AuthPageContainer>
   );
-};
+}

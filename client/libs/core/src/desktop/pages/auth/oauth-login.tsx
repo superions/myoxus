@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { AuthService } from "@myoxus/core/modules/server";
 import { signOutSharedAuthSession } from "@myoxus/core/modules/server/auth-http";
 import { OAuthProviderType } from "@myoxus/graphql";
@@ -22,15 +25,13 @@ import {
 } from "./common";
 import { AuthStatusPage } from "./status";
 
-const supportedProvider = z.nativeEnum(OAuthProviderType);
-
-const oauthParameters = z.object({
-  provider: supportedProvider,
+const oauthParametersSchema = z.object({
+  provider: z.nativeEnum(OAuthProviderType),
   client: supportedClient,
   redirectUri: z.string().optional().nullable(),
 });
 
-interface LoaderData {
+interface OAuthLoginLoaderData {
   provider: OAuthProviderType;
   client: string;
   redirectUri?: string;
@@ -39,41 +40,35 @@ interface LoaderData {
 
 export const loader: LoaderFunction = async ({ request }) => {
   const url = new URL(request.url);
-  const searchParams = url.searchParams;
-  const provider = searchParams.get("provider");
-  const client = searchParams.get("client") ?? "web";
-  const rawRedirectUri = searchParams.get("redirect_uri");
+  const params = url.searchParams;
+  const provider = params.get("provider");
+  const client = params.get("client") ?? "web";
+  const rawRedirectUri = params.get("redirect_uri");
   const redirectUri = sanitizeAuthRedirectTarget(rawRedirectUri, url.origin);
-  const authContext = parseAuthContext(searchParams.get("auth_context"));
+  const authContext = parseAuthContext(params.get("auth_context"));
 
   if (rawRedirectUri && !redirectUri) {
     return redirect(
-      buildSignInUrl({
-        error: "Invalid redirect target",
-        authContext,
-      }),
+      buildSignInUrl({ error: "Invalid redirect target", authContext }),
     );
   }
 
-  // sign out first, web only
   if (client === "web") {
     await signOutSharedAuthSession();
   }
 
-  const paramsParseResult = oauthParameters.safeParse({
+  const parsed = oauthParametersSchema.safeParse({
     provider,
     client,
     redirectUri,
   });
-
-  if (paramsParseResult.success) {
-    const params = paramsParseResult.data;
+  if (parsed.success) {
     return {
-      provider: params.provider,
-      client: params.client,
-      redirectUri: params.redirectUri ?? undefined,
+      provider: parsed.data.provider,
+      client: parsed.data.client,
+      redirectUri: parsed.data.redirectUri ?? undefined,
       authContext,
-    };
+    } satisfies OAuthLoginLoaderData;
   }
 
   return redirect(
@@ -85,35 +80,35 @@ export const loader: LoaderFunction = async ({ request }) => {
   );
 };
 
-export const Component = () => {
+export function Component() {
   const auth = useService(AuthService);
-  const data = useLoaderData() as LoaderData;
+  const data = useLoaderData() as OAuthLoginLoaderData;
   const i18n = useI18n();
-
-  const nav = useNavigate();
-  const triggeredRef = useRef(false);
+  const navigate = useNavigate();
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    // One mounted login owns one nonce. StrictMode effect replay must not start
-    // a second preflight that overwrites the first authorization's client nonce.
-    if (triggeredRef.current) return;
-    triggeredRef.current = true;
+    // Guard against StrictMode replay so a second preflight does not overwrite
+    // the nonce of the first authorization request.
+    if (startedRef.current) {
+      return;
+    }
+    startedRef.current = true;
     auth
       .oauthPreflight(data.provider, data.client, data.redirectUri)
       .then(({ url }) => {
-        // this is the url of oauth provider auth page, can't navigate with react-router
         location.href = url;
       })
-      .catch((e) => {
-        nav(
+      .catch((error: Error) => {
+        navigate(
           buildSignInUrl({
-            error: e.message,
+            error: error.message,
             redirectUri: data.redirectUri,
             authContext: data.authContext,
           }),
         );
       });
-  }, [data, auth, nav]);
+  }, [auth, data, navigate]);
 
   return (
     <AuthStatusPage
@@ -121,4 +116,4 @@ export const Component = () => {
       description={i18n.t("admin.auth.callback-status-description")}
     />
   );
-};
+}

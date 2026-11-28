@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { IsFavoriteIcon } from "@myoxus/core/components/pure/icons";
 import { usePageHelper } from "@myoxus/core/editor/virgultum/page-list/utils";
 import { CollectionService } from "@myoxus/core/modules/collection";
@@ -24,11 +27,11 @@ import { useCallback, useMemo } from "react";
 
 import type { NodeOperation } from "../../tree/types";
 
-export const useStructureTreeCollectionNodeOperations = (
+export function useStructureTreeCollectionNodeOperations(
   collectionId: string,
   onOpenCollapsed: () => void,
   onOpenEdit: () => void,
-): NodeOperation[] => {
+): NodeOperation[] {
   const t = useI18n();
   const {
     workbenchService,
@@ -45,7 +48,6 @@ export const useStructureTreeCollectionNodeOperations = (
   const { createPage } = usePageHelper(
     workspaceService.workspace.docCollection,
   );
-
   const favorite = useLiveData(
     useMemo(
       () =>
@@ -65,31 +67,25 @@ export const useStructureTreeCollectionNodeOperations = (
     onOpenCollapsed();
   }, [collectionId, collectionService, createPage, onOpenCollapsed]);
 
-  const handleToggleFavoriteCollection = useCallback(() => {
+  const handleToggleFavorite = useCallback(() => {
     compatibleFavoriteItemsAdapter.toggle(collectionId, "collection");
-    track.$.navigationPanel.organize.toggleFavorite({
-      type: "collection",
-    });
-  }, [compatibleFavoriteItemsAdapter, collectionId]);
+    track.$.navigationPanel.organize.toggleFavorite({ type: "collection" });
+  }, [collectionId, compatibleFavoriteItemsAdapter]);
 
-  const handleAddDocToCollection = useCallback(() => {
+  const handleAddDoc = useCallback(() => {
     openConfirmModal({
       title: t["com.myoxus.collection.add-doc.confirm.title"](),
       description: t["com.myoxus.collection.add-doc.confirm.description"](),
       cancelText: t["Cancel"](),
       confirmText: t["Confirm"](),
-      confirmButtonOptions: {
-        variant: "primary",
-      },
+      confirmButtonOptions: { variant: "primary" },
       onConfirm: createAndAddDocument,
     });
   }, [createAndAddDocument, openConfirmModal, t]);
 
   const handleOpenInSplitView = useCallback(() => {
     workbenchService.workbench.openCollection(collectionId, { at: "beside" });
-    track.$.navigationPanel.organize.openInSplitView({
-      type: "collection",
-    });
+    track.$.navigationPanel.organize.openInSplitView({ type: "collection" });
   }, [collectionId, workbenchService.workbench]);
 
   const handleOpenInNewTab = useCallback(() => {
@@ -99,9 +95,7 @@ export const useStructureTreeCollectionNodeOperations = (
 
   const handleDeleteCollection = useCallback(() => {
     collectionService.deleteCollection(collectionId);
-    track.$.navigationPanel.organize.deleteOrganizeItem({
-      type: "collection",
-    });
+    track.$.navigationPanel.organize.deleteOrganizeItem({ type: "collection" });
   }, [collectionId, collectionService]);
 
   const handleShowEdit = useCallback(() => {
@@ -117,7 +111,7 @@ export const useStructureTreeCollectionNodeOperations = (
         view: (
           <StructureTreeActionButton
             data-testid="collection-add-doc-button"
-            onClick={handleAddDocToCollection}
+            onClick={handleAddDoc}
             tooltip={t[
               "com.myoxus.rootAppSidebar.explorer.collection-add-tooltip"
             ]()}
@@ -137,10 +131,7 @@ export const useStructureTreeCollectionNodeOperations = (
       {
         index: 102,
         view: (
-          <MenuItem
-            prefixIcon={<PlusIcon />}
-            onClick={handleAddDocToCollection}
-          >
+          <MenuItem prefixIcon={<PlusIcon />} onClick={handleAddDoc}>
             {t["New Page"]()}
           </MenuItem>
         ),
@@ -150,7 +141,7 @@ export const useStructureTreeCollectionNodeOperations = (
         view: (
           <MenuItem
             prefixIcon={<IsFavoriteIcon favorite={favorite} />}
-            onClick={handleToggleFavoriteCollection}
+            onClick={handleToggleFavorite}
           >
             {favorite
               ? t["com.myoxus.favoritePageOperation.remove"]()
@@ -189,7 +180,7 @@ export const useStructureTreeCollectionNodeOperations = (
         index: 10000,
         view: (
           <MenuItem
-            type={"danger"}
+            type="danger"
             prefixIcon={<DeleteIcon />}
             data-testid="collection-delete-button"
             onClick={handleDeleteCollection}
@@ -201,13 +192,13 @@ export const useStructureTreeCollectionNodeOperations = (
     ],
     [
       favorite,
-      handleAddDocToCollection,
+      handleAddDoc,
       handleDeleteCollection,
       handleOpenInNewTab,
       handleOpenInSplitView,
       handleShowEdit,
-      handleToggleFavoriteCollection,
+      handleToggleFavorite,
       t,
     ],
   );
-};
+}

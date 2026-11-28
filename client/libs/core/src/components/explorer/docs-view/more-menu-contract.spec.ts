@@ -14,7 +14,7 @@ function readRepoFile(path: string): string {
 describe("all pages list action menu contract", () => {
   test("the row action trigger opens its popover without navigating the surrounding row link", () => {
     const listItemSource = readRepoFile(
-      "client/libs/core/src/components/explorer/docs-view/doc-list-item.tsx",
+      "client/libs/core/src/components/explorer/docs-view/doc-list-row.tsx",
     );
     const menuSource = readRepoFile(
       "client/libs/core/src/components/explorer/docs-view/more-menu.tsx",
@@ -33,7 +33,7 @@ describe("all pages list action menu contract", () => {
       "client/libs/core/src/components/explorer/docs-view/more-menu.tsx",
     );
     const listItemSource = readRepoFile(
-      "client/libs/core/src/components/explorer/docs-view/doc-list-item.tsx",
+      "client/libs/core/src/components/explorer/docs-view/doc-list-row.tsx",
     );
 
     expect(menuSource).toContain("const DocInfo");

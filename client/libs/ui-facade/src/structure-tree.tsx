@@ -580,13 +580,21 @@ export function StructureTreeDragPreview({
 
 export const StructureTreeDropEffect = forwardRef<
   HTMLDivElement,
-  StructureTreeDivProps
->(function StructureTreeDropEffect({ children, className, ...props }, ref) {
+  StructureTreeDivProps & { x?: number; y?: number }
+>(function StructureTreeDropEffect(
+  { children, className, style, x, y, ...props },
+  ref,
+) {
+  const mergedStyle =
+    x !== undefined && y !== undefined
+      ? { ...style, transform: `translate(${x}px, ${y}px)` }
+      : style;
   return (
     <Text
       {...props}
       component="div"
       ref={ref}
+      style={mergedStyle}
       c={MYOXUS_TEXT_TONE_COLOR.primary}
       className={joinClassName(
         STRUCTURE_TREE_CLASS_NAMES.dropEffect,

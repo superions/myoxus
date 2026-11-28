@@ -1,5 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
-// SPDX-License-Identifier: MIT
 
 import { useEnableAI } from "@myoxus/core/components/hooks/myoxus/use-enable-ai";
 import {
@@ -15,18 +15,10 @@ import { useI18n } from "@myoxus/i18n";
 import { AiIcon } from "@myoxus/icons/react";
 import { useService } from "@myoxus/infra";
 import { lazy, Suspense, useEffect } from "react";
-import type { Subscription } from "rxjs";
 
 const EditorChatPanel = lazy(async () => ({
   default: (await import("./panel")).EditorChatPanel,
 }));
-function ChatBody({ editor }: { editor: MyoxusEditorContainer | null }) {
-  return (
-    <Suspense>
-      <EditorChatPanel editor={editor} />
-    </Suspense>
-  );
-}
 
 const DOCUMENT_VIEW_FAMILIES = [
   "document-page",
@@ -34,10 +26,6 @@ const DOCUMENT_VIEW_FAMILIES = [
   "journal",
 ] as const;
 
-/**
- * Owns the complete document-chat integration: capability gating, external
- * open requests, stable Workbench registration and the chat panel lifecycle.
- */
 export function AiChatSidecard({
   editor,
 }: {
@@ -51,19 +39,20 @@ export function AiChatSidecard({
     if (!enabled) {
       return;
     }
-
     const openChat = (params: AIChatParams | null) => {
       if (params) {
         view.showTool("chat");
       }
     };
-    const subscriptions: Subscription[] = [
+    const subscriptions = [
       AIProvider.slots.requestOpenWithChat.subscribe(openChat),
       AIProvider.slots.requestSendWithChat.subscribe(openChat),
     ];
-
-    return () =>
-      subscriptions.forEach((subscription) => subscription.unsubscribe());
+    return () => {
+      for (const subscription of subscriptions) {
+        subscription.unsubscribe();
+      }
+    };
   }, [enabled, view]);
 
   if (!enabled) {
@@ -81,7 +70,9 @@ export function AiChatSidecard({
       retainBodyWhenCollapsed
       boundedBody
     >
-      <ChatBody editor={editor} />
+      <Suspense>
+        <EditorChatPanel editor={editor} />
+      </Suspense>
     </ViewContextSurface>
   );
 }

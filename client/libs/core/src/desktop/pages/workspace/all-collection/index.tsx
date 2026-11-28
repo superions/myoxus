@@ -1,26 +1,14 @@
-/**
- * All-collections page — lists all saved collections in the workspace.
- *
- * Displays a native Mantine table through the shared Facade. When no
- * collections exist, an `<EmptyCollectionList>` placeholder is shown below the
- * shared header.
- *
- * The "Create collection" action opens a prompt modal asking for a name, then
- * calls `CollectionService.createCollection` and navigates directly to the new
- * collection target inside the canonical All Docs explorer.
- *
- * Creation stays in the workbench header in every list state. This avoids the
- * previous duplicate page heading and competing in-list create action.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import { useCreateCollection } from "@myoxus/core/components/hooks/use-create-collection";
 import { CollectionList } from "@myoxus/core/components/page-list";
 import { allDocsNavigationTo } from "@myoxus/core/modules/all-docs/navigation";
+import { ViewService } from "@myoxus/core/modules/workbench";
 import {
   ViewIcon,
   ViewTitle,
 } from "@myoxus/core/modules/workbench/view/view-meta";
-import { ViewService } from "@myoxus/core/modules/workbench";
 import { useI18n } from "@myoxus/i18n";
 import { useLiveData, useService } from "@myoxus/infra";
 import { PageContentRail } from "@myoxus/ui-facade";
@@ -31,13 +19,7 @@ import { ViewBody, ViewHeader } from "../../../../modules/workbench";
 import { EmptyCollectionList } from "../page-list-empty";
 import { AllCollectionHeader } from "./header";
 
-/**
- * All-collections workbench view component.
- *
- * Shows the full list of workspace collections. Supports creating collections
- * via the single shared header action.
- */
-export const AllCollection = () => {
+export function AllCollection() {
   const t = useI18n();
   const collectionService = useService(CollectionService);
   const collections = useLiveData(collectionService.collections$);
@@ -74,8 +56,8 @@ export const AllCollection = () => {
       </ViewBody>
     </>
   );
-};
+}
 
-export const Component = () => {
+export function Component() {
   return <AllCollection />;
-};
+}

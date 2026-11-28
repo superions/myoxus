@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { DocsService } from "@myoxus/core/modules/doc";
 import { ShareDocsListService } from "@myoxus/core/modules/share-doc";
 import { WorkspacePropertyService } from "@myoxus/core/modules/workspace-property";
@@ -15,8 +18,8 @@ import { SystemPropertyTypes } from "../../system-property-types";
 import { WorkspacePropertyTypes } from "../../workspace-property-types";
 import { DocExplorerContext } from "../context";
 import {
-  ExplorerItemsView,
   type ExplorerItemComponentProps,
+  ExplorerItemsView,
   type ExplorerListGroupFrameProps,
   type ExplorerListScrollOwner,
 } from "../explorer-items-view";
@@ -36,82 +39,68 @@ export const ExplorerPropertyGroupHeader = memo(
     interactive?: boolean;
     itemCount: number;
   }) {
-    const contextValue = useContext(DocExplorerContext);
-    const propertyService = useService(WorkspacePropertyService);
-    const allProperties = useLiveData(propertyService.sortedProperties$);
-    const groupBy = useLiveData(contextValue.groupBy$);
+    const context = useContext(DocExplorerContext);
+    const properties = useLiveData(
+      useService(WorkspacePropertyService).sortedProperties$,
+    );
+    const groupBy = useLiveData(context.groupBy$);
 
-    const groupType = groupBy?.type;
-    const groupKey = groupBy?.key;
+    return useMemo(() => {
+      if (!groupBy) return null;
 
-    const header = useMemo(() => {
-      if (groupType === "system") {
-        const property = groupKey && SystemPropertyTypes[groupKey];
-        if (!property) return null;
-        const GroupHeader = property.groupHeader;
-        if (!GroupHeader) return null;
-        return (
-          <GroupHeader
+      if (groupBy.type === "system") {
+        const Header = SystemPropertyTypes[groupBy.key]?.groupHeader;
+        return Header ? (
+          <Header
             groupId={groupId}
             docCount={itemCount}
-            collapsed={!!collapsed}
+            collapsed={Boolean(collapsed)}
             interactive={interactive}
           />
-        );
-      } else if (groupType === "property") {
-        const property = allProperties.find((p) => p.id === groupKey);
-        if (!property) return null;
-
-        const config = WorkspacePropertyTypes[property.type];
-        if (!config?.groupHeader) return null;
-        return (
-          <config.groupHeader
-            groupId={groupId}
-            docCount={itemCount}
-            collapsed={!!collapsed}
-            interactive={interactive}
-          />
-        );
-      } else {
-        console.warn("unsupported group type", groupType);
-        return null;
+        ) : null;
       }
-    }, [
-      allProperties,
-      collapsed,
-      groupId,
-      groupKey,
-      groupType,
-      interactive,
-      itemCount,
-    ]);
 
-    if (!groupType) {
+      if (groupBy.type === "property") {
+        const property = properties.find((item) => item.id === groupBy.key);
+        const Header = property
+          ? WorkspacePropertyTypes[property.type]?.groupHeader
+          : undefined;
+        return Header ? (
+          <Header
+            groupId={groupId}
+            docCount={itemCount}
+            collapsed={Boolean(collapsed)}
+            interactive={interactive}
+          />
+        ) : null;
+      }
+
       return null;
-    }
-
-    return header;
+    }, [collapsed, groupBy, groupId, interactive, itemCount, properties]);
   },
 );
 
 export const ExplorerPropertyGroupActions = memo(
   function ExplorerPropertyGroupActions({ groupId }: { groupId: string }) {
-    const contextValue = useContext(DocExplorerContext);
-    const propertyService = useService(WorkspacePropertyService);
-    const allProperties = useLiveData(propertyService.sortedProperties$);
-    const groupBy = useLiveData(contextValue.groupBy$);
+    const context = useContext(DocExplorerContext);
+    const properties = useLiveData(
+      useService(WorkspacePropertyService).sortedProperties$,
+    );
+    const groupBy = useLiveData(context.groupBy$);
 
     if (groupBy?.type === "system") {
-      const GroupActions = SystemPropertyTypes[groupBy.key]?.groupActions;
-      return GroupActions ? <GroupActions groupId={groupId} /> : null;
+      const Actions = SystemPropertyTypes[groupBy.key]?.groupActions;
+      return Actions ? <Actions groupId={groupId} /> : null;
     }
+
     if (groupBy?.type === "property") {
-      const property = allProperties.find((item) => item.id === groupBy.key);
-      const GroupActions = property
+      const property = properties.find((item) => item.id === groupBy.key);
+      const Actions = property
         ? WorkspacePropertyTypes[property.type]?.groupActions
         : undefined;
-      return GroupActions ? <GroupActions groupId={groupId} /> : null;
+      return Actions ? <Actions groupId={groupId} /> : null;
     }
+
     return null;
   },
 );
@@ -153,7 +142,6 @@ export const DocsExplorer = ({
   measuredCards?: boolean;
   preserveEmptyGroups?: boolean;
   onRestore?: (ids: string[]) => void;
-  /** Override the default delete action */
   onDelete?: (
     ids: string[],
     callbacks?: {
@@ -163,26 +151,24 @@ export const DocsExplorer = ({
     },
   ) => void | Promise<void>;
 }) => {
-  const contextValue = useContext(DocExplorerContext);
+  const context = useContext(DocExplorerContext);
   const docsService = useService(DocsService);
   const shareDocsListService = useService(ShareDocsListService);
 
-  const groupBy = useLiveData(contextValue.groupBy$);
-  const groups = useLiveData(contextValue.groups$);
+  const groupBy = useLiveData(context.groupBy$);
+  const groups = useLiveData(context.groups$);
   const nonTrashDocIds = useLiveData(docsService.list.nonTrashDocsIds$);
-  const view = useLiveData(contextValue.view$);
-  const previewSize = useLiveData(contextValue.previewSize$);
-  const collapsedGroups = useLiveData(contextValue.collapsedGroups$);
+  const view = useLiveData(context.view$);
+  const previewSize = useLiveData(context.previewSize$);
+  const collapsedGroups = useLiveData(context.collapsedGroups$);
 
   const visibleGroups = useMemo(() => {
-    if (!excludeTrashedDocs) {
-      return groups;
-    }
-    const nonTrashSet = new Set(nonTrashDocIds);
+    if (!excludeTrashedDocs) return groups;
+    const allowed = new Set(nonTrashDocIds);
     return groups
       .map((group) => ({
         ...group,
-        items: group.items.filter((docId: string) => nonTrashSet.has(docId)),
+        items: group.items.filter((docId) => allowed.has(docId)),
       }))
       .filter((group) => preserveEmptyGroups || group.items.length > 0);
   }, [excludeTrashedDocs, groups, nonTrashDocIds, preserveEmptyGroups]);
@@ -213,9 +199,7 @@ export const DocsExplorer = ({
         masonryItemWidthMin={masonryItemWidthMin}
         measuredCards={measuredCards}
         previewSize={previewSize}
-        onCollapsedGroupsChange={(groups) =>
-          contextValue.collapsedGroups$.next(groups)
-        }
+        onCollapsedGroupsChange={(next) => context.collapsedGroups$.next(next)}
         view={view ?? "list"}
       />
       <ExplorerSelectionToolbar

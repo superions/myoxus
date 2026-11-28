@@ -1,7 +1,10 @@
-import {
-  type LoadTemplateSuggestionsOptions,
-  type TemplateCategoryFilter,
-  type TemplateSuggestionSurface,
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
+import type {
+  LoadTemplateSuggestionsOptions,
+  TemplateCategoryFilter,
+  TemplateSuggestionSurface,
 } from "@myoxus/core/modules/template-doc";
 import type { HTMLAttributes, MouseEvent, PropsWithChildren } from "react";
 
@@ -37,20 +40,18 @@ export const PageListNewPageButton = ({
   >;
   disabled?: boolean;
 }> &
-  Omit<HTMLAttributes<HTMLDivElement>, "onClick">) => {
-  return (
-    <NewPageButton
-      {...props}
-      size={size}
-      createNewDoc={onCreateDoc}
-      createNewEdgeless={onCreateEdgeless}
-      createNewPage={onCreatePage}
-      createNewFromTemplate={onCreateFromTemplate}
-      templateSuggestionSurface={templateSuggestionSurface}
-      templateCategoryFilter={templateCategoryFilter}
-      templateSuggestionInput={templateSuggestionInput}
-    >
-      {children}
-    </NewPageButton>
-  );
-};
+  Omit<HTMLAttributes<HTMLDivElement>, "onClick">) => (
+  <NewPageButton
+    {...props}
+    size={size}
+    createNewDoc={onCreateDoc}
+    createNewEdgeless={onCreateEdgeless}
+    createNewPage={onCreatePage}
+    createNewFromTemplate={onCreateFromTemplate}
+    templateSuggestionSurface={templateSuggestionSurface}
+    templateCategoryFilter={templateCategoryFilter}
+    templateSuggestionInput={templateSuggestionInput}
+  >
+    {children}
+  </NewPageButton>
+);

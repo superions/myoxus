@@ -1,11 +1,6 @@
-/**
- * All-docs page header component.
- *
- * Renders the toolbar row at the top of the all-pages view, containing:
- * - `<ViewToggle>` — switches between list, grid, and masonry view modes.
- * - A centered title.
- * - A context menu containing display preferences.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { ExplorerDisplayMenu } from "@myoxus/core/components/explorer/display-menu";
 import {
   type AllContentView,
@@ -23,19 +18,7 @@ import {
   WorkbenchHeaderFrame,
 } from "@myoxus/ui-facade";
 
-/**
- * Header toolbar for the all-docs workbench view.
- *
- * Document creation deliberately lives with the document list instead of in
- * this route header. The document itself owns switching between page and
- * edgeless mode, so the list needs only one unambiguous create action.
- *
- * @param displayPreference - Current display options (sort, group, columns).
- * @param onDisplayPreferenceChange - Called when the user changes display options.
- * @param view - Currently active view mode (`list` | `grid` | `masonry`).
- * @param onViewChange - Called when the user switches between view modes.
- */
-export const AllDocsHeader = ({
+export function AllDocsHeader({
   displayPreference,
   onEditCollectionRules,
   onDisplayPreferenceChange,
@@ -53,7 +36,7 @@ export const AllDocsHeader = ({
   view: AllContentView;
   onViewChange: (view: AllContentView) => void;
   includeGraph?: boolean;
-}) => {
+}) {
   const t = useI18n();
 
   return (
@@ -109,4 +92,4 @@ export const AllDocsHeader = ({
       }
     />
   );
-};
+}

@@ -1,24 +1,6 @@
-/**
- * Workspace invite page (`/invite/:inviteId`).
- *
- * Handles the full workspace invitation flow for web users:
- *
- * 1. **Unauthenticated users** are redirected to the sign-in page with a
- *    `redirect_uri` pointing back to the invite URL.
- * 2. **Authenticated users** see the `<AcceptInvite>` component which fetches
- *    the invitation details from `InvitationService` and renders the
- *    appropriate UI based on the invitation's status:
- *    - If the user is already a member of the workspace, they are redirected
- *      directly to the workspace.
- *    - `Expired` — the invite link has expired or been revoked.
- *    - `JoinFailed` — a server error occurred during acceptance.
- *    - `SentRequest` — the request to join is pending admin approval.
- *    - `AcceptInvite` — the invite was accepted; shows a "Go to workspace"
- *       button.
- *    - Default — shows a `<RequestToJoinPage>` prompt.
- *
- * Note: web only; the Electron client uses a native deep-link flow instead.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
 import { WorkspacesService } from "@myoxus/core/modules/workspace";
 import { UserFriendlyError } from "@myoxus/error";
@@ -41,33 +23,21 @@ import {
   SentRequestPage,
 } from "./member-pages";
 
-/**
- * Invitation acceptance component.
- *
- * Manages the full lifecycle of processing a workspace invitation:
- * - Polls `InvitationService` for the invite details.
- * - Redirects immediately if the user is already a workspace member.
- * - Handles "request to join" for invite-link flows (as opposed to direct
- *   email invitations).
- * - Shows contextual error and success states.
- *
- * @param inviteId - The invitation token from the URL.
- */
-const AcceptInvite = ({ inviteId: targetInviteId }: { inviteId: string }) => {
-  const { jumpToPage } = useNavigateHelper();
-
+function AcceptInvite({ inviteId: targetInviteId }: { inviteId: string }) {
+  const navigateHelper = useNavigateHelper();
   const invitationService = useService(InvitationService);
   const workspacesService = useService(WorkspacesService);
   const authService = useService(AuthService);
+
   const user = useLiveData(authService.session.account$);
   const error = useLiveData(invitationService.error$);
   const inviteId = useLiveData(invitationService.inviteId$);
   const inviteInfo = useLiveData(invitationService.inviteInfo$);
   const loading = useLiveData(invitationService.loading$);
   const workspaces = useLiveData(workspacesService.list.workspaces$);
-  const navigateHelper = useNavigateHelper();
+
   const [accepted, setAccepted] = useState(false);
-  const [requestToJoinLoading, setRequestToJoinLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [acceptError, setAcceptError] = useState<UserFriendlyError | null>(
     null,
   );
@@ -77,63 +47,62 @@ const AcceptInvite = ({ inviteId: targetInviteId }: { inviteId: string }) => {
       return;
     }
     await workspacesService.list.waitForRevalidation();
-    jumpToPage(inviteInfo.workspace.id, "home", RouteLogic.REPLACE);
-  }, [inviteInfo, workspacesService, jumpToPage]);
+    navigateHelper.jumpToPage(
+      inviteInfo.workspace.id,
+      "home",
+      RouteLogic.REPLACE,
+    );
+  }, [inviteInfo, navigateHelper, workspacesService]);
 
-  const onOpenMyoxus = useCallback(() => {
+  const handleOpenMyoxus = useCallback(() => {
     navigateHelper.jumpToIndex();
   }, [navigateHelper]);
 
   useEffect(() => {
-    // if workspace already exists, open it
     if (
       !accepted &&
       inviteInfo?.workspace.id &&
-      workspaces.some((w) => w.id === inviteInfo.workspace.id)
+      workspaces.some((workspace) => workspace.id === inviteInfo.workspace.id)
     ) {
-      return openWorkspace();
+      openWorkspace();
     }
   }, [accepted, inviteInfo?.workspace.id, openWorkspace, workspaces]);
 
   const requestToJoin = useAsyncCallback(async () => {
-    setRequestToJoinLoading(true);
-    await invitationService
-      .acceptInvite(targetInviteId)
-      .then(() => {
-        invitationService.getInviteInfo({ inviteId: targetInviteId });
-        setAccepted(true);
-      })
-      .catch((error) => {
-        const err = UserFriendlyError.fromAny(error);
-        if (err.is("ALREADY_IN_SPACE")) {
-          return openWorkspace();
-        }
-        setAcceptError(err);
-        notify.error(err);
-      });
-    setRequestToJoinLoading(false);
+    setSubmitting(true);
+    try {
+      await invitationService.acceptInvite(targetInviteId);
+      invitationService.getInviteInfo({ inviteId: targetInviteId });
+      setAccepted(true);
+    } catch (err) {
+      const friendly = UserFriendlyError.fromAny(err);
+      if (friendly.is("ALREADY_IN_SPACE")) {
+        openWorkspace();
+      } else {
+        setAcceptError(friendly);
+        notify.error(friendly);
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }, [invitationService, openWorkspace, targetInviteId]);
 
-  const onSignOut = useAsyncCallback(async () => {
+  const handleSignOut = useAsyncCallback(async () => {
     await authService.signOut();
     navigateHelper.jumpToSignIn();
   }, [authService, navigateHelper]);
 
-  if ((loading && !requestToJoinLoading) || inviteId !== targetInviteId) {
+  if ((loading && !submitting) || inviteId !== targetInviteId) {
     return null;
   }
-
   if (!inviteInfo && !loading) {
-    return <ExpiredPage onOpenMyoxus={onOpenMyoxus} />;
+    return <ExpiredPage onOpenMyoxus={handleOpenMyoxus} />;
   }
-
   if (error || acceptError) {
     return (
       <JoinFailedPage inviteInfo={inviteInfo} error={error || acceptError} />
     );
   }
-
-  // for email invite
   if (accepted && inviteInfo?.status === WorkspaceMemberStatus.Accepted) {
     return (
       <AcceptInvitePage
@@ -142,13 +111,13 @@ const AcceptInvite = ({ inviteId: targetInviteId }: { inviteId: string }) => {
       />
     );
   }
-
   if (
     inviteInfo?.status === WorkspaceMemberStatus.UnderReview ||
     inviteInfo?.status === WorkspaceMemberStatus.NeedMoreSeat
   ) {
-    if (!inviteInfo) return null;
-    return <SentRequestPage user={user} inviteInfo={inviteInfo} />;
+    return inviteInfo ? (
+      <SentRequestPage user={user} inviteInfo={inviteInfo} />
+    ) : null;
   }
 
   return (
@@ -156,46 +125,37 @@ const AcceptInvite = ({ inviteId: targetInviteId }: { inviteId: string }) => {
       user={user}
       inviteInfo={inviteInfo}
       requestToJoin={requestToJoin}
-      onSignOut={onSignOut}
+      onSignOut={handleSignOut}
     />
   );
-};
+}
 
-/**
- * /invite/:inviteId page
- *
- * only for web
- */
-export const Component = () => {
+export function Component() {
   const authService = useService(AuthService);
   const invitationService = useService(InvitationService);
+  const { jumpToSignIn } = useNavigateHelper();
   const isRevalidating = useLiveData(authService.session.isRevalidating$);
   const loginStatus = useLiveData(authService.session.status$);
-  const params = useParams<{ inviteId: string }>();
+  const { inviteId } = useParams<{ inviteId: string }>();
 
   useEffect(() => {
     authService.session.revalidate();
-    if (params.inviteId) {
-      invitationService.getInviteInfo({ inviteId: params.inviteId });
+    if (inviteId) {
+      invitationService.getInviteInfo({ inviteId });
     }
-  }, [authService, invitationService, params.inviteId]);
-
-  const { jumpToSignIn } = useNavigateHelper();
+  }, [authService, invitationService, inviteId]);
 
   useEffect(() => {
     if (loginStatus === "unauthenticated" && !isRevalidating) {
-      // We can not pass function to navigate state, so we need to save it in atom
-      jumpToSignIn(`/invite/${params.inviteId}`, RouteLogic.REPLACE);
+      jumpToSignIn(`/invite/${inviteId}`, RouteLogic.REPLACE);
     }
-  }, [isRevalidating, jumpToSignIn, loginStatus, params.inviteId]);
+  }, [inviteId, isRevalidating, jumpToSignIn, loginStatus]);
 
-  if (!params.inviteId) {
+  if (!inviteId) {
     return <Navigate to="/expired" />;
   }
-
   if (loginStatus === "authenticated") {
-    return <AcceptInvite inviteId={params.inviteId} />;
+    return <AcceptInvite inviteId={inviteId} />;
   }
-
   return null;
-};
+}

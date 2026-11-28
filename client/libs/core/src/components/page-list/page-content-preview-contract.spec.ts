@@ -16,9 +16,14 @@ describe("page content preview fallback contract", () => {
     const previewSource = readRepoFile(
       "client/libs/core/src/components/page-list/page-content-preview.tsx",
     );
-    const cardSource = readRepoFile(
-      "client/libs/core/src/components/explorer/docs-view/doc-list-item.tsx",
-    );
+    const cardSource =
+      readRepoFile(
+        "client/libs/core/src/components/explorer/docs-view/doc-card.tsx",
+      ) +
+      "\n" +
+      readRepoFile(
+        "client/libs/core/src/components/explorer/docs-view/doc-list-primitives.tsx",
+      );
 
     expect(previewSource).toContain("useVirgultumPagePreview");
     expect(previewSource).toContain("enableLocalTextFallback");

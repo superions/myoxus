@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
 import { CompatibleFavoriteItemsAdapter } from "@myoxus/core/modules/favorite";
 import { WorkbenchService } from "@myoxus/core/modules/workbench";
@@ -33,6 +36,19 @@ import {
 } from "../../../modules/collection";
 import { IsFavoriteIcon } from "../../pure/icons";
 
+type CollectionMenuEntry =
+  | {
+      kind: "action";
+      icon: ReactElement;
+      label: string;
+      onSelect: () => void;
+      type?: MenuItemProps["type"];
+    }
+  | {
+      kind: "separator";
+      key: string;
+    };
+
 export const CollectionOperations = ({
   collection,
   openRenameModal,
@@ -43,23 +59,28 @@ export const CollectionOperations = ({
   openRenameModal?: () => void;
   onAddDocToCollection?: () => void;
 }>) => {
-  const {
-    collectionService: service,
-    workbenchService,
-    workspaceDialogService,
-  } = useServices({
-    CollectionService,
-    WorkbenchService,
-    WorkspaceDialogService,
-  });
-  const workbench = workbenchService.workbench;
   const t = useI18n();
+  const { collectionService, workbenchService, workspaceDialogService } =
+    useServices({
+      CollectionService,
+      WorkbenchService,
+      WorkspaceDialogService,
+    });
+  const favAdapter = useService(CompatibleFavoriteItemsAdapter);
   const { openPromptModal } = usePromptModal();
+  const workbench = workbenchService.workbench;
 
-  const showEditName = useCallback(() => {
-    // use openRenameModal if it is in the sidebar collection list
+  const isFavorite = useLiveData(
+    useMemo(
+      () => favAdapter.isFavorite$(collection.id, "collection"),
+      [collection.id, favAdapter],
+    ),
+  );
+
+  const handleRename = useCallback(() => {
     if (openRenameModal) {
-      return openRenameModal();
+      openRenameModal();
+      return;
     }
     openPromptModal({
       title: t["com.myoxus.editCollection.renameCollection"](),
@@ -69,145 +90,127 @@ export const CollectionOperations = ({
       },
       confirmText: t["com.myoxus.editCollection.save"](),
       cancelText: t["com.myoxus.editCollection.button.cancel"](),
-      confirmButtonOptions: {
-        variant: "primary",
-      },
-      onConfirm(name) {
-        service.updateCollection(collection.id, {
-          name,
-        });
+      confirmButtonOptions: { variant: "primary" },
+      onConfirm: (name) => {
+        collectionService.updateCollection(collection.id, { name });
       },
     });
-  }, [openRenameModal, openPromptModal, t, service, collection]);
+  }, [collection.id, collectionService, openPromptModal, openRenameModal, t]);
 
-  const showEdit = useCallback(() => {
+  const handleEditRules = useCallback(() => {
     track.collection.collection.$.editCollection();
     workspaceDialogService.open("collection-editor", {
       collectionId: collection.id,
     });
-  }, [workspaceDialogService, collection.id]);
+  }, [collection.id, workspaceDialogService]);
 
-  const openCollectionSplitView = useCallback(() => {
-    workbench.openCollection(collection.id, { at: "tail" });
-  }, [collection.id, workbench]);
+  const handleToggleFavorite = useCallback(() => {
+    favAdapter.toggle(collection.id, "collection");
+  }, [collection.id, favAdapter]);
 
-  const openCollectionNewTab = useCallback(() => {
+  const handleOpenNewTab = useCallback(() => {
     workbench.openCollection(collection.id, { at: "new-tab" });
   }, [collection.id, workbench]);
 
-  const favAdapter = useService(CompatibleFavoriteItemsAdapter);
+  const handleOpenSplitView = useCallback(() => {
+    workbench.openCollection(collection.id, { at: "tail" });
+  }, [collection.id, workbench]);
 
-  const onToggleFavoritePage = useCallback(() => {
-    favAdapter.toggle(collection.id, "collection");
-  }, [favAdapter, collection.id]);
-
-  const favorite = useLiveData(
-    useMemo(
-      () => favAdapter.isFavorite$(collection.id, "collection"),
-      [collection.id, favAdapter],
-    ),
-  );
-
-  const actions = useMemo<
-    Array<
-      | {
-          icon: ReactElement;
-          name: string;
-          click: () => void;
-          type?: MenuItemProps["type"];
-          element?: undefined;
-        }
-      | {
-          element: ReactElement;
-        }
-    >
-  >(
-    () => [
+  const entries = useMemo<CollectionMenuEntry[]>(() => {
+    const list: CollectionMenuEntry[] = [
       {
+        kind: "action",
         icon: <EditIcon />,
-        name: t["com.myoxus.collection.menu.rename"](),
-        click: showEditName,
+        label: t["com.myoxus.collection.menu.rename"](),
+        onSelect: handleRename,
       },
       {
+        kind: "action",
         icon: <FilterIcon />,
-        name: t["com.myoxus.collection.menu.edit"](),
-        click: showEdit,
+        label: t["com.myoxus.collection.menu.edit"](),
+        onSelect: handleEditRules,
       },
-      ...(onAddDocToCollection
-        ? [
-            {
-              icon: <PlusIcon />,
-              name: t["New Page"](),
-              click: onAddDocToCollection,
-            },
-          ]
-        : []),
+    ];
+
+    if (onAddDocToCollection) {
+      list.push({
+        kind: "action",
+        icon: <PlusIcon />,
+        label: t["New Page"](),
+        onSelect: onAddDocToCollection,
+      });
+    }
+
+    list.push(
       {
-        icon: <IsFavoriteIcon favorite={favorite} />,
-        name: favorite
+        kind: "action",
+        icon: <IsFavoriteIcon favorite={isFavorite} />,
+        label: isFavorite
           ? t["com.myoxus.favoritePageOperation.remove"]()
           : t["com.myoxus.favoritePageOperation.add"](),
-        click: onToggleFavoritePage,
+        onSelect: handleToggleFavorite,
       },
       {
+        kind: "action",
         icon: <OpenInNewIcon />,
-        name: t["com.myoxus.workbench.tab.page-menu-open"](),
-        click: openCollectionNewTab,
+        label: t["com.myoxus.workbench.tab.page-menu-open"](),
+        onSelect: handleOpenNewTab,
       },
-      ...(BUILD_CONFIG.isElectron
-        ? [
-            {
-              icon: <SplitViewIcon />,
-              name: t["com.myoxus.workbench.split-view.page-menu-open"](),
-              click: openCollectionSplitView,
-            },
-          ]
-        : []),
+    );
+
+    if (BUILD_CONFIG.isElectron) {
+      list.push({
+        kind: "action",
+        icon: <SplitViewIcon />,
+        label: t["com.myoxus.workbench.split-view.page-menu-open"](),
+        onSelect: handleOpenSplitView,
+      });
+    }
+
+    list.push(
+      { kind: "separator", key: "divider" },
       {
-        element: <MenuSeparator key="divider" />,
-      },
-      {
+        kind: "action",
         icon: <DeleteIcon />,
-        name: t["Delete"](),
-        click: () => {
-          service.deleteCollection(collection.id);
-        },
+        label: t["Delete"](),
         type: "danger",
+        onSelect: () => collectionService.deleteCollection(collection.id),
       },
-    ],
-    [
-      t,
-      showEditName,
-      showEdit,
-      onAddDocToCollection,
-      favorite,
-      onToggleFavoritePage,
-      openCollectionNewTab,
-      openCollectionSplitView,
-      service,
-      collection.id,
-    ],
-  );
+    );
+
+    return list;
+  }, [
+    collection.id,
+    collectionService,
+    handleEditRules,
+    handleOpenNewTab,
+    handleOpenSplitView,
+    handleRename,
+    handleToggleFavorite,
+    isFavorite,
+    onAddDocToCollection,
+    t,
+  ]);
+
   return (
     <Menu
       items={
         <MenuPanel>
-          {actions.map((action) => {
-            if (action.element) {
-              return action.element;
-            }
-            return (
+          {entries.map((entry) =>
+            entry.kind === "separator" ? (
+              <MenuSeparator key={entry.key} />
+            ) : (
               <MenuItem
                 data-testid="collection-option"
-                key={action.name}
-                type={action.type}
-                prefixIcon={action.icon}
-                onClick={action.click}
+                key={entry.label}
+                type={entry.type}
+                prefixIcon={entry.icon}
+                onClick={entry.onSelect}
               >
-                {action.name}
+                {entry.label}
               </MenuItem>
-            );
-          })}
+            ),
+          )}
         </MenuPanel>
       }
     >

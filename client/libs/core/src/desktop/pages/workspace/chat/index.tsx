@@ -1,26 +1,16 @@
-import { DocEmbedProvider } from "@virgultum/editor/shared/services";
-/**
- * Standalone workspace AI chat page — the `/chat` workbench route.
- *
- * Unlike `EditorChatPanel` (which is a sidebar panel anchored to an open
- * document), this page provides a full-screen, document-independent AI chat
- * experience using the shared React `AIChatContent` and `ChatToolbar`.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useAIChatConfig } from "@myoxus/core/components/hooks/myoxus/use-ai-chat-config";
 import { useEnableAI } from "@myoxus/core/components/hooks/myoxus/use-enable-ai";
-import { WorkbenchToolsHeaderMenuButton } from "@myoxus/core/components/workbench-tools-menu";
 import {
   RouteLogic,
   useNavigateHelper,
 } from "@myoxus/core/components/hooks/use-navigate-helper";
-import { CopilotClient } from "@myoxus/core/editor/ai/provider/copilot-client";
-import {
-  AIChatContent,
-  type ChatContextValue,
-} from "@myoxus/core/editor/ai/components/ai-chat-content";
-import type { ChatStatus } from "@myoxus/core/editor/ai/components/ai-chat-messages";
+import { WorkbenchToolsHeaderMenuButton } from "@myoxus/core/components/workbench-tools-menu";
+import { AIChatContent } from "@myoxus/core/editor/ai/components/ai-chat-content";
 import { ChatToolbar } from "@myoxus/core/editor/ai/components/ai-chat-toolbar";
-import type { PromptKey } from "@myoxus/core/editor/ai/provider/prompt";
+import { CopilotClient } from "@myoxus/core/editor/ai/provider/copilot-client";
 import { getViewManager } from "@myoxus/core/editor/manager/view";
 import { NotificationServiceImpl } from "@myoxus/core/editor/view-extensions/editor-view/notification-service";
 import {
@@ -58,6 +48,7 @@ import {
   WorkbenchHeaderFrame,
 } from "@myoxus/ui-facade";
 import { RefNodeSlotsProvider } from "@virgultum/editor/inlines/reference";
+import { DocEmbedProvider } from "@virgultum/editor/shared/services";
 import { BlockStdScope } from "@virgultum/editor/std";
 import type { Workspace } from "@virgultum/editor/store";
 import { nanoid } from "nanoid";
@@ -71,10 +62,12 @@ import {
 } from "react";
 
 import { WorkbenchRouteStatus } from "../../404";
-import { createSessionDeleteHandler } from "../chat-panel-utils";
+import {
+  type ChatSessionTransport,
+  useChatSessionController,
+} from "../chat-panel-utils";
 import { ChatLoadingState } from "../detail-page/sidecards/ai-chat/loading-state";
-
-type CopilotSession = Awaited<ReturnType<CopilotClient["getSession"]>>;
+import { consumeSessionIdFromUrl } from "../detail-page/sidecards/ai-chat/session";
 
 function useCopilotClient() {
   const graphqlService = useService(GraphQLService);
@@ -88,14 +81,16 @@ function useCopilotClient() {
         eventSourceService.eventSource,
         fetchService.fetch,
       ),
-    [graphqlService, eventSourceService, fetchService],
+    [eventSourceService, fetchService, graphqlService],
   );
 }
 
-function createMockStd(workspace: Workspace) {
+function createDocumentHostScope(workspace: Workspace) {
   workspace.meta.initialize();
   const store = workspace.docs.values().next().value?.getStore();
-  if (!store) return null;
+  if (!store) {
+    return null;
+  }
   const std = new BlockStdScope({
     store,
     extensions: [...getViewManager().config.init().value.get("page")],
@@ -104,18 +99,26 @@ function createMockStd(workspace: Workspace) {
   return std;
 }
 
-function useMockStd() {
+function useWorkspaceChatHost() {
   const workspace = useService(WorkspaceService).workspace;
-  return useMemo(() => {
-    if (!workspace) return null;
-    return createMockStd(workspace.docCollection);
-  }, [workspace]);
+  return useMemo(
+    () => (workspace ? createDocumentHostScope(workspace.docCollection) : null),
+    [workspace],
+  );
 }
 
-export const WorkspaceChatPage = () => {
+export function WorkspaceChatPage() {
   const t = useI18n();
   const framework = useFramework();
   const confirmModal = useConfirmModal();
+  const workbench = useService(WorkbenchService).workbench;
+  const workspaceId = useService(WorkspaceService).workspace.id;
+  const client = useCopilotClient();
+  const hostScope = useWorkspaceChatHost();
+  const { jumpToPageBlock } = useNavigateHelper();
+  const { docDisplayConfig, searchMenuConfig, reasoningConfig } =
+    useAIChatConfig();
+
   const notificationService = useMemo(
     () =>
       new NotificationServiceImpl(
@@ -124,228 +127,173 @@ export const WorkspaceChatPage = () => {
       ),
     [confirmModal.closeConfirmModal, confirmModal.openConfirmModal],
   );
+
   const [contentRemountKey, setContentRemountKey] = useState(0);
-  const [currentSession, setCurrentSession] = useState<CopilotSession | null>(
-    null,
-  );
-  const [status, setStatus] = useState<ChatStatus>("idle");
-  const [isTogglingPin, setIsTogglingPin] = useState(false);
-  const [isOpeningSession, setIsOpeningSession] = useState(false);
-  const [sessionError, setSessionError] = useState(false);
   const [initialResolved, setInitialResolved] = useState(false);
   const [restoreAttempt, setRestoreAttempt] = useState(0);
-  const retrySessionRef = useRef<() => void>(() => {});
-  const sessionLoadSeqRef = useRef(0);
-  const hasRestoredPinnedSessionRef = useRef(false);
-  const client = useCopilotClient();
-  const workbench = useService(WorkbenchService).workbench;
-  const initialNavigation = useRef(
+  const restoredPinnedRef = useRef(false);
+  const initialQueryRef = useRef(
     new URLSearchParams(workbench.location$.value.search),
   );
-  const returnDocId = initialNavigation.current.get("fromDocId");
+  const returnDocId = initialQueryRef.current.get("fromDocId");
 
-  const workspaceId = useService(WorkspaceService).workspace.id;
-
-  useEffect(() => {
-    hasRestoredPinnedSessionRef.current = false;
-    return () => {
-      sessionLoadSeqRef.current += 1;
-    };
-  }, [workspaceId, client]);
-
-  const { docDisplayConfig, searchMenuConfig, reasoningConfig } =
-    useAIChatConfig();
-
-  const createSession = useCallback(
-    async (options: Partial<VirgultumPresets.AICreateSessionOptions> = {}) => {
-      if (currentSession) {
-        return currentSession;
-      }
-      const requestSeq = ++sessionLoadSeqRef.current;
-      const session = await client.createSessionWithHistory({
-        workspaceId,
-        promptName: "Chat With Myoxus AI" satisfies PromptKey,
-        reuseLatestChat: false,
-        ...options,
-      });
-      if (requestSeq !== sessionLoadSeqRef.current) return undefined;
-      if (!session) throw new Error("Conversation creation unavailable");
-      setCurrentSession(session);
-      return session;
-    },
-    [client, currentSession, workspaceId],
-  );
-
-  const togglePin = useCallback(async () => {
-    if (isTogglingPin) return;
-    const requestSeq = ++sessionLoadSeqRef.current;
-    setIsTogglingPin(true);
-    setSessionError(false);
-    try {
-      const pinned = !currentSession?.pinned;
-      if (!currentSession) {
-        const session = await client.createSessionWithHistory({
-          workspaceId,
-          promptName: "Chat With Myoxus AI",
-          reuseLatestChat: false,
-          pinned,
-        });
-        if (requestSeq !== sessionLoadSeqRef.current) return;
-        if (!session) throw new Error("Conversation creation unavailable");
-        hasRestoredPinnedSessionRef.current = true;
-        setInitialResolved(true);
-        setCurrentSession(session);
-      } else {
-        await client.updateSession({
-          sessionId: currentSession.sessionId,
-          pinned,
-        });
-        const session = await client.getSession(
-          workspaceId,
-          currentSession.sessionId,
-        );
-        if (requestSeq !== sessionLoadSeqRef.current) return;
-        if (!session) throw new Error("Requested conversation unavailable");
-        hasRestoredPinnedSessionRef.current = true;
-        setInitialResolved(true);
-        setCurrentSession(session);
-      }
-    } finally {
-      if (requestSeq === sessionLoadSeqRef.current) setIsTogglingPin(false);
-    }
-  }, [client, currentSession, isTogglingPin, workspaceId]);
-
-  const reMountChatContent = useCallback(() => {
+  const remountContent = useCallback(() => {
     setContentRemountKey((value) => value + 1);
   }, []);
 
-  const createFreshSession = useCallback(async () => {
-    if (isOpeningSession) {
-      return;
-    }
-    setIsOpeningSession(true);
-    setSessionError(false);
-    const requestSeq = ++sessionLoadSeqRef.current;
-    try {
-      const session = await client.createSessionWithHistory({
-        workspaceId,
-        promptName: "Chat With Myoxus AI" satisfies PromptKey,
-        reuseLatestChat: false,
-      });
-      if (requestSeq !== sessionLoadSeqRef.current) return;
-      if (!session) throw new Error("Conversation creation unavailable");
-      hasRestoredPinnedSessionRef.current = true;
-      setInitialResolved(true);
-      setCurrentSession(session);
-      reMountChatContent();
-    } catch {
-      if (requestSeq !== sessionLoadSeqRef.current) return;
-      retrySessionRef.current = () => void createFreshSession();
-      setSessionError(true);
-    } finally {
-      if (requestSeq === sessionLoadSeqRef.current) setIsOpeningSession(false);
-    }
-  }, [client, isOpeningSession, reMountChatContent, workspaceId]);
+  const transport = useMemo<ChatSessionTransport>(
+    () => ({
+      createSessionWithHistory: (options) =>
+        client.createSessionWithHistory(options),
+      getSession: (targetWorkspaceId, sessionId) =>
+        client.getSession(targetWorkspaceId, sessionId),
+      updateSession: (options) => client.updateSession(options),
+      cleanupSession: async (sessionToDelete) => {
+        await client.cleanupSessions({
+          workspaceId: sessionToDelete.workspaceId,
+          docId: sessionToDelete.docId || undefined,
+          sessionIds: [sessionToDelete.sessionId],
+        });
+      },
+    }),
+    [client],
+  );
 
-  const onOpenSession = useCallback(
-    async (sessionId: string) => {
-      if (isOpeningSession || currentSession?.sessionId === sessionId) return;
-      setIsOpeningSession(true);
-      setSessionError(false);
-      const requestSeq = ++sessionLoadSeqRef.current;
-      try {
-        const session = await client.getSession(workspaceId, sessionId);
-        if (requestSeq !== sessionLoadSeqRef.current) return;
-        if (!session) throw new Error("Requested conversation unavailable");
-        hasRestoredPinnedSessionRef.current = true;
+  const handleSessionApplied = useCallback(
+    (_nextSession: unknown, reason: "create" | "open" | "pin" | "fresh") => {
+      if (reason !== "create") {
+        restoredPinnedRef.current = true;
         setInitialResolved(true);
-        setCurrentSession(session);
-        reMountChatContent();
-      } catch {
-        if (requestSeq !== sessionLoadSeqRef.current) return;
-        retrySessionRef.current = () => void onOpenSession(sessionId);
-        setSessionError(true);
-      } finally {
-        if (requestSeq === sessionLoadSeqRef.current)
-          setIsOpeningSession(false);
+      }
+      if (reason === "open" || reason === "fresh") {
+        remountContent();
       }
     },
-    [
-      client,
-      currentSession?.sessionId,
-      isOpeningSession,
-      reMountChatContent,
-      workspaceId,
-    ],
+    [remountContent],
   );
 
-  const onContextChange = useCallback((context: Partial<ChatContextValue>) => {
-    setStatus(context.status ?? "idle");
-  }, []);
-
-  const onOpenDoc = useCallback(
-    (docId: string) => {
-      workbench.openDoc(docId, { at: "active" });
+  const handleActiveSessionDeleted = useCallback(
+    ({ clearSession }: { clearSession: () => void }) => {
+      clearSession();
+      remountContent();
     },
-    [workbench],
+    [remountContent],
   );
 
-  const onOpenSessionDoc = useCallback(
-    (docId: string, sessionId: string) => {
-      const { workbench } = framework.get(WorkbenchService);
-      const viewService = framework.get(ViewService);
-      workbench.open(`/${docId}?sessionId=${sessionId}`, { at: "active" });
-      viewService.view.showTool("chat");
-    },
-    [framework],
-  );
+  const controller = useChatSessionController({
+    workspaceId,
+    initialSession: null,
+    transport,
+    t,
+    notificationService,
+    onSessionApplied: handleSessionApplied,
+    onActiveSessionDeleted: handleActiveSessionDeleted,
+  });
 
-  const mockStd = useMockStd();
-  const deleteSession = useMemo(
-    () =>
-      createSessionDeleteHandler({
-        t,
-        notificationService,
-        cleanupSession: async (sessionToDelete) => {
-          await client.cleanupSessions({
-            workspaceId: sessionToDelete.workspaceId,
-            docId: sessionToDelete.docId || undefined,
-            sessionIds: [sessionToDelete.sessionId],
-          });
-        },
-        isActiveSession: (sessionToDelete) =>
-          sessionToDelete.sessionId === currentSession?.sessionId,
-        onActiveSessionDeleted: () => {
-          setCurrentSession(null);
-          reMountChatContent();
-        },
-      }),
-    [
-      client,
-      currentSession?.sessionId,
-      notificationService,
-      reMountChatContent,
-      t,
-    ],
-  );
-
-  const { jumpToPageBlock } = useNavigateHelper();
   useEffect(() => {
-    const refNodeSlots = mockStd?.getOptional(RefNodeSlotsProvider);
-    if (!refNodeSlots) return;
-    const sub = refNodeSlots.docLinkClicked.subscribe((event) => {
+    restoredPinnedRef.current = false;
+    return () => {
+      controller.bumpRequestSeq();
+    };
+  }, [client, controller.bumpRequestSeq, workspaceId]);
+
+  useEffect(() => {
+    if (restoredPinnedRef.current || controller.session) {
+      return;
+    }
+
+    const abortController = new AbortController();
+    const requestSeq = controller.bumpRequestSeq();
+    const isActive = () =>
+      !abortController.signal.aborted &&
+      controller.isCurrentRequest(requestSeq);
+
+    controller.setSessionError(false);
+
+    const restoreSession = async () => {
+      try {
+        const pinnedSessions = await client.getSessions(
+          workspaceId,
+          {},
+          undefined,
+          { pinned: true, limit: 1 },
+          abortController.signal,
+        );
+        if (!isActive()) {
+          return;
+        }
+        if (!Array.isArray(pinnedSessions)) {
+          throw new Error("Session lookup unavailable");
+        }
+        const requestedId =
+          initialQueryRef.current.get("sessionId") ?? undefined;
+        const restored =
+          pinnedSessions[0] ??
+          (requestedId
+            ? await client.getSession(workspaceId, requestedId)
+            : null);
+        if (!isActive()) {
+          return;
+        }
+        if (requestedId && !restored) {
+          throw new Error("Requested conversation unavailable");
+        }
+        restoredPinnedRef.current = true;
+        setInitialResolved(true);
+        if (restored) {
+          controller.setSession((prev) => prev ?? restored);
+          remountContent();
+          consumeSessionIdFromUrl(workbench, requestedId);
+        }
+      } catch {
+        if (!isActive()) {
+          return;
+        }
+        controller.setRetryHandler(() => {
+          setRestoreAttempt((attempt) => attempt + 1);
+        });
+        controller.setSessionError(true);
+      }
+    };
+
+    void restoreSession();
+    return () => {
+      abortController.abort();
+    };
+  }, [
+    client,
+    controller.bumpRequestSeq,
+    controller.isCurrentRequest,
+    controller.session,
+    controller.setRetryHandler,
+    controller.setSession,
+    controller.setSessionError,
+    remountContent,
+    restoreAttempt,
+    workbench,
+    workspaceId,
+  ]);
+
+  useEffect(() => {
+    const refNodeSlots = hostScope?.getOptional(RefNodeSlotsProvider);
+    if (!refNodeSlots) {
+      return;
+    }
+    const subscription = refNodeSlots.docLinkClicked.subscribe((event) => {
       if (
         event.workspaceId !== undefined &&
-        event.workspaceId !== mockStd?.workspace.id
+        event.workspaceId !== hostScope?.workspace.id
       ) {
-        const target = mockStd
+        const target = hostScope
           ?.getOptional(DocEmbedProvider)
           ?.inWorkspace?.(event.workspaceId);
-        if (!target) return;
+        if (!target) {
+          return;
+        }
         void target.access
           .canRead(event.pageId)
           .then((readable) => {
-            if (readable)
+            if (readable) {
               jumpToPageBlock(
                 event.workspaceId!,
                 event.pageId,
@@ -353,13 +301,13 @@ export const WorkspaceChatPage = () => {
                 event.params?.blockIds,
                 event.params?.elementIds,
               );
+            }
           })
           .catch(console.error)
           .finally(() => target.dispose());
         return;
       }
-      const { workbench } = framework.get(WorkbenchService);
-      workbench.openDoc({
+      framework.get(WorkbenchService).workbench.openDoc({
         docId: event.pageId,
         mode: event.params?.mode,
         blockIds: event.params?.blockIds,
@@ -367,73 +315,46 @@ export const WorkspaceChatPage = () => {
         refreshKey: nanoid(),
       });
     });
-    return () => sub.unsubscribe();
-  }, [framework, mockStd, jumpToPageBlock]);
+    return () => subscription.unsubscribe();
+  }, [framework, hostScope, jumpToPageBlock]);
 
-  useEffect(() => {
-    if (hasRestoredPinnedSessionRef.current || currentSession) return;
+  const handleOpenDoc = useCallback(
+    (docId: string) => {
+      workbench.openDoc(docId, { at: "active" });
+    },
+    [workbench],
+  );
 
-    const controller = new AbortController();
-    const requestSeq = ++sessionLoadSeqRef.current;
-    const isCurrent = () =>
-      !controller.signal.aborted && requestSeq === sessionLoadSeqRef.current;
-    setSessionError(false);
-    const loadPinnedSession = async () => {
-      try {
-        const sessions = await client.getSessions(
-          workspaceId,
-          {},
-          undefined,
-          { pinned: true, limit: 1 },
-          controller.signal,
-        );
-        if (!isCurrent()) return;
-        if (!Array.isArray(sessions))
-          throw new Error("Session lookup unavailable");
-        const requestedId = initialNavigation.current.get("sessionId");
-        const restored =
-          sessions[0] ??
-          (requestedId
-            ? await client.getSession(workspaceId, requestedId)
-            : null);
-        if (!isCurrent()) return;
-        if (requestedId && !restored)
-          throw new Error("Requested conversation unavailable");
-        hasRestoredPinnedSessionRef.current = true;
-        setInitialResolved(true);
-        if (restored) {
-          setCurrentSession((previous) => previous ?? restored);
-          reMountChatContent();
-          if (
-            requestedId &&
-            new URLSearchParams(workbench.location$.value.search).get(
-              "sessionId",
-            ) === requestedId
-          )
-            workbench.activeView$.value.updateQueryString(
-              { sessionId: undefined },
-              { replace: true },
-            );
-        }
-      } catch {
-        if (!isCurrent()) return;
-        retrySessionRef.current = () => setRestoreAttempt((value) => value + 1);
-        setSessionError(true);
-      }
-    };
-    void loadPinnedSession();
+  const handleOpenSessionDoc = useCallback(
+    (docId: string, sessionId: string) => {
+      const currentWorkbench = framework.get(WorkbenchService).workbench;
+      const viewService = framework.get(ViewService);
+      currentWorkbench.open(`/${docId}?sessionId=${sessionId}`, {
+        at: "active",
+      });
+      viewService.view.showTool("chat");
+    },
+    [framework],
+  );
 
-    return () => {
-      controller.abort();
-    };
-  }, [
-    client,
-    currentSession,
-    reMountChatContent,
-    workspaceId,
-    workbench,
-    restoreAttempt,
-  ]);
+  const handleReturnToDoc = useCallback(() => {
+    if (!returnDocId) {
+      return;
+    }
+    const query = new URLSearchParams();
+    if (controller.session?.sessionId) {
+      query.set("sessionId", controller.session.sessionId);
+    }
+    if (initialQueryRef.current.get("fromMode") === "edgeless") {
+      query.set("mode", "edgeless");
+    }
+    workbench.open(`/${encodeURIComponent(returnDocId)}?${query}`, {
+      at: "active",
+    });
+    workbench.openContextPanel();
+  }, [controller.session?.sessionId, returnDocId, workbench]);
+
+  const currentSession = controller.session ?? null;
 
   return (
     <>
@@ -451,18 +372,7 @@ export const WorkspaceChatPage = () => {
                   docDisplayConfig.getTitle(returnDocId) ||
                   t["com.myoxus.history.back-to-page"]()
                 }
-                onClick={() => {
-                  const query = new URLSearchParams();
-                  if (currentSession?.sessionId)
-                    query.set("sessionId", currentSession.sessionId);
-                  if (initialNavigation.current.get("fromMode") === "edgeless")
-                    query.set("mode", "edgeless");
-                  workbench.open(
-                    `/${encodeURIComponent(returnDocId)}?${query}`,
-                    { at: "active" },
-                  );
-                  workbench.openContextPanel();
-                }}
+                onClick={handleReturnToDoc}
               >
                 <ArrowLeftIcon />
               </IconButton>
@@ -479,14 +389,14 @@ export const WorkspaceChatPage = () => {
                 key={workspaceId}
                 session={currentSession}
                 workspaceId={workspaceId}
-                status={status}
+                status={controller.status}
                 docDisplayConfig={docDisplayConfig}
                 notificationService={notificationService}
-                onNewSession={createFreshSession}
-                onTogglePin={togglePin}
-                onOpenSession={onOpenSession}
-                onOpenDoc={onOpenSessionDoc}
-                onSessionDelete={deleteSession}
+                onNewSession={controller.createFreshSession}
+                onTogglePin={controller.togglePin}
+                onOpenSession={controller.openSession}
+                onOpenDoc={handleOpenSessionDoc}
+                onSessionDelete={controller.deleteSession}
               />
               <WorkbenchToolsHeaderMenuButton />
             </Group>
@@ -495,19 +405,17 @@ export const WorkspaceChatPage = () => {
       </ViewHeader>
       <ViewBody viewportBounded>
         <Stack h="100%" w="100%" data-myoxus-ui-role="workspace-chat-page-root">
-          {sessionError ? (
+          {controller.sessionError ? (
             <Alert>
               <Stack>
                 {t["com.myoxus.ai.chat-panel.session-error"]()}
                 <Group>
-                  <Button onClick={() => retrySessionRef.current()}>
-                    {t["Retry"]()}
-                  </Button>
+                  <Button onClick={controller.retry}>{t["Retry"]()}</Button>
                 </Group>
               </Stack>
             </Alert>
           ) : null}
-          {!initialResolved && !sessionError ? (
+          {!initialResolved && !controller.sessionError ? (
             <ChatLoadingState
               title={t["com.myoxus.ai.chat-panel.loading-history"]()}
             />
@@ -519,18 +427,18 @@ export const WorkspaceChatPage = () => {
                 independentMode
                 session={currentSession}
                 workspaceId={workspaceId}
-                host={mockStd?.host}
+                host={hostScope?.host}
                 docDisplayConfig={docDisplayConfig}
                 searchMenuConfig={searchMenuConfig}
                 reasoningConfig={reasoningConfig}
-                onContextChange={onContextChange}
+                onContextChange={controller.onContextChange}
                 peekViewService={framework.get(PeekViewService)}
                 notificationService={notificationService}
                 aiDraftService={framework.get(AIDraftService)}
                 aiToolsConfigService={framework.get(AIToolsConfigService)}
                 aiModelService={framework.get(AIModelService)}
-                createSession={createSession}
-                onOpenDoc={onOpenDoc}
+                createSession={controller.createSession}
+                onOpenDoc={handleOpenDoc}
               />
             ) : null}
           </Stack>
@@ -538,15 +446,15 @@ export const WorkspaceChatPage = () => {
       </ViewBody>
     </>
   );
-};
+}
 
-export const WorkspaceChatAvailabilityGate = ({
+export function WorkspaceChatAvailabilityGate({
   available,
   children,
 }: {
   available: boolean;
   children: ReactNode;
-}) => {
+}) {
   const t = useI18n();
   const { jumpToIndex } = useNavigateHelper();
 
@@ -570,9 +478,9 @@ export const WorkspaceChatAvailabilityGate = ({
       }
     />
   );
-};
+}
 
-export const Component = () => {
+export function Component() {
   const available = useEnableAI();
   const workspaceId = useService(WorkspaceService).workspace.id;
   return (
@@ -580,4 +488,4 @@ export const Component = () => {
       <WorkspaceChatPage key={workspaceId} />
     </WorkspaceChatAvailabilityGate>
   );
-};
+}

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type {
   GroupByParams,
   OrderByParams,
@@ -53,6 +56,7 @@ export const ExplorerDisplayMenu = ({
     <MenuPanel panelWidth="display">
       {leadingItems}
       {leadingItems ? <Divider space={4} size="thinner" /> : null}
+
       <MenuSub
         items={
           <GroupByList
@@ -70,6 +74,7 @@ export const ExplorerDisplayMenu = ({
           }
         />
       </MenuSub>
+
       <MenuSub
         items={
           <OrderByList
@@ -87,6 +92,7 @@ export const ExplorerDisplayMenu = ({
           }
         />
       </MenuSub>
+
       <Divider space={4} size="thinner" />
       <DisplayProperties
         displayPreference={displayPreference}
@@ -115,6 +121,7 @@ export const ExplorerDisplayMenuButton = ({
 }) => {
   const t = useI18n();
   const label = t["com.myoxus.explorer.display-menu.button"]();
+
   return (
     <Menu
       items={

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useI18n } from "@myoxus/i18n";
 import track from "@myoxus/track";
 import { Checkbox, MenuItem, MenuSub } from "@myoxus/ui-facade";
@@ -10,6 +13,32 @@ import {
 } from "../quick-actions.constants";
 import type { ExplorerDisplayPreference } from "../types";
 
+const QuickActionToggleItem = ({
+  action,
+  active,
+  onToggle,
+}: {
+  action: QuickAction;
+  active: boolean;
+  onToggle: () => void;
+}) => {
+  const t = useI18n();
+  const handleClick = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation();
+      event.preventDefault();
+      onToggle();
+    },
+    [onToggle],
+  );
+
+  return (
+    <MenuItem prefixIcon={<Checkbox checked={active} />} onClick={handleClick}>
+      {t.t(action.name)}
+    </MenuItem>
+  );
+};
+
 export const QuickActionsConfig = ({
   displayPreference,
   onDisplayPreferenceChange,
@@ -20,20 +49,19 @@ export const QuickActionsConfig = ({
   ) => void;
 }) => {
   const t = useI18n();
-  const configurableActions =
+  const actions =
     displayPreference.view === "list" ? listQuickActions : quickActions;
 
   return (
     <MenuSub
-      items={configurableActions.map((action) => {
-        if (action.disabled) return null;
-
-        return (
-          <QuickActionItem
+      items={actions
+        .filter((action) => !action.disabled)
+        .map((action) => (
+          <QuickActionToggleItem
             key={action.key}
             action={action}
-            active={displayPreference[`${action.key}`] ?? false}
-            onClick={() => {
+            active={Boolean(displayPreference[action.key])}
+            onToggle={() => {
               track.allDocs.header.displayMenu.editDisplayMenu({
                 control: "quickActions",
                 type: action.key,
@@ -44,37 +72,9 @@ export const QuickActionsConfig = ({
               });
             }}
           />
-        );
-      })}
+        ))}
     >
       {t["com.myoxus.all-docs.quick-actions"]()}
     </MenuSub>
-  );
-};
-
-const QuickActionItem = ({
-  action,
-  active,
-  onClick,
-}: {
-  action: QuickAction;
-  active: boolean;
-  onClick: () => void;
-}) => {
-  const t = useI18n();
-
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      e.preventDefault();
-      onClick();
-    },
-    [onClick],
-  );
-
-  return (
-    <MenuItem prefixIcon={<Checkbox checked={active} />} onClick={handleClick}>
-      {t.t(action.name)}
-    </MenuItem>
   );
 };

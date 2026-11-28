@@ -1,25 +1,6 @@
-/**
- * Polymorphic auth action page (`/auth/:authType`).
- *
- * A single route handles several post-authentication actions distinguished by
- * the `:authType` path segment. The supported values are defined in
- * `authTypeSchema` and validated by the route `loader` — invalid types receive
- * a hard redirect to `/404`.
- *
- * Supported auth types:
- * - `onboarding`             — welcome screen shown after first sign-up
- * - `setPassword`            — set initial password (magic-link accounts)
- * - `signIn`                 — sign-in success confirmation
- * - `changePassword`         — change existing password (token required)
- * - `signUp`                 — complete sign-up (set display name / password)
- * - `changeEmail`            — initiate email-change flow
- * - `confirm-change-email`   — confirm the new email address
- * - `verify-email`           — verify email after registration
- * - `subscription-redirect`  — (not rendered, kept for redirect compat)
- *
- * Token and user-id are read from search params and forwarded directly to the
- * GraphQL mutations (`changePasswordMutation`, `sendVerifyChangeEmailMutation`).
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   changePasswordMutation,
   sendVerifyChangeEmailMutation,
@@ -54,7 +35,6 @@ import {
 import { ConfirmChangeEmail } from "./confirm-change-email";
 import { ConfirmVerifiedEmail } from "./email-verified-email";
 
-/** Zod schema used to validate the `:authType` route parameter. */
 const authTypeSchema = z.enum([
   "onboarding",
   "setPassword",
@@ -67,38 +47,42 @@ const authTypeSchema = z.enum([
   "verify-email",
 ]);
 
-export const Component = () => {
-  const authService = useService(AuthService);
-  const account = useLiveData(authService.session.account$);
+export const loader: LoaderFunction = async ({ params }) => {
+  if (!params.authType || !authTypeSchema.safeParse(params.authType).success) {
+    return redirect("/404");
+  }
+  return null;
+};
+
+export function Component() {
   const t = useI18n();
+  const authService = useService(AuthService);
   const serverService = useService(ServerService);
+  const account = useLiveData(authService.session.account$);
   const passwordLimits = useLiveData(
-    serverService.server.credentialsRequirement$.map((r) => r?.password),
+    serverService.server.credentialsRequirement$.map((req) => req?.password),
   );
 
   const { authType } = useParams();
   const [searchParams] = useSearchParams();
+  const { jumpToIndex } = useNavigateHelper();
 
   const { trigger: changePassword } = useMutation({
     mutation: changePasswordMutation,
   });
-
   const { trigger: sendVerifyChangeEmail } = useMutation({
     mutation: sendVerifyChangeEmailMutation,
   });
 
-  const { jumpToIndex } = useNavigateHelper();
-
-  const onSendVerifyChangeEmail = useCallback(
+  const handleSendVerifyChangeEmail = useCallback(
     async (email: string) => {
-      const res = await sendVerifyChangeEmail({
-        token: searchParams.get("token") || "",
+      const response = await sendVerifyChangeEmail({
+        token: searchParams.get("token") ?? "",
         email,
-        callbackUrl: `/auth/confirm-change-email`,
+        callbackUrl: "/auth/confirm-change-email",
       }).catch(console.error);
 
-      // FIXME: There is not notification
-      if (res?.sendVerifyChangeEmail) {
+      if (response?.sendVerifyChangeEmail) {
         notify.success({
           title: t["com.myoxus.auth.sent.verify.email.hint"](),
         });
@@ -107,23 +91,23 @@ export const Component = () => {
           title: t["com.myoxus.auth.sent.change.email.fail"](),
         });
       }
-
-      return !!res?.sendVerifyChangeEmail;
+      return Boolean(response?.sendVerifyChangeEmail);
     },
     [searchParams, sendVerifyChangeEmail, t],
   );
 
-  const onSetPassword = useCallback(
-    async (password: string) => {
+  const handleSetPassword = useCallback(
+    async (newPassword: string) => {
       await changePassword({
-        token: searchParams.get("token") || "",
-        userId: searchParams.get("userId") || "",
-        newPassword: password,
+        token: searchParams.get("token") ?? "",
+        userId: searchParams.get("userId") ?? "",
+        newPassword,
       });
     },
     [changePassword, searchParams],
   );
-  const onOpenMyoxus = useCallback(() => {
+
+  const handleOpenMyoxus = useCallback(() => {
     jumpToIndex(RouteLogic.REPLACE);
   }, [jumpToIndex]);
 
@@ -133,74 +117,48 @@ export const Component = () => {
 
   switch (authType) {
     case "onboarding":
-      return (
-        account && <OnboardingPage user={account} onOpenMyoxus={onOpenMyoxus} />
-      );
-    case "signUp": {
-      return (
-        account && (
-          <SignUpPage
-            user={account}
-            passwordLimits={passwordLimits}
-            onSetPassword={onSetPassword}
-            onOpenMyoxus={onOpenMyoxus}
-          />
-        )
-      );
-    }
-    case "signIn": {
-      return <SignInSuccessPage onOpenMyoxus={onOpenMyoxus} />;
-    }
-    case "changePassword": {
+      return account ? (
+        <OnboardingPage user={account} onOpenMyoxus={handleOpenMyoxus} />
+      ) : null;
+    case "signUp":
+      return account ? (
+        <SignUpPage
+          user={account}
+          passwordLimits={passwordLimits}
+          onSetPassword={handleSetPassword}
+          onOpenMyoxus={handleOpenMyoxus}
+        />
+      ) : null;
+    case "signIn":
+      return <SignInSuccessPage onOpenMyoxus={handleOpenMyoxus} />;
+    case "changePassword":
       return (
         <ChangePasswordPage
           passwordLimits={passwordLimits}
-          onSetPassword={onSetPassword}
-          onOpenMyoxus={onOpenMyoxus}
+          onSetPassword={handleSetPassword}
+          onOpenMyoxus={handleOpenMyoxus}
         />
       );
-    }
-    case "setPassword": {
+    case "setPassword":
       return (
         <SetPasswordPage
           passwordLimits={passwordLimits}
-          onSetPassword={onSetPassword}
-          onOpenMyoxus={onOpenMyoxus}
+          onSetPassword={handleSetPassword}
+          onOpenMyoxus={handleOpenMyoxus}
         />
       );
-    }
-    case "changeEmail": {
+    case "changeEmail":
       return (
         <ChangeEmailPage
-          onChangeEmail={onSendVerifyChangeEmail}
-          onOpenMyoxus={onOpenMyoxus}
+          onChangeEmail={handleSendVerifyChangeEmail}
+          onOpenMyoxus={handleOpenMyoxus}
         />
       );
-    }
-    case "confirm-change-email": {
-      return <ConfirmChangeEmail onOpenMyoxus={onOpenMyoxus} />;
-    }
-    case "verify-email": {
-      return <ConfirmVerifiedEmail onOpenMyoxus={onOpenMyoxus} />;
-    }
+    case "confirm-change-email":
+      return <ConfirmChangeEmail onOpenMyoxus={handleOpenMyoxus} />;
+    case "verify-email":
+      return <ConfirmVerifiedEmail onOpenMyoxus={handleOpenMyoxus} />;
+    default:
+      return null;
   }
-  return null;
-};
-
-/**
- * React Router loader for the `/auth/:authType` route.
- *
- * Validates the `:authType` segment against `authTypeSchema` before the
- * component mounts. Redirects to `/404` for any unknown or missing auth type
- * so the component can assume a valid type without defensive checks.
- */
-export const loader: LoaderFunction = async (args) => {
-  if (!args.params.authType) {
-    return redirect("/404");
-  }
-  if (!authTypeSchema.safeParse(args.params.authType).success) {
-    return redirect("/404");
-  }
-
-  return null;
-};
+}

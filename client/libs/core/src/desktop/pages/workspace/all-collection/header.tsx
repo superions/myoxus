@@ -1,17 +1,21 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useI18n } from "@myoxus/i18n";
 import { PlusIcon } from "@myoxus/icons/react";
 import {
   IconButton,
-  WorkbenchHeaderTitle,
   WorkbenchHeaderFrame,
+  WorkbenchHeaderTitle,
 } from "@myoxus/ui-facade";
 
-export const AllCollectionHeader = ({
+export function AllCollectionHeader({
   onCreateCollection,
 }: {
   onCreateCollection?: () => void;
-}) => {
+}) {
   const t = useI18n();
+  const createLabel = t["com.myoxus.collections.empty.new-collection-button"]();
 
   return (
     <WorkbenchHeaderFrame
@@ -21,10 +25,8 @@ export const AllCollectionHeader = ({
         onCreateCollection ? (
           <IconButton
             icon={<PlusIcon />}
-            aria-label={t[
-              "com.myoxus.collections.empty.new-collection-button"
-            ]()}
-            tooltip={t["com.myoxus.collections.empty.new-collection-button"]()}
+            aria-label={createLabel}
+            tooltip={createLabel}
             onClick={onCreateCollection}
             data-testid="create-collection-header-button"
           />
@@ -32,4 +34,4 @@ export const AllCollectionHeader = ({
       }
     />
   );
-};
+}

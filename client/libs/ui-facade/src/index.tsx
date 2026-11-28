@@ -611,6 +611,7 @@ export {
 export {
   ColorSwatch,
   ColorDot,
+  type ColorDotTone,
   type TagColorRole,
   resolveTagColorAccent,
 } from "./color-swatch";

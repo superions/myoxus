@@ -14,7 +14,7 @@ function readRepoFile(path: string): string {
 describe("all pages view icons contract", () => {
   test("view toggles use All content specific glyphs instead of generic layout or database icons", () => {
     const source = readRepoFile(
-      "client/libs/core/src/components/explorer/docs-view/doc-list-item.tsx",
+      "client/libs/core/src/components/explorer/docs-view/doc-list-primitives.tsx",
     );
 
     expect(source).toContain("AllDocsMasonryViewIcon");

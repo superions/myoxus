@@ -1,22 +1,6 @@
-/**
- * Magic-link authentication page (`/magic-link`).
- *
- * Handles passwordless sign-in via a one-time token emailed to the user.
- * The flow mirrors the OAuth callback pattern:
- *
- * 1. The **loader** validates `email` and `token` search params.
- *    - Missing params: redirects to `/sign-in` with an error message.
- *    - `client=web` / absent: returns the params as `LoaderData`.
- *    - Native clients (electron, iOS, etc.): builds a deep-link and redirects
- *      to `/open-app/...` to hand off to the native app.
- *
- * 2. The **component** calls `AuthService.signInMagicLink` once (guarded by
- *    `triggeredRef` to prevent React StrictMode double-invocation), then
- *    navigates to `redirect_uri` or `/` on success, or back to `/sign-in`
- *    with the error message on failure.
- *
- * The component renders a themed status shell while the side effect runs.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useI18n } from "@myoxus/i18n";
 import { useService } from "@myoxus/infra";
 import { useEffect, useRef } from "react";
@@ -40,7 +24,7 @@ import {
 } from "./common";
 import { AuthStatusPage } from "./status";
 
-interface LoaderData {
+interface MagicLinkLoaderData {
   token: string;
   email: string;
   redirectUri: string | null;
@@ -58,12 +42,11 @@ export const loader: LoaderFunction = ({ request }) => {
   if (!email || !token) {
     return redirect(buildSignInUrl({ error: "Invalid magic link" }));
   }
-
   if (rawRedirectUri && !redirectUri) {
     return redirect(buildSignInUrl({ error: "Invalid redirect target" }));
   }
 
-  const payload: LoaderData = {
+  const payload: MagicLinkLoaderData = {
     email,
     token,
     redirectUri: redirectUri ?? null,
@@ -73,54 +56,51 @@ export const loader: LoaderFunction = ({ request }) => {
     return payload;
   }
 
-  const clientCheckResult = supportedClient.safeParse(client);
-  if (!clientCheckResult.success) {
+  const parsedClient = supportedClient.safeParse(client);
+  if (!parsedClient.success) {
     return redirect(buildSignInUrl({ error: "Invalid callback parameters" }));
   }
 
-  const urlToOpen = buildAuthenticationDeepLink({
-    scheme: clientCheckResult.data,
+  const deepLink = buildAuthenticationDeepLink({
+    scheme: parsedClient.data,
     method: "magic-link",
     payload,
     server: location.origin,
   });
-
-  return redirect(buildOpenAppUrlRoute(urlToOpen));
+  return redirect(buildOpenAppUrlRoute(deepLink));
 };
 
-export const Component = () => {
+export function Component() {
   const auth = useService(AuthService);
-  const data = useLoaderData() as LoaderData;
+  const data = useLoaderData() as MagicLinkLoaderData;
   const i18n = useI18n();
-
-  const nav = useNavigate();
-  // loader data from useLoaderData is not reactive, so that we can safely
-  // assume the effect below is only triggered once
-  const triggeredRef = useRef(false);
+  const navigate = useNavigate();
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    if (triggeredRef.current) {
+    if (startedRef.current) {
       return;
     }
-    triggeredRef.current = true;
+    startedRef.current = true;
     auth
       .signInMagicLink(data.email, data.token)
       .then(() => {
         const subscription = auth.session.status$.subscribe((status) => {
           if (status === "authenticated") {
+            const target = data.redirectUri ?? "/";
             if (requiresDocumentAuthRedirect(data.redirectUri)) {
-              window.location.replace(data.redirectUri ?? "/");
+              window.location.replace(target);
             } else {
-              nav(data.redirectUri ?? "/");
+              navigate(target);
             }
             subscription?.unsubscribe();
           }
         });
       })
-      .catch((e) => {
-        nav(buildSignInUrl({ error: e.message }));
+      .catch((error: Error) => {
+        navigate(buildSignInUrl({ error: error.message }));
       });
-  }, [auth, data, data.email, data.redirectUri, data.token, nav]);
+  }, [auth, data, navigate]);
 
   return (
     <AuthStatusPage
@@ -128,4 +108,4 @@ export const Component = () => {
       description={i18n.t("admin.auth.callback-status-description")}
     />
   );
-};
+}

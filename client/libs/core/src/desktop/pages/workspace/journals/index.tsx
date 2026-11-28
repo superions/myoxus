@@ -1,29 +1,6 @@
-import { getArtworkUrl } from "@myoxus/theme/artwork";
-/**
- * Journals page — the daily-note / journal entry point.
- *
- * The `/journals` route acts as a smart redirector:
- *
- * - If a journal document already exists for the requested date, it immediately
- *   opens that document (replacing the history entry so the back button works
- *   naturally).
- * - If no journal document exists for the requested date, the
- *   `<JournalPlaceholder>` is shown with a "Create" button.
- *
- * The target date is read from the `?date=YYYY-MM-DD` search parameter and
- * defaults to today's date when absent.
- *
- * Navigation between dates is handled by a Mantine-backed `<MiniCalendar>` in
- * the view header. It always renders the selected date's week and uses the
- * active UI locale for labels. A "Today" button appears whenever the selected
- * date is not today.
- *
- * Exports:
- * - `getDateFromUrl` — pure helper to extract the date string from a location.
- * - `JournalPlaceholder` — empty-state view with date title and create button.
- * - `JournalsPageWithConfirmation` — the full page component.
- * - `Component` — lazy route entry point.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   JOURNAL_DATE_FORMAT,
   JournalService,
@@ -39,51 +16,33 @@ import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { i18nTime, useI18n } from "@myoxus/i18n";
 import { TodayIcon } from "@myoxus/icons/react";
 import { useLiveData, useService } from "@myoxus/infra";
+import { getArtworkUrl } from "@myoxus/theme/artwork";
 import {
   Badge,
   Button,
   EmptyState,
-  ThemedImg,
   EmptyStateTitle,
   MyoxusTitle,
   PageContentRail,
   Stack,
+  ThemedImg,
 } from "@myoxus/ui-facade";
 import dayjs from "dayjs";
-import type { Location } from "react-router";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import type { Location } from "react-router";
 
 import { JournalContextSurface } from "./journal-context-surface";
 import { JournalWorkbenchHeader } from "./journal-workbench-header";
 
-/**
- * Extracts the journal date from the current URL's search parameters.
- *
- * Reads the `date` query param and parses it with dayjs. Falls back to today's
- * date when the param is absent. The result is always formatted using the
- * standard `JOURNAL_DATE_FORMAT` (typically `YYYY-MM-DD`).
- *
- * @param location - React Router / history location object.
- * @returns Formatted date string (e.g. `"2024-03-15"`).
- */
-export function getDateFromUrl(location: Location) {
-  const searchParams = new URLSearchParams(location.search);
-  const date = searchParams.get("date")
-    ? dayjs(searchParams.get("date"))
-    : dayjs();
-  return date.format(JOURNAL_DATE_FORMAT);
+export function getDateFromUrl(location: Location): string {
+  const rawDate = new URLSearchParams(location.search).get("date");
+  return (rawDate ? dayjs(rawDate) : dayjs()).format(JOURNAL_DATE_FORMAT);
 }
 
-/**
- * Journals uses the same date wording as the editor title, but owns its page
- * chrome through Facade typography instead of overriding editor CSS classes.
- */
-const JournalPlaceholderTitle = ({ dateString }: { dateString: string }) => {
-  const localizedJournalDate = i18nTime(dateString, {
-    absolute: { accuracy: "day" },
-  });
-  const date = dayjs(dateString);
-  const isToday = date.isSame(dayjs(), "day");
+function JournalPlaceholderTitle({ dateString }: { dateString: string }) {
+  const localizedDate = i18nTime(dateString, { absolute: { accuracy: "day" } });
+  const parsed = dayjs(dateString);
+  const isToday = parsed.isSame(dayjs(), "day");
 
   return (
     <Stack
@@ -97,58 +56,44 @@ const JournalPlaceholderTitle = ({ dateString }: { dateString: string }) => {
         data-testid="journal-title"
         data-myoxus-ui-role="journal-placeholder-title"
       >
-        <span data-testid="date">{localizedJournalDate}</span>
+        <span data-testid="date">{localizedDate}</span>
       </MyoxusTitle>
       {!isToday ? (
         <Badge data-myoxus-ui-role="journal-placeholder-weekday">
-          {date.format("dddd")}
+          {parsed.format("dddd")}
         </Badge>
       ) : null}
     </Stack>
   );
-};
+}
 
-/**
- * Empty-state view shown when no journal document exists for the given date.
- *
- * Renders the formatted date as a title and a primary "Create" button that
- * calls `JournalService.ensureJournalByDate` to create the document through the
- * existing journal-property path, then opens it in the active workbench view.
- * Guards against double-clicks with a local `redirecting` flag.
- *
- * @param dateString - The date in `JOURNAL_DATE_FORMAT` for which no journal
- *   document exists yet.
- */
-export const JournalPlaceholder = ({ dateString }: { dateString: string }) => {
+export function JournalPlaceholder({ dateString }: { dateString: string }) {
   const t = useI18n();
-  const [redirecting, setRedirecting] = useState(false);
-  const redirectingRef = useRef(false);
+  const [creating, setCreating] = useState(false);
+  const creatingRef = useRef(false);
   const workbench = useService(WorkbenchService).workbench;
   const journalService = useService(JournalService);
 
-  const createJournal = useCallback(() => {
-    if (redirectingRef.current) return;
-    redirectingRef.current = true;
-    setRedirecting(true);
+  const handleCreate = useCallback(() => {
+    if (creatingRef.current) {
+      return;
+    }
+    creatingRef.current = true;
+    setCreating(true);
 
-    // Journal creation may synchronously initialise an editor document and
-    // template data. Running it outside the pointer event keeps the browser
-    // input path responsive while the following route/editor readiness checks
-    // still verify that creation actually completed.
+    // Defer synchronous store/template setup out of the pointer handler so the
+    // UI stays responsive before navigating to the newly created journal doc.
     window.setTimeout(() => {
       try {
         const doc = journalService.ensureJournalByDate(dateString);
-        workbench.openDoc(doc.id, {
-          replaceHistory: true,
-          at: "active",
-        });
+        workbench.openDoc(doc.id, { replaceHistory: true, at: "active" });
       } catch (error) {
         console.error("[journal] create daily journal failed", {
           date: dateString,
           error,
         });
-        redirectingRef.current = false;
-        setRedirecting(false);
+        creatingRef.current = false;
+        setCreating(false);
       }
     }, 0);
   }, [dateString, journalService, workbench]);
@@ -175,9 +120,9 @@ export const JournalPlaceholder = ({ dateString }: { dateString: string }) => {
           cta={
             <Button
               variant="primary"
-              onClick={createJournal}
-              disabled={redirecting}
-              aria-busy={redirecting}
+              onClick={handleCreate}
+              disabled={creating}
+              aria-busy={creating}
               data-testid="confirm-create-journal-button"
             >
               {t["com.myoxus.journal.placeholder.create"]()}
@@ -188,22 +133,9 @@ export const JournalPlaceholder = ({ dateString }: { dateString: string }) => {
       </Stack>
     </PageContentRail>
   );
-};
+}
 
-/**
- * Full journals workbench view.
- *
- * Acts as a smart redirector: if a journal already exists for the requested
- * date it immediately opens that document via `workbench.openDoc` (replacing
- * the history entry). If no journal exists yet it renders `<JournalPlaceholder>`
- * with the week date picker so the user can navigate to another date or create
- * the journal.
- *
- * Uses `useLayoutEffect` to perform the redirect synchronously before the
- * browser paints, avoiding a flash of the placeholder on navigation to an
- * existing journal date.
- */
-export const JournalsPageWithConfirmation = () => {
+export function JournalsPageWithConfirmation() {
   const journalService = useService(JournalService);
   const workbench = useService(WorkbenchService).workbench;
   const view = useService(ViewService).view;
@@ -211,10 +143,9 @@ export const JournalsPageWithConfirmation = () => {
   const location = useLiveData(view.location$);
   const dateString = getDateFromUrl(location);
   const journals = useLiveData(journalService.journalsByDate$(dateString));
-
   const [ready, setReady] = useState(false);
 
-  const openJournal = useCallback(
+  const openJournalDate = useCallback(
     (date: string) => {
       workbench.open(`/journals?date=${date}`, { at: "active" });
     },
@@ -222,26 +153,23 @@ export const JournalsPageWithConfirmation = () => {
   );
 
   useLayoutEffect(() => {
-    // only handle current route
-    if (!location.pathname.startsWith("/journals")) return;
-
-    // check if the journal is created
-    if (journals.length === 0) {
-      // The placeholder route keeps the calendar/event list in the workbench
-      // sidebar. Prepare the sidebar before first paint so the create button is
-      // not shifted by a post-render panel animation.
-      view.showTool("calendar");
-      workbench.openContextPanel();
-      if (!ready) setReady(true);
+    if (!location.pathname.startsWith("/journals")) {
       return;
     }
-
-    // if created, redirect to the journal
-    const journal = journals[0];
-    workbench.openDoc(journal.id, { replaceHistory: true, at: "active" });
+    if (journals.length === 0) {
+      view.showTool("calendar");
+      workbench.openContextPanel();
+      if (!ready) {
+        setReady(true);
+      }
+      return;
+    }
+    workbench.openDoc(journals[0].id, { replaceHistory: true, at: "active" });
   }, [dateString, journals, location.pathname, ready, view, workbench]);
 
-  if (!ready) return null;
+  if (!ready) {
+    return null;
+  }
 
   return (
     <>
@@ -253,7 +181,7 @@ export const JournalsPageWithConfirmation = () => {
         <JournalWorkbenchHeader
           dateString={dateString}
           title=""
-          onDateChange={openJournal}
+          onDateChange={openJournalDate}
         />
       </ViewHeader>
       <ViewBody>
@@ -262,8 +190,8 @@ export const JournalsPageWithConfirmation = () => {
       <JournalContextSurface />
     </>
   );
-};
+}
 
-export const Component = () => {
+export function Component() {
   return <JournalsPageWithConfirmation />;
-};
+}

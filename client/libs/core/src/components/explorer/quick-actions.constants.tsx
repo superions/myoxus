@@ -1,4 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { I18nString } from "@myoxus/i18n";
+import type { FC } from "react";
 
 import {
   type QuickActionProps,
@@ -12,22 +16,19 @@ import {
 } from "./docs-view/quick-actions";
 import type { ExplorerDisplayPreference } from "./types";
 
-interface QuickActionItem {
+interface QuickActionDescriptor {
   name: I18nString;
-  Component: React.FC<QuickActionProps>;
+  Component: FC<QuickActionProps>;
   disabled?: boolean;
 }
 
-type ExtractPrefixKeys<Obj extends object, Prefix extends string> = {
+type PrefixedKeys<Obj extends object, Prefix extends string> = {
   [Key in keyof Obj]-?: Key extends `${Prefix}${string}` ? Key : never;
 }[keyof Obj];
 
-export type QuickActionKey = ExtractPrefixKeys<
-  ExplorerDisplayPreference,
-  "quick"
->;
+export type QuickActionKey = PrefixedKeys<ExplorerDisplayPreference, "quick">;
 
-const QUICK_ACTION_MAP: Record<QuickActionKey, QuickActionItem> = {
+const QUICK_ACTION_REGISTRY: Record<QuickActionKey, QuickActionDescriptor> = {
   quickFavorite: {
     name: "com.myoxus.all-docs.quick-action.favorite",
     Component: QuickFavorite,
@@ -52,21 +53,22 @@ const QUICK_ACTION_MAP: Record<QuickActionKey, QuickActionItem> = {
   quickDeletePermanently: {
     name: "com.myoxus.all-docs.quick-action.delete-permanently",
     Component: QuickDeletePermanently,
-    disabled: true, // can only be controlled in code
+    disabled: true,
   },
   quickRestore: {
     name: "com.myoxus.all-docs.quick-action.restore",
     Component: QuickRestore,
-    disabled: true, // can only be controlled in code
+    disabled: true,
   },
 };
-export const quickActions = Object.entries(QUICK_ACTION_MAP).map(
-  ([key, config]) => {
-    return { key: key as QuickActionKey, ...config };
-  },
-);
 
-/** List rows already expose one permanent leading selection checkbox. */
+export const quickActions = (
+  Object.entries(QUICK_ACTION_REGISTRY) as Array<
+    [QuickActionKey, QuickActionDescriptor]
+  >
+).map(([key, descriptor]) => ({ key, ...descriptor }));
+
+/** List rows already render a permanent leading selection checkbox. */
 export const listQuickActions = quickActions.filter(
   (action) => action.key !== "quickSelect",
 );

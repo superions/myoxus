@@ -1,8 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
+import { useNavigateHelper } from "@myoxus/core/components/hooks/use-navigate-helper";
 import {
   type FolderNode,
   OrganizeService,
 } from "@myoxus/core/modules/organize";
-import { useNavigateHelper } from "@myoxus/core/components/hooks/use-navigate-helper";
 import { WorkspaceServerService } from "@myoxus/core/modules/server";
 import {
   canonicalPublicWorkspaceUrl,
@@ -37,10 +40,10 @@ import {
   organizeEmptyRootCanDrop,
 } from "./dnd";
 
-const StructureTreeHomeIcon: StructureTreeNodeIcon = ({ className }) => (
+const WorkspaceRootIcon: StructureTreeNodeIcon = ({ className }) => (
   <HomeIcon className={className} />
 );
-const keepStructureTreeRootOpen = () => {};
+const noopCollapse = () => {};
 
 export const StructureTreeOrganizeTree = ({
   currentDocId,
@@ -48,6 +51,8 @@ export const StructureTreeOrganizeTree = ({
   chrome?: "folders";
   currentDocId?: string;
 }) => {
+  const t = useI18n();
+  const navigate = useNavigateHelper();
   const {
     organizeService,
     structureTreeStateService,
@@ -61,11 +66,11 @@ export const StructureTreeOrganizeTree = ({
     WorkspaceServerService,
     WorkspaceShareSettingService,
   });
-  const navigate = useNavigateHelper();
-  const path = useMemo(() => ["organize"], []);
-  const collapsed = useLiveData(structureTreeStateService.collapsed$(path));
+
+  const rootPath = useMemo(() => ["organize"], []);
+  const collapsed = useLiveData(structureTreeStateService.collapsed$(rootPath));
   const [newFolderId, setNewFolderId] = useState<string | null>(null);
-  const t = useI18n();
+
   const publiclyAccessible = useLiveData(
     workspaceShareSettingService.sharePreview.publiclyAccessible$,
   );
@@ -75,56 +80,63 @@ export const StructureTreeOrganizeTree = ({
   const publicationError = useLiveData(
     workspaceShareSettingService.sharePreview.error$,
   );
-  const workspacePublicUrl = useMemo(() => {
+
+  const publicWorkspaceUrl = useMemo(() => {
     const baseUrl = workspaceServerService.server?.baseUrl;
-    // Revalidation retains the last value; only a confirmed result exposes the link.
-    return baseUrl &&
-      !publicationLoading &&
-      publicationError === null &&
-      publiclyAccessible === true
-      ? canonicalPublicWorkspaceUrl({
-          baseUrl,
-          workspaceId: workspaceService.workspace.id,
-        })
-      : null;
+    if (
+      !baseUrl ||
+      publicationLoading ||
+      publicationError !== null ||
+      publiclyAccessible !== true
+    ) {
+      return null;
+    }
+    return canonicalPublicWorkspaceUrl({
+      baseUrl,
+      workspaceId: workspaceService.workspace.id,
+    });
   }, [
-    publiclyAccessible,
-    publicationLoading,
     publicationError,
+    publicationLoading,
+    publiclyAccessible,
     workspaceServerService.server?.baseUrl,
     workspaceService.workspace.id,
   ]);
 
   const folderTree = organizeService.folderTree;
   const rootFolder = folderTree.rootFolder;
-
   const folders = useLiveData(rootFolder.sortedChildren$);
-  const currentDocFolderPath = useMemo(
+
+  const activeDocFolderPath = useMemo(
     () => (currentDocId ? folderTree.folderPathForLinkedDoc(currentDocId) : []),
     [currentDocId, folderTree],
   );
 
   useEffect(() => {
-    currentDocFolderPath.reduce<string[]>((parentPath, folderId) => {
-      const nextPath = [...parentPath, `folder-${folderId}`];
-      structureTreeStateService.setCollapsed(nextPath, false);
-      return nextPath;
-    }, path);
-  }, [currentDocFolderPath, structureTreeStateService, path]);
+    activeDocFolderPath.reduce<string[]>((acc, folderId) => {
+      const next = [...acc, `folder-${folderId}`];
+      structureTreeStateService.setCollapsed(next, false);
+      return next;
+    }, rootPath);
+  }, [activeDocFolderPath, rootPath, structureTreeStateService]);
+
+  useEffect(() => {
+    if (collapsed) setNewFolderId(null);
+  }, [collapsed]);
 
   const handleCreateFolder = useCallback(() => {
-    const newFolderId = rootFolder.createFolder(
+    const createdId = rootFolder.createFolder(
       "New Folder",
       rootFolder.indexAt("before"),
     );
     track.$.navigationPanel.organize.createOrganizeItem({ type: "folder" });
-    setNewFolderId(newFolderId);
-    structureTreeStateService.setCollapsed(path, false);
-    return newFolderId;
-  }, [structureTreeStateService, path, rootFolder]);
+    setNewFolderId(createdId);
+    structureTreeStateService.setCollapsed(rootPath, false);
+    return createdId;
+  }, [rootFolder, rootPath, structureTreeStateService]);
 
-  const rootOperations = useMemo(() => {
-    const operations: NodeOperation[] = [
+  const rootOperations = useMemo<NodeOperation[]>(() => {
+    const list: NodeOperation[] = [
       {
         index: 0,
         view: (
@@ -134,9 +146,10 @@ export const StructureTreeOrganizeTree = ({
         ),
       },
     ];
-    if (workspacePublicUrl) {
+
+    if (publicWorkspaceUrl) {
       const label = t["com.myoxus.workspace-overview.public-status.globe"]();
-      operations.push({
+      list.push({
         index: -1,
         inline: true,
         alwaysVisible: true,
@@ -144,7 +157,7 @@ export const StructureTreeOrganizeTree = ({
           <Tooltip content={label}>
             <InlineLink
               data-testid="workspace-public-root-link"
-              href={workspacePublicUrl}
+              href={publicWorkspaceUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(event) => event.stopPropagation()}
@@ -156,93 +169,70 @@ export const StructureTreeOrganizeTree = ({
         ),
       });
     }
-    return operations;
-  }, [handleCreateFolder, t, workspacePublicUrl]);
 
-  const handleOnChildrenDrop = useCallback(
-    (data: DropTargetDropEvent<MyoxusDNDData>, node?: FolderNode) => {
-      if (!node || !node.id) {
-        return; // never happens
+    return list;
+  }, [handleCreateFolder, publicWorkspaceUrl, t]);
+
+  const handleChildDrop = useCallback(
+    (event: DropTargetDropEvent<MyoxusDNDData>, targetNode?: FolderNode) => {
+      if (!targetNode?.id) return;
+      const instruction = event.treeInstruction?.type;
+      if (instruction !== "reorder-above" && instruction !== "reorder-below") {
+        return;
       }
-      if (
-        data.treeInstruction?.type === "reorder-above" ||
-        data.treeInstruction?.type === "reorder-below"
-      ) {
-        const at =
-          data.treeInstruction?.type === "reorder-below" ? "after" : "before";
-        if (data.source.data.entity?.type === "folder") {
-          rootFolder.moveHere(
-            data.source.data.entity.id,
-            rootFolder.indexAt(at, node.id),
-          );
-          track.$.navigationPanel.organize.moveOrganizeItem({ type: "folder" });
-        } else {
-          notify({
-            title: t["com.myoxus.rootAppSidebar.organize.root-folder-only"](),
-          });
-        }
+
+      const placement = instruction === "reorder-below" ? "after" : "before";
+      if (event.source.data.entity?.type === "folder") {
+        rootFolder.moveHere(
+          event.source.data.entity.id,
+          rootFolder.indexAt(placement, targetNode.id),
+        );
+        track.$.navigationPanel.organize.moveOrganizeItem({ type: "folder" });
       } else {
-        return; // not supported
+        notify({
+          title: t["com.myoxus.rootAppSidebar.organize.root-folder-only"](),
+        });
       }
     },
     [rootFolder, t],
   );
 
-  const createFolderAndDrop = useCallback(
-    (data: DropTargetDropEvent<MyoxusDNDData>) => {
-      const entity = data.source.data.entity;
+  const handleRootDrop = useCallback(
+    (event: DropTargetDropEvent<MyoxusDNDData>) => {
+      const entity = event.source.data.entity;
       if (!entity) return;
-      const { type, id } = entity;
-      // A folder is already a container. Root drops reparent that identity;
-      // only resource shortcuts need a newly created containing folder.
-      if (type === "folder") {
-        rootFolder.moveHere(id, rootFolder.indexAt("before"));
+
+      if (entity.type === "folder") {
+        rootFolder.moveHere(entity.id, rootFolder.indexAt("before"));
         track.$.navigationPanel.organize.moveOrganizeItem({ type: "folder" });
         return;
       }
+
       if (
-        type !== "database" &&
-        type !== "doc" &&
-        type !== "tag" &&
-        type !== "collection"
+        entity.type !== "database" &&
+        entity.type !== "doc" &&
+        entity.type !== "tag" &&
+        entity.type !== "collection"
       ) {
         return;
       }
 
-      const newFolderId = handleCreateFolder();
+      const createdId = handleCreateFolder();
       setNewFolderId(null);
-      const newFolder$ = folderTree.folderNode$(newFolderId);
-
-      const folder = newFolder$.value;
-      if (!folder) return;
-      folder.createLink(type, id, folder.indexAt("after"));
+      const createdFolder = folderTree.folderNode$(createdId).value;
+      createdFolder?.createLink(
+        entity.type,
+        entity.id,
+        createdFolder.indexAt("after"),
+      );
     },
     [folderTree, handleCreateFolder, rootFolder],
   );
 
-  const handleChildrenCanDrop = useMemo<
-    DropTargetOptions<MyoxusDNDData>["canDrop"]
-  >(() => (args) => args.source.data.entity?.type === "folder", []);
-
-  useEffect(() => {
-    if (collapsed) setNewFolderId(null); // reset new folder id to clear the renaming state
-  }, [collapsed]);
-
-  const folderNodes = folders.map((child) => (
-    <StructureTreeFolderNode
-      key={child.id}
-      nodeId={child.id as string}
-      defaultRenaming={child.id === newFolderId}
-      onDrop={handleOnChildrenDrop}
-      dropEffect={organizeChildrenDropEffect}
-      canDrop={handleChildrenCanDrop}
-      location={{
-        at: "structure-tree:organize:folder-node",
-        nodeId: child.id as string,
-      }}
-      parentPath={path}
-    />
-  ));
+  const allowFolderDrop = useMemo<DropTargetOptions<MyoxusDNDData>["canDrop"]>(
+    () => (args) => args.source.data.entity?.type === "folder",
+    [],
+  );
 
   return (
     <>
@@ -251,13 +241,13 @@ export const StructureTreeOrganizeTree = ({
       </SidebarNavSectionHeading>
       <StructureTreeRoot density="compact">
         <StructureTreeNode
-          icon={StructureTreeHomeIcon}
+          icon={WorkspaceRootIcon}
           name={
             workspaceService.workspace.meta.name ||
             t["com.myoxus.rootAppSidebar.workspaces"]()
           }
           collapsed={false}
-          setCollapsed={keepStructureTreeRootOpen}
+          setCollapsed={noopCollapse}
           collapsible={false}
           reorderable={false}
           onClick={() =>
@@ -270,9 +260,23 @@ export const StructureTreeOrganizeTree = ({
             dropTarget: { at: "structure-tree:organize:root" },
           }}
           dropEffect={organizeEmptyDropEffect}
-          onDrop={createFolderAndDrop}
+          onDrop={handleRootDrop}
         >
-          {folderNodes}
+          {folders.map((child) => (
+            <StructureTreeFolderNode
+              key={child.id}
+              nodeId={child.id as string}
+              defaultRenaming={child.id === newFolderId}
+              onDrop={handleChildDrop}
+              dropEffect={organizeChildrenDropEffect}
+              canDrop={allowFolderDrop}
+              location={{
+                at: "structure-tree:organize:folder-node",
+                nodeId: child.id as string,
+              }}
+              parentPath={rootPath}
+            />
+          ))}
         </StructureTreeNode>
       </StructureTreeRoot>
     </>

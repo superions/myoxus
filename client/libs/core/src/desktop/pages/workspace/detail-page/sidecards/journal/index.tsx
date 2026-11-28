@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
-// SPDX-License-Identifier: MIT
 
-/** Public journal sidecard exports. */
 import type { DocRecord } from "@myoxus/core/modules/doc";
 import dayjs from "dayjs";
 
@@ -11,15 +10,15 @@ export { JournalCalendarToolBody } from "./calendar-tool";
 export { JournalConflictBlock } from "./conflict-block";
 export { JournalToolStateProvider, useJournalToolState } from "./tool-state";
 
-export const sortPagesByDate = (
-  docs: DocRecord[],
+export function sortPagesByDate(
+  docs: readonly DocRecord[],
   field: "updatedDate" | "createDate",
   order: "asc" | "desc" = "desc",
-) => {
-  return [...docs].sort((a, b) => {
-    return (
-      (order === "asc" ? 1 : -1) *
-      dayjs(b.meta$.value[field]).diff(dayjs(a.meta$.value[field]))
-    );
-  });
-};
+): DocRecord[] {
+  const direction = order === "asc" ? 1 : -1;
+  return [...docs].sort(
+    (left, right) =>
+      direction *
+      dayjs(right.meta$.value[field]).diff(dayjs(left.meta$.value[field])),
+  );
+}

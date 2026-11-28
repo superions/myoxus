@@ -1,21 +1,19 @@
-import { useI18n } from "@myoxus/i18n";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { EditorDocumentOutline } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome/document-outline";
 import { createPageOutlineController } from "@myoxus/core/editor/virgultum/doc-editor/page-outline-controller";
 import { DocDisplayMetaService } from "@myoxus/core/modules/doc-display-meta";
 import { EditorService } from "@myoxus/core/modules/editor";
 import { GuardService } from "@myoxus/core/modules/permissions";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
+import { useI18n } from "@myoxus/i18n";
 import { useService, useServiceOptional } from "@myoxus/infra";
 import { DocumentOutlineController } from "@virgultum/editor/fragments/outline";
 import type { EditorHost } from "@virgultum/editor/std";
 import { useCallback, useMemo } from "react";
 
-/** Shares the editor-owned outline controller without a second sidebar title. */
-export const EditorOutlinePanel = ({
-  editor,
-}: {
-  editor: EditorHost | null;
-}) => {
+export function EditorOutlinePanel({ editor }: { editor: EditorHost | null }) {
   const t = useI18n();
   const owner = useService(EditorService).editor;
   const displayMeta = useServiceOptional(DocDisplayMetaService);
@@ -49,10 +47,9 @@ export const EditorOutlinePanel = ({
 
   const resolveMessage = useCallback(
     (key: string, fallback: string) => {
-      const fn = (t as unknown as Record<string, (() => string) | undefined>)[
-        key
-      ];
-      return typeof fn === "function" ? fn() : fallback;
+      const lookup = t as unknown as Record<string, (() => string) | undefined>;
+      const translator = lookup[key];
+      return typeof translator === "function" ? translator() : fallback;
     },
     [t],
   );
@@ -61,9 +58,11 @@ export const EditorOutlinePanel = ({
     (pageId: string, workspaceId?: string) => {
       const currentWorkspaceId =
         workspaceService?.workspace.id ?? store.workspace.id;
-      const meta = store.workspace.meta.docMetas.find((d) => d.id === pageId);
+      const meta = store.workspace.meta.docMetas.find(
+        (docMeta) => docMeta.id === pageId,
+      );
       const readable =
-        meta &&
+        Boolean(meta) &&
         (!workspaceId || workspaceId === currentWorkspaceId) &&
         (guard ? guard.can$("Doc_Read", pageId).value !== false : true);
       if (!readable) {
@@ -105,5 +104,6 @@ export const EditorOutlinePanel = ({
       store,
     ],
   );
+
   return <EditorDocumentOutline controls={controller} />;
-};
+}

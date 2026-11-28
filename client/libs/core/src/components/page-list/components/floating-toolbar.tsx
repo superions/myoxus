@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   Button,
   type ButtonProps,
@@ -6,24 +9,24 @@ import {
   MyoxusText,
   ToolbarSurface,
 } from "@myoxus/ui-facade";
-import type {
-  CSSProperties,
-  MouseEventHandler,
-  PropsWithChildren,
-  ReactElement,
-  ReactNode,
-  SVGAttributes,
+import {
+  type CSSProperties,
+  isValidElement,
+  type MouseEventHandler,
+  type PropsWithChildren,
+  type ReactElement,
+  type ReactNode,
+  type SVGAttributes,
 } from "react";
-import { isValidElement } from "react";
 
-interface FloatingToolbarProps {
+export interface FloatingToolbarProps {
   className?: string;
   style?: CSSProperties;
   open?: boolean;
   placement?: "inline" | "bottom-overlay";
 }
 
-interface FloatingToolbarButtonProps extends Omit<
+export interface FloatingToolbarButtonProps extends Omit<
   ButtonProps,
   "children" | "onClick" | "prefix" | "suffix" | "type" | "variant"
 > {
@@ -34,13 +37,10 @@ interface FloatingToolbarButtonProps extends Omit<
   tooltip?: ReactNode;
 }
 
-interface FloatingToolbarItemProps {}
-
-function svgToolbarIcon(
+const asSvgElement = (
   icon: ReactNode,
-): ReactElement<SVGAttributes<SVGElement>> | undefined {
-  return isValidElement<SVGAttributes<SVGElement>>(icon) ? icon : undefined;
-}
+): ReactElement<SVGAttributes<SVGElement>> | undefined =>
+  isValidElement<SVGAttributes<SVGElement>>(icon) ? icon : undefined;
 
 export function FloatingToolbar({
   children,
@@ -50,6 +50,7 @@ export function FloatingToolbar({
   placement = "inline",
 }: PropsWithChildren<FloatingToolbarProps>) {
   if (!open) return null;
+
   return (
     <ToolbarSurface
       className={className}
@@ -64,10 +65,7 @@ export function FloatingToolbar({
   );
 }
 
-// Count and selection copy stay plain text; controls are separate toolbar items.
-export function FloatingToolbarItem({
-  children,
-}: PropsWithChildren<FloatingToolbarItemProps>) {
+export function FloatingToolbarItem({ children }: PropsWithChildren) {
   return (
     <MyoxusText component="span" tone="secondary" typographySlot="body-small">
       {children}
@@ -75,7 +73,6 @@ export function FloatingToolbarItem({
   );
 }
 
-// a typical button that has icon and label
 export function FloatingToolbarButton({
   icon,
   type,
@@ -93,7 +90,7 @@ export function FloatingToolbarButton({
         className={className}
         style={style}
         variant={type === "danger" ? "error" : "plain"}
-        prefix={svgToolbarIcon(icon)}
+        prefix={asSvgElement(icon)}
         {...props}
       >
         {label}

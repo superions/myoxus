@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 /**
  * @vitest-environment happy-dom
  */
@@ -12,56 +15,49 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { useVirgultumPagePreview } from "../use-virgultum-page-preview";
 
-let docCollection: TestWorkspace;
+let workspace: TestWorkspace;
+const storeExtensions = getStoreManager().config.init().value.get("store");
 
-const extensions = getStoreManager().config.init().value.get("store");
-
-beforeEach(async () => {
+beforeEach(() => {
   vi.useFakeTimers({ toFake: ["requestIdleCallback"] });
-  docCollection = new TestWorkspace({ id: "test" });
-  docCollection.meta.initialize();
-  const initPage = async (page: Store) => {
-    page.load();
-    expect(page).not.toBeNull();
-    const pageBlockId = page.addBlock("myoxus:page", {
-      title: new Text(""),
-    });
-    const frameId = page.addBlock("myoxus:note", {}, pageBlockId);
-    page.addBlock("myoxus:paragraph", {}, frameId);
-  };
-  const store = docCollection.createDoc("page0").getStore({ extensions });
-  await initPage(store);
+  workspace = new TestWorkspace({ id: "preview-test" });
+  workspace.meta.initialize();
+
+  const store: Store = workspace
+    .createDoc("page0")
+    .getStore({ extensions: storeExtensions });
+  store.load();
+  const pageId = store.addBlock("myoxus:page", { title: new Text("") });
+  const noteId = store.addBlock("myoxus:note", {}, pageId);
+  store.addBlock("myoxus:paragraph", {}, noteId);
 });
 
 describe("useVirgultumPagePreview", () => {
-  test("basic", async () => {
-    const page = docCollection.getDoc("page0")?.getStore();
-    if (!page) {
-      throw new Error("Page not found");
-    }
-    const id = page.addBlock(
+  test("extracts and updates text previews as content blocks change", async () => {
+    const page = workspace.getDoc("page0")?.getStore();
+    if (!page) throw new Error("Expected page0 store");
+
+    const noteId = page.getModelsByFlavour("myoxus:note")[0].id;
+    const paragraphId = page.addBlock(
       "myoxus:paragraph",
-      {
-        text: new Text("Hello, world!"),
-      },
-      page.getModelsByFlavour("myoxus:note")[0].id,
+      { text: new Text("Hello, world!") },
+      noteId,
     );
+
     const hook = renderHook(() => useAtomValue(useVirgultumPagePreview(page)));
     expect(hook.result.current).toBe("Hello, world!");
+
     page.transact(() => {
-      page.getModelById(id)!.text!.insert("Test", 0);
+      page.getModelById(paragraphId)!.text!.insert("Test", 0);
     });
     await new Promise((resolve) => setTimeout(resolve, 100));
     hook.rerender();
     expect(hook.result.current).toBe("TestHello, world!");
 
-    // Insert before
     page.addBlock(
       "myoxus:paragraph",
-      {
-        text: new Text("First block!"),
-      },
-      page.getModelsByFlavour("myoxus:note")[0].id,
+      { text: new Text("First block!") },
+      noteId,
       0,
     );
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -69,24 +65,20 @@ describe("useVirgultumPagePreview", () => {
     expect(hook.result.current).toBe("First block! TestHello, world!");
   });
 
-  test("ignores edgeless surface content when deriving page text previews", async () => {
-    const page = docCollection.getDoc("page0")?.getStore();
-    if (!page) {
-      throw new Error("Page not found");
-    }
+  test("excludes edgeless surface blocks from text previews", () => {
+    const page = workspace.getDoc("page0")?.getStore();
+    if (!page) throw new Error("Expected page0 store");
 
     const pageBlock = page.getModelsByFlavour("myoxus:page")[0];
+    const noteId = page.getModelsByFlavour("myoxus:note")[0].id;
     page.addBlock("myoxus:surface", {}, pageBlock.id);
     page.addBlock(
       "myoxus:paragraph",
-      {
-        text: new Text("Page body text"),
-      },
-      page.getModelsByFlavour("myoxus:note")[0].id,
+      { text: new Text("Page body text") },
+      noteId,
     );
 
     const hook = renderHook(() => useAtomValue(useVirgultumPagePreview(page)));
-
     expect(hook.result.current).toBe("Page body text");
   });
 });

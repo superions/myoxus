@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { FindInPageService } from "@myoxus/core/modules/find-in-page";
 import {
   ArrowDownSmallIcon,
@@ -30,91 +33,100 @@ import {
   useState,
 } from "react";
 
-const drawText = (
+function paintSearchText(
   canvas: HTMLCanvasElement,
   text: string,
   scrollLeft: number,
-) => {
+) {
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     return;
   }
 
   const dpr = window.devicePixelRatio || 1;
-  // the container will be animated,
-  // so we need to use clientWidth and clientHeight instead of getBoundingClientRect
+  // Use client dimensions rather than getBoundingClientRect while the panel animates.
   canvas.width = canvas.clientWidth * dpr;
   canvas.height = canvas.clientHeight * dpr;
 
-  const canvasStyles = getComputedStyle(canvas);
-  const resolvedFont =
-    canvasStyles.font ||
-    `${canvasStyles.fontWeight} ${canvasStyles.fontSize}/${canvasStyles.lineHeight} ${canvasStyles.fontFamily}`.trim();
-  const resolvedColor = canvasStyles.color.trim();
-  const resolvedLetterSpacing = canvasStyles.letterSpacing.trim();
+  const computed = getComputedStyle(canvas);
+  const font =
+    computed.font ||
+    `${computed.fontWeight} ${computed.fontSize}/${computed.lineHeight} ${computed.fontFamily}`.trim();
+  const color = computed.color.trim();
+  const letterSpacing = computed.letterSpacing.trim();
 
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const offsetX = -scrollLeft;
-  if (resolvedColor) {
-    ctx.fillStyle = resolvedColor;
+  if (color) {
+    ctx.fillStyle = color;
   }
-  if (resolvedFont) {
-    ctx.font = resolvedFont;
+  if (font) {
+    ctx.font = font;
   }
-  if (resolvedLetterSpacing && resolvedLetterSpacing !== "normal") {
-    ctx.letterSpacing = resolvedLetterSpacing;
+  if (letterSpacing && letterSpacing !== "normal") {
+    ctx.letterSpacing = letterSpacing;
   }
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, offsetX, canvas.clientHeight / 2);
-};
+  ctx.fillText(text, -scrollLeft, canvas.clientHeight / 2);
+}
 
-const CanvasText = ({
+function SearchCanvasMirror({
   text,
   scrollLeft,
 }: {
   text: string;
   scrollLeft: number;
-}) => {
-  const ref = useRef<HTMLCanvasElement>(null);
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = ref.current;
+    const canvas = canvasRef.current;
     if (!canvas) {
       return;
     }
-    drawText(canvas, text, scrollLeft);
-    return observeResize(canvas, () => drawText(canvas, text, scrollLeft));
-  }, [text, scrollLeft]);
+    paintSearchText(canvas, text, scrollLeft);
+    return observeResize(canvas, () =>
+      paintSearchText(canvas, text, scrollLeft),
+    );
+  }, [scrollLeft, text]);
 
-  return <FindInPageCanvasText ref={ref} />;
-};
+  return <FindInPageCanvasText ref={canvasRef} />;
+}
 
-export const FindInPagePopup = () => {
-  const [value, setValue] = useState("");
-
+export function FindInPagePopup() {
   const findInPage = useService(FindInPageService).findInPage;
   const visible = useLiveData(findInPage.visible$);
   const result = useLiveData(findInPage.result$);
   const isSearching = useLiveData(findInPage.isSearching$);
 
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [active, setActive] = useState(false);
+  const [value, setValue] = useState("");
+  const [focused, setFocused] = useState(false);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [composing, setComposing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setValue(findInPage.searchText$.value || "");
   }, [findInPage.searchText$.value, visible]);
 
-  const handleValueChange = useCallback(
-    (value: string) => {
-      setValue(value);
+  useEffect(() => {
+    const subscription = findInPage.isSearching$.subscribe(() => {
+      inputRef.current?.focus();
+      setTimeout(() => {
+        inputRef.current?.focus();
+      });
+    });
+    return () => subscription.unsubscribe();
+  }, [findInPage.isSearching$]);
+
+  const handleChange = useCallback(
+    (nextValue: string) => {
+      setValue(nextValue);
       if (!composing) {
-        findInPage.findInPage(value);
+        findInPage.findInPage(nextValue);
       }
-      if (value.length === 0) {
+      if (nextValue.length === 0) {
         findInPage.clear();
       }
       inputRef.current?.focus();
@@ -122,64 +134,33 @@ export const FindInPagePopup = () => {
     [composing, findInPage],
   );
 
-  const handleFocus = useCallback(() => {
-    setActive(true);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    setActive(false);
-  }, []);
-
-  useEffect(() => {
-    const unsub = findInPage.isSearching$.subscribe(() => {
-      inputRef.current?.focus();
-      setTimeout(() => {
-        inputRef.current?.focus();
-      });
-    });
-
-    return () => {
-      unsub.unsubscribe();
-    };
-  }, [findInPage.isSearching$]);
-
-  const handleBackWard = useCallback(() => {
+  const handlePrevious = useCallback(() => {
     findInPage.backward();
   }, [findInPage]);
 
-  const handleForward = useCallback(() => {
+  const handleNext = useCallback(() => {
     findInPage.forward();
   }, [findInPage]);
 
-  const onChangeVisible = useCallback(
-    (visible: boolean) => {
-      if (!visible) {
-        findInPage.clear();
-      }
-      findInPage.onChangeVisible(visible);
-    },
-    [findInPage],
-  );
+  const handleClose = useCallback(() => {
+    findInPage.clear();
+    findInPage.onChangeVisible(false);
+  }, [findInPage]);
 
-  const handleDone = useCallback(() => {
-    onChangeVisible(false);
-  }, [onChangeVisible]);
-
-  const handleKeydown: KeyboardEventHandler = useCallback(
-    (e) => {
-      if (e.key === "Enter" || e.key === "ArrowDown") {
-        handleForward();
-      }
-      if (e.key === "ArrowUp") {
-        handleBackWard();
+  const handleKeyDown: KeyboardEventHandler = useCallback(
+    (event) => {
+      if (event.key === "Enter" || event.key === "ArrowDown") {
+        handleNext();
+      } else if (event.key === "ArrowUp") {
+        handlePrevious();
       }
     },
-    [handleBackWard, handleForward],
+    [handleNext, handlePrevious],
   );
 
   const handleScroll = useCallback(
-    (e: { currentTarget: { scrollLeft: SetStateAction<number> } }) => {
-      setScrollLeft(e.currentTarget.scrollLeft);
+    (event: { currentTarget: { scrollLeft: SetStateAction<number> } }) => {
+      setScrollLeft(event.currentTarget.scrollLeft);
     },
     [],
   );
@@ -191,9 +172,9 @@ export const FindInPagePopup = () => {
 
   const handleCompositionEnd: CompositionEventHandler<HTMLInputElement> =
     useCallback(
-      (e) => {
+      (event) => {
         setComposing(false);
-        findInPage.findInPage(e.currentTarget.value);
+        findInPage.findInPage(event.currentTarget.value);
       },
       [findInPage],
     );
@@ -201,7 +182,7 @@ export const FindInPagePopup = () => {
   return (
     <FindInPageAnchor>
       <FindInPagePanel opened={visible}>
-        <FindInPageSearchBox active={active || isSearching}>
+        <FindInPageSearchBox active={focused || isSearching}>
           <FindInPageSearchIconSlot>
             <SearchIcon />
           </FindInPageSearchIconSlot>
@@ -213,24 +194,24 @@ export const FindInPagePopup = () => {
               value={value}
               ref={inputRef}
               searching={isSearching}
-              onBlur={handleBlur}
-              onFocus={handleFocus}
-              onKeyDown={handleKeydown}
-              onChange={handleValueChange}
+              onBlur={() => setFocused(false)}
+              onFocus={() => setFocused(true)}
+              onKeyDown={handleKeyDown}
+              onChange={handleChange}
               onScroll={handleScroll}
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
             />
-            <CanvasText text={value} scrollLeft={scrollLeft} />
+            <SearchCanvasMirror text={value} scrollLeft={scrollLeft} />
           </FindInPageInputMain>
           <FindInPageCount>
             {value.length > 0 && result && result.matches !== 0 ? (
               <>
-                <span>{result?.activeMatchOrdinal || 0}</span>
+                <span>{result.activeMatchOrdinal || 0}</span>
                 <span>/</span>
-                <span>{result?.matches || 0}</span>
+                <span>{result.matches || 0}</span>
               </>
-            ) : value.length ? (
+            ) : value.length > 0 ? (
               <span>No matches</span>
             ) : null}
           </FindInPageCount>
@@ -240,23 +221,23 @@ export const FindInPagePopup = () => {
           <FindInPageNavButton
             edge="start"
             aria-label="Previous match"
-            onClick={handleBackWard}
+            onClick={handlePrevious}
             icon={<ArrowUpSmallIcon />}
           />
           <FindInPageNavButton
             edge="end"
             aria-label="Next match"
-            onClick={handleForward}
+            onClick={handleNext}
             icon={<ArrowDownSmallIcon />}
           />
         </FindInPageNavGroup>
 
         <FindInPageCloseButton
           aria-label="Close find in page"
-          onClick={handleDone}
+          onClick={handleClose}
           icon={<CloseIcon />}
         />
       </FindInPagePanel>
     </FindInPageAnchor>
   );
-};
+}

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useCallback } from "react";
 
 import {
@@ -6,16 +9,11 @@ import {
 } from "../../../components/hooks/use-navigate-helper";
 import { ExpiredPage } from "../invite/member-pages";
 
-/**
- * /expired page
- *
- * only on web
- */
-export const Component = () => {
+export function Component() {
   const { jumpToIndex } = useNavigateHelper();
-  const onOpenMyoxus = useCallback(() => {
+  const handleOpenMyoxus = useCallback(() => {
     jumpToIndex(RouteLogic.REPLACE);
   }, [jumpToIndex]);
 
-  return <ExpiredPage onOpenMyoxus={onOpenMyoxus} />;
-};
+  return <ExpiredPage onOpenMyoxus={handleOpenMyoxus} />;
+}

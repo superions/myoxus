@@ -1,26 +1,6 @@
-/**
- * All-contents view — the workspace's typed content inventory
- * (`/workspace/:id/all`).
- *
- * Provides a filterable, sortable, and groupable list/grid/masonry view of all
- * non-trash documents in the current workspace. Key features:
- *
- * - **Saved filters**: user-specific filter shortcuts stored in
- *   `WorkspaceLocalState`. Selecting a saved filter scopes the document list to
- *   its persisted rules; "All" shows all non-trash, non-empty-journal docs.
- * - **Temporary filters**: the user can add ad-hoc filters without saving them
- *   first. A save button persists them as a personal saved filter.
- * - **Display preferences**: view mode (list / grid / masonry) and column
- *   layout are persisted per-mode to `WorkspaceLocalState` so each split-view
- *   tab starts with the last-used preference.
- * - **Typed inventory**: server workspaces combine Documents and Databases;
- *   Collections remain intentionally Document-scoped.
- * - **Multi-select**: `Escape` clears the selection mode.
- *
- * State is intentionally stored in local component state (initialised once
- * from `WorkspaceLocalState`) so that multiple split-pane all-docs tabs
- * maintain independent view states.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   createDocExplorerContext,
   DocExplorerContext,
@@ -28,15 +8,12 @@ import {
 import type { AllContentView } from "@myoxus/core/components/explorer/display-menu/view-toggle";
 import { DocsExplorer } from "@myoxus/core/components/explorer/docs-view/docs-list";
 import { WorkspacePagesExplorer } from "@myoxus/core/components/explorer/pages-view";
-import type {
-  ExplorerDisplayPreference,
-  ExplorerPreviewSize,
-} from "@myoxus/core/components/explorer/types";
+import type { ExplorerDisplayPreference } from "@myoxus/core/components/explorer/types";
 import { Filters } from "@myoxus/core/components/filter";
+import { useRegionalPreferences } from "@myoxus/core/components/hooks/myoxus/use-user-preferences";
 import { EmptyCollectionDetail } from "@myoxus/core/components/myoxus/empty/collection-detail";
 import { PageListNewPageButton } from "@myoxus/core/components/page-list/docs/page-list-new-page-button";
 import { PageRegistrationRecovery } from "@myoxus/core/components/page-registration-recovery";
-import { useRegionalPreferences } from "@myoxus/core/components/hooks/myoxus/use-user-preferences";
 import { usePageHelper } from "@myoxus/core/editor/virgultum/page-list/utils";
 import { AllDocsSavedFiltersService } from "@myoxus/core/modules/all-docs";
 import {
@@ -63,10 +40,7 @@ import {
 } from "@myoxus/core/modules/template-doc";
 import { useTemplateApplicationAction } from "@myoxus/core/modules/template-doc/view/use-template-application";
 import { ViewService, WorkbenchService } from "@myoxus/core/modules/workbench";
-import {
-  WorkspaceLocalState,
-  WorkspaceService,
-} from "@myoxus/core/modules/workspace";
+import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import {
   composeWorkspacePageGroups,
   useDatabasePages,
@@ -105,128 +79,47 @@ import {
   WorkbenchToolLayoutBinding,
 } from "../../../../modules/workbench";
 import { AllDocsHeader } from "./all-page-header";
+import { type AllDocsViewMode, useAllDocsOptions } from "./options";
 import { AllDocsSavedFilters } from "./saved-filters";
 import {
-  AllContentTagGroupFrame,
   AllContentTagCatalogState,
+  AllContentTagGroupFrame,
   isTagsGroupBy,
   tagsGroupBy,
   useAllContentTagScope,
 } from "./tag-scope";
 
-const DocumentGraphWorkspaceView = lazy(() =>
-  import("@myoxus/core/modules/document-graph/view/document-graph-workspace-view").then(
-    (module) => ({ default: module.DocumentGraphWorkspaceView }),
-  ),
-);
+const DocumentGraphWorkspaceView = lazy(async () => ({
+  default: (
+    await import("@myoxus/core/modules/document-graph/view/document-graph-workspace-view")
+  ).DocumentGraphWorkspaceView,
+}));
 
-const genericTemplateFilter: TemplateCategoryFilter = {
+const GENERIC_TEMPLATE_FILTER: TemplateCategoryFilter = {
   exclude: ["onboarding"],
 };
 
-/**
- * Default display preferences for each view mode.
- *
- * Applied when no persisted preference is found for the current mode. Each
- * entry specifies the default sort column (most-recently-updated), visible
- * metadata columns, group-by behaviour, and UI toggles (drag handle, quick
- * favourite button, etc.).
- */
-const DefaultDisplayPreference: {
-  [key in ViewMode]: ExplorerDisplayPreference;
-} = {
-  grid: {
-    view: "grid",
-    previewSize: "normal",
-    displayProperties: [
-      "system:createdAt",
-      "system:updatedAt",
-      "system:createdBy",
-      "system:tags",
-    ],
-    orderBy: {
-      type: "system",
-      key: "updatedAt",
-      desc: true,
-    },
-    groupBy: undefined,
-    showDocIcon: true,
-    showDocPreview: true,
-    quickFavorite: true,
-    showDragHandle: true,
-    showMoreOperation: true,
-  },
-  masonry: {
-    view: "masonry",
-    previewSize: "normal",
-    displayProperties: [
-      "system:createdAt",
-      "system:updatedAt",
-      "system:createdBy",
-      "system:tags",
-    ],
-    orderBy: {
-      type: "system",
-      key: "updatedAt",
-      desc: true,
-    },
-    groupBy: undefined,
-    showDocIcon: true,
-    showDocPreview: true,
-    quickFavorite: true,
-    showDragHandle: true,
-    showMoreOperation: true,
-  },
-  list: {
-    view: "list",
-    previewSize: "normal",
-    displayProperties: [
-      "system:createdAt",
-      "system:updatedAt",
-      "system:createdBy",
-      "system:tags",
-    ],
-    orderBy: {
-      type: "system",
-      key: "updatedAt",
-      desc: true,
-    },
-    groupBy: {
-      type: "system",
-      key: "updatedAt",
-    },
-    showDocIcon: true,
-    showDocPreview: true,
-    quickFavorite: true,
-    showDragHandle: true,
-    showMoreOperation: true,
-  },
-};
+const STANDARD_EXTRA_FILTERS: FilterParams[] = [
+  { type: "system", key: "empty-journal", method: "is", value: "false" },
+  { type: "system", key: "trash", method: "is", value: "false" },
+  { type: "system", key: "template", method: "is", value: "false" },
+];
 
-type ViewMode = NonNullable<ExplorerDisplayPreference["view"]>;
-
-/**
- * All-pages workbench view component.
- *
- * Orchestrates saved-filter selection, temporary filter management, and display
- * preference changes. Subscribes to `CollectionRulesService` to compute the
- * document list reactively as filters/groups/order change, then pushes results
- * into `DocExplorerContext` for the typed inventory to consume.
- */
-const AllDocsInventoryPage = ({
+function AllDocsInventoryPage({
   displayPreference,
   setDisplayPreference,
   setViewMode,
   viewMode,
 }: {
   displayPreference: ExplorerDisplayPreference;
-  setDisplayPreference: (displayPreference: ExplorerDisplayPreference) => void;
-  setViewMode: (viewMode: ViewMode) => void;
-  viewMode: ViewMode;
-}) => {
+  setDisplayPreference: (next: ExplorerDisplayPreference) => void;
+  setViewMode: (next: AllDocsViewMode) => void;
+  viewMode: AllDocsViewMode;
+}) {
   const t = useI18n();
-
   const collectionService = useService(CollectionService);
+  const collectionRulesService = useService(CollectionRulesService);
+  const documentMetadataCache = useService(DocumentMetadataCacheService);
   const workspaceDialogService = useService(WorkspaceDialogService);
   const globalContext = useService(GlobalContextService).globalContext;
   const savedFiltersService = useService(AllDocsSavedFiltersService);
@@ -235,30 +128,27 @@ const AllDocsInventoryPage = ({
   const favoriteService = useService(FavoriteService);
   const templateDocService = useService(TemplateDocService);
   const workbench = useService(WorkbenchService).workbench;
+  const view = useService(ViewService).view;
   const regionalPreferences = useRegionalPreferences();
+  const { openPromptModal } = usePromptModal();
   const { createPage } = usePageHelper(
     workspaceService.workspace.docCollection,
   );
-  const view = useService(ViewService).view;
-  const activeAllDocsTarget = useLiveData(
+
+  const activeTarget = useLiveData(
     view.location$.selector((location) =>
       parseAllDocsNavigationSearch(location.search),
     ),
   );
   const selectedCollectionId =
-    activeAllDocsTarget.kind === "collection"
-      ? activeAllDocsTarget.collectionId
-      : null;
+    activeTarget.kind === "collection" ? activeTarget.collectionId : null;
   const selectedSavedFilterId =
-    activeAllDocsTarget.kind === "savedFilter"
-      ? activeAllDocsTarget.savedFilterId
-      : null;
-  const tagsActive = activeAllDocsTarget.kind === "tags";
+    activeTarget.kind === "savedFilter" ? activeTarget.savedFilterId : null;
+  const tagsActive = activeTarget.kind === "tags";
 
   const isCollectionDataReady = useLiveData(
     collectionService.collectionDataReady$,
   );
-
   const savedFilters = useLiveData(savedFiltersService.savedFilters$);
   const selectedSavedFilter = useMemo(
     () =>
@@ -268,7 +158,6 @@ const AllDocsInventoryPage = ({
         : null,
     [savedFilters, selectedSavedFilterId],
   );
-
   const selectedCollection = useLiveData(
     selectedCollectionId
       ? collectionService.collection$(selectedCollectionId)
@@ -282,7 +171,6 @@ const AllDocsInventoryPage = ({
   }, [selectedSavedFilter, selectedSavedFilterId, view]);
 
   useEffect(() => {
-    // if selected collection is not found, set selected collection id to null
     if (!selectedCollection && selectedCollectionId && isCollectionDataReady) {
       view.replace(allDocsNavigationTo({ kind: "all" }));
     }
@@ -294,8 +182,9 @@ const AllDocsInventoryPage = ({
   const selectedCollectionName = selectedCollectionInfo
     ? selectedCollectionInfo.name?.trim() || t["Untitled"]()
     : null;
-  const creationAction = selectedCollection ? "collection" : "all-pages";
-  const templateApplication = useTemplateApplicationAction(creationAction);
+  const templateApplication = useTemplateApplicationAction(
+    selectedCollection ? "collection" : "all-pages",
+  );
   const enablePageTemplate = useLiveData(
     templateDocService.setting.enablePageTemplate$,
   );
@@ -308,26 +197,13 @@ const AllDocsInventoryPage = ({
     if (!isActiveView || !selectedCollection) {
       return;
     }
-
     globalContext.collectionId.set(selectedCollection.id);
     globalContext.isCollection.set(true);
-
     return () => {
       globalContext.collectionId.set(null);
       globalContext.isCollection.set(false);
     };
   }, [globalContext, isActiveView, selectedCollection]);
-
-  const handleEditCollectionRules = useCallback(() => {
-    if (!selectedCollectionId) {
-      return;
-    }
-    track.collection.collection.$.editCollection();
-    workspaceDialogService.open("collection-editor", {
-      collectionId: selectedCollectionId,
-      mode: "rule",
-    });
-  }, [selectedCollectionId, workspaceDialogService]);
 
   const [tempFilters, setTempFilters] = useState<FilterParams[] | null>(null);
   const [previewFilters, setPreviewFilters] = useState<FilterParams[] | null>(
@@ -336,46 +212,40 @@ const AllDocsInventoryPage = ({
   const [tempFiltersInitial, setTempFiltersInitial] =
     useState<FilterParams | null>(null);
 
+  const clearTempFilters = useCallback(() => {
+    setTempFilters(null);
+    setPreviewFilters(null);
+    setTempFiltersInitial(null);
+  }, []);
+
   const effectiveDocumentFilters = useMemo(
     () =>
       tempFilters !== null
         ? (previewFilters ?? tempFilters)
         : selectedSavedFilter
           ? selectedSavedFilter.filters
-          : activeAllDocsTarget.kind === "favorites"
+          : activeTarget.kind === "favorites"
             ? allDocsFavoriteFilters
             : allDocsDefaultFilters,
-    [
-      activeAllDocsTarget.kind,
-      previewFilters,
-      selectedSavedFilter,
-      tempFilters,
-    ],
+    [activeTarget.kind, previewFilters, selectedSavedFilter, tempFilters],
   );
+
   const databaseFilters = useMemo(
     () =>
       tempFilters !== null
         ? (previewFilters ?? tempFilters)
         : selectedSavedFilter
           ? selectedSavedFilter.filters
-          : activeAllDocsTarget.kind === "favorites"
+          : activeTarget.kind === "favorites"
             ? [allDocsFavoriteFilter]
             : [],
-    [
-      activeAllDocsTarget.kind,
-      previewFilters,
-      selectedSavedFilter,
-      tempFilters,
-    ],
+    [activeTarget.kind, previewFilters, selectedSavedFilter, tempFilters],
   );
 
   const effectiveDisplayPreference = useMemo(
     () =>
       tagsActive
-        ? {
-            ...displayPreference,
-            groupBy: tagsGroupBy,
-          }
+        ? { ...displayPreference, groupBy: tagsGroupBy }
         : displayPreference,
     [displayPreference, tagsActive],
   );
@@ -388,14 +258,11 @@ const AllDocsInventoryPage = ({
     explorerContextValue.displayPreference$.next(effectiveDisplayPreference);
   }, [effectiveDisplayPreference, explorerContextValue]);
 
-  const groupBy = effectiveDisplayPreference.groupBy;
-  const orderBy = effectiveDisplayPreference.orderBy;
-
-  const { openPromptModal } = usePromptModal();
-
+  const { groupBy, orderBy } = effectiveDisplayPreference;
   const [documentGroups, setDocumentGroups] = useState<
     Array<{ key: string; items: string[] }>
   >([]);
+
   const documentMetadata$ = useMemo(
     () =>
       LiveData.computed((get) => {
@@ -441,6 +308,7 @@ const AllDocsInventoryPage = ({
       ),
     [favoriteRecords],
   );
+
   const workspacePageGroups = useMemo(
     () =>
       composeWorkspacePageGroups({
@@ -456,15 +324,13 @@ const AllDocsInventoryPage = ({
       databaseFavorites,
       databaseFilters,
       databaseLoad.records,
-      effectiveDocumentGroups,
       documentMetadata,
+      effectiveDocumentGroups,
       groupBy,
       orderBy,
     ],
   );
 
-  const collectionRulesService = useService(CollectionRulesService);
-  const documentMetadataCache = useService(DocumentMetadataCacheService);
   const documentMetadataIndex = useLiveData(
     documentMetadataCache.watchIndexState(),
   );
@@ -474,12 +340,14 @@ const AllDocsInventoryPage = ({
     (documentMetadataIndex.phase === "unloaded" ||
       documentMetadataIndex.phase === "loading" ||
       documentMetadataIndex.phase === "error");
+
   const retryDocumentMetadataIndex = useCallback(() => {
     documentMetadataCache.invalidateIndex("all-pages-retry");
     void documentMetadataCache.hydrateIndex().catch(() => {
-      // The reactive state retains the error for the visible retry surface.
+      // Error state stays visible on the retry notice.
     });
   }, [documentMetadataCache]);
+
   useEffect(() => {
     const subscription = collectionRulesService
       .watch(
@@ -489,76 +357,31 @@ const AllDocsInventoryPage = ({
               groupBy,
               orderBy,
               extraAllowList: selectedCollectionInfo.allowList,
-              extraFilters: [
-                {
-                  type: "system",
-                  key: "empty-journal",
-                  method: "is",
-                  value: "false",
-                },
-                {
-                  type: "system",
-                  key: "trash",
-                  method: "is",
-                  value: "false",
-                },
-                {
-                  type: "system",
-                  key: "template",
-                  method: "is",
-                  value: "false",
-                },
-              ],
+              extraFilters: STANDARD_EXTRA_FILTERS,
             }
           : {
               filters: effectiveDocumentFilters,
               groupBy,
               orderBy,
-              extraFilters: [
-                {
-                  type: "system",
-                  key: "empty-journal",
-                  method: "is",
-                  value: "false",
-                },
-                {
-                  type: "system",
-                  key: "trash",
-                  method: "is",
-                  value: "false",
-                },
-                {
-                  type: "system",
-                  key: "template",
-                  method: "is",
-                  value: "false",
-                },
-              ],
+              extraFilters: STANDARD_EXTRA_FILTERS,
             },
       )
       .subscribe({
-        next: (result) => {
-          setDocumentGroups(result.groups);
-        },
-        error: (error) => {
-          console.error(error);
-        },
+        next: (result) => setDocumentGroups(result.groups),
+        error: (error) => console.error(error),
       });
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [
     collectionRulesService,
+    effectiveDocumentFilters,
     groupBy,
     orderBy,
-    selectedCollection,
     selectedCollectionInfo,
-    effectiveDocumentFilters,
   ]);
 
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
         explorerContextValue.selectMode$.next(false);
         explorerContextValue.selectedDocIds$.next([]);
         explorerContextValue.selectedItemKeys$.next([]);
@@ -566,47 +389,45 @@ const AllDocsInventoryPage = ({
       }
     };
     document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-    };
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [explorerContextValue]);
 
-  const handleFilterChange = useCallback((filters: FilterParams[]) => {
-    setTempFilters(filters);
-  }, []);
+  const handleEditCollectionRules = useCallback(() => {
+    if (!selectedCollectionId) {
+      return;
+    }
+    track.collection.collection.$.editCollection();
+    workspaceDialogService.open("collection-editor", {
+      collectionId: selectedCollectionId,
+      mode: "rule",
+    });
+  }, [selectedCollectionId, workspaceDialogService]);
 
   const handleSelectSavedFilter = useCallback(
     (savedFilterId: string) => {
       view.push(allDocsNavigationTo({ kind: "savedFilter", savedFilterId }));
-      setTempFilters(null);
-      setPreviewFilters(null);
-      setTempFiltersInitial(null);
+      clearTempFilters();
     },
-    [view],
+    [clearTempFilters, view],
   );
 
   const handleRemoveSavedFilter = useCallback(
     (savedFilterId: string) => {
-      const activeIndex = savedFilters.findIndex(
-        (filter) => filter.id === savedFilterId,
+      const index = savedFilters.findIndex((item) => item.id === savedFilterId);
+      const remaining = savedFilters.filter(
+        (item) => item.id !== savedFilterId,
       );
-      const remainingFilters = savedFilters.filter(
-        (filter) => filter.id !== savedFilterId,
-      );
-      const fallback =
-        remainingFilters[Math.max(0, activeIndex - 1)] ?? remainingFilters[0];
-
+      const fallback = remaining[Math.max(0, index - 1)] ?? remaining[0];
       savedFiltersService.removeSavedFilter(savedFilterId);
-
-      if (selectedSavedFilterId === savedFilterId && fallback) {
+      if (selectedSavedFilterId === savedFilterId) {
         view.push(
-          allDocsNavigationTo({
-            kind: "savedFilter",
-            savedFilterId: fallback.id,
-          }),
+          fallback
+            ? allDocsNavigationTo({
+                kind: "savedFilter",
+                savedFilterId: fallback.id,
+              })
+            : allDocsNavigationTo({ kind: "all" }),
         );
-      } else if (selectedSavedFilterId === savedFilterId) {
-        view.push(allDocsNavigationTo({ kind: "all" }));
       }
     },
     [savedFilters, savedFiltersService, selectedSavedFilterId, view],
@@ -614,58 +435,48 @@ const AllDocsInventoryPage = ({
 
   const handleSelectAll = useCallback(() => {
     view.push(allDocsNavigationTo({ kind: "all" }));
-    setTempFilters(null);
-    setPreviewFilters(null);
-    setTempFiltersInitial(null);
-  }, [view]);
+    clearTempFilters();
+  }, [clearTempFilters, view]);
 
   const handleSelectTags = useCallback(() => {
     view.push(allDocsNavigationTo({ kind: "tags" }));
-    setTempFilters(null);
-    setPreviewFilters(null);
-    setTempFiltersInitial(null);
-  }, [view]);
+    clearTempFilters();
+  }, [clearTempFilters, view]);
 
   const handleSaveFilters = useCallback(() => {
     if (selectedSavedFilterId && selectedSavedFilter) {
       savedFiltersService.updateSavedFilter(selectedSavedFilterId, {
         filters: tempFilters ?? [],
       });
-      setTempFilters(null);
-      setPreviewFilters(null);
-      setTempFiltersInitial(null);
-    } else {
-      openPromptModal({
-        title: t["com.myoxus.all-docs.saved-filters.save-title"](),
-        label: t["com.myoxus.all-docs.saved-filters.name"](),
-        inputOptions: {
-          placeholder:
-            t["com.myoxus.all-docs.saved-filters.name-placeholder"](),
-        },
-        children: t["com.myoxus.all-docs.saved-filters.save-description"](),
-        confirmText: t["com.myoxus.all-docs.saved-filters.save-confirm"](),
-        cancelText: t["Cancel"](),
-        confirmButtonOptions: {
-          variant: "primary",
-        },
-        onConfirm(name) {
-          const savedFilter = savedFiltersService.createSavedFilter({
-            name,
-            filters: tempFilters ?? [],
-          });
-          setTempFilters(null);
-          setPreviewFilters(null);
-          setTempFiltersInitial(null);
-          view.push(
-            allDocsNavigationTo({
-              kind: "savedFilter",
-              savedFilterId: savedFilter.id,
-            }),
-          );
-        },
-      });
+      clearTempFilters();
+      return;
     }
+    openPromptModal({
+      title: t["com.myoxus.all-docs.saved-filters.save-title"](),
+      label: t["com.myoxus.all-docs.saved-filters.name"](),
+      inputOptions: {
+        placeholder: t["com.myoxus.all-docs.saved-filters.name-placeholder"](),
+      },
+      children: t["com.myoxus.all-docs.saved-filters.save-description"](),
+      confirmText: t["com.myoxus.all-docs.saved-filters.save-confirm"](),
+      cancelText: t["Cancel"](),
+      confirmButtonOptions: { variant: "primary" },
+      onConfirm(name) {
+        const savedFilter = savedFiltersService.createSavedFilter({
+          name,
+          filters: tempFilters ?? [],
+        });
+        clearTempFilters();
+        view.push(
+          allDocsNavigationTo({
+            kind: "savedFilter",
+            savedFilterId: savedFilter.id,
+          }),
+        );
+      },
+    });
   }, [
+    clearTempFilters,
     openPromptModal,
     savedFiltersService,
     selectedSavedFilter,
@@ -679,7 +490,6 @@ const AllDocsInventoryPage = ({
     if (!selectedSavedFilter) {
       return;
     }
-
     openPromptModal({
       title: t["com.myoxus.all-docs.saved-filters.rename-title"](),
       label: t["com.myoxus.all-docs.saved-filters.name"](),
@@ -689,9 +499,7 @@ const AllDocsInventoryPage = ({
       },
       confirmText: t["com.myoxus.all-docs.saved-filters.update-confirm"](),
       cancelText: t["Cancel"](),
-      confirmButtonOptions: {
-        variant: "primary",
-      },
+      confirmButtonOptions: { variant: "primary" },
       onConfirm(name) {
         savedFiltersService.updateSavedFilter(selectedSavedFilter.id, { name });
       },
@@ -700,34 +508,29 @@ const AllDocsInventoryPage = ({
 
   const handleNewTempFilter = useCallback(
     (params: FilterParams) => {
-      if (
-        activeAllDocsTarget.kind !== "savedFilter" &&
-        activeAllDocsTarget.kind !== "tags"
-      ) {
+      if (activeTarget.kind !== "savedFilter" && activeTarget.kind !== "tags") {
         view.push(allDocsNavigationTo({ kind: "all" }));
       }
       setTempFilters([]);
       setPreviewFilters([params]);
       setTempFiltersInitial(params);
     },
-    [activeAllDocsTarget.kind, view],
+    [activeTarget.kind, view],
   );
 
   const handleDisplayPreferenceChange = useCallback(
-    (nextDisplayPreference: ExplorerDisplayPreference) => {
+    (nextPreference: ExplorerDisplayPreference) => {
       if (!tagsActive) {
-        setDisplayPreference(nextDisplayPreference);
+        setDisplayPreference(nextPreference);
         return;
       }
-
-      if (!isTagsGroupBy(nextDisplayPreference.groupBy)) {
-        setDisplayPreference(nextDisplayPreference);
+      if (!isTagsGroupBy(nextPreference.groupBy)) {
+        setDisplayPreference(nextPreference);
         view.replace(allDocsNavigationTo({ kind: "all" }));
         return;
       }
-
       setDisplayPreference({
-        ...nextDisplayPreference,
+        ...nextPreference,
         groupBy: displayPreference.groupBy,
       });
     },
@@ -752,6 +555,7 @@ const AllDocsInventoryPage = ({
     },
     [selectedCollection, workbench],
   );
+
   const handleCreateBlank = useCallback(
     (mode?: "page" | "edgeless", event?: ReactMouseEvent | MouseEvent) => {
       const record = createPage(mode, { show: false });
@@ -762,6 +566,7 @@ const AllDocsInventoryPage = ({
     },
     [createPage, selectedCollection, workbench],
   );
+
   const handleCreateFromTemplate = useCallback(
     async (sourceDocId: string, event?: ReactMouseEvent | MouseEvent) => {
       const result = await templateApplication.apply(sourceDocId, {
@@ -769,20 +574,22 @@ const AllDocsInventoryPage = ({
         date: new Date(),
         regionalPreferences,
       });
-      if (!result.ok) return false;
+      if (!result.ok) {
+        return false;
+      }
       finishCreatedDoc(result.docId, event);
       return true;
     },
     [finishCreatedDoc, regionalPreferences, templateApplication.apply],
   );
+
   const handleCreateDefault = useCallback(
     async (event?: ReactMouseEvent | MouseEvent) => {
       if (enablePageTemplate && pageTemplateDocId) {
-        return await handleCreateFromTemplate(pageTemplateDocId, event);
-      } else {
-        handleCreateBlank(undefined, event);
-        return true;
+        return handleCreateFromTemplate(pageTemplateDocId, event);
       }
+      handleCreateBlank(undefined, event);
+      return true;
     },
     [
       enablePageTemplate,
@@ -791,6 +598,7 @@ const AllDocsInventoryPage = ({
       pageTemplateDocId,
     ],
   );
+
   const createAction = (
     <PageListNewPageButton
       aria-busy={templateApplication.pending}
@@ -801,7 +609,7 @@ const AllDocsInventoryPage = ({
       onCreateEdgeless={(event) => handleCreateBlank("edgeless", event)}
       onCreateFromTemplate={handleCreateFromTemplate}
       size="small"
-      templateCategoryFilter={genericTemplateFilter}
+      templateCategoryFilter={GENERIC_TEMPLATE_FILTER}
       templateSuggestionSurface={
         selectedCollection
           ? TemplateSuggestionSurface.CollectionNewPage
@@ -827,8 +635,7 @@ const AllDocsInventoryPage = ({
           view={viewMode}
           onViewChange={handleInventoryViewChange}
           includeGraph={
-            activeAllDocsTarget.kind === "all" ||
-            activeAllDocsTarget.kind === "tags"
+            activeTarget.kind === "all" || activeTarget.kind === "tags"
           }
         />
       </ViewHeader>
@@ -851,9 +658,7 @@ const AllDocsInventoryPage = ({
             {!selectedCollection ? (
               <AllDocsSavedFilters
                 activeSavedFilterId={selectedSavedFilterId}
-                allActive={
-                  activeAllDocsTarget.kind === "all" && tempFilters === null
-                }
+                allActive={activeTarget.kind === "all" && tempFilters === null}
                 tagsActive={tagsActive}
                 savedFilters={savedFilters}
                 onActiveAll={handleSelectAll}
@@ -886,24 +691,16 @@ const AllDocsInventoryPage = ({
               >
                 <Box flex="1 1 auto" miw={0}>
                   <Filters
-                    // Reset the filter builder when the active saved filter changes.
                     key={selectedSavedFilterId ?? "all"}
                     filters={tempFilters}
-                    onChange={handleFilterChange}
+                    onChange={setTempFilters}
                     onPreviewChange={setPreviewFilters}
                     defaultDraftFilter={tempFiltersInitial}
                     includeAllPagesOnly
                   />
                 </Box>
                 <FilterBar data-myoxus-ui-role="all-docs-filter-actions">
-                  <Button
-                    variant="plain"
-                    onClick={() => {
-                      setTempFilters(null);
-                      setPreviewFilters(null);
-                      setTempFiltersInitial(null);
-                    }}
-                  >
+                  <Button variant="plain" onClick={clearTempFilters}>
                     {t["Cancel"]()}
                   </Button>
                   <Button onClick={handleSaveFilters}>{t["save"]()}</Button>
@@ -990,14 +787,15 @@ const AllDocsInventoryPage = ({
       </ViewBody>
     </DocExplorerContext.Provider>
   );
-};
+}
 
-export const AllPage = () => {
+export function AllPage() {
   const t = useI18n();
   const view = useService(ViewService).view;
+  const workspaceId = useService(WorkspaceService).workspace.id;
   const { displayPreference, setDisplayPreference, setViewMode, viewMode } =
     useAllDocsOptions();
-  const workspaceId = useService(WorkspaceService).workspace.id;
+
   const graphActive = useLiveData(
     view.location$.selector(
       (location) =>
@@ -1005,9 +803,12 @@ export const AllPage = () => {
         parseAllDocsDisplayView(location.search) === "graph",
     ),
   );
+
   const handleGraphViewChange = useCallback(
     (nextView: AllContentView) => {
-      if (nextView === "graph") return;
+      if (nextView === "graph") {
+        return;
+      }
       setViewMode(nextView);
       view.replace(allDocsNavigationTo({ kind: "all" }));
     },
@@ -1055,85 +856,8 @@ export const AllPage = () => {
       </ViewBody>
     </>
   );
-};
-/** Lazy route entry point for the all-pages view. */
-export const Component = () => {
+}
+
+export function Component() {
   return <AllPage />;
-};
-
-/**
- * Manages the persistent display options for the all-docs page.
- *
- * State is intentionally initialised once from `WorkspaceLocalState` so that
- * multiple simultaneously open split-view all-docs tabs each maintain their
- * own independent state (rather than sharing a global atom that would force
- * all tabs to synchronise).
- *
- * Persists changes back to `WorkspaceLocalState` on every update so the
- * preferences survive page reloads. Navigation filters live in the Workbench
- * view URL, not this local option bucket, so sidebar links and split views can
- * represent the active All Docs filter explicitly.
- *
- * @returns An object containing the current view mode, display preference,
- *   and their respective setters.
- */
-const useAllDocsOptions = () => {
-  const workspaceLocalState = useService(WorkspaceLocalState);
-
-  const readSavedViewMode = useCallback(() => {
-    return workspaceLocalState.get<ViewMode>("allDocsMode") ?? "list";
-  }, [workspaceLocalState]);
-
-  const readSavedDisplayPreference = useCallback(
-    (mode: ViewMode) => {
-      const saved = workspaceLocalState.get<ExplorerDisplayPreference>(
-        "allDocsDisplayPreference:" + mode,
-      );
-      return {
-        ...DefaultDisplayPreference[mode],
-        ...saved,
-        view: mode,
-        previewSize: isExplorerPreviewSize(saved?.previewSize)
-          ? saved.previewSize
-          : "normal",
-      };
-    },
-    [workspaceLocalState],
-  );
-
-  const [viewMode, setViewMode] = useState(readSavedViewMode);
-  const [displayPreference, setDisplayPreference] =
-    useState<ExplorerDisplayPreference>(() =>
-      readSavedDisplayPreference(viewMode),
-    );
-  const handleViewModeChange = useCallback(
-    (mode: ViewMode) => {
-      workspaceLocalState.set("allDocsMode", mode);
-      setViewMode(mode);
-      setDisplayPreference(readSavedDisplayPreference(mode));
-    },
-    [workspaceLocalState, readSavedDisplayPreference],
-  );
-
-  const handleDisplayPreferenceChange = useCallback(
-    (displayPreference: ExplorerDisplayPreference) => {
-      workspaceLocalState.set(
-        "allDocsDisplayPreference:" + viewMode,
-        displayPreference,
-      );
-      setDisplayPreference(displayPreference);
-    },
-    [viewMode, workspaceLocalState],
-  );
-
-  return {
-    viewMode,
-    setViewMode: handleViewModeChange,
-    displayPreference,
-    setDisplayPreference: handleDisplayPreferenceChange,
-  };
-};
-
-function isExplorerPreviewSize(value: unknown): value is ExplorerPreviewSize {
-  return value === "compact" || value === "normal" || value === "large";
 }

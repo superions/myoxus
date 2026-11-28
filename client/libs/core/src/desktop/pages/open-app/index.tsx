@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   RouteLogic,
   useNavigateHelper,
@@ -25,30 +28,37 @@ import {
   EmptyStateTitle,
   Loading,
 } from "@myoxus/ui-facade";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
-export const parseOpenAppUrl = (value: string | null) => {
+export function parseOpenAppUrl(value: string | null): string | null {
   const parsed = appSchemaUrl.safeParse(value);
   return parsed.success ? parsed.data : null;
-};
+}
 
-const OpenAppRouteStatus = ({
+function OpenAppRouteStatus({
   status,
   onRetry,
 }: {
   status: "loading" | "invalid" | "error";
   onRetry?: () => void;
-}) => {
+}) {
   const t = useI18n();
   const { jumpToIndex } = useNavigateHelper();
-  const loading = status === "loading";
-  const title = loading
+  const isLoading = status === "loading";
+
+  const title = isLoading
     ? t["com.myoxus.open-app.loading.title"]()
     : status === "invalid"
       ? t["com.myoxus.open-app.invalid.title"]()
       : t["com.myoxus.open-app.error.title"]();
-  const description = loading
+  const description = isLoading
     ? t["com.myoxus.open-app.loading.description"]()
     : status === "invalid"
       ? t["com.myoxus.open-app.invalid.description"]()
@@ -60,7 +70,7 @@ const OpenAppRouteStatus = ({
         title={
           <EmptyStateTitle
             icon={
-              loading ? (
+              isLoading ? (
                 <Loading />
               ) : status === "invalid" ? (
                 <OpenInNewIcon />
@@ -74,7 +84,7 @@ const OpenAppRouteStatus = ({
         }
         description={description}
         cta={
-          loading ? undefined : (
+          isLoading ? undefined : (
             <DialogFooterActions>
               <Button
                 variant="secondary"
@@ -92,53 +102,51 @@ const OpenAppRouteStatus = ({
       />
     </AuthPageContainer>
   );
-};
+}
 
-const OpenUrl = () => {
+function OpenUrl() {
   const [params] = useSearchParams();
-  const urlToOpen = params.get("url");
   const navigateHelper = useNavigateHelper();
 
-  const onOpenHere = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
+  const handleOpenHere = useCallback(
+    (event: MouseEvent) => {
+      event.preventDefault();
       navigateHelper.jumpToIndex();
     },
     [navigateHelper],
   );
 
-  const parsedUrl = parseOpenAppUrl(urlToOpen);
+  const parsedUrl = parseOpenAppUrl(params.get("url"));
   if (!parsedUrl) {
     return <OpenAppRouteStatus status="invalid" />;
   }
 
-  const urlObj = new URL(parsedUrl);
-  params.forEach((v, k) => {
-    if (k === "url") {
-      return;
+  const targetUrl = new URL(parsedUrl);
+  params.forEach((value, key) => {
+    if (key !== "url") {
+      targetUrl.searchParams.set(key, value);
     }
-    urlObj.searchParams.set(k, v);
   });
 
   return (
-    <OpenInAppPage urlToOpen={urlObj.toString()} openHereClicked={onOpenHere} />
+    <OpenInAppPage
+      urlToOpen={targetUrl.toString()}
+      openHereClicked={handleOpenHere}
+    />
   );
-};
+}
 
-/**
- * @deprecated
- */
-const OpenAppSignInRedirect = () => {
+function OpenAppSignInRedirect() {
   const authService = useService(AuthService);
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const requestRef = useRef<Promise<string> | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<"loading" | "error">("loading");
-  const navigate = useNavigate();
 
-  const maybeScheme = appSchemes.safeParse(params.get("scheme"));
-  const scheme = maybeScheme.success
-    ? maybeScheme.data
+  const parsedScheme = appSchemes.safeParse(params.get("scheme"));
+  const scheme = parsedScheme.success
+    ? parsedScheme.data
     : channelToScheme[BUILD_CONFIG.appBuildType];
   const next = normalizeOpenAppSignInNextParam(
     params.get("next"),
@@ -147,23 +155,27 @@ const OpenAppSignInRedirect = () => {
 
   useEffect(() => {
     let disposed = false;
-    const request =
+    const pending =
       requestRef.current ??
       (requestRef.current = authService.createOpenAppSignInCode());
 
-    request
+    pending
       .then((code) => {
-        if (disposed) return;
-        const urlToOpen = buildAuthenticationDeepLink({
+        if (disposed) {
+          return;
+        }
+        const deepLink = buildAuthenticationDeepLink({
           scheme,
           method: "open-app-signin",
           payload: next ? { code, next } : { code },
           server: location.origin,
         });
-        navigate(buildOpenAppUrlRoute(urlToOpen), { replace: true });
+        navigate(buildOpenAppUrlRoute(deepLink), { replace: true });
       })
       .catch(() => {
-        if (!disposed) setStatus("error");
+        if (!disposed) {
+          setStatus("error");
+        }
       });
 
     return () => {
@@ -174,20 +186,19 @@ const OpenAppSignInRedirect = () => {
   const handleRetry = useCallback(() => {
     requestRef.current = null;
     setStatus("loading");
-    setAttempt((value) => value + 1);
+    setAttempt((count) => count + 1);
   }, []);
 
   return <OpenAppRouteStatus status={status} onRetry={handleRetry} />;
-};
+}
 
-export const Component = () => {
-  const params = useParams<{ action: string }>();
-  const action = params.action || "";
-
+export function Component() {
+  const { action } = useParams<{ action: string }>();
   if (action === "url") {
     return <OpenUrl />;
-  } else if (action === "signin-redirect") {
+  }
+  if (action === "signin-redirect") {
     return <OpenAppSignInRedirect />;
   }
   return <OpenAppRouteStatus status="invalid" />;
-};
+}

@@ -1,8 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
+import { allDocsNavigationTo } from "@myoxus/core/modules/all-docs/navigation";
 import {
   type Collection,
   CollectionService,
 } from "@myoxus/core/modules/collection";
-import { allDocsNavigationTo } from "@myoxus/core/modules/all-docs/navigation";
 import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
 import { GlobalContextService } from "@myoxus/core/modules/global-context";
 import { StructureTreeStateService } from "@myoxus/core/modules/structure-tree";
@@ -41,7 +44,7 @@ const CollectionIcon: StructureTreeNodeIcon = ({
   />
 );
 
-export const StructureTreeCollectionNode = ({
+export function StructureTreeCollectionNode({
   collectionId,
   onDrop,
   location,
@@ -52,54 +55,48 @@ export const StructureTreeCollectionNode = ({
   parentPath,
 }: {
   collectionId: string;
-} & GenericStructureTreeNode) => {
+} & GenericStructureTreeNode) {
   const t = useI18n();
   const { globalContextService, workspaceDialogService } = useServices({
     GlobalContextService,
     WorkspaceDialogService,
   });
   const structureTreeStateService = useService(StructureTreeStateService);
+  const collectionService = useService(CollectionService);
+
   const active =
     useLiveData(globalContextService.globalContext.collectionId.$) ===
     collectionId;
   const path = useMemo(
     () => [...(parentPath ?? []), `collection-${collectionId}`],
-    [parentPath, collectionId],
+    [collectionId, parentPath],
   );
   const collapsed = useLiveData(structureTreeStateService.collapsed$(path));
   const setCollapsed = useCallback(
     (value: boolean) => {
       structureTreeStateService.setCollapsed(path, value);
     },
-    [structureTreeStateService, path],
+    [path, structureTreeStateService],
   );
 
-  const collectionService = useService(CollectionService);
   const collection = useLiveData(collectionService.collection$(collectionId));
   const name = useLiveData(collection?.name$);
 
-  const dndData = useMemo(() => {
-    return {
+  const dndData = useMemo<MyoxusDNDData>(
+    () => ({
       draggable: {
-        entity: {
-          type: "collection",
-          id: collectionId,
-        },
+        entity: { type: "collection", id: collectionId },
         from: location,
       },
-      dropTarget: {
-        at: "structure-tree:doc",
-      },
-    } satisfies MyoxusDNDData;
-  }, [collectionId, location]);
+      dropTarget: { at: "structure-tree:doc" },
+    }),
+    [collectionId, location],
+  );
 
   const handleRename = useCallback(
-    (name: string) => {
-      if (collection && collection.name$.value !== name) {
-        collectionService.updateCollection(collectionId, {
-          name,
-        });
-
+    (nextName: string) => {
+      if (collection && collection.name$.value !== nextName) {
+        collectionService.updateCollection(collectionId, { name: nextName });
         track.$.navigationPanel.organize.renameOrganizeItem({
           type: "collection",
         });
@@ -109,7 +106,7 @@ export const StructureTreeCollectionNode = ({
     [collection, collectionId, collectionService, t],
   );
 
-  const handleAddDocToCollection = useCallback(
+  const addDocToCollection = useCallback(
     (docId: string) => {
       if (!collection) {
         return;
@@ -127,7 +124,7 @@ export const StructureTreeCollectionNode = ({
     (data: DropTargetDropEvent<MyoxusDNDData>) => {
       if (collection && data.treeInstruction?.type === "make-child") {
         if (data.source.data.entity?.type === "doc") {
-          handleAddDocToCollection(data.source.data.entity.id);
+          addDocToCollection(data.source.data.entity.id);
           track.$.navigationPanel.organize.createOrganizeItem({
             type: "link",
             target: "doc",
@@ -137,23 +134,19 @@ export const StructureTreeCollectionNode = ({
             type: data.source.data.entity.type,
           });
         }
-      } else {
-        onDrop?.(data);
+        return;
       }
+      onDrop?.(data);
     },
-    [collection, onDrop, handleAddDocToCollection],
+    [addDocToCollection, collection, onDrop],
   );
 
   const handleDropEffectOnCollection = useCallback<StructureTreeNodeDropEffect>(
     (data) => {
       if (collection && data.treeInstruction?.type === "make-child") {
-        if (data.source.data.entity?.type === "doc") {
-          return "link";
-        }
-      } else {
-        return dropEffect?.(data);
+        return data.source.data.entity?.type === "doc" ? "link" : undefined;
       }
-      return;
+      return dropEffect?.(data);
     },
     [collection, dropEffect],
   );
@@ -161,14 +154,14 @@ export const StructureTreeCollectionNode = ({
   const handleDropOnPlaceholder = useCallback(
     (data: DropTargetDropEvent<MyoxusDNDData>) => {
       if (collection && data.source.data.entity?.type === "doc") {
-        handleAddDocToCollection(data.source.data.entity.id);
+        addDocToCollection(data.source.data.entity.id);
         track.$.navigationPanel.organize.createOrganizeItem({
           type: "collection",
           control: "drag",
         });
       }
     },
-    [collection, handleAddDocToCollection],
+    [addDocToCollection, collection],
   );
 
   const handleOpenCollapsed = useCallback(() => {
@@ -176,12 +169,11 @@ export const StructureTreeCollectionNode = ({
   }, [setCollapsed]);
 
   const handleEditCollection = useCallback(() => {
-    if (!collection) {
-      return;
+    if (collection) {
+      workspaceDialogService.open("collection-editor", {
+        collectionId: collection.id,
+      });
     }
-    workspaceDialogService.open("collection-editor", {
-      collectionId: collection.id,
-    });
   }, [collection, workspaceDialogService]);
 
   const collectionOperations = useStructureTreeCollectionNodeOperations(
@@ -189,21 +181,19 @@ export const StructureTreeCollectionNode = ({
     handleOpenCollapsed,
     handleEditCollection,
   );
-
-  const finalOperations = useMemo(() => {
-    if (additionalOperations) {
-      return [...additionalOperations, ...collectionOperations];
-    }
-    return collectionOperations;
-  }, [collectionOperations, additionalOperations]);
+  const finalOperations = useMemo(
+    () =>
+      additionalOperations
+        ? [...additionalOperations, ...collectionOperations]
+        : collectionOperations,
+    [additionalOperations, collectionOperations],
+  );
 
   const handleCanDrop = useMemo<DropTargetOptions<MyoxusDNDData>["canDrop"]>(
-    () => (args) => {
-      const entityType = args.source.data.entity?.type;
-      return args.treeInstruction?.type !== "make-child"
+    () => (args) =>
+      args.treeInstruction?.type !== "make-child"
         ? ((typeof canDrop === "function" ? canDrop(args) : canDrop) ?? true)
-        : entityType === "doc";
-    },
+        : args.source.data.entity?.type === "doc",
     [canDrop],
   );
 
@@ -232,10 +222,7 @@ export const StructureTreeCollectionNode = ({
       operations={finalOperations}
       dropEffect={handleDropEffectOnCollection}
       data-testid={`structure-tree-collection-${collectionId}`}
-      explorerIconConfig={{
-        where: "collection",
-        id: collectionId,
-      }}
+      explorerIconConfig={{ where: "collection", id: collectionId }}
     >
       <StructureTreeCollectionNodeChildren
         collection={collection}
@@ -243,42 +230,35 @@ export const StructureTreeCollectionNode = ({
       />
     </StructureTreeNode>
   );
-};
+}
 
-const StructureTreeCollectionNodeChildren = ({
+function StructureTreeCollectionNodeChildren({
   collection,
   path,
 }: {
   collection: Collection;
   path: string[];
-}) => {
+}) {
   const t = useI18n();
-  const { collectionService } = useServices({
-    CollectionService,
-  });
-
+  const collectionService = useService(CollectionService);
   const allowList = useLiveData(
     collection.allowList$.map((list) => new Set(list)),
   );
+  const [filteredDocIds, setFilteredDocIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const subscription = collection.watch().subscribe(setFilteredDocIds);
+    return () => subscription.unsubscribe();
+  }, [collection]);
 
   const handleRemoveFromAllowList = useCallback(
-    (id: string) => {
+    (docId: string) => {
       track.$.navigationPanel.collections.removeOrganizeItem({ type: "doc" });
-      collectionService.removeDocFromCollection(collection.id, id);
+      collectionService.removeDocFromCollection(collection.id, docId);
       notify({ title: t["com.myoxus.collection.removePage.success"]() });
     },
     [collection.id, collectionService, t],
   );
-
-  const [filteredDocIds, setFilteredDocIds] = useState<string[]>([]);
-
-  useEffect(() => {
-    const subscription = collection.watch().subscribe((docIds) => {
-      setFilteredDocIds(docIds);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [collection]);
 
   return filteredDocIds.map((docId) => (
     <StructureTreeDocNode
@@ -309,4 +289,4 @@ const StructureTreeCollectionNodeChildren = ({
       }
     />
   ));
-};
+}

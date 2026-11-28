@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { Guard } from "@myoxus/core/components/guard";
 import { useDocumentOperations } from "@myoxus/core/components/hooks/myoxus/use-document-operations";
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
@@ -37,7 +40,7 @@ import { useCallback, useMemo, useState } from "react";
 import { WorkspaceContentOperationMenuItems } from "../../../workspace-content-operation/menu-items";
 import type { NodeOperation } from "../../tree/types";
 
-const StructureTreeDocTagsOperation = ({ docId }: { docId: string }) => {
+function StructureTreeDocTagsOperation({ docId }: { docId: string }) {
   const t = useI18n();
   const tagService = useService(TagService);
   const assignmentState = useLiveData(
@@ -78,16 +81,16 @@ const StructureTreeDocTagsOperation = ({ docId }: { docId: string }) => {
       )}
     </Guard>
   );
-};
+}
 
-export const useStructureTreeDocNodeOperations = (
+export function useStructureTreeDocNodeOperations(
   docId: string,
   options: {
     openInfoModal: () => void;
     openNodeCollapsed: () => void;
     showLinkedDocuments: boolean;
   },
-): NodeOperation[] => {
+): NodeOperation[] {
   const t = useI18n();
   const {
     workbenchService,
@@ -103,26 +106,27 @@ export const useStructureTreeDocNodeOperations = (
     GuardService,
   });
   const { openConfirmModal } = useConfirmModal();
-
   const [addLinkedPageLoading, setAddLinkedPageLoading] = useState(false);
+
   const docRecord = useLiveData(docsService.list.doc$(docId));
   const { showLinkedDocuments } = options;
-
   const { createPage } = usePageHelper(
     workspaceService.workspace.docCollection,
   );
-
   const favorite = useLiveData(
-    useMemo(() => {
-      return compatibleFavoriteItemsAdapter.isFavorite$(docId, "doc");
-    }, [docId, compatibleFavoriteItemsAdapter]),
+    useMemo(
+      () => compatibleFavoriteItemsAdapter.isFavorite$(docId, "doc"),
+      [compatibleFavoriteItemsAdapter, docId],
+    ),
   );
 
   const { duplicate, moveToTrash } = useDocumentOperations();
+
   const handleDuplicate = useCallback(() => {
     duplicate(docId, true);
     track.$.navigationPanel.docs.createDoc();
   }, [docId, duplicate]);
+
   const handleOpenInfoModal = useCallback(() => {
     track.$.docInfoPanel.$.open();
     options.openInfoModal();
@@ -139,37 +143,25 @@ export const useStructureTreeDocNodeOperations = (
       }),
       confirmText: t["com.myoxus.moveToTrash.confirmModal.confirm"](),
       cancelText: t["com.myoxus.moveToTrash.confirmModal.cancel"](),
-      confirmButtonOptions: {
-        variant: "error",
-      },
+      confirmButtonOptions: { variant: "error" },
       async onConfirm() {
         await moveToTrash(docRecord);
-        track.$.navigationPanel.docs.deleteDoc({
-          control: "button",
-        });
+        track.$.navigationPanel.docs.deleteDoc({ control: "button" });
         notify({ title: t["com.myoxus.toastMessage.movedTrash"]() });
       },
     });
   }, [docRecord, moveToTrash, openConfirmModal, t]);
 
   const handleOpenInNewTab = useCallback(() => {
-    workbenchService.workbench.openDoc(docId, {
-      at: "new-tab",
-    });
+    workbenchService.workbench.openDoc(docId, { at: "new-tab" });
     track.$.navigationPanel.docs.openDoc();
-    track.$.navigationPanel.organize.openInNewTab({
-      type: "doc",
-    });
+    track.$.navigationPanel.organize.openInNewTab({ type: "doc" });
   }, [docId, workbenchService]);
 
   const handleOpenInSplitView = useCallback(() => {
-    workbenchService.workbench.openDoc(docId, {
-      at: "beside",
-    });
+    workbenchService.workbench.openDoc(docId, { at: "beside" });
     track.$.navigationPanel.docs.openDoc();
-    track.$.navigationPanel.organize.openInSplitView({
-      type: "doc",
-    });
+    track.$.navigationPanel.organize.openInSplitView({ type: "doc" });
   }, [docId, workbenchService.workbench]);
 
   const handleAddLinkedPage = useAsyncCallback(async () => {
@@ -181,7 +173,6 @@ export const useStructureTreeDocNodeOperations = (
         return;
       }
       const newDoc = createPage();
-      // TODO: handle timeout & error
       await docsService.addLinkedDoc(docId, newDoc.id);
       track.$.navigationPanel.docs.createDoc({ control: "linkDoc" });
       track.$.navigationPanel.docs.linkDoc({ control: "createDoc" });
@@ -189,14 +180,12 @@ export const useStructureTreeDocNodeOperations = (
     } finally {
       setAddLinkedPageLoading(false);
     }
-  }, [createPage, guardService, docId, docsService, options, t]);
+  }, [createPage, docId, docsService, guardService, options, t]);
 
   const handleToggleFavoriteDoc = useCallback(() => {
     compatibleFavoriteItemsAdapter.toggle(docId, "doc");
-    track.$.navigationPanel.organize.toggleFavorite({
-      type: "doc",
-    });
-  }, [docId, compatibleFavoriteItemsAdapter]);
+    track.$.navigationPanel.organize.toggleFavorite({ type: "doc" });
+  }, [compatibleFavoriteItemsAdapter, docId]);
 
   return useMemo(
     () => [
@@ -320,7 +309,7 @@ export const useStructureTreeDocNodeOperations = (
           <Guard docId={docId} permission="Doc_Trash">
             {(canMoveToTrash) => (
               <MenuItem
-                type={"danger"}
+                type="danger"
                 prefixIcon={<DeleteIcon />}
                 onClick={handleMoveToTrash}
                 disabled={!canMoveToTrash}
@@ -334,7 +323,6 @@ export const useStructureTreeDocNodeOperations = (
     ],
     [
       addLinkedPageLoading,
-      showLinkedDocuments,
       docId,
       favorite,
       handleAddLinkedPage,
@@ -344,7 +332,8 @@ export const useStructureTreeDocNodeOperations = (
       handleOpenInSplitView,
       handleOpenInfoModal,
       handleToggleFavoriteDoc,
+      showLinkedDocuments,
       t,
     ],
   );
-};
+}

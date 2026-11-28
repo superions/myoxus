@@ -1,86 +1,90 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { Store } from "@virgultum/editor/store";
 import { type Atom, atom } from "jotai";
 
-const MAX_PREVIEW_LENGTH = 150;
-const MAX_SEARCH_BLOCK_COUNT = 30;
+const PREVIEW_CHAR_LIMIT = 150;
+const PREVIEW_BLOCK_LIMIT = 30;
 
-const weakMap = new WeakMap<Store, Atom<string>>();
+const previewAtoms = new WeakMap<Store, Atom<string>>();
+const EMPTY_PREVIEW_ATOM = atom<string>("");
 
-export const getPagePreviewText = (page: Store) => {
-  const pageRoot = page.root;
-  if (!pageRoot) {
+export const getPagePreviewText = (page: Store): string => {
+  const root = page.root;
+  if (!root) {
     return "";
   }
-  const preview: string[] = [];
-  // DFS
-  const queue = [pageRoot];
-  let previewLenNeeded = MAX_PREVIEW_LENGTH;
-  let count = MAX_SEARCH_BLOCK_COUNT;
-  while (queue.length && previewLenNeeded > 0 && count-- > 0) {
-    const block = queue.shift();
-    // if preview length is enough, skip the rest of the blocks
-    if (preview.join(" ").trim().length >= MAX_PREVIEW_LENGTH) {
+
+  const segments: string[] = [];
+  const stack = [root];
+  let remainingChars = PREVIEW_CHAR_LIMIT;
+  let remainingBlocks = PREVIEW_BLOCK_LIMIT;
+
+  while (stack.length > 0 && remainingChars > 0 && remainingBlocks-- > 0) {
+    if (segments.join(" ").trim().length >= PREVIEW_CHAR_LIMIT) {
       break;
     }
-    if (!block) {
-      console.error("Unexpected empty block");
-      break;
-    }
+
+    const block = stack.shift();
+    if (!block) break;
+
+    // Exclude edgeless canvas surface blocks from text-based page snippets.
     if (block.flavour === "myoxus:surface") {
-      // The surface block is a special block that contains canvas data,
-      // it should not be included in the preview.
       continue;
     }
-    if (block.children) {
-      queue.unshift(...block.children);
+
+    if (block.children?.length) {
+      stack.unshift(...block.children);
     }
+
     if (block.role !== "content") {
       continue;
     }
+
     if (block.text) {
-      // Text block e.g. paragraph/heading/list/code
-      const text = block.text.toString();
-      if (!text.length) {
-        continue;
+      const value = block.text.toString();
+      if (value.length > 0) {
+        remainingChars -= value.length;
+        segments.push(value);
       }
-      previewLenNeeded -= text.length;
-      preview.push(text);
     } else {
-      // Other block e.g. image/attachment/bookmark
-      const type = block.flavour.split("myoxus:")[1] ?? null;
-      if (type) {
-        previewLenNeeded -= type.length + 2;
-        preview.push(`[${type}]`);
+      const kind = block.flavour.split("myoxus:")[1];
+      if (kind) {
+        remainingChars -= kind.length + 2;
+        segments.push(`[${kind}]`);
       }
     }
   }
-  return preview.join(" ").trim().slice(0, MAX_PREVIEW_LENGTH);
+
+  return segments.join(" ").trim().slice(0, PREVIEW_CHAR_LIMIT);
 };
 
-const emptyAtom = atom<string>("");
-
 export function useVirgultumPagePreview(page: Store | null): Atom<string> {
-  if (page === null) {
-    return emptyAtom;
-  } else if (weakMap.has(page)) {
-    return weakMap.get(page) as Atom<string>;
-  } else {
-    const baseAtom = atom<string>("");
-    baseAtom.onMount = (set) => {
-      const disposables = [
-        page.slots.ready.subscribe(() => {
-          set(getPagePreviewText(page));
-        }),
-        page.slots.blockUpdated.subscribe(() => {
-          set(getPagePreviewText(page));
-        }),
-      ];
-      set(getPagePreviewText(page));
-      return () => {
-        disposables.forEach((disposable) => disposable.unsubscribe());
-      };
-    };
-    weakMap.set(page, baseAtom);
-    return baseAtom;
+  if (!page) {
+    return EMPTY_PREVIEW_ATOM;
   }
+
+  const cached = previewAtoms.get(page);
+  if (cached) {
+    return cached;
+  }
+
+  const previewAtom = atom<string>("");
+  previewAtom.onMount = (setValue) => {
+    const refresh = () => setValue(getPagePreviewText(page));
+    const subscriptions = [
+      page.slots.ready.subscribe(refresh),
+      page.slots.blockUpdated.subscribe(refresh),
+    ];
+    refresh();
+    return () => {
+      for (const subscription of subscriptions) {
+        subscription.unsubscribe();
+      }
+    };
+  };
+
+  previewAtoms.set(page, previewAtom);
+  return previewAtom;
 }

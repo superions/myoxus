@@ -59,12 +59,25 @@ export function ColorSwatch({
   );
 }
 
+export type ColorDotTone = "primary" | "info";
+
+function resolveColorDotTone(tone: ColorDotTone): string {
+  switch (tone) {
+    case "primary":
+      return cssVar("primaryColor");
+    case "info":
+      return cssVar("processingColor");
+  }
+}
+
 export function ColorDot({
   color,
+  tone,
   className,
   "aria-label": ariaLabel,
 }: {
-  color: string;
+  color?: string;
+  tone?: ColorDotTone;
   className?: string;
   "aria-label"?: string;
 }) {
@@ -72,7 +85,7 @@ export function ColorDot({
     <ColorSwatch
       aria-label={ariaLabel}
       className={className}
-      color={color}
+      color={tone ? resolveColorDotTone(tone) : color}
       shape="circle"
       size={"var(--mantine-spacing-xs)"}
       data-myoxus-ui-role="color-dot"

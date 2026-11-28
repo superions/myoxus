@@ -1,20 +1,36 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useI18n } from "@myoxus/i18n";
 import {
   ExportIcon,
   ExportToHtmlIcon,
   ExportToMarkdownIcon,
   ExportToPngIcon,
+  FileIconDocxIcon,
+  InformationIcon,
   PageIcon,
   PrinterIcon,
   WorkflowIcon,
-  FileIconDocxIcon,
-  InformationIcon,
 } from "@myoxus/icons/react";
 import { track } from "@myoxus/track";
 import { MenuItem, MenuSeparator, MenuSub, Tooltip } from "@myoxus/ui-facade";
 import { type ReactNode, useCallback } from "react";
 
-interface ExportMenuItemProps<T> {
+export type ExportFormatType =
+  | "pdf"
+  | "docx"
+  | "html"
+  | "png"
+  | "markdown"
+  | "snapshot"
+  | "pdf-export"
+  | "mermaid-source"
+  | "mermaid-markdown"
+  | "mermaid-svg"
+  | "mermaid-png";
+
+export interface ExportMenuItemProps<T> {
   onSelect: () => void;
   className?: string;
   type: T;
@@ -25,21 +41,8 @@ interface ExportMenuItemProps<T> {
   unavailableReason?: string;
 }
 
-interface ExportProps {
-  exportHandler: (
-    type:
-      | "pdf"
-      | "docx"
-      | "html"
-      | "png"
-      | "markdown"
-      | "snapshot"
-      | "pdf-export"
-      | "mermaid-source"
-      | "mermaid-markdown"
-      | "mermaid-svg"
-      | "mermaid-png",
-  ) => void;
+export interface ExportProps {
+  exportHandler: (type: ExportFormatType) => void;
   pageMode?: "page" | "edgeless";
   className?: string;
   isMermaidDiagram?: boolean;
@@ -56,7 +59,7 @@ export function ExportMenuItem<T>({
   suffix,
   unavailableReason,
 }: ExportMenuItemProps<T>) {
-  const item = (
+  const menuItem = (
     <MenuItem
       className={className}
       data-testid={`export-to-${type}`}
@@ -74,15 +77,16 @@ export function ExportMenuItem<T>({
       {label}
     </MenuItem>
   );
+
   return unavailableReason ? (
     <Tooltip
       content={unavailableReason}
       events={{ hover: true, focus: true, touch: false }}
     >
-      {item}
+      {menuItem}
     </Tooltip>
   ) : (
-    item
+    menuItem
   );
 }
 
@@ -117,7 +121,7 @@ export const ExportMenuItems = ({
         icon={<ExportToHtmlIcon />}
         label={t["Export to HTML"]()}
       />
-      {pageMode !== "edgeless" && (
+      {pageMode !== "edgeless" ? (
         <ExportMenuItem
           onSelect={() => exportHandler("png")}
           className={className}
@@ -125,7 +129,7 @@ export const ExportMenuItems = ({
           icon={<ExportToPngIcon />}
           label={t["Export to PNG"]()}
         />
-      )}
+      ) : null}
       <ExportMenuItem
         onSelect={() => exportHandler("markdown")}
         className={className}
@@ -203,40 +207,38 @@ export const Export = ({
   docxUnavailableReason,
 }: ExportProps) => {
   const t = useI18n();
-  const items = (
-    <>
-      <ExportMenuItems
-        exportHandler={exportHandler}
-        className={className}
-        pageMode={pageMode}
-        isMermaidDiagram={isMermaidDiagram}
-        docxUnavailableReason={docxUnavailableReason}
-      />
-      {pageMode !== "edgeless" && (
-        <>
-          <MenuSeparator />
-          <PrintMenuItems exportHandler={exportHandler} className={className} />
-        </>
-      )}
-    </>
-  );
-  const handleExportMenuOpenChange = useCallback((open: boolean) => {
-    if (open) {
-      track.$.header.docOptions.export();
-    }
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (open) track.$.header.docOptions.export();
   }, []);
 
   return (
     <MenuSub
-      items={items}
+      items={
+        <>
+          <ExportMenuItems
+            exportHandler={exportHandler}
+            className={className}
+            pageMode={pageMode}
+            isMermaidDiagram={isMermaidDiagram}
+            docxUnavailableReason={docxUnavailableReason}
+          />
+          {pageMode !== "edgeless" ? (
+            <>
+              <MenuSeparator />
+              <PrintMenuItems
+                exportHandler={exportHandler}
+                className={className}
+              />
+            </>
+          ) : null}
+        </>
+      }
       narrowBehavior="inline"
       triggerOptions={{
         prefixIcon: <ExportIcon />,
         "data-testid": "export-menu",
       }}
-      subOptions={{
-        onOpenChange: handleExportMenuOpenChange,
-      }}
+      subOptions={{ onOpenChange: handleOpenChange }}
     >
       {t.Export()}
     </MenuSub>

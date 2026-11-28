@@ -1,20 +1,13 @@
-/**
- * EditorChatPanel — the AI chat sidebar tab for the document editor.
- *
- * Renders the shared React `AIChatContent` and `ChatToolbar`.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import { useAIChatConfig } from "@myoxus/core/components/hooks/myoxus/use-ai-chat-config";
-import { AIProvider } from "@myoxus/core/editor/ai/provider/ai-provider";
-import {
-  AIChatContent,
-  type ChatContextValue,
-} from "@myoxus/core/editor/ai/components/ai-chat-content";
-import type { ChatStatus } from "@myoxus/core/editor/ai/components/ai-chat-messages";
+import { AIChatContent } from "@myoxus/core/editor/ai/components/ai-chat-content";
 import { ChatToolbar } from "@myoxus/core/editor/ai/components/ai-chat-toolbar";
+import { AIProvider } from "@myoxus/core/editor/ai/provider/ai-provider";
 import { NotificationServiceImpl } from "@myoxus/core/editor/view-extensions/editor-view/notification-service";
-import { createPageAiBridge } from "@myoxus/core/editor/virgultum/doc-editor/page-ai-bridge";
 import type { MyoxusEditorContainer } from "@myoxus/core/editor/virgultum/doc-editor";
+import { createPageAiBridge } from "@myoxus/core/editor/virgultum/doc-editor/page-ai-bridge";
 import {
   AIDraftService,
   AIToolsConfigService,
@@ -27,7 +20,6 @@ import { WorkbenchService } from "@myoxus/core/modules/workbench";
 import type {
   ContextEmbedStatus,
   CopilotChatHistoryFragment,
-  UpdateChatSessionInput,
 } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
 import { useFramework, useService, useServiceOptional } from "@myoxus/infra";
@@ -44,7 +36,10 @@ import { RefNodeSlotsProvider } from "@virgultum/editor/inlines/reference";
 import { DocModeProvider } from "@virgultum/editor/shared/services";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { createSessionDeleteHandler } from "../../../chat-panel-utils";
+import {
+  type ChatSessionTransport,
+  useChatSessionController,
+} from "../../../chat-panel-utils";
 import { ChatLoadingState } from "./loading-state";
 import {
   consumeSessionIdFromUrl,
@@ -58,9 +53,12 @@ export interface EditorChatPanelProps {
   onLoad?: ((component: HTMLElement) => void) | null;
 }
 
-export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
+export function EditorChatPanel({ editor, onLoad }: EditorChatPanelProps) {
   const framework = useFramework();
   const workbench = useService(WorkbenchService).workbench;
+  const server = useService(ServerService).server;
+  const owner = useServiceOptional(EditorService)?.editor;
+  const peekViewService = framework.get(PeekViewService);
   const t = useI18n();
 
   const { closeConfirmModal, openConfirmModal } = useConfirmModal();
@@ -71,161 +69,150 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
   const { docDisplayConfig, searchMenuConfig, reasoningConfig } =
     useAIChatConfig();
 
-  const [session, setSession] = useState<
-    CopilotChatHistoryFragment | null | undefined
-  >(undefined);
   const [embeddingProgress, setEmbeddingProgress] = useState<[number, number]>([
     0, 0,
   ]);
-  const [status, setStatus] = useState<ChatStatus>("idle");
   const [hasPinned, setHasPinned] = useState(false);
-  const [sessionError, setSessionError] = useState(false);
   const [, setEditorSyncTick] = useState(0);
-  const retrySessionRef = useRef<() => void>(() => {});
 
   const prevSessionIdRef = useRef<string | null>(null);
   const lastDocRef = useRef<{ id: string; workspaceId: string } | null>(null);
-  const sessionLoadSeqRef = useRef(0);
   const loadedNotifiedRef = useRef(false);
-
-  const owner = useServiceOptional(EditorService)?.editor;
-  const server = useService(ServerService).server;
-  const peekViewService = framework.get(PeekViewService);
 
   const doc = editor?.doc ?? owner?.doc.virgultumDoc;
   const host = editor?.host ?? null;
 
+  const transport = useMemo<ChatSessionTransport | null>(
+    () =>
+      doc
+        ? {
+            createSessionWithHistory: async (options) =>
+              AIProvider.session?.createSessionWithHistory(options),
+            getSession: async (targetWorkspaceId, sessionId) =>
+              AIProvider.session?.getSession(targetWorkspaceId, sessionId),
+            updateSession: async (options) =>
+              AIProvider.session?.updateSession(options),
+            canDeleteSession: () => Boolean(AIProvider.histories),
+            cleanupSession: async (sessionToDelete) => {
+              await AIProvider.histories?.cleanup(
+                sessionToDelete.workspaceId,
+                sessionToDelete.docId || undefined,
+                [sessionToDelete.sessionId],
+              );
+            },
+          }
+        : null,
+    [doc],
+  );
+
+  const handleSessionApplied = useCallback(
+    (nextSession: CopilotChatHistoryFragment | null) => {
+      setHasPinned(Boolean(nextSession?.pinned));
+    },
+    [],
+  );
+
+  const handleActiveSessionDeleted = useCallback(
+    ({ createFreshSession }: { createFreshSession: () => Promise<void> }) => {
+      createFreshSession().catch(console.error);
+    },
+    [],
+  );
+
+  const controller = useChatSessionController({
+    workspaceId: doc?.workspace.id,
+    docId: doc?.id,
+    initialSession: undefined,
+    transport,
+    t,
+    notificationService,
+    onSessionApplied: handleSessionApplied,
+    onActiveSessionDeleted: handleActiveSessionDeleted,
+  });
+
+  const rebindSession = useCallback(async () => {
+    if (!controller.session || !doc) {
+      return;
+    }
+    if (controller.session.docId !== doc.id) {
+      await controller.updateSession({
+        sessionId: controller.session.sessionId,
+        docId: doc.id,
+      });
+    }
+  }, [controller.session, controller.updateSession, doc]);
+
+  const handleContextChange = useCallback(
+    (context: Parameters<typeof controller.onContextChange>[0]) => {
+      controller.onContextChange(context);
+      if (context.status === "success") {
+        rebindSession().catch(console.error);
+      }
+    },
+    [controller.onContextChange, rebindSession],
+  );
+
   const resetPanel = useCallback(() => {
-    sessionLoadSeqRef.current += 1;
-    setSession(undefined);
-    setSessionError(false);
+    controller.resetSessionState(undefined);
     setEmbeddingProgress([0, 0]);
     setHasPinned(false);
-  }, []);
+  }, [controller.resetSessionState]);
 
   const initPanel = useCallback(async () => {
-    const requestSeq = ++sessionLoadSeqRef.current;
+    const requestSeq = controller.bumpRequestSeq();
     const requestedId = getSessionIdFromUrl(workbench);
-    setSessionError(false);
+    controller.setSessionError(false);
     try {
       const nextSession = await resolveInitialSession({
         sessionService: AIProvider.session ?? undefined,
         doc,
         workbench: workbench as WorkbenchLike,
       });
-
-      if (requestSeq !== sessionLoadSeqRef.current) return;
-      if (nextSession === undefined) return;
-
-      setSession(nextSession);
-      setHasPinned(!!nextSession?.pinned);
-      if (nextSession) consumeSessionIdFromUrl(workbench, requestedId);
-    } catch {
-      if (requestSeq !== sessionLoadSeqRef.current) return;
-      retrySessionRef.current = () => void initPanel();
-      setSessionError(true);
-    }
-  }, [doc, workbench]);
-
-  const createSession = useCallback(
-    async (options: Partial<VirgultumPresets.AICreateSessionOptions> = {}) => {
-      if (session || !AIProvider.session || !doc) {
-        return session ?? undefined;
-      }
-      const requestSeq = ++sessionLoadSeqRef.current;
-      const nextSession = await AIProvider.session.createSessionWithHistory({
-        docId: doc.id,
-        workspaceId: doc.workspace.id,
-        promptName: "Chat With Myoxus AI",
-        reuseLatestChat: false,
-        ...options,
-      });
-      if (requestSeq !== sessionLoadSeqRef.current) return undefined;
-      if (!nextSession) throw new Error("Conversation creation unavailable");
-      setSession(nextSession);
-      setHasPinned(!!nextSession?.pinned);
-      return nextSession ?? undefined;
-    },
-    [doc, session],
-  );
-
-  const updateSession = useCallback(
-    async (options: UpdateChatSessionInput) => {
-      if (!AIProvider.session || !doc) {
-        return undefined;
-      }
-      const requestSeq = ++sessionLoadSeqRef.current;
-      await AIProvider.session.updateSession(options);
-      const nextSession = await AIProvider.session.getSession(
-        doc.workspace.id,
-        options.sessionId,
-      );
-      if (requestSeq !== sessionLoadSeqRef.current) return undefined;
-      if (!nextSession) throw new Error("Requested conversation unavailable");
-      setSession(nextSession);
-      setHasPinned(!!nextSession?.pinned);
-      return nextSession ?? undefined;
-    },
-    [doc],
-  );
-
-  const newSession = useCallback(async () => {
-    if (!AIProvider.session || !doc) {
-      return;
-    }
-
-    const requestSeq = ++sessionLoadSeqRef.current;
-    setSessionError(false);
-    try {
-      const nextSession = await AIProvider.session.createSessionWithHistory({
-        docId: doc.id,
-        workspaceId: doc.workspace.id,
-        promptName: "Chat With Myoxus AI",
-        reuseLatestChat: false,
-      });
-      if (requestSeq === sessionLoadSeqRef.current) {
-        if (!nextSession) throw new Error("Conversation creation unavailable");
-        setSession(nextSession);
-        setHasPinned(!!nextSession?.pinned);
-      }
-    } catch {
-      if (requestSeq !== sessionLoadSeqRef.current) return;
-      retrySessionRef.current = () => void newSession();
-      setSessionError(true);
-    }
-  }, [doc]);
-
-  const openSession = useCallback(
-    async (sessionId: string) => {
-      if (session?.sessionId === sessionId || !AIProvider.session || !doc) {
+      if (!controller.isCurrentRequest(requestSeq)) {
         return;
       }
-      const requestSeq = ++sessionLoadSeqRef.current;
-      setSessionError(false);
-      try {
-        const nextSession = await AIProvider.session.getSession(
-          doc.workspace.id,
-          sessionId,
-        );
-        if (requestSeq !== sessionLoadSeqRef.current) return;
-        if (!nextSession) throw new Error("Requested conversation unavailable");
-        setSession(nextSession);
-        setHasPinned(!!nextSession?.pinned);
-      } catch {
-        if (requestSeq !== sessionLoadSeqRef.current) return;
-        retrySessionRef.current = () => void openSession(sessionId);
-        setSessionError(true);
+      if (nextSession === undefined) {
+        return;
       }
-    },
-    [doc, session?.sessionId],
-  );
+      controller.setSession(nextSession);
+      setHasPinned(Boolean(nextSession?.pinned));
+      if (nextSession) {
+        consumeSessionIdFromUrl(workbench, requestedId);
+      }
+    } catch {
+      if (!controller.isCurrentRequest(requestSeq)) {
+        return;
+      }
+      controller.setRetryHandler(() => {
+        void initPanel();
+      });
+      controller.setSessionError(true);
+    }
+  }, [
+    controller.bumpRequestSeq,
+    controller.isCurrentRequest,
+    controller.setRetryHandler,
+    controller.setSession,
+    controller.setSessionError,
+    doc,
+    workbench,
+  ]);
 
   const openDoc = useCallback(
     async (docId: string, sessionId?: string) => {
-      if (!doc) return;
+      if (!doc) {
+        return;
+      }
       if (doc.id === docId) {
-        if (session?.sessionId === sessionId || session?.pinned) return;
-        if (sessionId) await openSession(sessionId);
+        if (
+          controller.session?.sessionId === sessionId ||
+          controller.session?.pinned
+        ) {
+          return;
+        }
+        if (sessionId) {
+          await controller.openSession(sessionId);
+        }
         return;
       }
       if (!sessionId) {
@@ -234,147 +221,117 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
       }
       workbench.open(`/${docId}?sessionId=${sessionId}`, { at: "active" });
     },
-    [doc, openSession, session?.pinned, session?.sessionId, workbench],
+    [
+      controller.openSession,
+      controller.session?.pinned,
+      controller.session?.sessionId,
+      doc,
+      workbench,
+    ],
   );
-
-  const deleteSession = useMemo(
-    () =>
-      createSessionDeleteHandler({
-        t,
-        notificationService,
-        canDeleteSession: () => Boolean(AIProvider.histories),
-        cleanupSession: async (sessionToDelete) => {
-          await AIProvider.histories?.cleanup(
-            sessionToDelete.workspaceId,
-            sessionToDelete.docId || undefined,
-            [sessionToDelete.sessionId],
-          );
-        },
-        isActiveSession: (sessionToDelete) =>
-          sessionToDelete.sessionId === session?.sessionId,
-        onActiveSessionDeleted: () => {
-          newSession().catch(console.error);
-        },
-      }),
-    [newSession, notificationService, session?.sessionId, t],
-  );
-
-  const togglePin = useCallback(async () => {
-    const pinned = !session?.pinned;
-    if (!session) {
-      await createSession({ pinned });
-      return;
-    }
-    await updateSession({
-      sessionId: session.sessionId,
-      pinned,
-    });
-  }, [createSession, session, updateSession]);
 
   const expandToMainChat = useCallback(() => {
-    if (!doc) return;
+    if (!doc) {
+      return;
+    }
     const query = new URLSearchParams({ fromDocId: doc.id });
-    if (session?.sessionId) query.set("sessionId", session.sessionId);
+    if (controller.session?.sessionId) {
+      query.set("sessionId", controller.session.sessionId);
+    }
     const mode = new URLSearchParams(workbench.location$.value.search).get(
       "mode",
     );
-    if (mode === "edgeless") query.set("fromMode", mode);
+    if (mode === "edgeless") {
+      query.set("fromMode", mode);
+    }
     workbench.open(`/chat?${query}`, { at: "active" });
     workbench.closeContextPanel();
-  }, [doc, session?.sessionId, workbench]);
-
-  const rebindSession = useCallback(async () => {
-    if (!session || !doc) return;
-    if (session.docId !== doc.id) {
-      await updateSession({
-        sessionId: session.sessionId,
-        docId: doc.id,
-      });
-    }
-  }, [doc, session, updateSession]);
+  }, [controller.session?.sessionId, doc, workbench]);
 
   const onEmbeddingProgressChange = useCallback(
     (count: Record<ContextEmbedStatus, number>) => {
-      const total = count.finished + count.processing + count.failed;
-      setEmbeddingProgress([count.finished, total]);
+      setEmbeddingProgress([
+        count.finished,
+        count.finished + count.processing + count.failed,
+      ]);
     },
     [],
   );
 
-  const onContextChange = useCallback(
-    (context: Partial<ChatContextValue>) => {
-      setStatus(context.status ?? "idle");
-      if (context.status === "success") {
-        rebindSession().catch(console.error);
-      }
-    },
-    [rebindSession],
-  );
-
   useEffect(() => {
-    const subscription = AIProvider.slots.userInfo.subscribe(() => {
-      resetPanel();
-    });
+    const subscription = AIProvider.slots.userInfo.subscribe(resetPanel);
     return () => subscription.unsubscribe();
   }, [resetPanel]);
 
   useEffect(() => {
-    if (!doc) return;
+    if (!doc) {
+      return;
+    }
     const previous = lastDocRef.current;
     if (
       previous &&
       (previous.workspaceId !== doc.workspace.id ||
-        (previous.id !== doc.id && !session?.pinned))
+        (previous.id !== doc.id && !controller.session?.pinned))
     ) {
       resetPanel();
     }
     lastDocRef.current = { id: doc.id, workspaceId: doc.workspace.id };
     return () => {
-      sessionLoadSeqRef.current += 1;
+      controller.bumpRequestSeq();
     };
   }, [doc?.id, doc?.workspace.id, resetPanel]);
 
   useEffect(() => {
-    if (!doc || session !== undefined) return;
+    if (!doc || controller.session !== undefined) {
+      return;
+    }
     if (AIProvider.session) {
       initPanel().catch(console.error);
       return () => {
-        sessionLoadSeqRef.current += 1;
+        controller.bumpRequestSeq();
       };
     }
     const subscription = AIProvider.slots.sessionReady.subscribe((ready) => {
-      if (!ready || session !== undefined) return;
+      if (!ready || controller.session !== undefined) {
+        return;
+      }
       initPanel().catch(console.error);
     });
     return () => {
       subscription.unsubscribe();
-      sessionLoadSeqRef.current += 1;
+      controller.bumpRequestSeq();
     };
-  }, [doc, initPanel, session]);
+  }, [controller.bumpRequestSeq, controller.session, doc, initPanel]);
 
   useEffect(() => {
-    if (!editor?.host) return;
+    if (!editor?.host) {
+      return;
+    }
     const docModeService = editor.host.std.get(DocModeProvider);
     const refNodeService = editor.host.std.getOptional(RefNodeSlotsProvider);
-    const disposable = [
+    const disposables = [
       refNodeService?.docLinkClicked.subscribe(({ host: clickedHost }) => {
         if (clickedHost === editor.host) {
-          setEditorSyncTick((v) => v + 1);
+          setEditorSyncTick((tick) => tick + 1);
         }
       }),
       docModeService?.onPrimaryModeChange(() => {
-        setEditorSyncTick((v) => v + 1);
+        setEditorSyncTick((tick) => tick + 1);
       }, editor.doc.id),
     ];
-
-    return () => disposable.forEach((item) => item?.unsubscribe());
+    return () => {
+      for (const item of disposables) {
+        item?.unsubscribe();
+      }
+    };
   }, [editor]);
 
-  const hasSessionHistory = !!session?.messages?.length;
-  const sessionSwitched = !!(
+  const session = controller.session;
+  const hasSessionHistory = Boolean(session?.messages?.length);
+  const sessionSwitched = Boolean(
     session?.sessionId &&
     prevSessionIdRef.current &&
-    prevSessionIdRef.current !== session.sessionId
+    prevSessionIdRef.current !== session.sessionId,
   );
   const contentKey =
     hasPinned || (session?.sessionId && (hasSessionHistory || sessionSwitched))
@@ -428,40 +385,29 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
     ],
   );
 
-  const isEmbedding =
-    embeddingProgress[1] > 0 && embeddingProgress[0] < embeddingProgress[1];
   const [done, total] = embeddingProgress;
+  const isEmbedding = total > 0 && done < total;
   const isInitialized = session !== undefined;
 
   return (
-    <Stack
-      mih={0}
-      style={{ flex: "1 1 auto" }}
-      data-myoxus-ui-role="chat-panel-root"
-    >
-      {sessionError ? (
+    <Stack flex={1} mih={0} data-myoxus-ui-role="chat-panel-root">
+      {controller.sessionError ? (
         <Alert>
           <MyoxusText>
             {t["com.myoxus.ai.chat-panel.session-error"]()}
           </MyoxusText>
-          <Button onClick={() => retrySessionRef.current()}>
-            {t["Retry"]()}
-          </Button>
+          <Button onClick={controller.retry}>{t["Retry"]()}</Button>
         </Alert>
       ) : null}
       {!isInitialized ? (
-        sessionError ? null : (
+        controller.sessionError ? null : (
           <ChatLoadingState
             title={t["com.myoxus.ai.chat-panel.loading-history"]()}
           />
         )
       ) : (
         <>
-          <Group
-            justify="flex-end"
-            style={{ flexShrink: 0 }}
-            data-myoxus-ui-role="chat-panel-actions"
-          >
+          <Group justify="flex-end" data-myoxus-ui-role="chat-panel-actions">
             {isEmbedding ? (
               <MyoxusText
                 component="span"
@@ -483,22 +429,22 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
                 session={session}
                 workspaceId={doc.workspace.id}
                 docId={doc.id}
-                status={status}
+                status={controller.status}
                 docDisplayConfig={docDisplayConfig}
                 notificationService={notificationService}
-                onNewSession={newSession}
-                onTogglePin={togglePin}
-                onOpenSession={openSession}
+                onNewSession={controller.createFreshSession}
+                onTogglePin={controller.togglePin}
+                onOpenSession={controller.openSession}
                 onOpenDoc={openDoc}
-                onSessionDelete={deleteSession}
+                onSessionDelete={controller.deleteSession}
               />
             ) : null}
           </Group>
           <Box
             ref={onHostBoxRef}
             display="flex"
+            flex={1}
             mih={0}
-            style={{ flex: "1 1 auto" }}
             data-myoxus-ui-role="chat-panel-content-host"
           >
             {doc ? (
@@ -508,7 +454,7 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
                 pageBridge={pageBridge}
                 boundedMode
                 session={session}
-                createSession={createSession}
+                createSession={controller.createSession}
                 workspaceId={doc.workspace.id}
                 docId={doc.id}
                 reasoningConfig={reasoningConfig}
@@ -520,7 +466,7 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
                 peekViewService={peekViewService}
                 aiModelService={framework.get(AIModelService)}
                 onEmbeddingProgressChange={onEmbeddingProgressChange}
-                onContextChange={onContextChange}
+                onContextChange={handleContextChange}
                 onOpenDoc={handleOpenDoc}
               />
             ) : null}
@@ -529,4 +475,4 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
       )}
     </Stack>
   );
-};
+}

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useI18n } from "@myoxus/i18n";
 import { ChevronDownIcon, ChevronRightIcon } from "@myoxus/icons/react";
 import { useLiveData } from "@myoxus/infra";
@@ -22,40 +25,42 @@ import { DocExplorerContext } from "../context";
 
 export const DocGroupSelection = ({ groupId }: { groupId: string }) => {
   const t = useI18n();
-  const contextValue = useContext(DocExplorerContext);
-  const groups = useLiveData(contextValue.groups$);
-  const selectedDocIds = useLiveData(contextValue.selectedDocIds$);
+  const context = useContext(DocExplorerContext);
+  const groups = useLiveData(context.groups$);
+  const selectedDocIds = useLiveData(context.selectedDocIds$);
+
   const group = groups.find((candidate) => candidate.key === groupId);
-  const hasItems = Boolean(group?.items.length);
-  const isGroupAllSelected =
-    hasItems && group?.items.every((id) => selectedDocIds.includes(id));
-  const selectedCount = group?.items.filter((id) =>
+  const itemIds = group?.items ?? [];
+  const selectedCount = itemIds.filter((id) =>
     selectedDocIds.includes(id),
   ).length;
+  const allSelected = itemIds.length > 0 && selectedCount === itemIds.length;
 
-  const handleSelectAll = useCallback(() => {
-    const previousIds = contextValue.selectedDocIds$.value;
-    const nextIds = isGroupAllSelected
-      ? previousIds.filter((id) => !group?.items.includes(id))
-      : [...new Set([...previousIds, ...(group?.items ?? [])])];
-    contextValue.selectedDocIds$.next(nextIds);
-    contextValue.selectMode$?.next(nextIds.length > 0);
-  }, [contextValue, group?.items, isGroupAllSelected]);
+  const handleToggleAll = useCallback(() => {
+    const current = context.selectedDocIds$.value;
+    const next = allSelected
+      ? current.filter((id) => !itemIds.includes(id))
+      : Array.from(new Set([...current, ...itemIds]));
+    context.selectedDocIds$.next(next);
+    context.selectMode$?.next(next.length > 0);
+  }, [allSelected, context, itemIds]);
 
-  if (!hasItems) return null;
+  if (itemIds.length === 0) {
+    return null;
+  }
 
   return (
     <Checkbox
       aria-label={t[
-        isGroupAllSelected
+        allSelected
           ? "com.myoxus.common.clear-selection"
           : "com.myoxus.page.group-header.select-all"
       ]()}
-      checked={Boolean(isGroupAllSelected)}
+      checked={allSelected}
       data-myoxus-ui-role="surface-list-group-action"
-      indeterminate={Boolean(selectedCount && !isGroupAllSelected)}
+      indeterminate={selectedCount > 0 && !allSelected}
       onClick={(event) => event.stopPropagation()}
-      onChange={handleSelectAll}
+      onChange={handleToggleAll}
       size="xs"
     />
   );
@@ -72,33 +77,38 @@ export const DocGroupHeader = ({
   actions?: ReactNode;
 }) => {
   const t = useI18n();
-  const contextValue = useContext(DocExplorerContext);
+  const context = useContext(DocExplorerContext);
+  const groups = useLiveData(context.groups$);
+  const selectedDocIds = useLiveData(context.selectedDocIds$);
+  const collapsedGroups = useLiveData(context.collapsedGroups$);
+  const selectMode = useLiveData(context.selectMode$);
+  const view = useLiveData(context.view$);
 
-  const groups = useLiveData(contextValue.groups$);
-  const selectedDocIds = useLiveData(contextValue.selectedDocIds$);
-  const collapsedGroups = useLiveData(contextValue.collapsedGroups$);
-  const selectMode = useLiveData(contextValue.selectMode$);
-  const view = useLiveData(contextValue.view$);
-
-  const group = groups.find((g) => g.key === groupId);
-  const handleToggleCollapse = useCallback(() => {
-    const prev = contextValue.collapsedGroups$.value;
-    contextValue.collapsedGroups$.next(
-      prev.includes(groupId)
-        ? prev.filter((id) => id !== groupId)
-        : [...prev, groupId],
-    );
-  }, [groupId, contextValue]);
-
+  const group = groups.find((candidate) => candidate.key === groupId);
   const selectedCount = group?.items.filter((id) =>
     selectedDocIds.includes(id),
   ).length;
   const collapsed = collapsedGroups.includes(groupId);
-  const groupLabel = (
-    <SurfaceListHeaderTitle data-myoxus-ui-role="surface-list-group-title">
-      {children}
-    </SurfaceListHeaderTitle>
-  );
+
+  const handleToggleCollapse = useCallback(() => {
+    const prev = context.collapsedGroups$.value;
+    context.collapsedGroups$.next(
+      prev.includes(groupId)
+        ? prev.filter((id) => id !== groupId)
+        : [...prev, groupId],
+    );
+  }, [context.collapsedGroups$, groupId]);
+
+  const selectionCounter = selectMode ? (
+    <MyoxusText
+      component="span"
+      tone="secondary"
+      typographySlot="nav"
+      data-myoxus-ui-role="surface-list-group-meta"
+    >
+      {selectedCount}/{group?.items.length}
+    </MyoxusText>
+  ) : null;
 
   if (view === "list") {
     return (
@@ -108,17 +118,10 @@ export const DocGroupHeader = ({
         data-myoxus-ui-role="surface-list-group-label"
         wrap="nowrap"
       >
-        {groupLabel}
-        {selectMode ? (
-          <MyoxusText
-            component="span"
-            tone="secondary"
-            typographySlot="nav"
-            data-myoxus-ui-role="surface-list-group-meta"
-          >
-            {selectedCount}/{group?.items.length}
-          </MyoxusText>
-        ) : null}
+        <SurfaceListHeaderTitle data-myoxus-ui-role="surface-list-group-title">
+          {children}
+        </SurfaceListHeaderTitle>
+        {selectionCounter}
         {actions ? <SurfaceListSpacer /> : null}
         {actions}
       </Group>
@@ -156,16 +159,7 @@ export const DocGroupHeader = ({
       <SurfaceListHeaderTitle className={className} {...props}>
         {children}
       </SurfaceListHeaderTitle>
-      {selectMode ? (
-        <MyoxusText
-          component="span"
-          tone="secondary"
-          typographySlot="nav"
-          data-myoxus-ui-role="surface-list-group-meta"
-        >
-          {selectedCount}/{group?.items.length}
-        </MyoxusText>
-      ) : null}
+      {selectionCounter}
       <SurfaceListSpacer />
       {actions}
       <DocGroupSelection groupId={groupId} />
@@ -188,27 +182,23 @@ export const PlainTextDocGroupHeader = ({
   icon?: ReactNode;
   actions?: ReactNode;
   status?: ReactNode;
-}) => {
-  return (
-    <DocGroupHeader
-      actions={actions}
-      className={className}
-      groupId={groupId}
-      {...props}
-    >
-      {icon ? (
-        <SurfaceListItemIcon size="sm">{icon}</SurfaceListItemIcon>
-      ) : null}
-      <MyoxusText component="span" typographySlot="nav" tone="secondary">
-        {children ?? groupId}
-      </MyoxusText>
-      {status}
-      <MyoxusText component="span" typographySlot="nav" tone="tertiary">
-        ·
-      </MyoxusText>
-      <MyoxusText component="span" typographySlot="nav" tone="tertiary">
-        {docCount}
-      </MyoxusText>
-    </DocGroupHeader>
-  );
-};
+}) => (
+  <DocGroupHeader
+    actions={actions}
+    className={className}
+    groupId={groupId}
+    {...props}
+  >
+    {icon ? <SurfaceListItemIcon size="sm">{icon}</SurfaceListItemIcon> : null}
+    <MyoxusText component="span" typographySlot="nav" tone="secondary">
+      {children ?? groupId}
+    </MyoxusText>
+    {status}
+    <MyoxusText component="span" typographySlot="nav" tone="tertiary">
+      ·
+    </MyoxusText>
+    <MyoxusText component="span" typographySlot="nav" tone="tertiary">
+      {docCount}
+    </MyoxusText>
+  </DocGroupHeader>
+);

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useGuard } from "@myoxus/core/components/guard";
 import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
 import { DocsService } from "@myoxus/core/modules/doc";
@@ -30,53 +33,46 @@ import { IsFavoriteIcon } from "../../pure/icons";
 import { WorkspaceContentOperationMenuItems } from "../../workspace-content-operation/menu-items";
 import { DocExplorerContext } from "../context";
 
-interface DocOperationProps {
+interface DocMenuActionProps {
   docId: string;
 }
 
-/**
- * Favorite Operation
- */
-const ToggleFavorite = ({ docId }: DocOperationProps) => {
+const ToggleFavoriteItem = ({ docId }: DocMenuActionProps) => {
   const t = useI18n();
   const favAdapter = useService(CompatibleFavoriteItemsAdapter);
-  const favourite = useLiveData(favAdapter.isFavorite$(docId, "doc"));
+  const isFavorite = useLiveData(favAdapter.isFavorite$(docId, "doc"));
 
-  const toggleFavorite = useCallback(() => {
+  const handleToggle = useCallback(() => {
     favAdapter.toggle(docId, "doc");
     track.allDocs.list.docMenu.toggleFavorite();
   }, [docId, favAdapter]);
 
   return (
     <MenuItem
-      prefixIcon={<IsFavoriteIcon favorite={favourite} />}
-      onClick={toggleFavorite}
+      prefixIcon={<IsFavoriteIcon favorite={isFavorite} />}
+      onClick={handleToggle}
       data-testid="doc-list-operation-favorite"
     >
-      {favourite
+      {isFavorite
         ? t["com.myoxus.favoritePageOperation.remove"]()
         : t["com.myoxus.favoritePageOperation.add"]()}
     </MenuItem>
   );
 };
 
-/**
- * Doc Info Operation
- */
-const DocInfo = ({ docId }: DocOperationProps) => {
+const DocInfo = ({ docId }: DocMenuActionProps) => {
   const t = useI18n();
   const workspaceDialogService = useService(WorkspaceDialogService);
 
-  const onOpenInfoModal = useCallback(() => {
-    if (docId) {
-      track.allDocs.list.docMenu.openDocInfo();
-      workspaceDialogService.open("doc-info", { docId });
-    }
+  const handleOpenInfo = useCallback(() => {
+    if (!docId) return;
+    track.allDocs.list.docMenu.openDocInfo();
+    workspaceDialogService.open("doc-info", { docId });
   }, [docId, workspaceDialogService]);
 
   return (
     <MenuItem
-      onClick={onOpenInfoModal}
+      onClick={handleOpenInfo}
       prefixIcon={<InformationIcon />}
       data-testid="doc-list-operation-info"
     >
@@ -85,85 +81,65 @@ const DocInfo = ({ docId }: DocOperationProps) => {
   );
 };
 
-/**
- * Open in New Tab Operation
- */
-const NewTab = ({ docId }: DocOperationProps) => {
+const OpenInNewTabItem = ({ docId }: DocMenuActionProps) => {
   const t = useI18n();
   const workbench = useService(WorkbenchService).workbench;
-  const onOpenInNewTab = useCallback(() => {
+
+  const handleOpen = useCallback(() => {
     track.allDocs.list.doc.openDoc();
     track.allDocs.list.docMenu.openInNewTab();
     workbench.openDoc(docId, { at: "new-tab" });
   }, [docId, workbench]);
 
   return (
-    <MenuItem onClick={onOpenInNewTab} prefixIcon={<OpenInNewIcon />}>
+    <MenuItem onClick={handleOpen} prefixIcon={<OpenInNewIcon />}>
       {t["com.myoxus.workbench.tab.page-menu-open"]()}
     </MenuItem>
   );
 };
 
-/**
- * Open in Split View Operation
- */
-const SplitView = ({ docId }: DocOperationProps) => {
+const OpenInSplitViewItem = ({ docId }: DocMenuActionProps) => {
   const t = useI18n();
   const workbench = useService(WorkbenchService).workbench;
 
-  const onOpenInSplitView = useCallback(() => {
+  const handleOpen = useCallback(() => {
     track.allDocs.list.doc.openDoc();
     track.allDocs.list.docMenu.openInSplitView();
     workbench.openDoc(docId, { at: "tail" });
   }, [docId, workbench]);
 
   return (
-    <MenuItem onClick={onOpenInSplitView} prefixIcon={<SplitViewIcon />}>
+    <MenuItem onClick={handleOpen} prefixIcon={<SplitViewIcon />}>
       {t["com.myoxus.workbench.split-view.page-menu-open"]()}
     </MenuItem>
   );
 };
 
-/**
- * Duplicate Operation
- */
-const Duplicate = ({ docId }: DocOperationProps) => {
-  const { duplicate } = useDocumentOperations();
+const DuplicateItem = ({ docId }: DocMenuActionProps) => {
   const t = useI18n();
+  const { duplicate } = useDocumentOperations();
 
-  const onDuplicate = useCallback(() => {
+  const handleDuplicate = useCallback(() => {
     duplicate(docId, false);
-    track.allDocs.list.docMenu.createDoc({
-      control: "duplicate",
-    });
+    track.allDocs.list.docMenu.createDoc({ control: "duplicate" });
   }, [docId, duplicate]);
 
   return (
-    <MenuItem prefixIcon={<DuplicateIcon />} onSelect={onDuplicate}>
+    <MenuItem prefixIcon={<DuplicateIcon />} onSelect={handleDuplicate}>
       {t["com.myoxus.header.option.duplicate"]()}
     </MenuItem>
   );
 };
 
-/**
- * Move to Trash Operation
- */
-const MoveToTrash = ({ docId }: DocOperationProps) => {
+const MoveToTrashItem = ({ docId }: DocMenuActionProps) => {
   const t = useI18n();
-  const docsService = useService(DocsService);
+  const doc = useLiveData(useService(DocsService).list.doc$(docId));
   const { openConfirmModal } = useConfirmModal();
-  const doc = useLiveData(docsService.list.doc$(docId));
   const { moveToTrash } = useDocumentOperations();
-
-  // The list index primes only the capability rendered on every row. Load the
-  // remaining permissions when this lazy menu is actually opened.
   const canTrash = useGuard("Doc_Trash", docId);
 
-  const onMoveToTrash = useCallback(() => {
-    if (!doc) {
-      return;
-    }
-
+  const handleTrash = useCallback(() => {
+    if (!doc) return;
     track.allDocs.list.docMenu.deleteDoc();
     openConfirmModal({
       title: t["com.myoxus.moveToTrash.confirmModal.title"](),
@@ -172,9 +148,7 @@ const MoveToTrash = ({ docId }: DocOperationProps) => {
       }),
       cancelText: t["com.myoxus.confirmModal.button.cancel"](),
       confirmText: t.Delete(),
-      confirmButtonOptions: {
-        variant: "error",
-      },
+      confirmButtonOptions: { variant: "error" },
       onConfirm: async () => {
         await moveToTrash(doc);
       },
@@ -185,7 +159,7 @@ const MoveToTrash = ({ docId }: DocOperationProps) => {
     <MenuItem
       prefixIcon={<DeleteIcon />}
       data-testid="doc-list-operation-trash"
-      onClick={onMoveToTrash}
+      onClick={handleTrash}
       disabled={!canTrash}
     >
       {t["com.myoxus.moveToTrash.title"]()}
@@ -193,53 +167,48 @@ const MoveToTrash = ({ docId }: DocOperationProps) => {
   );
 };
 
-export const MoreMenuContent = (props: DocOperationProps) => {
-  return (
-    <>
-      <ToggleFavorite {...props} />
-      <DocInfo {...props} />
-      <NewTab {...props} />
-      {BUILD_CONFIG.isElectron ? <SplitView {...props} /> : null}
-      <Duplicate {...props} />
-      <WorkspaceContentOperationMenuItems
-        selection={{
-          type: "resources",
-          resources: [
-            {
-              id: props.docId,
-              kind: WorkspaceContentResourceKindType.Document,
-            },
-          ],
-        }}
-      />
-      <MoveToTrash {...props} />
-    </>
-  );
-};
+export const MoreMenuContent = (props: DocMenuActionProps) => (
+  <>
+    <ToggleFavoriteItem {...props} />
+    <DocInfo {...props} />
+    <OpenInNewTabItem {...props} />
+    {BUILD_CONFIG.isElectron ? <OpenInSplitViewItem {...props} /> : null}
+    <DuplicateItem {...props} />
+    <WorkspaceContentOperationMenuItems
+      selection={{
+        type: "resources",
+        resources: [
+          {
+            id: props.docId,
+            kind: WorkspaceContentResourceKindType.Document,
+          },
+        ],
+      }}
+    />
+    <MoveToTrashItem {...props} />
+  </>
+);
 
 export const MoreMenu = ({
   docId,
   children,
   contentOptions,
   ...menuProps
-}: Omit<MenuProps, "items"> & { docId: string }) => {
-  return (
-    <Menu
-      items={<MoreMenuContent docId={docId} />}
-      contentOptions={{
-        ...contentOptions,
-        onClick: (e) => {
-          // prevent external click events from being triggered
-          e.stopPropagation();
-          contentOptions?.onClick?.(e);
-        },
-      }}
-      {...menuProps}
-    >
-      {children}
-    </Menu>
-  );
-};
+}: Omit<MenuProps, "items"> & { docId: string }) => (
+  <Menu
+    items={<MoreMenuContent docId={docId} />}
+    contentOptions={{
+      ...contentOptions,
+      onClick: (event) => {
+        event.stopPropagation();
+        contentOptions?.onClick?.(event);
+      },
+    }}
+    {...menuProps}
+  >
+    {children}
+  </Menu>
+);
 
 export const MoreMenuButton = ({
   docId,
@@ -249,9 +218,11 @@ export const MoreMenuButton = ({
   docId: string;
   iconProps?: IconButtonProps;
 }) => {
-  const contextValue = useContext(DocExplorerContext);
-  const showMoreOperation = useLiveData(contextValue.showMoreOperation$);
+  const showMoreOperation = useLiveData(
+    useContext(DocExplorerContext).showMoreOperation$,
+  );
   const { onClick: iconOnClick, ...safeIconProps } = iconProps ?? {};
+
   const handleTriggerClick = useCallback<
     NonNullable<IconButtonProps["onClick"]>
   >(

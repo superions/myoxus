@@ -1,18 +1,6 @@
-/**
- * DetailPageWrapper — loading and scope setup layer for document detail views.
- *
- * Shared between the desktop and mobile detail page components. Handles:
- * - Loading the doc record from `DocsService`.
- * - Waiting for the doc list to be ready before showing a "not found" state.
- * - Creating an `Editor` instance bound to the current workbench `View`.
- * - Elevating the sync engine priority for the active page so it loads faster.
- * - Setting the doc to read-only when it is in trash.
- * - Wrapping children in the correct `FrameworkScope` chain so that
- *   `DocService` and `EditorService` resolve to the right instances.
- *
- * Registration recovery and unavailable states are handled here before the
- * desktop or mobile document view is exposed.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useGuard } from "@myoxus/core/components/guard";
 import { PageRegistrationRecovery } from "@myoxus/core/components/page-registration-recovery";
 import { type Doc, DocsService } from "@myoxus/core/modules/doc";
@@ -32,39 +20,27 @@ import {
   useState,
 } from "react";
 
-/**
- * Hook that opens a document and creates an editor instance for the given page.
- *
- * Uses `useLayoutEffect` to open the doc synchronously before paint, ensuring
- * the editor is ready when children first render. Cleans up (releases the doc
- * and disposes the editor) when the `pageId` changes or the component unmounts.
- *
- * @param pageId - The document identifier to load.
- * @returns `doc` — the loaded `Doc` instance (null while loading),
- *          `editor` — the created `Editor` (null while loading),
- *          `docListReady` — whether the workspace doc list has been synced,
- *          `docContentMissing` — whether a stale metadata entry points to a
- *          synced document without editor root content.
- */
-const useLoadDoc = (pageId: string) => {
-  const currentWorkspace = useService(WorkspaceService).workspace;
+function useLoadDocument(pageId: string) {
+  const workspace = useService(WorkspaceService).workspace;
   const docsService = useService(DocsService);
-  const docRecordList = docsService.list;
-  const docListReady = useLiveData(docRecordList.isReady$);
-  const docRecord = useLiveData(docRecordList.doc$(pageId));
   const viewService = useService(ViewService);
+
+  const docListReady = useLiveData(docsService.list.isReady$);
+  const docRecord = useLiveData(docsService.list.doc$(pageId));
 
   const [doc, setDoc] = useState<Doc | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [docContentMissing, setDocContentMissing] = useState(false);
-  const [pageRegistration, setPageRegistration] =
-    useState<PageRegistrationState | null>();
+  const [pageRegistration, setPageRegistration] = useState<
+    PageRegistrationState | null | undefined
+  >();
+
   useEffect(() => {
-    const subscription = currentWorkspace.engine.doc
+    const subscription = workspace.engine.doc
       .docState$(pageId)
       .subscribe((state) => setPageRegistration(state.pageRegistration));
     return () => subscription.unsubscribe();
-  }, [currentWorkspace, pageId]);
+  }, [pageId, workspace]);
 
   useLayoutEffect(() => {
     setDocContentMissing(false);
@@ -73,31 +49,31 @@ const useLoadDoc = (pageId: string) => {
       setEditor(null);
       return;
     }
-    const ref = docsService.open(pageId);
-    if (!ref) return;
-    const { doc, release } = ref;
-    setDoc(doc);
-    const editor = doc.scope.get(EditorsService).createEditor();
-    const unbind = editor.bindWorkbenchView(viewService.view);
-    setEditor(editor);
+    const opened = docsService.open(pageId);
+    if (!opened) {
+      return;
+    }
+    const { doc: loadedDoc, release } = opened;
+    setDoc(loadedDoc);
+    const createdEditor = loadedDoc.scope.get(EditorsService).createEditor();
+    const unbind = createdEditor.bindWorkbenchView(viewService.view);
+    setEditor(createdEditor);
+
     return () => {
       unbind();
-      editor.dispose();
+      createdEditor.dispose();
       release();
     };
   }, [docRecord, docsService, pageId, viewService.view]);
 
-  // set sync engine priority target
   useEffect(() => {
     if (!docRecord) {
       return;
     }
-
-    return currentWorkspace.engine.doc.addPriority(pageId, 10);
-  }, [currentWorkspace, docRecord, pageId]);
+    return workspace.engine.doc.addPriority(pageId, 10);
+  }, [docRecord, pageId, workspace]);
 
   const isInTrash = useLiveData(doc?.meta$.map((meta) => meta.trash));
-
   useEffect(() => {
     if (doc && isInTrash) {
       doc.virgultumDoc.readonly = true;
@@ -110,37 +86,22 @@ const useLoadDoc = (pageId: string) => {
       return;
     }
 
-    // The remote peer can acknowledge its reconciliation before DocFrontend
-    // has loaded the resulting local record into this Y.Doc. Classifying the
-    // rootless interval from waitForSynced() alone therefore turns a valid
-    // cross-client create into a permanent 404. The combined state is terminal
-    // only after the frontend load completed and either the server explicitly
-    // reported absence or the loaded payload remained empty.
-    //
-    // `state.ready` is the authoritative signal that the YDoc has been
-    // populated: any window between `synced=true` and `ready=true` is a
-    // legitimate pending apply-job, not an empty document, so it must NOT be
-    // treated as content-missing.
-    const subscription = currentWorkspace.engine.doc
+    // Classify a rootless document as missing only after DocFrontend has
+    // finished loading with no pending apply/save job AND the server reported
+    // absence; `state.ready` lags `synced` while local apply jobs settle.
+    const subscription = workspace.engine.doc
       .docState$(pageId)
       .subscribe((state) => {
         if (doc.virgultumDoc.root || state.ready) {
           setDocContentMissing(false);
           return;
         }
-        // Only after the load completed AND no apply/save job is queued AND
-        // the server explicitly reported absence does the document become a
-        // real 404. `!state.ready` alone is not enough — the ready flag is
-        // gated by DocFrontend.apply and lags `synced` by one tick.
         if (state.loaded && !state.updating && state.remoteMissing) {
           setDocContentMissing(true);
         }
       });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [currentWorkspace, doc, pageId]);
+    return () => subscription.unsubscribe();
+  }, [doc, pageId, workspace]);
 
   return {
     doc,
@@ -149,13 +110,9 @@ const useLoadDoc = (pageId: string) => {
     docContentMissing,
     pageRegistration,
   };
-};
+}
 
-/**
- * A common wrapper for detail page for both mobile and desktop page.
- * It only contains the logic for page loading, context setup, but not the page content.
- */
-export const DetailPageWrapper = ({
+function DetailPagePermissionGate({
   pageId,
   children,
   skeleton,
@@ -164,10 +121,31 @@ export const DetailPageWrapper = ({
   pageId: string;
   skeleton: ReactNode;
   notFound: ReactNode;
-}>) => {
+}>) {
+  const canAccess = useGuard("Doc_Read", pageId);
+  if (canAccess === undefined) {
+    return skeleton;
+  }
+  if (!canAccess) {
+    return notFound;
+  }
+  return children;
+}
+
+export function DetailPageWrapper({
+  pageId,
+  children,
+  skeleton,
+  notFound,
+}: PropsWithChildren<{
+  pageId: string;
+  skeleton: ReactNode;
+  notFound: ReactNode;
+}>) {
   const t = useI18n();
   const { doc, editor, docListReady, docContentMissing, pageRegistration } =
-    useLoadDoc(pageId);
+    useLoadDocument(pageId);
+
   if (
     pageRegistration === "unresolved" ||
     (pageRegistration === "legacy" && !doc)
@@ -183,13 +161,15 @@ export const DetailPageWrapper = ({
       </>
     );
   }
-  if (pageRegistration === "pending") return skeleton;
-  if (pageRegistration === "deleted") return notFound;
-  // if sync engine has been synced and the page is null, show 404 page.
+  if (pageRegistration === "pending") {
+    return skeleton;
+  }
+  if (pageRegistration === "deleted") {
+    return notFound;
+  }
   if (docListReady && (!doc || docContentMissing)) {
     return notFound;
   }
-
   if (!doc || !editor) {
     return skeleton;
   }
@@ -205,26 +185,4 @@ export const DetailPageWrapper = ({
       </FrameworkScope>
     </DetailPagePermissionGate>
   );
-};
-
-const DetailPagePermissionGate = ({
-  pageId,
-  children,
-  skeleton,
-  notFound,
-}: PropsWithChildren<{
-  pageId: string;
-  skeleton: ReactNode;
-  notFound: ReactNode;
-}>) => {
-  const canAccess = useGuard("Doc_Read", pageId);
-
-  if (canAccess === undefined) {
-    return skeleton;
-  }
-  if (!canAccess) {
-    return notFound;
-  }
-
-  return children;
-};
+}

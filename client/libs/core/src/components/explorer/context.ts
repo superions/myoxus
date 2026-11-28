@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { LiveData } from "@myoxus/infra";
 import { createContext } from "react";
 
 import type { ExplorerDisplayPreference } from "./types";
 
-const DefaultDisplayPreference: ExplorerDisplayPreference = {
+const DEFAULT_EXPLORER_PREFERENCE: ExplorerDisplayPreference = {
   view: "list",
   previewSize: "normal",
   displayProperties: [
@@ -44,16 +47,20 @@ export type DocExplorerContextType = {
 };
 
 export const DocExplorerContext = createContext<DocExplorerContextType>(
-  {} as any,
+  {} as DocExplorerContextType,
 );
 
 export const createDocExplorerContext = (
   initialState?: ExplorerDisplayPreference,
 ) => {
   const displayPreference$ = new LiveData<ExplorerDisplayPreference>({
-    ...DefaultDisplayPreference,
+    ...DEFAULT_EXPLORER_PREFERENCE,
     ...initialState,
   });
+
+  const select = <K extends keyof ExplorerDisplayPreference>(key: K) =>
+    displayPreference$.selector((pref) => pref[key]);
+
   return {
     groups$: new LiveData<Array<{ key: string; items: string[] }>>([]),
     collapsedGroups$: new LiveData<string[]>([]),
@@ -61,54 +68,22 @@ export const createDocExplorerContext = (
     selectedDocIds$: new LiveData<string[]>([]),
     selectedItemKeys$: new LiveData<string[]>([]),
     prevCheckAnchorId$: new LiveData<string | null>(null),
-    displayPreference$: displayPreference$,
-    showDragHandle$: displayPreference$.selector(
-      (displayPreference) => displayPreference.showDragHandle,
-    ),
-    view$: displayPreference$.selector(
-      (displayPreference) => displayPreference.view,
-    ),
-    previewSize$: displayPreference$.selector(
-      (displayPreference) => displayPreference.previewSize,
-    ),
-    groupBy$: displayPreference$.selector(
-      (displayPreference) => displayPreference.groupBy,
-    ),
-    orderBy$: displayPreference$.selector(
-      (displayPreference) => displayPreference.orderBy,
-    ),
-    displayProperties$: displayPreference$.selector(
-      (displayPreference) => displayPreference.displayProperties,
-    ),
-    showDocIcon$: displayPreference$.selector(
-      (displayPreference) => displayPreference.showDocIcon,
-    ),
-    showDocPreview$: displayPreference$.selector(
-      (displayPreference) => displayPreference.showDocPreview,
-    ),
-    quickFavorite$: displayPreference$.selector(
-      (displayPreference) => displayPreference.quickFavorite,
-    ),
-    quickSelect$: displayPreference$.selector(
-      (displayPreference) => displayPreference.quickSelect,
-    ),
-    quickSplit$: displayPreference$.selector(
-      (displayPreference) => displayPreference.quickSplit,
-    ),
-    quickTrash$: displayPreference$.selector(
-      (displayPreference) => displayPreference.quickTrash,
-    ),
-    quickTab$: displayPreference$.selector(
-      (displayPreference) => displayPreference.quickTab,
-    ),
-    showMoreOperation$: displayPreference$.selector(
-      (displayPreference) => displayPreference.showMoreOperation,
-    ),
-    quickDeletePermanently$: displayPreference$.selector(
-      (displayPreference) => displayPreference.quickDeletePermanently,
-    ),
-    quickRestore$: displayPreference$.selector(
-      (displayPreference) => displayPreference.quickRestore,
-    ),
+    displayPreference$,
+    showDragHandle$: select("showDragHandle"),
+    view$: select("view"),
+    previewSize$: select("previewSize"),
+    groupBy$: select("groupBy"),
+    orderBy$: select("orderBy"),
+    displayProperties$: select("displayProperties"),
+    showDocIcon$: select("showDocIcon"),
+    showDocPreview$: select("showDocPreview"),
+    quickFavorite$: select("quickFavorite"),
+    quickSelect$: select("quickSelect"),
+    quickSplit$: select("quickSplit"),
+    quickTrash$: select("quickTrash"),
+    quickTab$: select("quickTab"),
+    showMoreOperation$: select("showMoreOperation"),
+    quickDeletePermanently$: select("quickDeletePermanently"),
+    quickRestore$: select("quickRestore"),
   } satisfies DocExplorerContextType;
 };
