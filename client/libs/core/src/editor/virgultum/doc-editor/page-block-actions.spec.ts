@@ -79,14 +79,16 @@ describe("page-block-actions (SPE-02)", () => {
       7,
       "https://example.com",
     );
-    expect(cardId).toBeTruthy();
+    expect(cardId).toEqual(expect.any(String));
+    expect(cardId).not.toBe(para.id);
     const card = store.getModelById(cardId!) as BookmarkBlockModel;
     expect(card.flavour).toBe("myoxus:bookmark");
     expect(card.props.url).toBe("https://example.com");
     expect(note.children).toHaveLength(1);
 
     const dupId = duplicatePageBlock(card);
-    expect(dupId).toBeTruthy();
+    expect(dupId).toEqual(expect.any(String));
+    expect(dupId).not.toBe(cardId);
     expect(note.children).toHaveLength(2);
     expect(deletePageBlock(store.getModelById(dupId!)!)).toBe(true);
     expect(note.children).toHaveLength(1);
@@ -96,7 +98,8 @@ describe("page-block-actions (SPE-02)", () => {
       card.props.url,
       "Myoxus Link",
     );
-    expect(paraId).toBeTruthy();
+    expect(paraId).toEqual(expect.any(String));
+    expect(paraId).not.toBe(cardId);
     const restored = store.getModelById(paraId!) as ParagraphBlockModel;
     expect(restored.text?.toString()).toBe("Myoxus Link");
 

@@ -80,11 +80,17 @@ describe("Database sibling view dispatch", () => {
       });
 
       const table = within(screen.getByTestId("database-table-view"));
-      expect(screen.getByTestId("database-view-tab-view-table")).toBeTruthy();
-      expect(screen.getByTestId("database-field-plus")).toBeTruthy();
-      expect(screen.getByTestId("database-new-row")).toBeTruthy();
-      expect(screen.getByTestId("database-row-detail-content")).toBeTruthy();
-      expect(screen.getByTestId("database-row-detail-peek")).toBeTruthy();
+      expect(
+        screen.getByTestId("database-view-tab-view-table").isConnected,
+      ).toBe(true);
+      expect(screen.getByTestId("database-field-plus").isConnected).toBe(true);
+      expect(screen.getByTestId("database-new-row").isConnected).toBe(true);
+      expect(
+        screen.getByTestId("database-row-detail-content").isConnected,
+      ).toBe(true);
+      expect(screen.getByTestId("database-row-detail-peek").isConnected).toBe(
+        true,
+      );
       expect(
         document.querySelector(
           '[data-myoxus-database-presence-indicator="true"][aria-label="Remote editor"]',
@@ -348,7 +354,9 @@ describe("Database sibling view dispatch", () => {
     const timeline = within(screen.getByTestId("database-timeline-view"));
     fireEvent.click(timeline.getByRole("button", { name: /^Initial task,/ }));
 
-    expect(await screen.findByTestId("database-row-detail-peek")).toBeTruthy();
+    expect(
+      (await screen.findByTestId("database-row-detail-peek")).isConnected,
+    ).toBe(true);
   });
 
   test("rejects calendar and timeline views without a valid date field visibly", () => {
@@ -378,7 +386,9 @@ describe("Database sibling view dispatch", () => {
       record: { ...p9gRecord, views: [invalidCalendar, invalidTimeline] },
       rows: p9gRows,
     });
-    expect(screen.getByText("Calendar view needs a date field")).toBeTruthy();
+    expect(
+      screen.getByText("Calendar view needs a date field").isConnected,
+    ).toBe(true);
 
     cleanup();
     renderDatabaseViewHost({
@@ -386,7 +396,9 @@ describe("Database sibling view dispatch", () => {
       record: { ...p9gRecord, views: [invalidCalendar, invalidTimeline] },
       rows: p9gRows,
     });
-    expect(screen.getByText("Timeline view needs a date field")).toBeTruthy();
+    expect(
+      screen.getByText("Timeline view needs a date field").isConnected,
+    ).toBe(true);
   });
 
   test("keeps the primary description visible and collapses secondary detail groups", async () => {
@@ -400,8 +412,8 @@ describe("Database sibling view dispatch", () => {
     });
 
     const detail = within(screen.getByTestId("database-row-detail-content"));
-    expect(screen.getByText("Row details")).toBeTruthy();
-    expect(detail.getByText("Initial note")).toBeTruthy();
+    expect(screen.getByText("Row details").isConnected).toBe(true);
+    expect(detail.getByText("Initial note").isConnected).toBe(true);
     const populatedDetails = detail.getByRole("button", {
       name: "Details",
     });
@@ -416,14 +428,17 @@ describe("Database sibling view dispatch", () => {
     expect(emptyProperties.getAttribute("aria-expanded")).toBe("true");
     await waitFor(() =>
       expect(
-        detail.getByRole("combobox", { name: "Status", hidden: true }),
-      ).toBeTruthy(),
+        detail.getByRole("combobox", { name: "Status", hidden: true })
+          .isConnected,
+      ).toBe(true),
     );
   });
 
   test("opens only a server-provided deep-linked Row in shared Side Peek", () => {
     renderDatabaseViewHost({ initialRowId: p9gRows[0]!.row.id, rows: p9gRows });
-    expect(screen.getByTestId("database-row-detail-content")).toBeTruthy();
+    expect(screen.getByTestId("database-row-detail-content").isConnected).toBe(
+      true,
+    );
 
     cleanup();
     renderDatabaseViewHost({ initialRowId: "missing-row", rows: p9gRows });

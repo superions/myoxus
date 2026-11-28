@@ -5633,12 +5633,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@virgultum/integration-test@workspace:virgultum/integration-test"
   dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
     "@myoxus/bpmn-editor": "workspace:*"
     "@myoxus/core": "workspace:*"
     "@myoxus/env": "workspace:*"
     "@myoxus/i18n": "workspace:*"
-    "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
     "@myoxus/ui-facade": "workspace:*"
     "@preact/signals-core": "npm:^1.14.5"
@@ -5650,7 +5648,6 @@ __metadata:
     vite-plugin-wasm: "npm:3.6.0"
     vitest: "npm:4.1.12"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 

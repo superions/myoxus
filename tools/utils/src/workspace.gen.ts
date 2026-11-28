@@ -443,7 +443,6 @@ export const PackageList = [
       "client/libs/core",
       "client/libs/env",
       "client/libs/i18n",
-      "client/libs/icons",
       "client/libs/theme",
       "client/libs/ui-facade",
       "virgultum/editor/all"
