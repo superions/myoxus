@@ -1,5 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useAppUpdater } from "@myoxus/core/components/hooks/use-app-updater";
 import { useI18n } from "@myoxus/i18n";
+
 import {
   MyoxusButton,
   MyoxusLoader,
@@ -10,59 +14,91 @@ import {
 export const UpdateCheckSection = () => {
   const t = useI18n();
   const {
-    updaterState: state,
+    updaterState,
     checkForUpdates,
     downloadUpdate,
     quitAndInstall,
     externalMacosInstall,
     openDownloadPage,
   } = useAppUpdater();
-  // An initial null snapshot cannot establish whether native controls exist.
-  if (!state) return null;
-  const unavailable =
-    state?.availability.state === "disabled" ? state.availability.reason : null;
-  const active = state?.phase === "checking" || state?.phase === "downloading";
-  const buttonLabel = state?.ready
-    ? t["com.myoxus.aboutMyoxus.checkUpdate.button.restart"]()
-    : state?.available && state.progress === null
-      ? t["com.myoxus.aboutMyoxus.checkUpdate.button.download"]()
-      : state?.phase === "error" || state?.phase === "latest"
-        ? t["com.myoxus.aboutMyoxus.checkUpdate.button.retry"]()
-        : t["com.myoxus.aboutMyoxus.checkUpdate.button.check"]();
-  const subtitle = externalMacosInstall
-    ? t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.external-macos-install"]()
-    : unavailable === "externally-managed"
-      ? t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.externally-managed"]()
-      : unavailable === "portable"
-        ? t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.portable"]()
-        : unavailable
-          ? t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.disabled"]()
-          : state?.phase === "error"
-            ? t["com.myoxus.common.operation-failed"]()
-            : state?.ready
-              ? t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.restart"]()
-              : state?.phase === "checking"
-                ? t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.checking"]()
-                : state?.progress !== null && state?.progress !== undefined
-                  ? t[
-                      "com.myoxus.aboutMyoxus.checkUpdate.subtitle.downloading"
-                    ]()
-                  : state?.available
-                    ? t[
-                        "com.myoxus.aboutMyoxus.checkUpdate.subtitle.update-available"
-                      ]({ version: state.available.version })
-                    : state?.phase === "latest"
-                      ? t[
-                          "com.myoxus.aboutMyoxus.checkUpdate.subtitle.latest"
-                        ]()
-                      : t[
-                          "com.myoxus.aboutMyoxus.checkUpdate.subtitle.check"
-                        ]();
-  const handleClick = () => {
-    if (state?.ready) return quitAndInstall();
-    if (state?.available && state.progress === null) return downloadUpdate();
+
+  // Wait for the initial updater snapshot before exposing native update controls.
+  if (!updaterState) {
+    return null;
+  }
+
+  const disabledReason =
+    updaterState.availability.state === "disabled"
+      ? updaterState.availability.reason
+      : null;
+  const isBusy =
+    updaterState.phase === "checking" || updaterState.phase === "downloading";
+
+  const resolveActionLabel = (): string => {
+    if (updaterState.ready) {
+      return t["com.myoxus.aboutMyoxus.checkUpdate.button.restart"]();
+    }
+    if (updaterState.available && updaterState.progress === null) {
+      return t["com.myoxus.aboutMyoxus.checkUpdate.button.download"]();
+    }
+    if (updaterState.phase === "error" || updaterState.phase === "latest") {
+      return t["com.myoxus.aboutMyoxus.checkUpdate.button.retry"]();
+    }
+    return t["com.myoxus.aboutMyoxus.checkUpdate.button.check"]();
+  };
+
+  const resolveSubtitle = (): string => {
+    if (externalMacosInstall) {
+      return t[
+        "com.myoxus.aboutMyoxus.checkUpdate.subtitle.external-macos-install"
+      ]();
+    }
+    if (disabledReason === "externally-managed") {
+      return t[
+        "com.myoxus.aboutMyoxus.checkUpdate.subtitle.externally-managed"
+      ]();
+    }
+    if (disabledReason === "portable") {
+      return t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.portable"]();
+    }
+    if (disabledReason) {
+      return t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.disabled"]();
+    }
+    if (updaterState.phase === "error") {
+      return t["com.myoxus.common.operation-failed"]();
+    }
+    if (updaterState.ready) {
+      return t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.restart"]();
+    }
+    if (updaterState.phase === "checking") {
+      return t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.checking"]();
+    }
+    if (updaterState.progress !== null && updaterState.progress !== undefined) {
+      return t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.downloading"]();
+    }
+    if (updaterState.available) {
+      return t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.update-available"]({
+        version: updaterState.available.version,
+      });
+    }
+    if (updaterState.phase === "latest") {
+      return t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.latest"]();
+    }
+    return t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.check"]();
+  };
+
+  const handleAction = () => {
+    if (updaterState.ready) {
+      quitAndInstall();
+      return;
+    }
+    if (updaterState.available && updaterState.progress === null) {
+      downloadUpdate();
+      return;
+    }
     void checkForUpdates();
   };
+
   return (
     <SettingsRow
       name={
@@ -73,9 +109,11 @@ export const UpdateCheckSection = () => {
           : t["com.myoxus.aboutMyoxus.checkUpdate.title"]()
       }
       desc={
-        <SettingsStatusText tone={state?.phase === "error" ? "error" : "muted"}>
-          {active ? <MyoxusLoader /> : null}
-          {subtitle}
+        <SettingsStatusText
+          tone={updaterState.phase === "error" ? "error" : "muted"}
+        >
+          {isBusy ? <MyoxusLoader /> : null}
+          {resolveSubtitle()}
         </SettingsStatusText>
       }
     >
@@ -86,10 +124,10 @@ export const UpdateCheckSection = () => {
       ) : (
         <MyoxusButton
           data-testid="check-update-button"
-          onClick={handleClick}
-          disabled={Boolean(unavailable) || active}
+          onClick={handleAction}
+          disabled={Boolean(disabledReason) || isBusy}
         >
-          {buttonLabel}
+          {resolveActionLabel()}
         </MyoxusButton>
       )}
     </SettingsRow>

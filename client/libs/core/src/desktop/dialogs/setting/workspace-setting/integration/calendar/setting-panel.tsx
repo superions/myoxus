@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { IntegrationService } from "@myoxus/core/modules/integration";
 import { WorkspaceServerService } from "@myoxus/core/modules/server";
 import { useI18n } from "@myoxus/i18n";
@@ -15,22 +18,22 @@ import {
 } from "../../../primitives";
 import { SubscriptionSetting } from "./subscription-setting";
 
-const isSameSelection = (left: Set<string>, right: Set<string>) => {
+function setsEqual(left: Set<string>, right: Set<string>): boolean {
   if (left.size !== right.size) return false;
   for (const id of left) {
     if (!right.has(id)) return false;
   }
   return true;
-};
+}
 
 export const CalendarSettingPanel = () => {
   const t = useI18n();
   const calendar = useService(IntegrationService).calendar;
-  const workspaceServerService = useService(WorkspaceServerService);
-  const server = useLiveData(workspaceServerService.server$);
+  const server = useLiveData(useService(WorkspaceServerService).server$);
   const accounts = useLiveData(calendar.accounts$);
   const accountCalendars = useLiveData(calendar.accountCalendars$);
   const workspaceCalendars = useLiveData(calendar.workspaceCalendars$);
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
 
@@ -40,35 +43,32 @@ export const CalendarSettingPanel = () => {
   }, [calendar, server]);
 
   useEffect(() => {
-    const selected = new Set(
-      workspaceCalendars[0]?.items.map((item) => item.subscriptionId) ?? [],
+    setSelectedIds(
+      new Set(
+        workspaceCalendars[0]?.items.map((item) => item.subscriptionId) ?? [],
+      ),
     );
-    setSelectedIds(selected);
   }, [workspaceCalendars]);
 
-  const orderedSubscriptions = useMemo(() => {
-    return accounts.flatMap(
-      (account) => accountCalendars.get(account.id) ?? [],
-    );
-  }, [accounts, accountCalendars]);
+  const orderedSubscriptions = useMemo(
+    () => accounts.flatMap((account) => accountCalendars.get(account.id) ?? []),
+    [accountCalendars, accounts],
+  );
 
   const handleToggle = useCallback((id: string, checked: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (checked) {
-        next.add(id);
-      } else {
-        next.delete(id);
-      }
+      if (checked) next.add(id);
+      else next.delete(id);
       return next;
     });
   }, []);
 
   const hasChanges = useMemo(() => {
-    const saved = new Set(
+    const persisted = new Set(
       workspaceCalendars[0]?.items.map((item) => item.subscriptionId) ?? [],
     );
-    return !isSameSelection(saved, selectedIds);
+    return !setsEqual(persisted, selectedIds);
   }, [selectedIds, workspaceCalendars]);
 
   const handleSave = useCallback(async () => {
@@ -76,9 +76,9 @@ export const CalendarSettingPanel = () => {
     try {
       const items = orderedSubscriptions
         .filter((subscription) => selectedIds.has(subscription.id))
-        .map((subscription, index) => ({
+        .map((subscription, sortOrder) => ({
           subscriptionId: subscription.id,
-          sortOrder: index,
+          sortOrder,
         }));
       await calendar.updateWorkspaceCalendars(items);
     } catch (error) {
@@ -91,11 +91,11 @@ export const CalendarSettingPanel = () => {
     }
   }, [calendar, orderedSubscriptions, selectedIds, t]);
 
-  const hasCalendars = orderedSubscriptions.length > 0;
-
   if (accounts.length === 0) {
     return null;
   }
+
+  const hasCalendars = orderedSubscriptions.length > 0;
 
   return (
     <>

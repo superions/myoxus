@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { AIToolsConfig } from "@myoxus/core/modules/ai-button";
 import type { EditorHost } from "@virgultum/editor/std";
 
@@ -10,7 +13,7 @@ import {
   resolveCreateMessageAttachments,
 } from "./request-attachments";
 
-const TIMEOUT = 50000;
+const DEFAULT_TIMEOUT_MS = 50_000;
 
 export type TextToTextOptions = {
   client: CopilotClient;
@@ -19,10 +22,11 @@ export type TextToTextOptions = {
   attachments?: MessageAttachment[];
   host?: EditorHost;
   persistAttachment?: AttachmentPersister;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
   timeout?: number;
-  /** Null defers native chat lifetime to the provider's bounded deadline while
-   * retaining the independent message/upload request timeout.
+  /**
+   * `null` delegates stream lifetime to the server provider while keeping the
+   * independent upload/message timeout.
    */
   streamTimeout?: number | null;
   stream?: boolean;
@@ -42,247 +46,139 @@ export type TextToTextOptions = {
   onMessageCreated?: (messageId: string) => void | Promise<void>;
 };
 
-export type ToImageOptions = TextToTextOptions & {
-  seed?: string;
-};
-
-interface CreateMessageOptions {
-  requestId?: string;
-  client: CopilotClient;
-  sessionId: string;
-  content?: string;
-  attachments?: MessageAttachment[];
-  host?: EditorHost;
-  persistAttachment?: AttachmentPersister;
-  params?: Record<string, any>;
-  timeout?: number;
-  signal?: AbortSignal;
-}
-
-async function createMessage({
-  requestId,
-  client,
-  sessionId,
-  content,
-  attachments,
-  host,
-  persistAttachment,
-  params,
-  timeout,
-  signal,
-}: CreateMessageOptions): Promise<string> {
-  signal?.throwIfAborted();
-  const options: Parameters<CopilotClient["createMessage"]>[0] = {
+async function openGenerationStream(
+  options: TextToTextOptions,
+  timeout: number,
+): Promise<EventSource> {
+  const {
+    client,
     sessionId,
-    requestId,
     content,
-    params,
-  };
-
-  const resolvedAttachments = await resolveCreateMessageAttachments({
     attachments,
     host,
     persistAttachment,
+    params,
     signal,
-  });
-  if (resolvedAttachments?.length) {
-    options.attachments = resolvedAttachments;
+    retry = false,
+    requestId,
+    responseId,
+    expectedStreamId,
+    endpoint = Endpoint.StreamObject,
+    reasoning,
+    modelId,
+    toolsConfig,
+    onMessageCreated,
+  } = options;
+
+  let messageId = options.messageId;
+  signal?.throwIfAborted();
+
+  if (!retry) {
+    const resolvedAttachments = await resolveCreateMessageAttachments({
+      attachments,
+      host,
+      persistAttachment,
+      signal,
+    });
+    signal?.throwIfAborted();
+    messageId = await client.createMessage(
+      {
+        sessionId,
+        requestId,
+        content,
+        params,
+        ...(resolvedAttachments?.length
+          ? { attachments: resolvedAttachments }
+          : {}),
+      },
+      { timeout, signal },
+    );
+    signal?.throwIfAborted();
+    if (messageId) {
+      await onMessageCreated?.(messageId);
+    }
   }
 
   signal?.throwIfAborted();
-  return await client.createMessage(options, { timeout, signal });
+  AIProvider.LAST_ACTION_SESSIONID = sessionId;
+
+  return client.chatTextStream(
+    {
+      sessionId,
+      messageId,
+      requestId,
+      responseId,
+      expectedStreamId,
+      reasoning,
+      modelId,
+      toolsConfig,
+    },
+    endpoint,
+  );
 }
 
-export function textToText({
-  client,
-  sessionId,
-  content,
-  attachments,
-  host,
-  persistAttachment,
-  params,
-  stream,
-  signal,
-  timeout = TIMEOUT,
-  streamTimeout,
-  retry = false,
-  requestId,
-  messageId: originalMessageId,
-  responseId,
-  expectedStreamId,
-  endpoint = Endpoint.StreamObject,
-  postfix,
-  reasoning,
-  modelId,
-  toolsConfig,
-  onRetrievalStatus,
-  onMessageCreated,
-}: TextToTextOptions) {
-  let messageId = originalMessageId;
-  const textEventTimeout =
-    streamTimeout === null ? undefined : (streamTimeout ?? timeout);
+async function collectMessages(
+  eventSource: EventSource,
+  streamTimeout: number | undefined,
+  signal: AbortSignal | undefined,
+  onRetrievalStatus: ((available: boolean) => void) | undefined,
+): Promise<string> {
+  const parts: string[] = [];
+  for await (const event of toTextStream(eventSource, {
+    timeout: streamTimeout,
+    signal,
+    onRetrievalStatus,
+  })) {
+    if (event.type === "message") {
+      parts.push(event.data);
+    }
+  }
+  return parts.join("");
+}
 
-  if (stream) {
+export function textToText(options: TextToTextOptions) {
+  const timeout = options.timeout ?? DEFAULT_TIMEOUT_MS;
+  const eventTimeout =
+    options.streamTimeout === null
+      ? undefined
+      : (options.streamTimeout ?? timeout);
+
+  if (options.stream) {
     return {
       [Symbol.asyncIterator]: async function* () {
-        signal?.throwIfAborted();
-        if (!retry) {
-          messageId = await createMessage({
-            requestId,
-            client,
-            sessionId,
-            content,
-            attachments,
-            host,
-            persistAttachment,
-            params,
-            timeout,
-            signal,
-          });
+        const eventSource = await openGenerationStream(options, timeout);
+        if (options.postfix) {
+          const combined = await collectMessages(
+            eventSource,
+            eventTimeout,
+            options.signal,
+            options.onRetrievalStatus,
+          );
+          yield options.postfix(combined);
+          return;
         }
-        signal?.throwIfAborted();
-        if (!retry && messageId) await onMessageCreated?.(messageId);
-        signal?.throwIfAborted();
-        const eventSource = client.chatTextStream(
-          {
-            sessionId,
-            messageId,
-            requestId,
-            responseId,
-            expectedStreamId,
-            reasoning,
-            modelId,
-            toolsConfig,
-          },
-          endpoint,
-        );
-        AIProvider.LAST_ACTION_SESSIONID = sessionId;
 
-        if (postfix) {
-          const messages: string[] = [];
-          for await (const event of toTextStream(eventSource, {
-            timeout: textEventTimeout,
-            signal,
-            onRetrievalStatus,
-          })) {
-            if (event.type === "message") {
-              messages.push(event.data);
-            }
-          }
-          yield postfix(messages.join(""));
-        } else {
-          for await (const event of toTextStream(eventSource, {
-            timeout: textEventTimeout,
-            signal,
-            onRetrievalStatus,
-          })) {
-            if (event.type === "message") {
-              yield event.data;
-            }
+        for await (const event of toTextStream(eventSource, {
+          timeout: eventTimeout,
+          signal: options.signal,
+          onRetrievalStatus: options.onRetrievalStatus,
+        })) {
+          if (event.type === "message") {
+            yield event.data;
           }
         }
       },
     };
-  } else {
-    return (async function () {
-      signal?.throwIfAborted();
-      if (!retry) {
-        messageId = await createMessage({
-          requestId,
-          client,
-          sessionId,
-          content,
-          attachments,
-          host,
-          persistAttachment,
-          params,
-          timeout,
-          signal,
-        });
-      }
-      signal?.throwIfAborted();
-      if (!retry && messageId) await onMessageCreated?.(messageId);
-      signal?.throwIfAborted();
-      const eventSource = client.chatTextStream(
-        {
-          sessionId,
-          messageId,
-          requestId,
-          responseId,
-          expectedStreamId,
-          reasoning,
-          modelId,
-          toolsConfig,
-        },
-        endpoint,
-      );
-      AIProvider.LAST_ACTION_SESSIONID = sessionId;
-
-      const messages: string[] = [];
-      for await (const event of toTextStream(eventSource, {
-        timeout: textEventTimeout,
-        signal,
-        onRetrievalStatus,
-      })) {
-        if (event.type === "message") {
-          messages.push(event.data);
-        }
-      }
-
-      const result = messages.join("");
-      return postfix ? postfix(result) : result;
-    })();
   }
-}
 
-// Only one image is currently being processed
-export function toImage({
-  content,
-  sessionId,
-  attachments,
-  host,
-  persistAttachment,
-  params,
-  seed,
-  signal,
-  timeout = TIMEOUT,
-  retry = false,
-  endpoint,
-  client,
-}: ToImageOptions) {
-  let messageId: string | undefined;
-  return {
-    [Symbol.asyncIterator]: async function* () {
-      signal?.throwIfAborted();
-      if (!retry) {
-        messageId = await createMessage({
-          client,
-          sessionId,
-          content,
-          attachments,
-          host,
-          persistAttachment,
-          params,
-          timeout,
-          signal,
-        });
-      }
-      const eventSource = client.imagesStream(
-        sessionId,
-        messageId,
-        seed,
-        endpoint,
-      );
-      AIProvider.LAST_ACTION_SESSIONID = sessionId;
-
-      for await (const event of toTextStream(eventSource, {
-        timeout,
-        signal,
-      })) {
-        if (event.type === "attachment") {
-          yield event.data;
-        }
-      }
-    },
-  };
+  return (async () => {
+    const eventSource = await openGenerationStream(options, timeout);
+    const combined = await collectMessages(
+      eventSource,
+      eventTimeout,
+      options.signal,
+      options.onRetrievalStatus,
+    );
+    return options.postfix ? options.postfix(combined) : combined;
+  })();
 }

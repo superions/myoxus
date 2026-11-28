@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { IntegrationTypeIcon } from "@myoxus/core/modules/integration";
 import type { I18nString } from "@myoxus/i18n";
 import { GithubIcon, McpIcon } from "@myoxus/icons/react";
@@ -7,22 +10,15 @@ import { GitSyncSettingPanel } from "./git-sync/setting-panel";
 import { McpServerSettingPanel } from "./mcp-server/setting-panel";
 import { ReadwiseSettingPanel } from "./readwise/setting-panel";
 
-type IntegrationDefinition = {
+type IntegrationEntry = {
   id: string;
   name: I18nString;
   desc: I18nString;
   icon: ReactNode;
   cloud?: boolean;
-} & (
-  | {
-      setting: ReactNode;
-    }
-  | {
-      link: string;
-    }
-);
+} & ({ setting: ReactNode } | { link: string });
 
-const INTEGRATION_LIST = [
+const INTEGRATIONS = [
   {
     id: "readwise" as const,
     name: "com.myoxus.integration.readwise.name",
@@ -45,22 +41,18 @@ const INTEGRATION_LIST = [
     setting: <McpServerSettingPanel />,
     cloud: true,
   },
-] satisfies (IntegrationDefinition | false)[];
+] satisfies IntegrationEntry[];
 
-type IntegrationId = Exclude<
-  Extract<(typeof INTEGRATION_LIST)[number], {}>,
-  false
->["id"];
+type IntegrationId = (typeof INTEGRATIONS)[number]["id"];
 
-export type IntegrationItem = Exclude<IntegrationDefinition, "id"> & {
+export type IntegrationItem = Omit<IntegrationEntry, "id"> & {
   id: IntegrationId;
 };
 
-export function getAllowedIntegrationList(isCloudWorkspace: boolean) {
-  return INTEGRATION_LIST.filter((item) => {
-    if (!item) return false;
-    const requiredCloud = "cloud" in item && item.cloud;
-    if (requiredCloud && !isCloudWorkspace) return false;
-    return true;
-  }) as IntegrationItem[];
+export function getAllowedIntegrationList(
+  isCloudWorkspace: boolean,
+): IntegrationItem[] {
+  return INTEGRATIONS.filter(
+    (entry) => !entry.cloud || isCloudWorkspace,
+  ) as IntegrationItem[];
 }

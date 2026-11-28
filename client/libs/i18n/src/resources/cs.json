@@ -6234,8 +6234,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "Pokročilé ovládání viditelnosti bloků",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "Povolí bloky AI chatu.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "Blok AI chatu",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "Povolit nebo zakázat funkci přepínání AI modelů.",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "Povolit přepínání AI modelů",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "Když je vypnuto, pokaždé když zvolíte „Pokračovat s AI“, AI dostane jen snímek obrazovky.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "Odesílat AI detailní informace o objektu",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "Povolit nebo zakázat VŠECHNY funkce AI.",

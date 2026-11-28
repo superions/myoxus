@@ -4625,8 +4625,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "Control avansat al vizibilității blocurilor",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "Activează blocurile de chat AI.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "Bloc de chat AI",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "Activează sau dezactivează funcția de comutare a modelului AI.",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "Activează comutarea modelului AI",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "Când este dezactivat, de fiecare dată când alegi „Continuă cu AI”, AI primește doar o captură de ecran.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "Trimite informații detaliate despre obiect către AI",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "Activează sau dezactivează TOATE funcțiile AI.",

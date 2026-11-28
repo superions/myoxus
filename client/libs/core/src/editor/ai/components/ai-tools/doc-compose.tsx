@@ -1,16 +1,17 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import { getStoreManager } from "@myoxus/core/editor/manager/store";
 import { getMyoxusWorkspaceSchema } from "@myoxus/core/modules/workspace";
 import { useI18n } from "@myoxus/i18n";
-import { PageIcon, ToolIcon as NativeToolIcon } from "@myoxus/icons/react";
+import { PageIcon, ToolIcon } from "@myoxus/icons/react";
 import {
   DocEmbedProvider,
   type NotificationService,
 } from "@virgultum/core/services";
 import { RefNodeSlotsProvider } from "@virgultum/editor/inlines/reference";
 import type { BlockStdScope } from "@virgultum/editor/std";
-import { MarkdownTransformer } from "@virgultum/editor/widgets/linked-doc";
+import { MarkdownTransformer } from "@virgultum/editor/interchange";
 import { useCallback, useEffect, useId, useRef } from "react";
 
 import type { PageAiBridge } from "../../../virgultum/doc-editor/page-ai-bridge";
@@ -34,13 +35,16 @@ export interface DocComposeToolResult {
   toolName: string;
   args: { title: string };
   result:
-    | {
-        title: string;
-        markdown: string;
-        wordCount: number;
-      }
-    | ToolError
-    | null;
+    { title: string; markdown: string; wordCount: number } | ToolError | null;
+}
+
+function isToolError(value: unknown): value is ToolError {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    "type" in value &&
+    (value as { type?: unknown }).type === "error"
+  );
 }
 
 export function DocComposeTool({
@@ -59,7 +63,7 @@ export function DocComposeTool({
   const t = useI18n();
   const ownerId = useId();
   const preview = useChatPreview();
-  const initialPreviewPendingRef = useRef(true);
+  const hasAutoOpenedRef = useRef(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -69,14 +73,9 @@ export function DocComposeTool({
     };
   }, []);
 
-  const isError =
-    data.type === "tool-result" &&
-    !!data.result &&
-    typeof data.result === "object" &&
-    "type" in data.result &&
-    data.result.type === "error";
   const isLoading = data.type !== "tool-result";
-  const successResult =
+  const isError = data.type === "tool-result" && isToolError(data.result);
+  const composed =
     data.type === "tool-result" &&
     data.result &&
     typeof data.result === "object" &&
@@ -84,107 +83,96 @@ export function DocComposeTool({
       ? data.result
       : null;
 
-  const openOrUpdatePreview = useCallback(() => {
+  const saveDocument = useCallback(async () => {
+    if (!composed || !mountedRef.current || readOnly) return;
+    try {
+      if (!std && pageBridge) {
+        const ok = await pageBridge.saveAsDoc(
+          composed.markdown,
+          data.args.title,
+        );
+        if (!ok && mountedRef.current) {
+          notificationService?.toast(
+            t["com.myoxus.ai.chat-panel.doc-create-failed"](),
+          );
+        }
+        return;
+      }
+      if (!std) return;
+
+      const refNodeSlots = std.getOptional(RefNodeSlotsProvider);
+      const { docId } = await MarkdownTransformer.importMarkdownToDoc({
+        collection: std.store.workspace,
+        schema: getMyoxusWorkspaceSchema(),
+        markdown: composed.markdown,
+        fileName: data.args.title,
+        extensions: getStoreManager().config.init().value.get("store"),
+        access: std.getOptional(DocEmbedProvider) ?? undefined,
+      });
+      if (!mountedRef.current) return;
+      if (!docId) {
+        notificationService?.toast(
+          t["com.myoxus.ai.chat-panel.doc-create-failed"](),
+        );
+        return;
+      }
+
+      const openNow = await notificationService?.confirm({
+        title: t["com.myoxus.ai.chat-panel.open-created-doc-title"](),
+        message: t["com.myoxus.ai.chat-panel.open-created-doc-message"](),
+        cancelText: t["Cancel"](),
+        confirmText: t["com.myoxus.ai.chat-panel.open-action"](),
+      });
+      if (openNow && mountedRef.current) {
+        refNodeSlots?.docLinkClicked.next({
+          pageId: docId,
+          openMode: "open-in-active-view",
+          host: std.host,
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      notificationService?.toast(
+        t["com.myoxus.ai.chat-panel.doc-create-failed"](),
+      );
+    }
+  }, [
+    composed,
+    data.args.title,
+    notificationService,
+    pageBridge,
+    readOnly,
+    std,
+    t,
+  ]);
+
+  const syncPreview = useCallback(() => {
     if (!preview) return;
-    initialPreviewPendingRef.current = false;
+    hasAutoOpenedRef.current = true;
 
-    const errorView = isError
-      ? toolFailedCard({
-          name: t["com.myoxus.ai.chat-panel.doc-compose-failed"](),
-          icon: <NativeToolIcon />,
-        })
-      : null;
-
-    const content = errorView ? (
-      errorView
+    const content = isError ? (
+      toolFailedCard({
+        name: t["com.myoxus.ai.chat-panel.doc-compose-failed"](),
+        icon: <ToolIcon />,
+      })
     ) : isLoading ? (
       <ArtifactSkeleton icon={<PageIcon />} />
-    ) : successResult ? (
+    ) : composed ? (
       <StoredAnswerText
         host={std?.host}
         pageBridge={pageBridge}
-        text={successResult.markdown}
+        text={composed.markdown}
       />
     ) : null;
 
     const controls =
-      successResult && (std || pageBridge) ? (
+      composed && (std || pageBridge) ? (
         <DocComposeControls
-          copyText={successResult.markdown}
-          onCopied={() => {
-            notificationService?.toast(t["Copied to clipboard"]());
-          }}
-          save={
-            readOnly
-              ? undefined
-              : () => {
-                  void (async () => {
-                    try {
-                      if (!mountedRef.current || readOnly) return;
-                      if (!std && pageBridge) {
-                        const saved = await pageBridge.saveAsDoc(
-                          successResult.markdown,
-                          data.args.title,
-                        );
-                        if (!saved && mountedRef.current) {
-                          notificationService?.toast(
-                            t["com.myoxus.ai.chat-panel.doc-create-failed"](),
-                          );
-                        }
-                        return;
-                      }
-                      if (!std) return;
-                      const workspace = std.store.workspace;
-                      const refNodeSlots =
-                        std.getOptional(RefNodeSlotsProvider);
-                      const { docId } =
-                        await MarkdownTransformer.importMarkdownToDoc({
-                          collection: workspace,
-                          schema: getMyoxusWorkspaceSchema(),
-                          markdown: successResult.markdown,
-                          fileName: data.args.title,
-                          extensions: getStoreManager()
-                            .config.init()
-                            .value.get("store"),
-                          access:
-                            std.getOptional(DocEmbedProvider) ?? undefined,
-                        });
-                      if (!mountedRef.current) return;
-                      if (docId) {
-                        const open = await notificationService?.confirm({
-                          title:
-                            t[
-                              "com.myoxus.ai.chat-panel.open-created-doc-title"
-                            ](),
-                          message:
-                            t[
-                              "com.myoxus.ai.chat-panel.open-created-doc-message"
-                            ](),
-                          cancelText: t["Cancel"](),
-                          confirmText:
-                            t["com.myoxus.ai.chat-panel.open-action"](),
-                        });
-                        if (open && mountedRef.current) {
-                          refNodeSlots?.docLinkClicked.next({
-                            pageId: docId,
-                            openMode: "open-in-active-view",
-                            host: std.host,
-                          });
-                        }
-                      } else {
-                        notificationService?.toast(
-                          t["com.myoxus.ai.chat-panel.doc-create-failed"](),
-                        );
-                      }
-                    } catch (e) {
-                      console.error(e);
-                      notificationService?.toast(
-                        t["com.myoxus.ai.chat-panel.doc-create-failed"](),
-                      );
-                    }
-                  })();
-                }
+          copyText={composed.markdown}
+          onCopied={() =>
+            notificationService?.toast(t["Copied to clipboard"]())
           }
+          save={readOnly ? undefined : () => void saveDocument()}
         />
       ) : undefined;
 
@@ -195,6 +183,7 @@ export function DocComposeTool({
       controls,
     });
   }, [
+    composed,
     data.args.title,
     isError,
     isLoading,
@@ -203,28 +192,29 @@ export function DocComposeTool({
     pageBridge,
     preview,
     readOnly,
+    saveDocument,
     std,
-    successResult,
     t,
   ]);
 
   useEffect(() => {
     if (!preview) return;
-    if (initialPreviewPendingRef.current || preview.isOwnerOpen(ownerId)) {
-      openOrUpdatePreview();
+    if (!hasAutoOpenedRef.current || preview.isOwnerOpen(ownerId)) {
+      syncPreview();
     }
-  }, [openOrUpdatePreview, ownerId, preview]);
+  }, [ownerId, preview, syncPreview]);
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       preview?.closePreview(ownerId);
-    };
-  }, [ownerId, preview]);
+    },
+    [ownerId, preview],
+  );
 
   if (isError) {
     return toolFailedCard({
       name: t["com.myoxus.ai.chat-panel.doc-compose-failed"](),
-      icon: <NativeToolIcon />,
+      icon: <ToolIcon />,
     });
   }
 
@@ -233,7 +223,7 @@ export function DocComposeTool({
       title={data.args.title}
       icon={<PageIcon />}
       loading={isLoading}
-      open={preview ? openOrUpdatePreview : undefined}
+      open={preview ? syncPreview : undefined}
     />
   );
 }

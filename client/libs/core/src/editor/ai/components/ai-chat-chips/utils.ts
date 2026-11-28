@@ -1,5 +1,7 @@
-import { chatI18n } from "../chat-i18n";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import { chatI18n } from "../chat-i18n";
 import type {
   AttachmentChip,
   ChatChip,
@@ -11,22 +13,22 @@ import type {
   TagChip,
 } from "./type";
 
+const STATE_TOOLTIP_KEYS = {
+  candidate: "com.myoxus.ai.chat-panel.context-candidate",
+  processing: "com.myoxus.ai.chat-panel.context-processing",
+  failed: "com.myoxus.ai.chat-panel.context-error",
+} as const;
+
 export function getChipTooltip(
   state: ChipState,
   name: string,
   tooltip?: string | null,
-) {
-  if (tooltip) {
-    return tooltip;
-  }
-  if (state === "candidate") {
-    return chatI18n()["com.myoxus.ai.chat-panel.context-candidate"]();
-  }
-  if (state === "processing") {
-    return chatI18n()["com.myoxus.ai.chat-panel.context-processing"]();
-  }
-  if (state === "failed") {
-    return chatI18n()["com.myoxus.ai.chat-panel.context-error"]();
+): string {
+  if (tooltip) return tooltip;
+  if (state in STATE_TOOLTIP_KEYS) {
+    return chatI18n()[
+      STATE_TOOLTIP_KEYS[state as keyof typeof STATE_TOOLTIP_KEYS]
+    ]();
   }
   return name;
 }
@@ -57,83 +59,43 @@ export function isAttachmentChip(chip: ChatChip): chip is AttachmentChip {
   return "sourceId" in chip && "name" in chip;
 }
 
-export function getChipKey(chip: ChatChip) {
-  if (isDocChip(chip)) {
-    return chip.docId;
-  }
-  if (isFileChip(chip)) {
-    return chip.file.name;
-  }
-  if (isTagChip(chip)) {
-    return chip.tagId;
-  }
-  if (isCollectionChip(chip)) {
-    return chip.collectionId;
-  }
-  if (isSelectedContextChip(chip)) {
-    return chip.uuid;
-  }
-  if (isAttachmentChip(chip)) {
-    return chip.sourceId;
-  }
+export function getChipKey(chip: ChatChip): string | null {
+  if (isDocChip(chip)) return chip.docId;
+  if (isFileChip(chip)) return chip.file.name;
+  if (isTagChip(chip)) return chip.tagId;
+  if (isCollectionChip(chip)) return chip.collectionId;
+  if (isSelectedContextChip(chip)) return chip.uuid;
+  if (isAttachmentChip(chip)) return chip.sourceId;
   return null;
 }
 
-export function omitChip(chips: ChatChip[], chip: ChatChip) {
-  return chips.filter((item) => {
-    if (isDocChip(chip)) {
-      return !isDocChip(item) || item.docId !== chip.docId;
-    }
-    if (isFileChip(chip)) {
-      return !isFileChip(item) || item.file !== chip.file;
-    }
-    if (isTagChip(chip)) {
-      return !isTagChip(item) || item.tagId !== chip.tagId;
-    }
-    if (isCollectionChip(chip)) {
-      return !isCollectionChip(item) || item.collectionId !== chip.collectionId;
-    }
-    if (isSelectedContextChip(chip)) {
-      return !isSelectedContextChip(item) || item.uuid !== chip.uuid;
-    }
-    if (isAttachmentChip(chip)) {
-      return !isAttachmentChip(item) || item.sourceId !== chip.sourceId;
-    }
-    return true;
-  });
+function isSameChip(a: ChatChip, b: ChatChip): boolean {
+  if (isDocChip(a) && isDocChip(b)) return a.docId === b.docId;
+  if (isFileChip(a) && isFileChip(b)) return a.file === b.file;
+  if (isTagChip(a) && isTagChip(b)) return a.tagId === b.tagId;
+  if (isCollectionChip(a) && isCollectionChip(b)) {
+    return a.collectionId === b.collectionId;
+  }
+  if (isSelectedContextChip(a) && isSelectedContextChip(b)) {
+    return a.uuid === b.uuid;
+  }
+  if (isAttachmentChip(a) && isAttachmentChip(b)) {
+    return a.sourceId === b.sourceId;
+  }
+  return false;
 }
 
-export function findChipIndex(chips: ChatChip[], chip: ChatChip) {
-  return chips.findIndex((item) => {
-    if (isDocChip(chip)) {
-      return isDocChip(item) && item.docId === chip.docId;
-    }
-    if (isFileChip(chip)) {
-      return isFileChip(item) && item.file === chip.file;
-    }
-    if (isTagChip(chip)) {
-      return isTagChip(item) && item.tagId === chip.tagId;
-    }
-    if (isCollectionChip(chip)) {
-      return isCollectionChip(item) && item.collectionId === chip.collectionId;
-    }
-    if (isSelectedContextChip(chip)) {
-      return isSelectedContextChip(item) && item.uuid === chip.uuid;
-    }
-    if (isAttachmentChip(chip)) {
-      return isAttachmentChip(item) && item.sourceId === chip.sourceId;
-    }
-    return false;
-  });
+export function omitChip(chips: ChatChip[], target: ChatChip): ChatChip[] {
+  return chips.filter((chip) => !isSameChip(chip, target));
+}
+
+export function findChipIndex(chips: ChatChip[], target: ChatChip): number {
+  return chips.findIndex((chip) => isSameChip(chip, target));
 }
 
 export function estimateTokenCount(text: string): number {
-  const chinese = text.match(/[\u4e00-\u9fa5]/g)?.length || 0;
-  const english = text.replace(/[\u4e00-\u9fa5]/g, "");
-  // Split English text into words by whitespace
-  const englishWords = english.trim().split(/\s+/).length;
-
-  // Chinese characters: 1 character ≈ 2.5 tokens
-  // English words: 1 word ≈ 1.3 tokens
-  return Math.ceil(chinese * 2.5 + englishWords * 1.3);
+  const cjkChars = text.match(/[\u4e00-\u9fa5]/g)?.length ?? 0;
+  const nonCjk = text.replace(/[\u4e00-\u9fa5]/g, "").trim();
+  const wordCount = nonCjk ? nonCjk.split(/\s+/).length : 0;
+  return Math.ceil(cjkChars * 2.5 + wordCount * 1.3);
 }

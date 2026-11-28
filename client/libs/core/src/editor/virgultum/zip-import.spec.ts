@@ -18,7 +18,7 @@ import { createZipFixture, readZipFixture } from "../../__tests__/zip-fixture";
 import {
   MarkdownTransformer,
   ZipTransformer,
-} from "@virgultum/editor/widgets/linked-doc";
+} from "@virgultum/editor/interchange";
 import { Schema } from "@virgultum/core/store";
 import { TestWorkspace } from "@virgultum/core/store/test";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";

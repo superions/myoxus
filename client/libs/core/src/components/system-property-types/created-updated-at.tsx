@@ -5,4 +5,4 @@ export {
   UpdatedAtDocListProperty,
   UpdatedAtFilterValue,
   UpdatedAtGroupHeader,
-} from "../workspace-property-types/created-updated-at";
+} from "../workspace-property-types";

@@ -1,6 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useGuard } from "@myoxus/core/components/guard";
-import type { DialogComponentProps } from "@myoxus/core/modules/dialogs";
-import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
+import {
+  type DialogComponentProps,
+  WorkspaceDialogService,
+} from "@myoxus/core/modules/dialogs";
 import type { WORKSPACE_DIALOG_SCHEMA } from "@myoxus/core/modules/dialogs/constant";
 import { type Doc, DocService, DocsService } from "@myoxus/core/modules/doc";
 import {
@@ -12,8 +17,8 @@ import {
   ServerService,
   UserFeatureService,
 } from "@myoxus/core/modules/server";
-import { useI18n } from "@myoxus/i18n";
 import { WorkbenchService } from "@myoxus/core/modules/workbench/services/workbench";
+import { useI18n } from "@myoxus/i18n";
 import {
   FrameworkScope,
   useLiveData,
@@ -44,41 +49,39 @@ function DocInfoDialogContent({
     UserFeatureService,
     WorkspaceDialogService,
   });
+
   const canEditDocument = useGuard("Doc_Update", docId);
-  const canConfigureWorkspaceDocumentSettings = useGuard(
-    "Workspace_Settings_Update",
-  );
-  const isMyoxusAdmin = useLiveData(userFeatureService.userFeature.isAdmin$);
+  const canConfigureWorkspaceDefaults = useGuard("Workspace_Settings_Update");
+  const isAdmin = useLiveData(userFeatureService.userFeature.isAdmin$);
 
   useEffect(() => {
     userFeatureService.userFeature.revalidate();
   }, [userFeatureService]);
 
-  const onConfigureWorkspaceDocumentSettings = useCallback(() => {
+  const handleConfigureWorkspaceDefaults = useCallback(() => {
     workspaceDialogService.open("workspace-settings", {
       activeTab: "workspace:documents",
     });
   }, [workspaceDialogService]);
 
-  const onOpenGlobalDocumentPolicy = useCallback(() => {
+  const handleOpenGlobalPolicy = useCallback(() => {
     const adminUrl = new URL(
       "/adminfrontend/documents?tab=metadata",
       serverService.server.baseUrl,
     );
     window.open(adminUrl.toString(), "_blank", "noopener,noreferrer");
   }, [serverService.server.baseUrl]);
+
   return (
     <DocumentMetadataEditorView
-      canConfigureWorkspaceDefaults={
-        !readonly && canConfigureWorkspaceDocumentSettings
-      }
-      canOpenGlobalPolicy={!readonly && Boolean(isMyoxusAdmin)}
+      canConfigureWorkspaceDefaults={!readonly && canConfigureWorkspaceDefaults}
+      canOpenGlobalPolicy={!readonly && Boolean(isAdmin)}
       detailsLayout="dialog"
       docId={docId}
       graphqlService={graphQLService}
       metadataCache={metadataCache}
-      onConfigureWorkspaceDefaults={onConfigureWorkspaceDocumentSettings}
-      onOpenGlobalPolicy={onOpenGlobalDocumentPolicy}
+      onConfigureWorkspaceDefaults={handleConfigureWorkspaceDefaults}
+      onOpenGlobalPolicy={handleOpenGlobalPolicy}
       readonly={readonly || !canEditDocument}
       showSummary={false}
     />
@@ -89,7 +92,6 @@ function DocInfoDialogTitle() {
   const docService = useService(DocService);
   const title = useLiveData(docService.doc.record.title$);
   const t = useI18n();
-
   return title || t["Untitled"]();
 }
 
@@ -100,18 +102,18 @@ export const DocInfoDialog = ({
   readonly,
 }: DialogComponentProps<WORKSPACE_DIALOG_SCHEMA["doc-info"]>) => {
   const docsService = useService(DocsService);
+  const workbench = useServiceOptional(WorkbenchService)?.workbench;
   const t = useI18n();
 
   const [doc, setDoc] = useState<Doc | null>(null);
   const [open, setOpen] = useState(true);
   const [returnFocus, setReturnFocus] = useState(true);
-  const workbench = useServiceOptional(WorkbenchService)?.workbench;
+
   useEffect(() => {
     if (!workbench) return;
     const origin = workbench.location$.value;
-    // Native Review links may activate a retained Workbench view. Close this
-    // document's outer information dialog without focusing its inactive opener.
-    const sub = workbench.location$.subscribe((location) => {
+    // Close without restoring focus to the old opener when workbench navigates.
+    const subscription = workbench.location$.subscribe((location) => {
       if (
         location.pathname !== origin.pathname ||
         location.search !== origin.search
@@ -120,8 +122,9 @@ export const DocInfoDialog = ({
         setOpen(false);
       }
     });
-    return () => sub.unsubscribe();
+    return () => subscription.unsubscribe();
   }, [workbench]);
+
   useEffect(() => {
     if (!docId) return;
     const docRef = docsService.open(docId);
@@ -144,7 +147,6 @@ export const DocInfoDialog = ({
         }}
         open={open}
         onOpenChange={setOpen}
-        // Release scope after native exit; navigation keeps focus in its target.
         onExitTransitionEnd={close}
         returnFocusRef={returnFocusRef}
         returnFocus={returnFocus}

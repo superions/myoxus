@@ -13,7 +13,7 @@ import {
   RouteLogic,
   useNavigateHelper,
 } from "@myoxus/core/components/hooks/use-navigate-helper";
-import { CopilotClient } from "@myoxus/core/editor/ai";
+import { CopilotClient } from "@myoxus/core/editor/ai/provider/copilot-client";
 import {
   AIChatContent,
   type ChatContextValue,

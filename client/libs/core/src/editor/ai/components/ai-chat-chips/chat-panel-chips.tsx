@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import type { TagMeta } from "@myoxus/core/components/page-list";
 import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
@@ -11,7 +12,6 @@ import {
 import track from "@myoxus/track";
 import { Box, notify } from "@myoxus/ui-facade";
 import { signal, type Signal } from "@preact/signals-core";
-import { isEqual } from "lodash-es";
 import {
   Fragment,
   type ReactNode,
@@ -45,9 +45,8 @@ import {
 } from "./utils";
 import { ChatChipsView, ChatChipView } from "./view";
 
-// Existing document-context token bound; the native view does not change it.
-const MAX_TOKEN_COUNT = 100000;
-const MAX_CANDIDATES = 3;
+const MAX_CONTEXT_TOKENS = 100_000;
+const MAX_INLINE_CANDIDATES = 3;
 
 const EMPTY_TAGS = signal<TagMeta[]>([]);
 const EMPTY_COLLECTIONS = signal<Array<{ id: string; name: string }>>([]);
@@ -67,6 +66,14 @@ export interface ChatPanelChipsProps {
   testId?: string;
 }
 
+function sameStringList(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((item, idx) => item === b[idx]);
+}
+
+/**
+ * Renders active context chips and linked-document candidate suggestions,
+ * preserving focus return into the owning chat composer when chips are removed.
+ */
 export function ChatPanelChips({
   chips,
   isCollapsed,
@@ -86,21 +93,21 @@ export function ChatPanelChips({
     useState<Signal<Array<{ id: string; name: string }>>>(EMPTY_COLLECTIONS);
   const [referenceDocsSignal, setReferenceDocsSignal] =
     useState<Signal<Array<{ docId: string; title: string }>>>(EMPTY_REFS);
-  const docIdsRef = useRef<string[]>([]);
+  const subscribedDocIdsRef = useRef<string[]>([]);
   const refCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    const tags = docDisplayConfig.getTags();
-    const collections = docDisplayConfig.getCollections();
-    setTagsSignal(tags.signal);
-    setCollectionsSignal(collections.signal);
+    const tagsSub = docDisplayConfig.getTags();
+    const collectionsSub = docDisplayConfig.getCollections();
+    setTagsSignal(tagsSub.signal);
+    setCollectionsSignal(collectionsSub.signal);
     return () => {
-      tags.cleanup();
-      collections.cleanup();
+      tagsSub.cleanup();
+      collectionsSub.cleanup();
     };
   }, [docDisplayConfig]);
 
-  const docIds = useMemo(
+  const activeDocIds = useMemo(
     () =>
       chips
         .filter(isDocChip)
@@ -110,41 +117,47 @@ export function ChatPanelChips({
   );
 
   useEffect(() => {
-    if (isEqual(docIds, docIdsRef.current) && refCleanupRef.current) return;
-    docIdsRef.current = docIds;
-    // Acquire retained sources before releasing the previous chip set, so a
-    // shared reference read does not lose its final subscriber in between.
-    const docs = docDisplayConfig.getReferenceDocs(docIds);
+    if (
+      sameStringList(activeDocIds, subscribedDocIdsRef.current) &&
+      refCleanupRef.current
+    ) {
+      return;
+    }
+    subscribedDocIdsRef.current = activeDocIds;
+    // Acquire the replacement reference subscription before releasing the old
+    // one so shared observables do not drop to zero subscribers mid-update.
+    const nextRefs = docDisplayConfig.getReferenceDocs(activeDocIds);
     refCleanupRef.current?.();
-    setReferenceDocsSignal(docs.signal);
-    refCleanupRef.current = docs.cleanup;
-  }, [docDisplayConfig, docIds]);
+    setReferenceDocsSignal(nextRefs.signal);
+    refCleanupRef.current = nextRefs.cleanup;
+  }, [activeDocIds, docDisplayConfig]);
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       refCleanupRef.current?.();
       refCleanupRef.current = null;
-      docIdsRef.current = [];
-    };
-  }, [docDisplayConfig]);
+      subscribedDocIdsRef.current = [];
+    },
+    [docDisplayConfig],
+  );
 
   const tags = useSignalValue(tagsSignal) ?? [];
   const collections = useSignalValue(collectionsSignal) ?? [];
   const referenceDocs = useSignalValue(referenceDocsSignal) ?? [];
 
-  const act = useCallback(
+  const runChipAction = useCallback(
     async (action: () => void | Promise<void>, removing = false) => {
       const composer = containerRef.current?.closest(
         '[data-myoxus-ui-role="chat-composer"]',
       );
-      const focused = document.activeElement;
+      const previousFocus = document.activeElement;
       try {
         await action();
-        const active = document.activeElement;
+        const currentFocus = document.activeElement;
         if (
           composer?.isConnected &&
-          (removing || (focused && !focused.isConnected)) &&
-          (active === document.body || active === focused)
+          (removing || (previousFocus && !previousFocus.isConnected)) &&
+          (currentFocus === document.body || currentFocus === previousFocus)
         ) {
           composer
             .querySelector<HTMLButtonElement>(
@@ -161,31 +174,29 @@ export function ChatPanelChips({
     [],
   );
 
-  const checkTokenLimit = useCallback(
-    (newChip: DocChip, newTokenCount: number) => {
-      const count = chips.reduce((acc, chip) => {
-        if (isFileChip(chip) || isTagChip(chip) || isCollectionChip(chip))
-          return acc;
-        if (isDocChip(chip) && chip.docId === newChip.docId)
-          return acc + newTokenCount;
-        if (
+  const withinTokenBudget = useCallback(
+    (target: DocChip, candidateTokens: number) => {
+      let total = 0;
+      for (const chip of chips) {
+        if (isFileChip(chip) || isTagChip(chip) || isCollectionChip(chip)) {
+          continue;
+        }
+        if (isDocChip(chip) && chip.docId === target.docId) {
+          total += candidateTokens;
+        } else if (
           isDocChip(chip) &&
           chip.markdown?.value &&
           chip.state === "finished"
-        )
-          return (
-            acc + (chip.tokenCount ?? estimateTokenCount(chip.markdown.value))
-          );
-        if (isSelectedContextChip(chip))
-          return (
-            acc +
+        ) {
+          total += chip.tokenCount ?? estimateTokenCount(chip.markdown.value);
+        } else if (isSelectedContextChip(chip)) {
+          total +=
             estimateTokenCount(chip.combinedElementsMarkdown ?? "") +
             estimateTokenCount(chip.snapshot ?? "") +
-            estimateTokenCount(chip.html ?? "")
-          );
-        return acc;
-      }, 0);
-      return count <= MAX_TOKEN_COUNT;
+            estimateTokenCount(chip.html ?? "");
+        }
+      }
+      return total <= MAX_CONTEXT_TOKENS;
     },
     [chips],
   );
@@ -197,15 +208,15 @@ export function ChatPanelChips({
           chip={chip}
           config={docDisplayConfig}
           update={updateChip}
-          fits={checkTokenLimit}
-          onRemove={() => void act(() => removeChip(chip), true)}
+          fits={withinTokenBudget}
+          onRemove={() => void runChipAction(() => removeChip(chip), true)}
           onAdd={() =>
-            void act(async () => {
+            void runChipAction(async () => {
               await addChip({ ...chip, state: "processing" });
-              const scope = independentMode
+              const tracker = independentMode
                 ? track.$.intelligence
                 : track.$.chatPanel;
-              scope.chatPanelInput.addEmbeddingDoc({
+              tracker.chatPanelInput.addEmbeddingDoc({
                 control: "addButton",
                 method: "suggestion",
                 type: docDisplayConfig.getDocPrimaryMode(chip.docId),
@@ -220,23 +231,27 @@ export function ChatPanelChips({
     let icon: ReactNode;
     let tagColor: string | undefined;
     let closeable = chip.state !== "processing";
-    let retry: (() => Promise<void>) | undefined;
+    let onRetry: (() => Promise<void>) | undefined;
 
     if (isFileChip(chip) || isAttachmentChip(chip)) {
       name = isFileChip(chip) ? chip.file.name : chip.name;
       icon = <FileIcon />;
       closeable = true;
-      if (isFileChip(chip) && retryFileChip) retry = () => retryFileChip(chip);
-      if (isAttachmentChip(chip) && retryAttachmentChip)
-        retry = () => retryAttachmentChip(chip);
+      if (isFileChip(chip) && retryFileChip) {
+        onRetry = () => retryFileChip(chip);
+      } else if (isAttachmentChip(chip) && retryAttachmentChip) {
+        onRetry = () => retryAttachmentChip(chip);
+      }
     } else if (isTagChip(chip)) {
-      const tag = tags.find((t) => t.id === chip.tagId);
+      const tag = tags.find((entry) => entry.id === chip.tagId);
       if (!tag) return null;
       name = tag.name;
       tagColor = tag.color;
       icon = <TagsIcon />;
     } else if (isCollectionChip(chip)) {
-      const collection = collections.find((c) => c.id === chip.collectionId);
+      const collection = collections.find(
+        (entry) => entry.id === chip.collectionId,
+      );
       if (!collection) return null;
       name = collection.name;
       icon = <CollectionsIcon />;
@@ -256,8 +271,8 @@ export function ChatPanelChips({
         closeable={closeable}
         tooltip={getChipTooltip(chip.state, name, chip.tooltip)}
         onAdd={() => {}}
-        onRemove={() => void act(() => removeChip(chip), true)}
-        onRetry={retry ? () => void act(retry!) : undefined}
+        onRemove={() => void runChipAction(() => removeChip(chip), true)}
+        onRetry={onRetry ? () => void runChipAction(onRetry!) : undefined}
       />
     );
   };
@@ -266,21 +281,21 @@ export function ChatPanelChips({
     docId: doc.docId,
     state: "candidate",
   }));
-  const all = chips.concat(candidates.slice(0, MAX_CANDIDATES));
-  const collapsed = isCollapsed && all.length > 1;
-  const visible = collapsed ? all.slice(0, 1) : all;
-  const moreDocs = referenceDocs.slice(MAX_CANDIDATES);
+  const allItems = [...chips, ...candidates.slice(0, MAX_INLINE_CANDIDATES)];
+  const collapsed = isCollapsed && allItems.length > 1;
+  const displayed = collapsed ? allItems.slice(0, 1) : allItems;
+  const overflowDocs = referenceDocs.slice(MAX_INLINE_CANDIDATES);
 
   return (
     <Box ref={containerRef} data-testid={testId}>
       <ChatChipsView
-        hiddenCount={collapsed ? all.length - 1 : 0}
+        hiddenCount={collapsed ? allItems.length - 1 : 0}
         onExpand={toggleCollapse}
         renderCandidates={
-          !collapsed && candidates.length > MAX_CANDIDATES
+          !collapsed && candidates.length > MAX_INLINE_CANDIDATES
             ? (controller) => (
                 <ContextSuggestions
-                  docs={moreDocs}
+                  docs={overflowDocs}
                   addChip={addChip}
                   config={docDisplayConfig}
                   controller={controller}
@@ -289,7 +304,7 @@ export function ChatPanelChips({
             : undefined
         }
       >
-        {visible.map((chip) => (
+        {displayed.map((chip) => (
           <Fragment key={getChipKey(chip)}>{renderChip(chip)}</Fragment>
         ))}
       </ChatChipsView>

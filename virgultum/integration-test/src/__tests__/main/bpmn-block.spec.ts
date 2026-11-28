@@ -15,9 +15,9 @@ import {
 } from "@virgultum/editor/shared/commands";
 import { signal } from "@preact/signals-core";
 import { DocEmbedProvider } from "@virgultum/editor/shared/services";
-import { addNote } from "../utils/edgeless.js";
-import { setupEditor } from "../utils/setup.js";
-import { wait } from "../utils/common.js";
+import { insertTestNote as addNote } from "../../harness/session.js";
+import { mountTestSession as setupEditor } from "../../harness/session.js";
+import { flushFrame as wait } from "../../harness/pointer.js";
 
 describe.each(["page", "edgeless"] as const)("BPMN %s consumer", (mode) => {
   beforeEach(async () =>

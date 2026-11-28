@@ -1,10 +1,13 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
 import { useNavigateHelper } from "@myoxus/core/components/hooks/use-navigate-helper";
 import { useWorkspaceName } from "@myoxus/core/components/hooks/use-workspace-info";
 import { WorkspaceSelector } from "@myoxus/core/components/workspace-selector";
-import {
-  type DialogComponentProps,
-  type GLOBAL_DIALOG_SCHEMA,
+import type {
+  DialogComponentProps,
+  GLOBAL_DIALOG_SCHEMA,
 } from "@myoxus/core/modules/dialogs";
 import {
   ImportTemplateService,
@@ -30,7 +33,7 @@ import {
 import type { DocMode } from "@virgultum/editor/model";
 import { useCallback, useEffect, useState } from "react";
 
-const Dialog = ({
+function ImportTemplateDialogContent({
   templateName,
   templateMode,
   snapshotUrl,
@@ -40,30 +43,30 @@ const Dialog = ({
   templateMode: DocMode;
   snapshotUrl: string;
   onClose?: () => void;
-}) => {
+}) {
   const t = useI18n();
   const session = useService(AuthService).session;
-  const notLogin = useLiveData(session.status$) === "unauthenticated";
-  const isSessionRevalidating = useLiveData(session.isRevalidating$);
-
-  const [importing, setImporting] = useState(false);
-  const [importingError, setImportingError] = useState<any>(null);
   const workspacesService = useService(WorkspacesService);
-  const templateDownloaderService = useService(TemplateDownloaderService);
+  const templateDownloader = useService(TemplateDownloaderService).downloader;
   const importTemplateService = useService(ImportTemplateService);
-  const templateDownloader = templateDownloaderService.downloader;
+  const { openPage, jumpToSignIn } = useNavigateHelper();
+
+  const isUnauthenticated = useLiveData(session.status$) === "unauthenticated";
+  const isSessionRevalidating = useLiveData(session.isRevalidating$);
   const isDownloading = useLiveData(templateDownloader.isDownloading$);
   const downloadError = useLiveData(templateDownloader.error$);
   const workspaces = useLiveData(workspacesService.list.workspaces$);
-  const [rawSelectedWorkspace, setSelectedWorkspace] =
+
+  const [importing, setImporting] = useState(false);
+  const [importingError, setImportingError] = useState<unknown>(null);
+  const [pickedWorkspace, setPickedWorkspace] =
     useState<WorkspaceMetadata | null>(null);
+
   const selectedWorkspace =
-    rawSelectedWorkspace ??
-    workspaces.find((w) => w.flavour !== "local") ??
+    pickedWorkspace ??
+    workspaces.find((workspace) => workspace.flavour !== "local") ??
     workspaces.at(0);
   const selectedWorkspaceName = useWorkspaceName(selectedWorkspace);
-  const { openPage, jumpToSignIn } = useNavigateHelper();
-
   const noWorkspace = workspaces.length === 0;
 
   useEffect(() => {
@@ -75,89 +78,47 @@ const Dialog = ({
   }, [session]);
 
   useEffect(() => {
-    if (!isSessionRevalidating && notLogin) {
+    if (!isSessionRevalidating && isUnauthenticated) {
       jumpToSignIn(
-        "/template/import?" +
-          "&name=" +
-          templateName +
-          "&mode=" +
-          templateMode +
-          "&snapshotUrl=" +
-          snapshotUrl,
+        `/template/import?&name=${templateName}&mode=${templateMode}&snapshotUrl=${snapshotUrl}`,
       );
       onClose?.();
     }
   }, [
     isSessionRevalidating,
+    isUnauthenticated,
     jumpToSignIn,
-    notLogin,
     onClose,
     snapshotUrl,
-    templateName,
     templateMode,
+    templateName,
   ]);
 
   useEffect(() => {
     templateDownloader.download({ snapshotUrl });
   }, [snapshotUrl, templateDownloader]);
 
-  const handleSelectedWorkspace = useCallback(
-    (workspaceMetadata: WorkspaceMetadata) => {
-      return setSelectedWorkspace(workspaceMetadata);
-    },
-    [],
-  );
-
   const handleCreatedWorkspace = useCallback(
     (payload: { metadata: WorkspaceMetadata; defaultDocId?: string }) => {
-      return setSelectedWorkspace(payload.metadata);
+      setPickedWorkspace(payload.metadata);
     },
     [],
   );
 
   const handleImportToSelectedWorkspace = useAsyncCallback(async () => {
-    if (templateDownloader.data$.value && selectedWorkspace) {
-      setImporting(true);
-      try {
-        const docId = await importTemplateService.importToWorkspace(
-          selectedWorkspace,
-          templateDownloader.data$.value,
-          templateMode,
-        );
-        openPage(selectedWorkspace.id, docId);
-        onClose?.();
-      } catch (err) {
-        setImportingError(err);
-      } finally {
-        setImporting(false);
-      }
-    }
-  }, [
-    importTemplateService,
-    onClose,
-    openPage,
-    selectedWorkspace,
-    templateDownloader.data$.value,
-    templateMode,
-  ]);
-
-  const handleImportToNewWorkspace = useAsyncCallback(async () => {
-    if (!templateDownloader.data$.value) {
-      return;
-    }
+    const data = templateDownloader.data$.value;
+    if (!data || !selectedWorkspace) return;
     setImporting(true);
     try {
-      const { workspaceId, docId } =
-        await importTemplateService.importToNewWorkspace(
-          // TODO: support selfhosted
-          "myoxus-cloud",
-          "Workspace",
-          templateDownloader.data$.value,
-        );
-      openPage(workspaceId, docId);
+      const docId = await importTemplateService.importToWorkspace(
+        selectedWorkspace,
+        data,
+        templateMode,
+      );
+      openPage(selectedWorkspace.id, docId);
       onClose?.();
-    } catch (err) {
-      setImportingError(err);
+    } catch (error) {
+      setImportingError(error);
     } finally {
       setImporting(false);
     }
@@ -165,10 +126,32 @@ const Dialog = ({
     importTemplateService,
     onClose,
     openPage,
-    templateDownloader.data$.value,
+    selectedWorkspace,
+    templateDownloader,
+    templateMode,
   ]);
 
-  const disabled = isDownloading || importing || notLogin;
+  const handleImportToNewWorkspace = useAsyncCallback(async () => {
+    const data = templateDownloader.data$.value;
+    if (!data) return;
+    setImporting(true);
+    try {
+      const { workspaceId, docId } =
+        await importTemplateService.importToNewWorkspace(
+          "myoxus-cloud",
+          "Workspace",
+          data,
+        );
+      openPage(workspaceId, docId);
+      onClose?.();
+    } catch (error) {
+      setImportingError(error);
+    } finally {
+      setImporting(false);
+    }
+  }, [importTemplateService, onClose, openPage, templateDownloader]);
+
+  const disabled = isDownloading || importing || isUnauthenticated;
 
   return (
     <Stack p="lg" data-myoxus-ui-role="import-template-dialog-content">
@@ -196,22 +179,22 @@ const Dialog = ({
             </MyoxusText>
             <WorkspaceSelector
               workspaceMetadata={selectedWorkspace}
-              onSelectWorkspace={handleSelectedWorkspace}
+              onSelectWorkspace={setPickedWorkspace}
               onCreatedWorkspace={handleCreatedWorkspace}
               showArrowDownIcon
               disable={disabled}
-              menuContentOptions={{
-                side: "top",
-              }}
+              menuContentOptions={{ side: "top" }}
             />
           </>
         )}
       </Stack>
-      {importingError && (
+
+      {importingError ? (
         <SettingsNotice tone="error">
           {t["com.myoxus.import-template.dialog.errorImport"]()}
         </SettingsNotice>
-      )}
+      ) : null}
+
       {downloadError ? (
         <SettingsNotice tone="error">
           {t["com.myoxus.import-template.dialog.errorLoad"]()}
@@ -225,10 +208,11 @@ const Dialog = ({
           onClick={handleImportToSelectedWorkspace}
           data-testid="import-template-to-workspace-btn"
         >
-          {selectedWorkspaceName &&
-            t["com.myoxus.import-template.dialog.createDocToWorkspace"]({
-              workspace: selectedWorkspaceName,
-            })}
+          {selectedWorkspaceName
+            ? t["com.myoxus.import-template.dialog.createDocToWorkspace"]({
+                workspace: selectedWorkspaceName,
+              })
+            : null}
         </Button>
       ) : (
         <Button
@@ -243,7 +227,7 @@ const Dialog = ({
       )}
     </Stack>
   );
-};
+}
 
 export const ImportTemplateDialog = ({
   close,
@@ -254,12 +238,12 @@ export const ImportTemplateDialog = ({
   return (
     <Modal
       open
-      modal={true}
+      modal
       persistent
       withoutCloseButton
       onOpenChange={() => close()}
     >
-      <Dialog
+      <ImportTemplateDialogContent
         templateName={templateName}
         templateMode={templateMode}
         snapshotUrl={snapshotUrl}

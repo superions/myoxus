@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useEnableServer } from "@myoxus/core/components/hooks/myoxus/use-enable-server";
 import {
   type Workspace,
@@ -21,23 +24,17 @@ export const EnableCloudPanel = ({
 }) => {
   const t = useI18n();
   const migrateWorkspaceToServer = useEnableServer();
-
   const workspace = useService(WorkspaceService).workspace;
   const name = useLiveData(workspace.name$);
-  const flavour = workspace.flavour;
 
-  const migrateWorkspaceToServerAndClose = useCallback(() => {
+  const handleEnableCloud = useCallback(() => {
     if (!workspace) return;
     migrateWorkspaceToServer(workspace, {
-      onSuccess: () => {
-        onCloseSetting?.();
-      },
+      onSuccess: () => onCloseSetting?.(),
     });
   }, [migrateWorkspaceToServer, onCloseSetting, workspace]);
 
-  if (flavour !== "local") {
-    return null;
-  }
+  if (workspace.flavour !== "local") return null;
 
   return (
     <SettingRow
@@ -50,7 +47,7 @@ export const EnableCloudPanel = ({
       <Button
         data-testid="publish-enable-myoxus-cloud-button"
         variant="primary"
-        onClick={migrateWorkspaceToServerAndClose}
+        onClick={handleEnableCloud}
       >
         {t["Enable Myoxus Cloud"]()}
       </Button>

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { WorkspaceImpl } from "@myoxus/core/modules/workspace/impls/workspace";
 import { getElementProps } from "@virgultum/editor/blocks/root";
 import { getSurfaceBlock } from "@virgultum/editor/blocks/surface";
@@ -41,7 +44,7 @@ import { Doc as YDoc } from "yjs";
 import { getStoreManager } from "../../manager/store";
 import type { ChatContextValue } from "../components/ai-chat-content";
 import { isAttachment } from "./attachment";
-import { isImage } from "./image";
+import { canvasToBlob, isImage } from "./image";
 import {
   getSelectedAttachments,
   getSelectedImagesAsBlobs,
@@ -52,61 +55,57 @@ import {
 export async function extractSelectedContent(
   host: EditorHost,
 ): Promise<Partial<ChatContextValue> | null> {
-  const docModeService = host.std.get(DocModeProvider);
-  const mode = docModeService.getEditorMode() || "page";
-  if (mode === "edgeless") {
-    return await extractEdgelessSelected(host);
-  } else {
-    return await extractPageSelected(host);
-  }
+  const mode = host.std.get(DocModeProvider).getEditorMode() || "page";
+  return mode === "edgeless"
+    ? extractEdgelessSelection(host)
+    : extractPageSelection(host);
 }
 
-async function extractEdgelessSelected(
+async function extractEdgelessSelection(
   host: EditorHost,
 ): Promise<Partial<ChatContextValue> | null> {
   if (!isInsideEdgelessEditor(host)) return null;
-  const gfx = host.std.get(GfxControllerIdentifier);
-  const selectedElements = gfx.selection.selectedElements;
 
+  const selected = host.std.get(GfxControllerIdentifier).selection
+    .selectedElements;
   let snapshot: DocSnapshot | null = null;
   let markdown = "";
   const attachments: ChatContextValue["attachments"] = [];
   const images: File[] = [];
   const docs: ChatContextValue["docs"] = [];
 
-  if (selectedElements.length) {
+  if (selected.length > 0) {
     const transformer = host.store.getTransformer();
     const markdownAdapter = new MarkdownAdapter(
       transformer,
       host.store.provider,
     );
-    const collection = new WorkspaceImpl({
+    const scratchWorkspace = new WorkspaceImpl({
       id: "AI_EXTRACT",
       rootDoc: new YDoc({ guid: "AI_EXTRACT" }),
     });
-    collection.meta.initialize();
+    scratchWorkspace.meta.initialize();
 
-    let needSnapshot = false;
-    let needMarkdown = false;
+    let hasPrimitives = false;
+    let hasNotes = false;
     try {
-      const fragmentDoc = collection.createDoc();
-      const fragment = fragmentDoc.getStore();
-      fragmentDoc.load();
+      const scratchDoc = scratchWorkspace.createDoc();
+      const scratchStore = scratchDoc.getStore();
+      scratchDoc.load();
 
-      const rootId = fragment.addBlock("myoxus:page");
-      fragment.addBlock("myoxus:surface", {}, rootId);
-      const noteId = fragment.addBlock("myoxus:note", {}, rootId);
-      const surface = getSurfaceBlock(fragment);
+      const rootId = scratchStore.addBlock("myoxus:page");
+      scratchStore.addBlock("myoxus:surface", {}, rootId);
+      const noteId = scratchStore.addBlock("myoxus:note", {}, rootId);
+      const surface = getSurfaceBlock(scratchStore);
       if (!surface) {
         throw new Error("Failed to get surface block");
       }
 
-      for (const element of selectedElements) {
+      for (const element of selected) {
         if (element instanceof NoteBlockModel) {
-          needMarkdown = true;
+          hasNotes = true;
           for (const child of element.children) {
-            const props = getBlockProps(child);
-            fragment.addBlock(child.flavour, props, noteId);
+            scratchStore.addBlock(child.flavour, getBlockProps(child), noteId);
           }
         } else if (isAttachment(element)) {
           const { name, sourceId } = element.props;
@@ -122,130 +121,104 @@ async function extractEdgelessSelected(
             }
           }
         } else if (element instanceof GfxPrimitiveElementModel) {
-          needSnapshot = true;
-          const props = getElementProps(element, new Map());
-          surface.addElement(props);
+          hasPrimitives = true;
+          surface.addElement(getElementProps(element, new Map()));
         } else if (
           element instanceof EmbedSyncedDocModel ||
           element instanceof EmbedLinkedDocModel
         ) {
-          const docId = element.props.pageId;
-          docs.push(docId);
+          docs.push(element.props.pageId);
         }
       }
 
-      if (needSnapshot) {
-        snapshot = transformer.docToSnapshot(fragment) ?? null;
+      if (hasPrimitives) {
+        snapshot = transformer.docToSnapshot(scratchStore) ?? null;
       }
-      if (needMarkdown) {
-        markdown = (await markdownAdapter.fromDoc(fragment))?.file ?? "";
+      if (hasNotes) {
+        markdown = (await markdownAdapter.fromDoc(scratchStore))?.file ?? "";
       }
     } finally {
-      collection.dispose();
+      scratchWorkspace.dispose();
     }
   }
 
   const canvas = await selectedToCanvas(host);
   if (!canvas) return null;
 
-  const blob: Blob | null = await new Promise((resolve) =>
-    canvas.toBlob(resolve),
-  );
-  if (!blob) return null;
+  const previewBlob = await canvasToBlob(canvas);
+  if (!previewBlob) return null;
 
   return {
-    images: [new File([blob], "selected.png"), ...images],
+    images: [new File([previewBlob], "selected.png"), ...images],
     snapshot: snapshot ? JSON.stringify(snapshot) : null,
-    combinedElementsMarkdown: markdown.length ? markdown : null,
+    combinedElementsMarkdown: markdown.length > 0 ? markdown : null,
     attachments,
     docs,
   };
 }
 
-async function extractPageSelected(
+async function extractPageSelection(
   host: EditorHost,
 ): Promise<Partial<ChatContextValue> | null> {
-  const text = await getSelectedTextContent(host, "plain-text");
-  const images = await getSelectedImagesAsBlobs(host);
-  const attachments = await getSelectedAttachments(host);
-  const hasText = text.length > 0;
+  const [plainText, images, attachments] = await Promise.all([
+    getSelectedTextContent(host, "plain-text"),
+    getSelectedImagesAsBlobs(host),
+    getSelectedAttachments(host),
+  ]);
+
+  const hasText = plainText.length > 0;
   const hasImages = images.length > 0;
 
   if (hasText && !hasImages) {
     const markdown = await getSelectedTextContent(host, "markdown");
-    return {
-      quote: text,
-      markdown: markdown,
-      attachments,
-    };
-  } else if (!hasText && hasImages && images.length === 1) {
+    return { quote: plainText, markdown, attachments };
+  }
+
+  if (!hasText && images.length === 1) {
     host.command
       .chain()
       .tryAll((chain) => [chain.pipe(getImageSelectionsCommand)])
-      .pipe(getSelectedBlocksCommand, {
-        types: ["image"],
-      })
+      .pipe(getSelectedBlocksCommand, { types: ["image"] })
       .run();
-    return {
-      attachments,
-      images,
-    };
-  } else {
-    const markdown =
-      (await getSelectedTextContent(host, "markdown")).trim() || "";
-    return {
-      quote: text,
-      markdown,
-      images,
-      attachments,
-    };
+    return { attachments, images };
   }
+
+  const markdown = (await getSelectedTextContent(host, "markdown")).trim();
+  return { quote: plainText, markdown, images, attachments };
 }
 
 export async function extractMarkdownFromDoc(doc: Store): Promise<string> {
-  const std = new BlockStdScope({
+  const scope = new BlockStdScope({
     store: doc,
     extensions: getStoreManager().config.init().value.get("store"),
   });
-  const transformer = await getTransformer(doc);
-  const adapter = new MarkdownAdapter(transformer, std.provider);
-  const blockModels = getNoteBlockModels(doc);
-  const textModels = blockModels.filter(
-    (model) => !matchModels(model, [ImageBlockModel, DatabaseBlockModel]),
-  );
-  const drafts = textModels.map(toDraftModel);
-  const slice = Slice.fromModels(doc, drafts);
+  const transformer = doc.getTransformer([
+    titleMiddleware(doc.workspace.meta.docMetas),
+    embedSyncedDocMiddleware("content"),
+  ]);
+  const adapter = new MarkdownAdapter(transformer, scope.provider);
 
+  const pageNotes = doc
+    .getBlocksByFlavour("myoxus:note")
+    .map((block) => block.model as NoteBlockModel)
+    .filter((note) => note.props.displayMode !== NoteDisplayMode.EdgelessOnly);
+
+  const blocks: BlockModel[] = pageNotes.flatMap((note) => note.children);
+  const textDrafts = blocks
+    .filter(
+      (model) => !matchModels(model, [ImageBlockModel, DatabaseBlockModel]),
+    )
+    .map(toDraftModel);
+
+  const slice = Slice.fromModels(doc, textDrafts);
   const snapshot = transformer.sliceToSnapshot(slice);
   if (!snapshot) {
     throw new Error("Failed to extract markdown, snapshot is undefined");
   }
-  const content = await adapter.fromSliceSnapshot({
+
+  const exported = await adapter.fromSliceSnapshot({
     snapshot,
     assets: transformer.assetsManager,
   });
-  return content.file;
-}
-
-function getNoteBlockModels(doc: Store) {
-  const notes = doc
-    .getBlocksByFlavour("myoxus:note")
-    .filter(
-      (note) =>
-        (note.model as NoteBlockModel).props.displayMode !==
-        NoteDisplayMode.EdgelessOnly,
-    )
-    .map((note) => note.model as NoteBlockModel);
-  const blockModels = notes.reduce((acc, note) => {
-    acc.push(...note.children);
-    return acc;
-  }, [] as BlockModel[]);
-  return blockModels;
-}
-
-async function getTransformer(doc: Store) {
-  return doc.getTransformer([
-    titleMiddleware(doc.workspace.meta.docMetas),
-    embedSyncedDocMiddleware("content"),
-  ]);
+  return exported.file;
 }

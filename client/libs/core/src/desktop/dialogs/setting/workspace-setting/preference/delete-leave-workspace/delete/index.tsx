@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useWorkspaceInfo } from "@myoxus/core/components/hooks/use-workspace-info";
 import type { WorkspaceMetadata } from "@myoxus/core/modules/workspace";
 import { UNTITLED_WORKSPACE_NAME } from "@myoxus/env/constant";
@@ -12,7 +15,7 @@ import {
   SettingsInlineControl,
 } from "../../../../primitives";
 
-interface WorkspaceDeleteProps extends ConfirmModalProps {
+interface WorkspaceDeleteModalProps extends ConfirmModalProps {
   workspaceMetadata: WorkspaceMetadata;
   onConfirm?: () => void;
 }
@@ -20,19 +23,28 @@ interface WorkspaceDeleteProps extends ConfirmModalProps {
 export const WorkspaceDeleteModal = ({
   workspaceMetadata,
   ...props
-}: WorkspaceDeleteProps) => {
+}: WorkspaceDeleteModalProps) => {
   const { onConfirm } = props;
-  const [deleteStr, setDeleteStr] = useState<string>("");
+  const t = useI18n();
+  const [confirmationInput, setConfirmationInput] = useState("");
   const info = useWorkspaceInfo(workspaceMetadata);
   const workspaceName = info?.name ?? UNTITLED_WORKSPACE_NAME;
-  const allowDelete = deleteStr === workspaceName;
-  const t = useI18n();
+  const canDelete = confirmationInput === workspaceName;
 
-  const handleOnEnter = useCallback(() => {
-    if (allowDelete) {
-      return onConfirm?.();
-    }
-  }, [allowDelete, onConfirm]);
+  const handleEnter = useCallback(() => {
+    if (canDelete) onConfirm?.();
+  }, [canDelete, onConfirm]);
+
+  const nameHighlight = (
+    <MyoxusText
+      component="strong"
+      tone="primary"
+      typographySlot="body-small"
+      data-myoxus-ui-role="workspace-delete-modal-workspace-name"
+    >
+      {{ workspace: workspaceName } as unknown as string}
+    </MyoxusText>
+  );
 
   return (
     <ConfirmModal
@@ -41,46 +53,28 @@ export const WorkspaceDeleteModal = ({
       confirmText={t["com.myoxus.workspaceDelete.button.delete"]()}
       confirmButtonOptions={{
         variant: "error",
-        disabled: !allowDelete,
+        disabled: !canDelete,
         "data-testid": "delete-workspace-confirm-button",
       }}
       {...props}
     >
       {workspaceMetadata.flavour === "local" ? (
         <Trans i18nKey="com.myoxus.workspaceDelete.description">
-          Deleting (
-          <MyoxusText
-            component="strong"
-            tone="primary"
-            typographySlot="body-small"
-            data-myoxus-ui-role="workspace-delete-modal-workspace-name"
-          >
-            {{ workspace: workspaceName } as any}
-          </MyoxusText>
-          ) cannot be undone, please proceed with caution. All contents will be
-          lost.
+          Deleting ({nameHighlight}) cannot be undone, please proceed with
+          caution. All contents will be lost.
         </Trans>
       ) : (
         <Trans i18nKey="com.myoxus.workspaceDelete.description2">
-          Deleting (
-          <MyoxusText
-            component="strong"
-            tone="primary"
-            typographySlot="body-small"
-            data-myoxus-ui-role="workspace-delete-modal-workspace-name"
-          >
-            {{ workspace: workspaceName } as any}
-          </MyoxusText>
-          ) will delete both local and cloud data, this operation cannot be
-          undone, please proceed with caution.
+          Deleting ({nameHighlight}) will delete both local and cloud data, this
+          operation cannot be undone, please proceed with caution.
         </Trans>
       )}
       <SettingsInlineControl data-myoxus-ui-role="workspace-delete-modal-input-control">
         <Input
           autoFocus
-          onChange={setDeleteStr}
+          onChange={setConfirmationInput}
           data-testid="delete-workspace-input"
-          onEnter={handleOnEnter}
+          onEnter={handleEnter}
           placeholder={t["com.myoxus.workspaceDelete.placeholder"]()}
           size="large"
         />

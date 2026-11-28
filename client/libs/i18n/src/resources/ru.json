@@ -6231,8 +6231,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "Расширенное управление видимостью блока",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "Включает блоки AI чата.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "Блок чата AI",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "Включить или отключить функцию переключения AI модели.",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "Включить переключение AI модели",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "Когда выключено, каждый раз, когда вы выбираете \"Продолжить с AI\", AI получает только снимок экрана.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "Отправить подробную информацию об объекте в ИИ",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "Включить или отключить ВСЕ функции AI.",

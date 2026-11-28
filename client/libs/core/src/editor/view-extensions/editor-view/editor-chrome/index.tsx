@@ -6,7 +6,6 @@ import { EditorEmbeddedUIRoot } from "../embedded-ui-root";
 import { RegisteredTableControl } from "./table-control";
 import { EditorDisclosureToggle } from "./disclosure-toggle";
 import { EditorIconPickerPopup } from "./icon-picker-popup";
-import { EditorCanvasPopover } from "./canvas-popover";
 import { EditorSurfaceRefPlaceholder } from "./surface-ref-placeholder";
 import { EditorHtmlEmbedCard } from "./html-embed-card";
 import { EditorDocumentCard } from "./document-card";
@@ -25,7 +24,6 @@ import {
   EditorAutoConnect,
   EditorNoteSlicer,
 } from "./auto-complete";
-import { EditorCanvasMenu } from "./canvas-menu";
 import { EditorCanvasDock } from "./canvas-toolbar";
 
 import { EditorSelectionToolbar } from "./selection-toolbar";
@@ -54,12 +52,7 @@ import { EmbedTargetPickerModal } from "../embed-target-picker";
 import { EditorEquation } from "./equation-editor";
 import { RegisteredBlockCaption } from "./block-caption";
 import { EditorCitationPreview } from "./citation-preview";
-import { EditorDocumentOutline, EditorOutlineEntry } from "./document-outline";
-import {
-  EditorFrameNavigator,
-  EditorFrameCard,
-  EditorFrameTitle,
-} from "./frame-navigator";
+import { EditorOutlineEntry } from "./document-outline";
 
 function RegisteredStateControl<Controls>({
   state,
@@ -115,7 +108,6 @@ export function patchEditorChromeHost(mountPortal: MountReactPortal) {
       ),
     mountDisclosureControl: mountStateControl(EditorDisclosureToggle, true),
     mountIconPicker: mountControl(EditorIconPickerPopup),
-    mountCanvasPopover: mountStateControl(EditorCanvasPopover, true),
     mountSurfaceRefPlaceholder: mountStateControl(
       EditorSurfaceRefPlaceholder,
       true,
@@ -124,12 +116,8 @@ export function patchEditorChromeHost(mountPortal: MountReactPortal) {
     mountNoteSlicer: mountStateControl(EditorNoteSlicer, true),
     mountAutoConnect: mountStateControl(EditorAutoConnect, true),
     mountAutoComplete: mountStateControl(EditorAutoComplete, true),
-    mountCanvasMenu: mountStateControl(EditorCanvasMenu, true),
     mountCanvasDock: (anchor, controls) =>
       mountPortal(anchor, <EditorCanvasDock controls={controls} />),
-    mountFrameNavigator: mountStateControl(EditorFrameNavigator),
-    mountFrameCard: mountStateControl(EditorFrameCard),
-    mountFrameTitle: mountStateControl(EditorFrameTitle),
     mountCodePreview: mountControl(EditorCodePreview),
     mountImageFallback: (anchor, state) =>
       mountPortal(anchor, <RegisteredImageFallback state={state} />),
@@ -150,7 +138,6 @@ export function patchEditorChromeHost(mountPortal: MountReactPortal) {
     mountYoutubeCard: mountStateControl(EditorYoutubeCard, true),
     mountFigmaCard: mountStateControl(EditorFigmaCard, true),
     mountLoomCard: mountStateControl(EditorLoomCard, true),
-    mountDocumentOutline: mountControl(EditorDocumentOutline),
     mountOutlineEntry: mountStateControl(RegisteredOutlineEntry, true),
     mountCitationPreview: mountControl(EditorCitationPreview),
     mountBlockCaption: (anchor, state) =>

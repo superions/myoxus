@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import type { PeekViewService } from "@myoxus/core/modules/peek-view";
-import { MyoxusAIIcon } from "./icon";
+import { AiIcon } from "@myoxus/icons/react";
 import {
   Avatar,
   Box,
@@ -73,7 +73,7 @@ export function StoredChatMessages({
                   size="sm"
                 />
               ) : (
-                <MyoxusAIIcon />
+                <AiIcon />
               )}
               <MyoxusText typographySlot="nav">
                 {message.role === "user"

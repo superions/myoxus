@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useNavigateHelper } from "@myoxus/core/components/hooks/use-navigate-helper";
 import type {
   DialogComponentProps,
@@ -12,14 +15,12 @@ export const DeletedAccountDialog = ({
 }: DialogComponentProps<GLOBAL_DIALOG_SCHEMA["deleted-account"]>) => {
   const t = useI18n();
   const { jumpToIndex } = useNavigateHelper();
-  const callback = useCallback(() => {
-    jumpToIndex();
-  }, [jumpToIndex]);
 
-  const handleOpenChange = useCallback(() => {
-    callback();
+  const handleAcknowledge = useCallback(() => {
+    jumpToIndex();
     close();
-  }, [callback, close]);
+  }, [close, jumpToIndex]);
+
   return (
     <ConfirmModal
       open
@@ -30,12 +31,10 @@ export const DeletedAccountDialog = ({
         t["com.myoxus.setting.account.delete.success-description-2"](),
       ].join(" ")}
       confirmText={t["Confirm"]()}
-      onOpenChange={handleOpenChange}
-      onConfirm={handleOpenChange}
+      onOpenChange={handleAcknowledge}
+      onConfirm={handleAcknowledge}
       onCancel={false}
-      confirmButtonOptions={{
-        variant: "primary",
-      }}
+      confirmButtonOptions={{ variant: "primary" }}
     />
   );
 };

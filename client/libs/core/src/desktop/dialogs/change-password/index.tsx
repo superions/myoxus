@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type {
   DialogComponentProps,
   GLOBAL_DIALOG_SCHEMA,
@@ -15,7 +18,7 @@ import {
 import { useI18n } from "@myoxus/i18n";
 import { useLiveData, useService } from "@myoxus/infra";
 import { ConfirmModal, Input, notify } from "@myoxus/ui-facade";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export const ChangePasswordDialog = ({
   close,
@@ -24,48 +27,40 @@ export const ChangePasswordDialog = ({
   const t = useI18n();
   const defaultServerService = useService(DefaultServerService);
   const serversService = useService(ServersService);
-  let server;
 
-  if (serverBaseUrl) {
-    server = serversService.getServerByBaseUrl(serverBaseUrl);
-    if (!server) {
-      throw new Unreachable("Server not found");
-    }
-  } else {
-    server = defaultServerService.server;
+  const server = serverBaseUrl
+    ? serversService.getServerByBaseUrl(serverBaseUrl)
+    : defaultServerService.server;
+  if (!server) {
+    throw new Unreachable("Server not found");
   }
 
   const authService = server.scope.get(AuthService);
   const account = useLiveData(authService.session.account$);
-  const email = account?.email;
-  const hasPassword = account?.info?.hasPassword;
-  const [hasSentEmail, setHasSentEmail] = useState(false);
   const passwordLimits = useLiveData(
-    server.credentialsRequirement$.map((r) => r?.password),
+    server.credentialsRequirement$.map((req) => req?.password),
   );
+  const [hasSentEmail, setHasSentEmail] = useState(false);
+
+  const hasPassword = Boolean(account?.info?.hasPassword);
 
   useEffect(() => {
     if (!account) {
-      // we are logged out, close the dialog
       close();
     }
   }, [account, close]);
 
-  const onSendEmail = async () => {
+  const handleSendEmail = useCallback(async () => {
     try {
       if (hasPassword) {
         await server.gql({
           query: sendChangePasswordEmailMutation,
-          variables: {
-            callbackUrl: `/auth/changePassword`,
-          },
+          variables: { callbackUrl: "/auth/changePassword" },
         });
       } else {
         await server.gql({
           query: sendSetPasswordEmailMutation,
-          variables: {
-            callbackUrl: `/auth/setPassword`,
-          },
+          variables: { callbackUrl: "/auth/setPassword" },
         });
       }
 
@@ -75,24 +70,25 @@ export const ChangePasswordDialog = ({
           : t["com.myoxus.auth.sent.set.password.hint"](),
       });
       setHasSentEmail(true);
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       notify.error({
         title: t["com.myoxus.auth.sent.change.email.fail"](),
       });
-      throw err;
+      throw error;
     }
-  };
+  }, [hasPassword, server, t]);
 
   if (!passwordLimits) {
-    // TODO(@eyhn): loading & error UI
     return null;
   }
 
   return (
     <ConfirmModal
       open
-      onOpenChange={(open) => !open && close()}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) close();
+      }}
       title={
         hasPassword
           ? t["com.myoxus.auth.reset.password"]()
@@ -116,12 +112,16 @@ export const ChangePasswordDialog = ({
       }
       confirmButtonOptions={{ disabled: hasSentEmail }}
       closeOnConfirm={false}
-      onConfirm={onSendEmail}
+      onConfirm={handleSendEmail}
       contentOptions={{
         ["data-testid" as string]: "change-password-modal",
       }}
     >
-      <Input label={t["com.myoxus.settings.email"]()} disabled value={email} />
+      <Input
+        label={t["com.myoxus.settings.email"]()}
+        disabled
+        value={account?.email}
+      />
     </ConfirmModal>
   );
 };

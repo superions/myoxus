@@ -1,16 +1,23 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
-  type ViewExtensionContext,
   ViewExtensionProvider,
+  type ViewExtensionContext,
 } from "@virgultum/core/extensions";
-import type { MyoxusInlineEditor } from "@virgultum/core/types";
 import type { EditorHost } from "@virgultum/core/runtime";
+import type { MyoxusInlineEditor } from "@virgultum/core/types";
 import { z } from "zod";
 
-import { type LinkedMenuGroup, LinkedWidgetConfigExtension } from "./config";
-import { effects } from "./effects";
-import { linkedDocWidget } from "./widget";
+import {
+  LinkedWidgetConfigExtension,
+  MYOXUS_LINKED_DOC_WIDGET,
+  type LinkedDocViewExtensionOptions,
+  type LinkedMenuGroup,
+} from "./picker-config.js";
+import { MyoxusLinkedDocWidget, linkedDocWidget } from "./picker-controller.js";
 
-const optionsSchema = z.object({
+const linkedDocOptionsSchema = z.object({
   triggerKeys: z.optional(z.tuple([z.string()]).rest(z.string())),
   convertTriggerKey: z.boolean().optional(),
   ignoreBlockTypes: z.array(z.string()).optional(),
@@ -36,7 +43,6 @@ const optionsSchema = z.object({
         ]),
       ),
   ),
-
   autoFocusedItemKey: z.optional(
     z
       .function()
@@ -52,7 +58,6 @@ const optionsSchema = z.object({
       )
       .output(z.string().nullable()),
   ),
-
   mobile: z
     .object({
       scrollContainer: z.optional(
@@ -65,16 +70,18 @@ const optionsSchema = z.object({
     .optional(),
 });
 
-export type LinkedDocViewExtensionOptions = z.infer<typeof optionsSchema>;
+export type { LinkedDocViewExtensionOptions };
 
 export class LinkedDocViewExtension extends ViewExtensionProvider<LinkedDocViewExtensionOptions> {
   override name = "myoxus-linked-doc-widget";
 
-  override schema = optionsSchema;
+  override schema = linkedDocOptionsSchema;
 
   override effect() {
     super.effect();
-    effects();
+    if (!customElements.get(MYOXUS_LINKED_DOC_WIDGET)) {
+      customElements.define(MYOXUS_LINKED_DOC_WIDGET, MyoxusLinkedDocWidget);
+    }
   }
 
   override setup(

@@ -2,7 +2,7 @@
 
 import { SurfaceRefPlaceHolder } from "../../../canvas/src/blocks/surface-ref/components/placeholder";
 import { DocTitle } from "../../../content/src/doc-title/doc-title";
-import { defaultSlashMenuConfig } from "../src/widgets/slash-menu/config";
+import { defaultSlashMenuConfig } from "@virgultum/editor/widgets/slash-menu";
 import { myoxus } from "../../../core/src/test-utils/myoxus-template";
 import { Text } from "@virgultum/core/store";
 import type { RootBlockModel } from "@virgultum/core/models";

@@ -1,19 +1,23 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { showAILoginRequiredAtom } from "@myoxus/core/components/myoxus/auth/ai-login-required";
 import type { AIToolsConfig } from "@myoxus/core/modules/ai-button";
+import { downloadBlob } from "@myoxus/core/utils/resource";
 import { UserFriendlyError } from "@myoxus/error";
 import {
-  exportCopilotMessageMutation,
-  CopilotExportFormat,
   addContextBlobMutation,
   addContextCategoryMutation,
   addContextDocMutation,
   addContextFileMutation,
   applyDocUpdatesMutation,
   cleanupCopilotSessionMutation,
+  CopilotExportFormat,
   createCopilotContextMutation,
   createCopilotMessageMutation,
   createCopilotSessionMutation,
   createCopilotSessionWithHistoryMutation,
+  exportCopilotMessageMutation,
   forkCopilotSessionMutation,
   getCopilotHistoriesQuery,
   getCopilotHistoryIdsQuery,
@@ -32,108 +36,131 @@ import {
   removeContextCategoryMutation,
   removeContextDocMutation,
   removeContextFileMutation,
-  retryContextFileMutation,
   type RequestOptions,
+  retryContextFileMutation,
   updateCopilotSessionMutation,
 } from "@myoxus/graphql";
 import { getCurrentStore } from "@myoxus/infra";
-import type { CopilotGeneratedFile } from "../components/ai-chat-messages/type";
-import { downloadBlob } from "@myoxus/core/utils/resource";
 
-import {
-  GeneralNetworkError,
-  PaymentRequiredError,
-  UnauthorizedError,
-} from "./error";
+import type { CopilotGeneratedFile } from "../components/ai-chat-messages/type";
+import { GeneralNetworkError, UnauthorizedError } from "./error";
 
 export enum Endpoint {
   StreamObject = "stream-object",
   Workflow = "workflow",
-  Images = "images",
 }
 
 type OptionsField<T extends GraphQLQuery> =
   RequestOptions<T>["variables"] extends { options: infer U } ? U : never;
 
-function toUserFriendlyError(err: any): UserFriendlyError {
-  return err instanceof UserFriendlyError
-    ? err
-    : UserFriendlyError.fromAny(err);
+type GqlExecutor = <Query extends GraphQLQuery>(
+  options: QueryOptions<Query>,
+) => Promise<QueryResponse<Query>>;
+
+type EventSourceFactory = (
+  url: string,
+  eventSourceInitDict?: EventSourceInit,
+) => EventSource;
+
+function normalizeError(raw: unknown): UserFriendlyError {
+  return raw instanceof UserFriendlyError
+    ? raw
+    : UserFriendlyError.fromAny(raw);
 }
 
-function isAbortError(error: UserFriendlyError) {
+function isAbortFailure(err: UserFriendlyError): boolean {
   return (
-    error.name === "REQUEST_ABORTED" ||
-    error.code === "REQUEST_ABORTED" ||
-    error.message?.toLowerCase().includes("aborted") === true
+    err.name === "REQUEST_ABORTED" ||
+    err.code === "REQUEST_ABORTED" ||
+    err.message?.toLowerCase().includes("aborted") === true
   );
 }
 
-function codeToError(error: UserFriendlyError) {
-  switch (error.status) {
-    case 401:
-      return new UnauthorizedError();
-    case 402:
-      return new PaymentRequiredError();
-    default:
-      return new GeneralNetworkError(
-        error.code
-          ? `${error.code}: ${error.message}\nIdentify: ${error.name}`
-          : error.message,
-        error.code,
-      );
+export function resolveError(raw: unknown) {
+  const err = normalizeError(raw);
+  if (err.status === 401) {
+    return new UnauthorizedError();
   }
+  const message = err.code
+    ? `${err.code}: ${err.message}\nIdentify: ${err.name}`
+    : err.message;
+  return new GeneralNetworkError(message, err.code);
 }
 
-export function resolveError(err: any) {
-  return codeToError(toUserFriendlyError(err));
-}
-
-export function handleError(src: any) {
-  const err = resolveError(src);
-  if (err instanceof UnauthorizedError) {
+export function handleError(raw: unknown) {
+  const mapped = resolveError(raw);
+  if (mapped instanceof UnauthorizedError) {
     getCurrentStore().set(showAILoginRequiredAtom, true);
   }
-  return err;
+  return mapped;
 }
 
-/** Saved files use the authenticated server transport independently of model availability. */
+/** Downloads a persisted Copilot file via the authenticated server transport. */
 export async function downloadSavedCopilotFile(
   fetchFile: (url: string) => Promise<Response>,
   file: CopilotGeneratedFile,
-  current: () => boolean = () => true,
+  isCurrent: () => boolean = () => true,
 ) {
   const response = await fetchFile(file.downloadUrl);
-  if (!response.ok) throw new Error("File download failed");
+  if (!response.ok) {
+    throw new Error("File download failed");
+  }
   const blob = await response.blob();
-  if (current()) await downloadBlob(blob, file.fileName);
+  if (isCurrent()) {
+    await downloadBlob(blob, file.fileName);
+  }
 }
 
+/**
+ * GraphQL and SSE transport client for server-owned Myoxus AI endpoints.
+ */
 export class CopilotClient {
-  private readonly fileExports = new Map<
+  private readonly pendingExports = new Map<
     string,
     Promise<CopilotGeneratedFile>
   >();
+
   constructor(
-    readonly gql: <Query extends GraphQLQuery>(
-      options: QueryOptions<Query>,
-    ) => Promise<QueryResponse<Query>>,
-    readonly eventSource: (
-      url: string,
-      eventSourceInitDict?: EventSourceInit,
-    ) => EventSource,
+    readonly gql: GqlExecutor,
+    readonly eventSource: EventSourceFactory,
     readonly fetchFile?: (url: string) => Promise<Response>,
   ) {}
 
-  /** Coalesce repeated requests on this transport; persistence owns global reuse. */
+  private async runResolved<T>(task: () => Promise<T>): Promise<T> {
+    try {
+      return await task();
+    } catch (err) {
+      throw resolveError(err);
+    }
+  }
+
+  private async runAbortTolerant<T>(
+    task: () => Promise<T>,
+    fallback: T,
+  ): Promise<T> {
+    try {
+      return await task();
+    } catch (err) {
+      const parsed = normalizeError(err);
+      if (isAbortFailure(parsed)) {
+        return fallback;
+      }
+      throw resolveError(parsed);
+    }
+  }
+
+  /** Coalesces duplicate in-flight export mutations for the same message and format. */
   exportMessage(
     messageId: string,
     format: "pdf" | "html",
   ): Promise<CopilotGeneratedFile> {
     const key = `${messageId}:${format}`;
-    const pending = this.fileExports.get(key);
-    if (pending) return pending;
-    const work = this.gql({
+    const existing = this.pendingExports.get(key);
+    if (existing) {
+      return existing;
+    }
+
+    const promise = this.gql({
       timeout: 0,
       query: exportCopilotMessageMutation,
       variables: {
@@ -142,115 +169,95 @@ export class CopilotClient {
           format === "pdf" ? CopilotExportFormat.PDF : CopilotExportFormat.HTML,
       },
     })
-      .then((result) => result.exportCopilotMessage)
+      .then((res) => res.exportCopilotMessage)
       .finally(() => {
-        if (this.fileExports.get(key) === work) this.fileExports.delete(key);
+        if (this.pendingExports.get(key) === promise) {
+          this.pendingExports.delete(key);
+        }
       });
-    this.fileExports.set(key, work);
-    return work;
+
+    this.pendingExports.set(key, promise);
+    return promise;
   }
 
   async downloadGeneratedFile(file: CopilotGeneratedFile) {
-    if (!this.fetchFile)
+    if (!this.fetchFile) {
       throw new Error("Authenticated file transport unavailable");
+    }
     await downloadSavedCopilotFile(this.fetchFile, file);
   }
 
-  async createSession(
-    options: OptionsField<typeof createCopilotSessionMutation>,
-  ) {
-    try {
+  createSession(options: OptionsField<typeof createCopilotSessionMutation>) {
+    return this.runResolved(async () => {
       const res = await this.gql({
         query: createCopilotSessionMutation,
-        variables: {
-          options,
-        },
+        variables: { options },
       });
       return res.createCopilotSession;
-    } catch (err) {
-      throw resolveError(err);
-    }
+    });
   }
 
-  async createSessionWithHistory(
+  createSessionWithHistory(
     options: OptionsField<typeof createCopilotSessionWithHistoryMutation>,
   ) {
-    try {
+    return this.runResolved(async () => {
       const res = await this.gql({
         query: createCopilotSessionWithHistoryMutation,
         variables: { options },
       });
       return res.createCopilotSessionWithHistory;
-    } catch (err) {
-      throw resolveError(err);
-    }
+    });
   }
 
-  async updateSession(
-    options: OptionsField<typeof updateCopilotSessionMutation>,
-  ) {
-    try {
+  updateSession(options: OptionsField<typeof updateCopilotSessionMutation>) {
+    return this.runResolved(async () => {
       const res = await this.gql({
         query: updateCopilotSessionMutation,
-        variables: {
-          options,
-        },
+        variables: { options },
       });
       return res.updateCopilotSession;
-    } catch (err) {
-      throw resolveError(err);
-    }
+    });
   }
 
-  async forkSession(options: OptionsField<typeof forkCopilotSessionMutation>) {
-    try {
+  forkSession(options: OptionsField<typeof forkCopilotSessionMutation>) {
+    return this.runResolved(async () => {
       const res = await this.gql({
         query: forkCopilotSessionMutation,
-        variables: {
-          options,
-        },
+        variables: { options },
       });
       return res.forkCopilotSession;
-    } catch (err) {
-      throw resolveError(err);
-    }
+    });
   }
 
-  async createMessage(
+  createMessage(
     options: OptionsField<typeof createCopilotMessageMutation>,
     requestOptions?: Pick<
       RequestOptions<typeof createCopilotMessageMutation>,
       "timeout" | "signal"
     >,
   ) {
-    try {
+    return this.runResolved(async () => {
       const res = await this.gql({
         query: createCopilotMessageMutation,
-        variables: {
-          options,
-        },
+        variables: { options },
         timeout: requestOptions?.timeout,
         signal: requestOptions?.signal,
       });
       return res.createCopilotMessage;
-    } catch (err) {
-      throw resolveError(err);
-    }
+    });
   }
 
-  async getSession(workspaceId: string, sessionId: string) {
-    try {
+  getSession(workspaceId: string, sessionId: string) {
+    return this.runResolved(async () => {
       const res = await this.gql({
         query: getCopilotSessionQuery,
         variables: { sessionId, workspaceId },
       });
       return res.currentUser?.copilot?.chats?.edges?.[0]?.node;
-    } catch (err) {
-      throw resolveError(err);
-    }
+    });
   }
 
-  async getSessions(
+  getSessions(
     workspaceId: string,
     pagination: PaginationInput,
     docId?: string,
@@ -259,58 +266,33 @@ export class CopilotClient {
     >["variables"]["options"],
     signal?: AbortSignal,
   ) {
-    try {
+    return this.runAbortTolerant(async () => {
       const res = await this.gql({
         query: getCopilotSessionsQuery,
-        variables: {
-          workspaceId,
-          pagination,
-          docId,
-          options,
-        },
+        variables: { workspaceId, pagination, docId, options },
         signal,
       });
-      return res.currentUser?.copilot?.chats.edges.map((e) => e.node);
-    } catch (err) {
-      const parsed = toUserFriendlyError(err);
-      if (isAbortError(parsed)) {
-        return [];
-      }
-      throw resolveError(parsed);
-    }
+      return res.currentUser?.copilot?.chats.edges.map((edge) => edge.node);
+    }, []);
   }
 
-  async getRecentSessions(
-    workspaceId: string,
-    limit?: number,
-    offset?: number,
-  ) {
-    try {
+  getRecentSessions(workspaceId: string, limit?: number, offset?: number) {
+    return this.runAbortTolerant(async () => {
       const res = await this.gql({
         query: getCopilotRecentSessionsQuery,
-        variables: {
-          workspaceId,
-          limit,
-          offset,
-        },
+        variables: { workspaceId, limit, offset },
       });
-      const page = res.currentUser?.copilot?.chats;
-      return page
+      const connection = res.currentUser?.copilot?.chats;
+      return connection
         ? {
-            sessions: page.edges.map((e) => e.node),
-            hasNextPage: page.pageInfo.hasNextPage,
+            sessions: connection.edges.map((edge) => edge.node),
+            hasNextPage: connection.pageInfo.hasNextPage,
           }
         : undefined;
-    } catch (err) {
-      const parsed = toUserFriendlyError(err);
-      if (isAbortError(parsed)) {
-        return undefined;
-      }
-      throw resolveError(parsed);
-    }
+    }, undefined);
   }
 
-  async getHistories(
+  getHistories(
     workspaceId: string,
     pagination: PaginationInput,
     docId?: string,
@@ -318,28 +300,16 @@ export class CopilotClient {
       typeof getCopilotHistoriesQuery
     >["variables"]["options"],
   ) {
-    try {
+    return this.runAbortTolerant(async () => {
       const res = await this.gql({
         query: getCopilotHistoriesQuery,
-        variables: {
-          workspaceId,
-          pagination,
-          docId,
-          options,
-        },
+        variables: { workspaceId, pagination, docId, options },
       });
-
-      return res.currentUser?.copilot?.chats.edges.map((e) => e.node);
-    } catch (err) {
-      const parsed = toUserFriendlyError(err);
-      if (isAbortError(parsed)) {
-        return [];
-      }
-      throw resolveError(parsed);
-    }
+      return res.currentUser?.copilot?.chats.edges.map((edge) => edge.node);
+    }, []);
   }
 
-  async getHistoryIds(
+  getHistoryIds(
     workspaceId: string,
     pagination: PaginationInput,
     docId?: string,
@@ -347,52 +317,33 @@ export class CopilotClient {
       typeof getCopilotHistoryIdsQuery
     >["variables"]["options"],
   ) {
-    try {
+    return this.runAbortTolerant(async () => {
       const res = await this.gql({
         query: getCopilotHistoryIdsQuery,
-        variables: {
-          workspaceId,
-          pagination,
-          docId,
-          options,
-        },
+        variables: { workspaceId, pagination, docId, options },
       });
-
-      return res.currentUser?.copilot?.chats.edges.map((e) => e.node);
-    } catch (err) {
-      const parsed = toUserFriendlyError(err);
-      if (isAbortError(parsed)) {
-        return [];
-      }
-      throw resolveError(parsed);
-    }
+      return res.currentUser?.copilot?.chats.edges.map((edge) => edge.node);
+    }, []);
   }
 
-  async cleanupSessions(input: {
+  cleanupSessions(input: {
     workspaceId: string;
     docId: string | undefined;
     sessionIds: string[];
   }) {
-    try {
+    return this.runResolved(async () => {
       const res = await this.gql({
         query: cleanupCopilotSessionMutation,
-        variables: {
-          input,
-        },
+        variables: { input },
       });
       return res.cleanupCopilotSession;
-    } catch (err) {
-      throw resolveError(err);
-    }
+    });
   }
 
   async createContext(workspaceId: string, sessionId: string) {
     const res = await this.gql({
       query: createCopilotContextMutation,
-      variables: {
-        workspaceId,
-        sessionId,
-      },
+      variables: { workspaceId, sessionId },
     });
     return res.createCopilotContext;
   }
@@ -400,10 +351,7 @@ export class CopilotClient {
   async getContextId(workspaceId: string, sessionId: string) {
     const res = await this.gql({
       query: listContextQuery,
-      variables: {
-        workspaceId,
-        sessionId,
-      },
+      variables: { workspaceId, sessionId },
     });
     return res.currentUser?.copilot?.contexts?.[0]?.id || undefined;
   }
@@ -411,9 +359,7 @@ export class CopilotClient {
   async addContextDoc(options: OptionsField<typeof addContextDocMutation>) {
     const res = await this.gql({
       query: addContextDocMutation,
-      variables: {
-        options,
-      },
+      variables: { options },
     });
     return res.addContextDoc;
   }
@@ -423,9 +369,7 @@ export class CopilotClient {
   ) {
     const res = await this.gql({
       query: removeContextDocMutation,
-      variables: {
-        options,
-      },
+      variables: { options },
     });
     return res.removeContextDoc;
   }
@@ -436,11 +380,8 @@ export class CopilotClient {
   ) {
     const res = await this.gql({
       query: addContextFileMutation,
-      variables: {
-        content,
-        options,
-      },
-      timeout: 60000,
+      variables: { content, options },
+      timeout: 60_000,
     });
     return res.addContextFile;
   }
@@ -450,9 +391,7 @@ export class CopilotClient {
   ) {
     const res = await this.gql({
       query: removeContextFileMutation,
-      variables: {
-        options,
-      },
+      variables: { options },
     });
     return res.removeContextFile;
   }
@@ -472,9 +411,7 @@ export class CopilotClient {
   ) {
     const res = await this.gql({
       query: addContextCategoryMutation,
-      variables: {
-        options,
-      },
+      variables: { options },
     });
     return res.addContextCategory;
   }
@@ -484,9 +421,7 @@ export class CopilotClient {
   ) {
     const res = await this.gql({
       query: removeContextCategoryMutation,
-      variables: {
-        options,
-      },
+      variables: { options },
     });
     return res.removeContextCategory;
   }
@@ -498,11 +433,7 @@ export class CopilotClient {
   ) {
     const res = await this.gql({
       query: listContextObjectQuery,
-      variables: {
-        workspaceId,
-        sessionId,
-        contextId,
-      },
+      variables: { workspaceId, sessionId, contextId },
     });
     return res.currentUser?.copilot?.contexts?.[0];
   }
@@ -526,23 +457,15 @@ export class CopilotClient {
         threshold,
       },
     });
-    const { matchFiles: files, matchWorkspaceDocs: docs } =
-      res.currentUser?.copilot?.contexts?.[0] || {};
-    return { files, docs };
+    const ctx = res.currentUser?.copilot?.contexts?.[0];
+    return {
+      files: ctx?.matchFiles,
+      docs: ctx?.matchWorkspaceDocs,
+    };
   }
 
-  // Text or image to text
   chatTextStream(
-    {
-      sessionId,
-      messageId,
-      requestId,
-      responseId,
-      expectedStreamId,
-      reasoning,
-      modelId,
-      toolsConfig,
-    }: {
+    params: {
       sessionId: string;
       messageId?: string;
       requestId?: string;
@@ -552,57 +475,29 @@ export class CopilotClient {
       modelId?: string;
       toolsConfig?: AIToolsConfig;
     },
-    endpoint = Endpoint.StreamObject,
-  ) {
-    let url = `/api/copilot/chat/${sessionId}/${endpoint}`;
-    const queryString = this.paramsToQueryString({
-      messageId,
-      requestId,
-      responseId,
-      expectedStreamId,
-      reasoning,
-      modelId,
-      toolsConfig,
-    });
-    if (queryString) {
-      url += `?${queryString}`;
-    }
-    return this.eventSource(url);
-  }
-
-  // Text or image to images
-  imagesStream(
-    sessionId: string,
-    messageId?: string,
-    seed?: string,
-    endpoint = Endpoint.Images,
-  ) {
-    let url = `/api/copilot/chat/${sessionId}/${endpoint}`;
-    const queryString = this.paramsToQueryString({
-      messageId,
-      seed,
-    });
-    if (queryString) {
-      url += `?${queryString}`;
-    }
-    return this.eventSource(url);
+    endpoint: Endpoint = Endpoint.StreamObject,
+  ): EventSource {
+    const { sessionId, ...queryParams } = params;
+    const baseUrl = `/api/copilot/chat/${sessionId}/${endpoint}`;
+    const qs = this.paramsToQueryString(queryParams);
+    return this.eventSource(qs ? `${baseUrl}?${qs}` : baseUrl);
   }
 
   paramsToQueryString(
-    params: Record<string, string | boolean | undefined | Record<string, any>>,
-  ) {
-    const queryString = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
+    params: Record<string, string | boolean | object | undefined>,
+  ): string {
+    const search = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
       if (typeof value === "boolean") {
-        // False is an explicit reasoning override, not the absent/default state.
-        queryString.append(key, String(value));
+        // Explicit `false` overrides server default and must be serialized.
+        search.append(key, String(value));
       } else if (typeof value === "string") {
-        queryString.append(key, value);
-      } else if (typeof value === "object" && value !== null) {
-        queryString.append(key, JSON.stringify(value));
+        search.append(key, value);
+      } else if (value !== null && typeof value === "object") {
+        search.append(key, JSON.stringify(value));
       }
-    });
-    return queryString.toString();
+    }
+    return search.toString();
   }
 
   getEmbeddingStatus(workspaceId: string) {
@@ -620,30 +515,21 @@ export class CopilotClient {
   ) {
     return this.gql({
       query: applyDocUpdatesMutation,
-      variables: {
-        workspaceId,
-        docId,
-        op,
-        updates,
-      },
+      variables: { workspaceId, docId, op, updates },
     }).then((res) => res.applyDocUpdates);
   }
 
   addContextBlob(options: OptionsField<typeof addContextBlobMutation>) {
     return this.gql({
       query: addContextBlobMutation,
-      variables: {
-        options,
-      },
+      variables: { options },
     }).then((res) => res.addContextBlob);
   }
 
   removeContextBlob(options: OptionsField<typeof removeContextBlobMutation>) {
     return this.gql({
       query: removeContextBlobMutation,
-      variables: {
-        options,
-      },
+      variables: { options },
     }).then((res) => res.removeContextBlob);
   }
 }

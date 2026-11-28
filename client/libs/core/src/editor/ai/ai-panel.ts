@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import { Bound } from "@virgultum/editor/global/gfx";
 import {
@@ -13,7 +16,6 @@ import type { EditorHost } from "@virgultum/editor/std";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
 
 import { insertFromMarkdown } from "../utils";
-import { AIStarIconWithAnimation } from "./_common/icons";
 import {
   EXCLUDING_REPLACE_ACTIONS,
   INSERT_ABOVE_ACTIONS,
@@ -37,18 +39,16 @@ import { getSelections } from "./utils/selection-utils";
 import type { AIPanelController } from "./widgets/ai-panel/controller";
 import type { MyoxusAIPanelWidgetConfig } from "./widgets/ai-panel/type";
 
-function asCaption<T extends keyof VirgultumPresets.AIActions>(
+function buildUseAsCaptionItem<K extends keyof VirgultumPresets.AIActions>(
   host: EditorHost,
-  id?: T,
+  id?: K,
 ): AIItemConfig {
   return {
     name: "Use as caption",
     iconName: "PenIcon",
     testId: "answer-use-as-caption",
-    showWhen: () => {
-      const panel = getAIPanelController(host);
-      return id === "generateCaption" && !!panel.answer;
-    },
+    showWhen: () =>
+      id === "generateCaption" && Boolean(getAIPanelController(host).answer),
     handler: () => {
       reportResponse("result:use-as-caption");
       const panel = getAIPanelController(host);
@@ -56,86 +56,109 @@ function asCaption<T extends keyof VirgultumPresets.AIActions>(
       if (!caption) return;
 
       const { selectedBlocks } = getSelections(host);
-      if (!selectedBlocks || selectedBlocks.length !== 1) return;
+      if (selectedBlocks?.length !== 1) return;
 
-      const imageBlock = selectedBlocks[0].model;
-      if (!(imageBlock instanceof ImageBlockModel)) return;
+      const model = selectedBlocks[0].model;
+      if (!(model instanceof ImageBlockModel)) return;
 
-      host.store.updateBlock(imageBlock, { caption });
+      host.store.updateBlock(model, { caption });
       panel.hide();
     },
   };
 }
 
-function createNewNote(host: EditorHost): AIItemConfig {
+function buildCreateNewNoteItem(host: EditorHost): AIItemConfig {
   return {
     name: "Create new note",
     iconName: "PageIcon",
     testId: "answer-create-new-note",
-    showWhen: () => {
-      const panel = getAIPanelController(host);
-      return !!panel.answer && isInsideEdgelessEditor(host);
-    },
+    showWhen: () =>
+      Boolean(getAIPanelController(host).answer) &&
+      isInsideEdgelessEditor(host),
     handler: () => {
       reportResponse("result:add-note");
-      // get the note block
       const { selectedBlocks } = getSelections(host);
-      if (!selectedBlocks || !selectedBlocks.length) return;
-      const firstBlock = selectedBlocks[0];
+      const firstBlock = selectedBlocks?.[0];
+      if (!firstBlock) return;
+
       const noteModel = findNoteBlockModel(firstBlock);
       if (!noteModel) return;
 
-      // create a new note block at the left of the current note block
-      const bound = Bound.deserialize(noteModel.xywh);
-      const newBound = new Bound(bound.x - bound.w - 20, bound.y, bound.w, 72);
-      const doc = host.store;
+      const originBound = Bound.deserialize(noteModel.xywh);
+      const nextBound = new Bound(
+        originBound.x - originBound.w - 20,
+        originBound.y,
+        originBound.w,
+        72,
+      );
+      const { store } = host;
       const panel = getAIPanelController(host);
       const gfx = host.std.get(GfxControllerIdentifier);
-      doc.transact(() => {
-        if (!doc.root || !panel.answer) return;
-        const noteBlockId = doc.addBlock(
+
+      store.transact(() => {
+        if (!store.root || !panel.answer) return;
+        const noteBlockId = store.addBlock(
           "myoxus:note",
           {
-            xywh: newBound.serialize(),
+            xywh: nextBound.serialize(),
             displayMode: NoteDisplayMode.EdgelessOnly,
             index: gfx.layer.generateIndex(),
           },
-          doc.root.id,
+          store.root.id,
         );
 
-        insertFromMarkdown(host, panel.answer, doc, noteBlockId)
+        insertFromMarkdown(host, panel.answer, store, noteBlockId)
           .then(() => {
-            gfx.selection.set({
-              elements: [noteBlockId],
-              editing: false,
-            });
-
-            // set the viewport to show the new note block and original note block
-            const newNote = doc.getBlock(noteBlockId)?.model;
-            if (!newNote || !matchModels(newNote, [NoteBlockModel])) return;
-            const newNoteBound = Bound.deserialize(newNote.xywh);
-            const bounds = [bound, newNoteBound];
+            gfx.selection.set({ elements: [noteBlockId], editing: false });
+            const created = store.getBlock(noteBlockId)?.model;
+            if (!created || !matchModels(created, [NoteBlockModel])) return;
             gfx.fitToScreen({
-              bounds,
+              bounds: [originBound, Bound.deserialize(created.xywh)],
               padding: [20, 20, 20, 20],
             });
           })
-          .catch((err) => {
-            console.error(err);
-          });
+          .catch(console.error);
       });
-      // hide the panel
+
       panel.hide();
     },
   };
 }
 
-function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
+function createInsertResponseHandler<
+  K extends keyof VirgultumPresets.AIActions,
+>(
   panel: AIPanelController,
-  id: T,
+  id: K,
+  ctx: AIContext,
+  place: "after" | "before",
+): () => void {
+  const { host } = panel;
+  return () => {
+    reportResponse("result:insert");
+    const pending = pageResponseHandler(id, host, ctx, place);
+    if (id === "brainstormMindmap") {
+      pending
+        .then((accepted) => {
+          if (accepted) {
+            panel.hide();
+            host.focus({ preventScroll: true });
+          }
+        })
+        .catch(console.error);
+    } else {
+      pending.catch(console.error);
+      panel.hide();
+    }
+  };
+}
+
+function buildResponseGroups<K extends keyof VirgultumPresets.AIActions>(
+  panel: AIPanelController,
+  id: K,
   ctx: AIContext,
 ): AIItemGroupConfig[] {
-  const host = panel.host;
+  const { host } = panel;
 
   return [
     {
@@ -147,63 +170,34 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
           testId: "answer-insert-below",
           iconName: "InsertBelowIcon",
           showWhen: () =>
-            !!panel.answer && (!id || !INSERT_ABOVE_ACTIONS.includes(id)),
-          handler: () => {
-            reportResponse("result:insert");
-            const pending = pageResponseHandler(id, host, ctx, "after");
-            if (id === "brainstormMindmap") {
-              pending
-                .then((accepted) => {
-                  if (accepted) {
-                    panel.hide();
-                    host.focus({ preventScroll: true });
-                  }
-                })
-                .catch(console.error);
-            } else {
-              pending.catch(console.error);
-              panel.hide();
-            }
-          },
+            Boolean(panel.answer) &&
+            (!id || !INSERT_ABOVE_ACTIONS.includes(id)),
+          handler: createInsertResponseHandler(panel, id, ctx, "after"),
         },
         {
           name: "Insert above",
           testId: "answer-insert-above",
           iconName: "InsertAboveIcon",
           showWhen: () =>
-            !!panel.answer && !!id && INSERT_ABOVE_ACTIONS.includes(id),
-          handler: () => {
-            reportResponse("result:insert");
-            const pending = pageResponseHandler(id, host, ctx, "before");
-            if (id === "brainstormMindmap") {
-              pending
-                .then((accepted) => {
-                  if (accepted) {
-                    panel.hide();
-                    host.focus({ preventScroll: true });
-                  }
-                })
-                .catch(console.error);
-            } else {
-              pending.catch(console.error);
-              panel.hide();
-            }
-          },
+            Boolean(panel.answer) &&
+            Boolean(id) &&
+            INSERT_ABOVE_ACTIONS.includes(id),
+          handler: createInsertResponseHandler(panel, id, ctx, "before"),
         },
-        asCaption(host, id),
+        buildUseAsCaptionItem(host, id),
         {
           name: "Replace selection",
           testId: "answer-replace",
           iconName: "ReplaceIcon",
           showWhen: () =>
-            !!panel.answer && !EXCLUDING_REPLACE_ACTIONS.includes(id),
+            Boolean(panel.answer) && !EXCLUDING_REPLACE_ACTIONS.includes(id),
           handler: () => {
             reportResponse("result:replace");
             replaceWithMarkdown(host).catch(console.error);
             panel.hide();
           },
         },
-        createNewNote(host),
+        buildCreateNewNoteItem(host),
       ],
     },
     {
@@ -233,9 +227,7 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
           name: "Discard",
           iconName: "DeleteIcon",
           testId: "answer-discard",
-          handler: () => {
-            panel.discard();
-          },
+          handler: () => panel.discard(),
         },
       ],
     },
@@ -263,55 +255,46 @@ export function buildErrorResponseConfig(
           name: "Discard",
           iconName: "DeleteIcon",
           testId: "error-discard",
-          showWhen: () => !!panel.answer,
-          handler: () => {
-            panel.discard();
-          },
+          showWhen: () => Boolean(panel.answer),
+          handler: () => panel.discard(),
         },
       ],
     },
   ];
 }
 
-export function buildFinishConfig<T extends keyof VirgultumPresets.AIActions>(
+export function buildFinishConfig<K extends keyof VirgultumPresets.AIActions>(
   panel: AIPanelController,
-  id: T,
+  id: K,
   ctx: AIContext,
 ) {
   return {
-    responses: buildPageResponseConfig(panel, id, ctx),
+    responses: buildResponseGroups(panel, id, ctx),
     actions: [],
   };
 }
 
 export function buildErrorConfig(panel: AIPanelController) {
   return {
-    upgrade: () => {
-      panel.hide();
-    },
     login: () => {
       AIProvider.slots.requestLogin.next({ host: panel.host });
       panel.hide();
     },
-    cancel: () => {
-      panel.hide();
-    },
+    cancel: () => panel.hide(),
     responses: buildErrorResponseConfig(panel),
   };
 }
 
 export function buildGeneratingConfig(generatingIcon?: MyoxusIconExportName) {
   return {
-    generatingIcon: generatingIcon ?? AIStarIconWithAnimation,
+    generatingIcon: generatingIcon ?? "AiIcon",
   };
 }
 
 export function buildCopyConfig(panel: AIPanelController) {
   return {
     allowed: true,
-    onCopy: () => {
-      return copyTextAnswer(panel);
-    },
+    onCopy: () => copyTextAnswer(panel),
   };
 }
 

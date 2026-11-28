@@ -378,12 +378,9 @@ set_slice() {
       ;;
     page-list-residual|page-list-list)
       SCOPE_PATHS=(
-        "client/libs/core/src/components/page-list/list.tsx"
-        "client/libs/core/src/components/page-list/utils.tsx"
-        "client/libs/core/src/components/page-list/virtualized-list.tsx"
-        "client/libs/core/src/components/page-list/collections/collection-list-item.tsx"
-        "client/libs/core/src/components/page-list/tags/tag-list-item.tsx"
-        "client/libs/core/src/components/page-list/explorer-page-list-facade-contract.spec.ts"
+        "client/libs/core/src/components/page-list/collections/collection-list.tsx"
+        "client/libs/core/src/desktop/dialogs/selectors"
+        "client/libs/core/src/desktop/dialogs/collection-editor"
         "client/libs/ui-facade/src/index.tsx"
         "client/libs/ui-facade/src/surface-list.css"
       )

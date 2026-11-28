@@ -1,34 +1,27 @@
-import { TextUtils } from "@virgultum/editor/blocks/surface";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   edgelessTextSizeOptions,
   EditorSettingService,
   formatEdgelessTextSizeLabel,
 } from "@myoxus/core/modules/editor-setting";
 import { useI18n } from "@myoxus/i18n";
-import { useFramework, useLiveData } from "@myoxus/infra";
-import {
-  EdgelessCRUDIdentifier,
-  getSurfaceBlock,
-} from "@virgultum/editor/blocks/surface";
+import { useLiveData, useService } from "@myoxus/infra";
+import { TextUtils } from "@virgultum/editor/blocks/surface";
 import {
   DefaultTheme,
   FontStyle,
   FontWeightMap,
-  getShapeName,
-  type ShapeElementModel,
   type ShapeName,
   ShapeStyle,
   ShapeType,
   StrokeStyle,
   TextAlign,
 } from "@virgultum/editor/model";
-import type { EditorHost } from "@virgultum/editor/std";
-import type { Store } from "@virgultum/editor/store";
-import { isEqual } from "lodash-es";
 import { useCallback, useMemo, useState } from "react";
 
 import {
-  EditorPreviewOverlay,
   MenuItem,
   RadioGroup,
   type RadioItem,
@@ -42,131 +35,50 @@ import {
   EditorRadioGroup,
   EditorSlider,
 } from "../menu";
-import { sortedFontWeightEntries, usePalettes } from "../utils";
-import type { DocName } from "./docs";
+import { colorsEqual, sortedFontWeightEntries, usePalettes } from "../utils";
 import { Point } from "./point";
-import { EdgelessSnapshot } from "./snapshot";
+import { EdgelessStylePreview } from "./preview";
+
+const THICKNESS_NODES = [2, 4, 6, 8, 10, 12];
 
 export const ShapeSettings = () => {
   const t = useI18n();
-  const framework = useFramework();
-  const { editorSetting } = framework.get(EditorSettingService);
+  const { editorSetting } = useService(EditorSettingService);
   const settings = useLiveData(editorSetting.settings$);
-  const {
-    palettes: strokeColorPalettes,
-    getCurrentColor: getCurrentStrokeColor,
-  } = usePalettes(
-    DefaultTheme.StrokeColorShortPalettes,
-    DefaultTheme.shapeStrokeColor,
-  );
-  const { palettes: fillColorPalettes, getCurrentColor: getCurrentFillColor } =
+  const [currentShape, setCurrentShape] = useState<ShapeName>(ShapeType.Rect);
+
+  const shapeKey = `shape:${currentShape}` as const;
+  const shape = settings[shapeKey];
+
+  const { palettes: strokePalettes, getCurrentColor: getCurrentStrokeColor } =
+    usePalettes(
+      DefaultTheme.StrokeColorShortPalettes,
+      DefaultTheme.shapeStrokeColor,
+    );
+  const { palettes: fillPalettes, getCurrentColor: getCurrentFillColor } =
     usePalettes(
       DefaultTheme.FillColorShortPalettes,
       DefaultTheme.shapeFillColor,
     );
-  const { palettes: textColorPalettes, getCurrentColor: getCurrentTextColor } =
+  const { palettes: textPalettes, getCurrentColor: getCurrentTextColor } =
     usePalettes(
       DefaultTheme.ShapeTextColorShortPalettes,
       DefaultTheme.shapeTextColor,
       true,
     );
 
-  const [currentShape, setCurrentShape] = useState<ShapeName>(ShapeType.Rect);
+  const fillColor = getCurrentFillColor(shape.fillColor);
+  const strokeColor = getCurrentStrokeColor(shape.strokeColor);
+  const textColor = getCurrentTextColor(shape.color);
 
-  const shapeStyleItems = useMemo<RadioItem[]>(
-    () => [
-      {
-        value: ShapeStyle.General,
-        label: t["com.myoxus.settings.editorSettings.edgeless.style.general"](),
-      },
-      {
-        value: ShapeStyle.Scribbled,
-        label:
-          t["com.myoxus.settings.editorSettings.edgeless.style.scribbled"](),
-      },
-    ],
-    [t],
-  );
-
-  const { shapeStyle } = settings[`shape:${currentShape}`];
-  const setShapeStyle = useCallback(
-    (value: ShapeStyle) => {
-      editorSetting.set(`shape:${currentShape}`, {
-        shapeStyle: value,
-      });
+  const updateShape = useCallback(
+    (patch: Partial<typeof shape>) => {
+      editorSetting.set(shapeKey, patch);
     },
-    [editorSetting, currentShape],
+    [editorSetting, shapeKey],
   );
 
-  const borderStyleItems = useMemo<RadioItem[]>(
-    () => [
-      {
-        value: StrokeStyle.Solid,
-        label:
-          t["com.myoxus.settings.editorSettings.edgeless.note.border.solid"](),
-      },
-      {
-        value: StrokeStyle.Dash,
-        label:
-          t["com.myoxus.settings.editorSettings.edgeless.note.border.dash"](),
-      },
-      {
-        value: StrokeStyle.None,
-        label:
-          t["com.myoxus.settings.editorSettings.edgeless.note.border.none"](),
-      },
-    ],
-    [t],
-  );
-
-  const borderStyle = settings[`shape:${currentShape}`].strokeStyle;
-  const setBorderStyle = useCallback(
-    (value: StrokeStyle) => {
-      editorSetting.set(`shape:${currentShape}`, {
-        strokeStyle: value,
-      });
-    },
-    [editorSetting, currentShape],
-  );
-
-  const alignItems = useMemo<RadioItem[]>(
-    () => [
-      {
-        value: TextAlign.Left,
-        label:
-          t[
-            "com.myoxus.settings.editorSettings.edgeless.text.alignment.left"
-          ](),
-      },
-      {
-        value: TextAlign.Center,
-        label:
-          t[
-            "com.myoxus.settings.editorSettings.edgeless.text.alignment.center"
-          ](),
-      },
-      {
-        value: TextAlign.Right,
-        label:
-          t[
-            "com.myoxus.settings.editorSettings.edgeless.text.alignment.right"
-          ](),
-      },
-    ],
-    [t],
-  );
-
-  const textAlignment = settings[`shape:${currentShape}`].textAlign;
-  const setTextAlignment = useCallback(
-    (value: TextAlign) => {
-      editorSetting.set(`shape:${currentShape}`, {
-        textAlign: value,
-      });
-    },
-    [editorSetting, currentShape],
-  );
-
-  const shapes = useMemo<RadioItem[]>(
+  const shapeOptions = useMemo<RadioItem[]>(
     () => [
       {
         value: ShapeType.Rect,
@@ -196,200 +108,197 @@ export const ShapeSettings = () => {
     [t],
   );
 
-  const docs = useMemo<RadioItem[]>(
+  const shapeStyleItems = useMemo<RadioItem[]>(
     () => [
       {
-        value: "shape",
-        label: t["com.myoxus.settings.editorSettings.edgeless.shape.list"](),
+        value: ShapeStyle.General,
+        label: t["com.myoxus.settings.editorSettings.edgeless.style.general"](),
       },
       {
-        value: "flow",
-        label: t["com.myoxus.settings.editorSettings.edgeless.shape.flow"](),
+        value: ShapeStyle.Scribbled,
+        label:
+          t["com.myoxus.settings.editorSettings.edgeless.style.scribbled"](),
       },
     ],
     [t],
   );
-  const [currentDoc, setCurrentDoc] = useState<DocName>("shape");
 
-  const fillColorItems = useMemo(() => {
-    const { fillColor } = settings[`shape:${currentShape}`];
-    return fillColorPalettes.map(({ key, label, value, resolvedValue }) => {
-      const handler = () => {
-        editorSetting.set(`shape:${currentShape}`, { fillColor: value });
-      };
-      const isSelected = isEqual(fillColor, value);
-      return (
-        <MenuItem
-          key={key}
-          onSelect={handler}
-          selected={isSelected}
-          prefix={<Point color={resolvedValue} />}
-        >
-          {label}
-        </MenuItem>
-      );
-    });
-  }, [editorSetting, settings, currentShape, fillColorPalettes]);
+  const borderStyleItems = useMemo<RadioItem[]>(
+    () => [
+      {
+        value: StrokeStyle.Solid,
+        label:
+          t["com.myoxus.settings.editorSettings.edgeless.note.border.solid"](),
+      },
+      {
+        value: StrokeStyle.Dash,
+        label:
+          t["com.myoxus.settings.editorSettings.edgeless.note.border.dash"](),
+      },
+      {
+        value: StrokeStyle.None,
+        label:
+          t["com.myoxus.settings.editorSettings.edgeless.note.border.none"](),
+      },
+    ],
+    [t],
+  );
 
-  const strokeColorItems = useMemo(() => {
-    const { strokeColor } = settings[`shape:${currentShape}`];
-    return strokeColorPalettes.map(({ key, label, value, resolvedValue }) => {
-      const handler = () => {
-        editorSetting.set(`shape:${currentShape}`, { strokeColor: value });
-      };
-      const isSelected = isEqual(strokeColor, value);
-      return (
-        <MenuItem
-          key={key}
-          onSelect={handler}
-          selected={isSelected}
-          prefix={<Point color={resolvedValue} />}
-        >
-          {label}
-        </MenuItem>
-      );
-    });
-  }, [editorSetting, settings, currentShape, strokeColorPalettes]);
+  const alignItems = useMemo<RadioItem[]>(
+    () => [
+      {
+        value: TextAlign.Left,
+        label:
+          t[
+            "com.myoxus.settings.editorSettings.edgeless.text.alignment.left"
+          ](),
+      },
+      {
+        value: TextAlign.Center,
+        label:
+          t[
+            "com.myoxus.settings.editorSettings.edgeless.text.alignment.center"
+          ](),
+      },
+      {
+        value: TextAlign.Right,
+        label:
+          t[
+            "com.myoxus.settings.editorSettings.edgeless.text.alignment.right"
+          ](),
+      },
+    ],
+    [t],
+  );
 
-  const borderThickness = settings[`shape:${currentShape}`].strokeWidth;
+  const setShapeStyle = useCallback(
+    (value: ShapeStyle) => updateShape({ shapeStyle: value }),
+    [updateShape],
+  );
+
+  const setBorderStyle = useCallback(
+    (value: StrokeStyle) => updateShape({ strokeStyle: value }),
+    [updateShape],
+  );
+
   const setBorderThickness = useCallback(
-    (value: number[]) => {
-      editorSetting.set(`shape:${currentShape}`, {
-        strokeWidth: value[0],
-      });
-    },
-    [editorSetting, currentShape],
+    (value: number[]) => updateShape({ strokeWidth: value[0] }),
+    [updateShape],
   );
 
-  const fontFamilyItems = useMemo(() => {
-    const { fontFamily } = settings[`shape:${currentShape}`];
-    return TextUtils.getFontFamilies().map((value) => {
-      const name = value;
-      const handler = () => {
-        editorSetting.set(`shape:${currentShape}`, { fontFamily: value });
-      };
-      const isSelected = TextUtils.getFontFamilyName(fontFamily) === value;
-      return (
-        <MenuItem key={name} onSelect={handler} selected={isSelected}>
-          {name}
-        </MenuItem>
-      );
-    });
-  }, [editorSetting, settings, currentShape]);
+  const setTextAlignment = useCallback(
+    (value: TextAlign) => updateShape({ textAlign: value }),
+    [updateShape],
+  );
 
-  const fontStyleItems = useMemo(() => {
-    const { fontStyle } = settings[`shape:${currentShape}`];
-    return Object.entries(FontStyle).map(([name, value]) => {
-      const handler = () => {
-        editorSetting.set(`shape:${currentShape}`, { fontStyle: value });
-      };
-      const isSelected = fontStyle === value;
-      return (
-        <MenuItem key={name} onSelect={handler} selected={isSelected}>
-          {name}
-        </MenuItem>
-      );
-    });
-  }, [editorSetting, settings, currentShape]);
-
-  const fontWeightItems = useMemo(() => {
-    const { fontWeight } = settings[`shape:${currentShape}`];
-    return sortedFontWeightEntries.map(([name, value]) => {
-      const handler = () => {
-        editorSetting.set(`shape:${currentShape}`, { fontWeight: value });
-      };
-      const isSelected = fontWeight === value;
-      return (
-        <MenuItem key={name} onSelect={handler} selected={isSelected}>
-          {name}
-        </MenuItem>
-      );
-    });
-  }, [editorSetting, settings, currentShape]);
-
-  const fontSizeItems = useMemo(() => {
-    const { fontSize } = settings[`shape:${currentShape}`];
-    return edgelessTextSizeOptions.map((value) => {
-      const handler = () => {
-        editorSetting.set(`shape:${currentShape}`, { fontSize: value });
-      };
-      const label = formatEdgelessTextSizeLabel(value);
-      const isSelected = fontSize === value;
-      return (
-        <MenuItem key={value} onSelect={handler} selected={isSelected}>
-          {label}
-        </MenuItem>
-      );
-    });
-  }, [editorSetting, settings, currentShape]);
-
-  const textColorItems = useMemo(() => {
-    const { color } = settings[`shape:${currentShape}`];
-    return textColorPalettes.map(({ key, label, value, resolvedValue }) => {
-      const handler = () => {
-        editorSetting.set(`shape:${currentShape}`, { color: value });
-      };
-      const isSelected = isEqual(color, value);
-      return (
+  const fillColorItems = useMemo(
+    () =>
+      fillPalettes.map(({ key, label, value, resolvedValue }) => (
         <MenuItem
           key={key}
-          onSelect={handler}
-          selected={isSelected}
+          onSelect={() => updateShape({ fillColor: value })}
+          selected={colorsEqual(shape.fillColor, value)}
           prefix={<Point color={resolvedValue} />}
         >
           {label}
         </MenuItem>
-      );
-    });
-  }, [editorSetting, settings, currentShape, textColorPalettes]);
-
-  const getElements = useCallback(
-    (doc: Store) => {
-      const surface = getSurfaceBlock(doc);
-      if (!surface) return [];
-      return surface.getElementsByType("shape").filter((node) => {
-        const shape = node as ShapeElementModel;
-        const { shapeType, radius } = shape;
-        const shapeName = getShapeName(shapeType, radius);
-        return shapeName === currentShape;
-      });
-    },
-    [currentShape],
+      )),
+    [fillPalettes, shape.fillColor, updateShape],
   );
 
-  const firstUpdate = useCallback(
-    (doc: Store, editorHost: EditorHost) => {
-      const surface = getSurfaceBlock(doc);
-      if (!surface) return;
-      const crud = editorHost.std.get(EdgelessCRUDIdentifier);
-      doc.readonly = false;
-      surface.getElementsByType("shape").forEach((node) => {
-        const shape = node as ShapeElementModel;
-        const { shapeType, radius } = shape;
-        const shapeName = getShapeName(shapeType, radius);
-        const props = editorSetting.get(`shape:${shapeName}`);
-        crud.updateElement(shape.id, props);
-      });
-      doc.readonly = true;
-    },
-    [editorSetting],
+  const strokeColorItems = useMemo(
+    () =>
+      strokePalettes.map(({ key, label, value, resolvedValue }) => (
+        <MenuItem
+          key={key}
+          onSelect={() => updateShape({ strokeColor: value })}
+          selected={colorsEqual(shape.strokeColor, value)}
+          prefix={<Point color={resolvedValue} />}
+        >
+          {label}
+        </MenuItem>
+      )),
+    [shape.strokeColor, strokePalettes, updateShape],
   );
 
-  const fillColor = useMemo(() => {
-    const color = settings[`shape:${currentShape}`].fillColor;
-    return getCurrentFillColor(color);
-  }, [currentShape, getCurrentFillColor, settings]);
+  const textColorItems = useMemo(
+    () =>
+      textPalettes.map(({ key, label, value, resolvedValue }) => (
+        <MenuItem
+          key={key}
+          onSelect={() => updateShape({ color: value })}
+          selected={colorsEqual(shape.color, value)}
+          prefix={<Point color={resolvedValue} />}
+        >
+          {label}
+        </MenuItem>
+      )),
+    [shape.color, textPalettes, updateShape],
+  );
 
-  const strokeColor = useMemo(() => {
-    const color = settings[`shape:${currentShape}`].strokeColor;
-    return getCurrentStrokeColor(color);
-  }, [currentShape, getCurrentStrokeColor, settings]);
+  const currentFontFamily = TextUtils.getFontFamilyName(shape.fontFamily);
+  const fontFamilyItems = useMemo(
+    () =>
+      TextUtils.getFontFamilies().map((family) => (
+        <MenuItem
+          key={family}
+          onSelect={() => updateShape({ fontFamily: family })}
+          selected={currentFontFamily === family}
+        >
+          {family}
+        </MenuItem>
+      )),
+    [currentFontFamily, updateShape],
+  );
 
-  const textColor = useMemo(() => {
-    const color = settings[`shape:${currentShape}`].color;
-    return getCurrentTextColor(color);
-  }, [currentShape, getCurrentTextColor, settings]);
+  const fontSizeItems = useMemo(
+    () =>
+      edgelessTextSizeOptions.map((size) => (
+        <MenuItem
+          key={size}
+          onSelect={() => updateShape({ fontSize: size })}
+          selected={shape.fontSize === size}
+        >
+          {formatEdgelessTextSizeLabel(size)}
+        </MenuItem>
+      )),
+    [shape.fontSize, updateShape],
+  );
 
+  const fontStyleItems = useMemo(
+    () =>
+      Object.entries(FontStyle).map(([name, value]) => (
+        <MenuItem
+          key={name}
+          onSelect={() => updateShape({ fontStyle: value })}
+          selected={shape.fontStyle === value}
+        >
+          {name}
+        </MenuItem>
+      )),
+    [shape.fontStyle, updateShape],
+  );
+
+  const fontWeightItems = useMemo(
+    () =>
+      sortedFontWeightEntries.map(([name, value]) => (
+        <MenuItem
+          key={name}
+          onSelect={() => updateShape({ fontWeight: value })}
+          selected={shape.fontWeight === value}
+        >
+          {name}
+        </MenuItem>
+      )),
+    [shape.fontWeight, updateShape],
+  );
+
+  const currentShapeLabel =
+    shapeOptions.find((item) => item.value === currentShape)?.label ??
+    currentShape;
+  const currentStyleLabel =
+    shapeStyleItems.find((item) => item.value === shape.shapeStyle)?.label ??
+    shape.shapeStyle;
   const title = t["com.myoxus.settings.editorSettings.edgeless.shape"]();
 
   return (
@@ -397,40 +306,73 @@ export const ShapeSettings = () => {
       title={title}
       testId="editor-settings-section-edgeless-shape"
     >
-      <EdgelessSnapshot
-        key={currentDoc}
-        title={title}
-        docName={currentDoc}
-        keyName={`shape:${currentShape}`}
-        previewSize={currentDoc === "flow" ? "flow" : "default"}
-        getElements={getElements}
-        firstUpdate={firstUpdate}
-      >
-        <EditorPreviewOverlay>
-          <RadioGroup
-            value={currentDoc}
-            items={docs}
-            onChange={setCurrentDoc}
-            block
-          />
-        </EditorPreviewOverlay>
-      </EdgelessSnapshot>
-
+      <EdgelessStylePreview
+        sampleTitle={
+          <>
+            {currentShapeLabel} · {currentStyleLabel}
+          </>
+        }
+        items={[
+          ...(fillColor
+            ? [
+                {
+                  label:
+                    t[
+                      "com.myoxus.settings.editorSettings.edgeless.shape.fill-color"
+                    ](),
+                  value: fillColor.label,
+                  color: fillColor.resolvedValue,
+                },
+              ]
+            : []),
+          ...(strokeColor
+            ? [
+                {
+                  label:
+                    t[
+                      "com.myoxus.settings.editorSettings.edgeless.shape.border-color"
+                    ](),
+                  value: strokeColor.label,
+                  color: strokeColor.resolvedValue,
+                },
+              ]
+            : []),
+          ...(textColor
+            ? [
+                {
+                  label:
+                    t[
+                      "com.myoxus.settings.editorSettings.edgeless.shape.text-color"
+                    ](),
+                  value: textColor.label,
+                  color: textColor.resolvedValue,
+                },
+              ]
+            : []),
+          {
+            label:
+              t[
+                "com.myoxus.settings.editorSettings.edgeless.shape.font-size"
+              ](),
+            value: formatEdgelessTextSizeLabel(shape.fontSize),
+          },
+        ]}
+      />
       <SettingsInlineControl wrap>
         <RadioGroup
           value={currentShape}
-          items={shapes}
+          items={shapeOptions}
           onChange={setCurrentShape}
           block
         />
       </SettingsInlineControl>
       <SettingsRow
         name={t["com.myoxus.settings.editorSettings.edgeless.style"]()}
-        desc={""}
+        desc=""
       >
         <EditorRadioGroup
           items={shapeStyleItems}
-          value={shapeStyle}
+          value={shape.shapeStyle}
           onChange={setShapeStyle}
         />
       </SettingsRow>
@@ -438,7 +380,7 @@ export const ShapeSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.shape.fill-color"
         ]()}
-        desc={""}
+        desc=""
       >
         {fillColor ? (
           <DropdownMenu
@@ -457,7 +399,7 @@ export const ShapeSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.shape.border-color"
         ]()}
-        desc={""}
+        desc=""
       >
         {strokeColor ? (
           <DropdownMenu
@@ -476,11 +418,11 @@ export const ShapeSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.shape.border-style"
         ]()}
-        desc={""}
+        desc=""
       >
         <EditorRadioGroup
           items={borderStyleItems}
-          value={borderStyle}
+          value={shape.strokeStyle}
           onChange={setBorderStyle}
         />
       </SettingsRow>
@@ -488,23 +430,23 @@ export const ShapeSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.shape.border-thickness"
         ]()}
-        desc={""}
+        desc=""
       >
         <EditorSlider
-          value={[borderThickness]}
+          value={[shape.strokeWidth]}
           onValueChange={setBorderThickness}
           min={2}
           max={12}
           step={2}
-          nodes={[2, 4, 6, 8, 10, 12]}
-          disabled={borderStyle === StrokeStyle.None}
+          nodes={THICKNESS_NODES}
+          disabled={shape.strokeStyle === StrokeStyle.None}
         />
       </SettingsRow>
       <SettingsRow
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.shape.text-color"
         ]()}
-        desc={""}
+        desc=""
       >
         {textColor ? (
           <DropdownMenu
@@ -523,32 +465,24 @@ export const ShapeSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.text.font-family"
         ]()}
-        desc={""}
+        desc=""
       >
         <DropdownMenu
           items={fontFamilyItems}
-          trigger={
-            <DropdownTrigger>
-              {TextUtils.getFontFamilyName(
-                settings[`shape:${currentShape}`].fontFamily,
-              )}
-            </DropdownTrigger>
-          }
+          trigger={<DropdownTrigger>{currentFontFamily}</DropdownTrigger>}
         />
       </SettingsRow>
       <SettingsRow
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.shape.font-size"
         ]()}
-        desc={""}
+        desc=""
       >
         <DropdownMenu
           items={fontSizeItems}
           trigger={
             <DropdownTrigger>
-              {formatEdgelessTextSizeLabel(
-                settings[`shape:${currentShape}`].fontSize,
-              )}
+              {formatEdgelessTextSizeLabel(shape.fontSize)}
             </DropdownTrigger>
           }
         />
@@ -557,29 +491,23 @@ export const ShapeSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.text.font-style"
         ]()}
-        desc={""}
+        desc=""
       >
         <DropdownMenu
           items={fontStyleItems}
-          trigger={
-            <DropdownTrigger>
-              {settings[`shape:${currentShape}`].fontStyle}
-            </DropdownTrigger>
-          }
+          trigger={<DropdownTrigger>{shape.fontStyle}</DropdownTrigger>}
         />
       </SettingsRow>
       <SettingsRow
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.text.font-weight"
         ]()}
-        desc={""}
+        desc=""
       >
         <DropdownMenu
           items={fontWeightItems}
           trigger={
-            <DropdownTrigger>
-              {FontWeightMap[settings[`shape:${currentShape}`].fontWeight]}
-            </DropdownTrigger>
+            <DropdownTrigger>{FontWeightMap[shape.fontWeight]}</DropdownTrigger>
           }
         />
       </SettingsRow>
@@ -587,11 +515,11 @@ export const ShapeSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.shape.text-alignment"
         ]()}
-        desc={""}
+        desc=""
       >
         <EditorRadioGroup
           items={alignItems}
-          value={textAlignment}
+          value={shape.textAlign}
           onChange={setTextAlignment}
         />
       </SettingsRow>

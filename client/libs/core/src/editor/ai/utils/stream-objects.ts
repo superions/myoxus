@@ -1,49 +1,54 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { StreamObject } from "../components/ai-chat-messages";
 
-export function mergeStreamObjects(chunks: StreamObject[] = []) {
-  return chunks.reduce((acc, curr) => {
-    const prev = acc.at(-1);
-    switch (curr.type) {
-      case "reasoning":
-      case "text-delta": {
-        if (prev && prev.type === curr.type) {
-          acc[acc.length - 1] = {
-            ...prev,
-            textDelta: prev.textDelta + curr.textDelta,
-          };
-        } else {
-          acc.push(curr);
-        }
-        break;
-      }
-      case "tool-result": {
-        const index = acc.findIndex(
-          (item) =>
-            item.type === "tool-call" &&
-            item.toolCallId === curr.toolCallId &&
-            item.toolName === curr.toolName,
-        );
-        if (index !== -1) {
-          acc[index] = curr;
-        } else {
-          acc.push(curr);
-        }
-        break;
-      }
-      default: {
-        acc.push(curr);
-        break;
+/**
+ * Coalesces consecutive text/reasoning deltas and replaces in-flight tool-call
+ * entries with their matching tool-result entry while preserving item order.
+ */
+export function mergeStreamObjects(
+  chunks: readonly StreamObject[] = [],
+): StreamObject[] {
+  const merged: StreamObject[] = [];
+  for (const chunk of chunks) {
+    const tail = merged.at(-1);
+    if (
+      (chunk.type === "text-delta" || chunk.type === "reasoning") &&
+      tail?.type === chunk.type
+    ) {
+      merged[merged.length - 1] = {
+        ...tail,
+        textDelta: tail.textDelta + chunk.textDelta,
+      };
+      continue;
+    }
+
+    if (chunk.type === "tool-result") {
+      const existingIndex = merged.findIndex(
+        (entry) =>
+          entry.type === "tool-call" &&
+          entry.toolCallId === chunk.toolCallId &&
+          entry.toolName === chunk.toolName,
+      );
+      if (existingIndex !== -1) {
+        merged[existingIndex] = chunk;
+        continue;
       }
     }
-    return acc;
-  }, [] as StreamObject[]);
+
+    merged.push(chunk);
+  }
+  return merged;
 }
 
-export function mergeStreamContent(chunks: StreamObject[]): string {
-  return chunks.reduce((acc, curr) => {
-    if (curr.type === "text-delta") {
-      acc += curr.textDelta;
+/** Concatenates only visible text-delta chunks from a stream object list. */
+export function mergeStreamContent(chunks: readonly StreamObject[]): string {
+  let out = "";
+  for (const chunk of chunks) {
+    if (chunk.type === "text-delta") {
+      out += chunk.textDelta;
     }
-    return acc;
-  }, "");
+  }
+  return out;
 }

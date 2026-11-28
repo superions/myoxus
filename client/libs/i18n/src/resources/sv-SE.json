@@ -6231,8 +6231,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "Avancerad block-synlighetskontroll",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "Aktiverar AI chatt block.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "AI Chatt Block",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "Aktivera eller inaktivera AI-model växlingsfunktion.",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "Aktivera AI-modell växling",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "När avstängt får AI endast en skärmdump varje gång du väljer «Fortsätt med AI».",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "Skicka detaljerad objektinformation till AI",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "Aktivera eller inaktivera ALLA AI-funktioner.",

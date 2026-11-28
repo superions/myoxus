@@ -6234,8 +6234,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "Control avançat de visibilitat de blocs",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "Habilita els blocs de xat d'AI.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "Bloc de Xat AI",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "Habilitar o deshabilitar la funció de canvi de model IA.",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "Habilitar canvi de model d'IA",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "Quan està desactivat, cada vegada que triis \"Continuar amb la IA\", la IA només rep una captura de pantalla.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "Enviar informació detallada d'objecte a la IA",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "Habilitar o deshabilitar TOTES les funcions d'AI.",

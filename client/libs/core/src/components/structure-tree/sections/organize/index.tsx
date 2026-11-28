@@ -12,31 +12,21 @@ import { StructureTreeStateService } from "@myoxus/core/modules/structure-tree";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import type { MyoxusDNDData } from "@myoxus/core/types/dnd";
 import { useI18n } from "@myoxus/i18n";
-import {
-  AddOrganizeIcon,
-  GlobeIcon,
-  HomeIcon,
-  PlusIcon,
-} from "@myoxus/icons/react";
+import { GlobeIcon, HomeIcon, PlusIcon } from "@myoxus/icons/react";
 import { useLiveData, useServices } from "@myoxus/infra";
 import { track } from "@myoxus/track";
 import {
   type DropTargetDropEvent,
   type DropTargetOptions,
-  MenuItem,
   InlineLink,
+  MenuItem,
   notify,
-  SidebarNavSection,
   SidebarNavSectionHeading,
-  SidebarNavSectionLabel,
-  StructureTreeActionButton,
   Tooltip,
   VisuallyHidden,
 } from "@myoxus/ui-facade";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { CollapsibleSection } from "../../layouts/collapsible-section";
-import { StructureTreeDocNode } from "../../nodes/doc";
 import { StructureTreeFolderNode } from "../../nodes/folder";
 import { StructureTreeNode, StructureTreeRoot } from "../../tree";
 import type { StructureTreeNodeIcon } from "../../tree/node";
@@ -46,7 +36,6 @@ import {
   organizeEmptyDropEffect,
   organizeEmptyRootCanDrop,
 } from "./dnd";
-import { RootEmpty } from "./empty";
 
 const StructureTreeHomeIcon: StructureTreeNodeIcon = ({ className }) => (
   <HomeIcon className={className} />
@@ -54,10 +43,9 @@ const StructureTreeHomeIcon: StructureTreeNodeIcon = ({ className }) => (
 const keepStructureTreeRootOpen = () => {};
 
 export const StructureTreeOrganizeTree = ({
-  chrome = "section",
   currentDocId,
 }: {
-  chrome?: "section" | "plain" | "folders";
+  chrome?: "folders";
   currentDocId?: string;
 }) => {
   const {
@@ -111,7 +99,6 @@ export const StructureTreeOrganizeTree = ({
   const rootFolder = folderTree.rootFolder;
 
   const folders = useLiveData(rootFolder.sortedChildren$);
-  const isLoading = useLiveData(folderTree.isLoading$);
   const currentDocFolderPath = useMemo(
     () => (currentDocId ? folderTree.folderPathForLinkedDoc(currentDocId) : []),
     [currentDocId, folderTree],
@@ -257,126 +244,37 @@ export const StructureTreeOrganizeTree = ({
     />
   ));
 
-  const foldersTree = (
-    <StructureTreeRoot
-      placeholder={
-        <RootEmpty
-          onClickCreate={handleCreateFolder}
-          isLoading={isLoading}
-          onDrop={createFolderAndDrop}
-        />
-      }
-    >
-      {folderNodes}
-    </StructureTreeRoot>
-  );
-
-  if (chrome === "plain") {
-    // The context panel uses the same folder data/actions as the main
-    // navigation, but separates the active document from the folder root so the
-    // empty state describes folders only, not the complete hierarchy panel.
-    return (
-      <>
-        {currentDocId ? (
-          <SidebarNavSection data-myoxus-ui-role="context-organization-current-document-section">
-            <SidebarNavSectionLabel>
-              {t["com.myoxus.sidebar.hierarchy.current-document"]()}
-            </SidebarNavSectionLabel>
-            <StructureTreeRoot data-myoxus-ui-role="context-organization-current-document-tree">
-              <StructureTreeDocNode
-                docId={currentDocId}
-                reorderable={false}
-                location={{
-                  at: "doc-detail:header",
-                  docId: currentDocId,
-                }}
-                parentPath={["organize", "current-doc"]}
-              />
-            </StructureTreeRoot>
-          </SidebarNavSection>
-        ) : null}
-        {/* Keep the context folder section on the same header primitive as
-            Collections and Tags; mixing labels and section headers regresses the
-            horizontal rhythm and invites local CSS fixes. */}
-        <CollapsibleSection
-          path={path}
-          title={t["com.myoxus.sidebar.hierarchy.folders"]()}
-          testId="context-organization-folder-section"
-          actions={
-            <StructureTreeActionButton
-              data-testid="structure-tree-bar-add-folder-button"
-              onClick={handleCreateFolder}
-              tooltip={t[
-                "com.myoxus.rootAppSidebar.explorer.organize-section-add-tooltip"
-              ]()}
-            >
-              <AddOrganizeIcon />
-            </StructureTreeActionButton>
-          }
-        >
-          {foldersTree}
-        </CollapsibleSection>
-      </>
-    );
-  }
-
-  if (chrome === "folders") {
-    return (
-      <>
-        <SidebarNavSectionHeading>
-          {t["com.myoxus.sidebar.hierarchy.folders"]()}
-        </SidebarNavSectionHeading>
-        <StructureTreeRoot density="compact">
-          <StructureTreeNode
-            icon={StructureTreeHomeIcon}
-            name={
-              workspaceService.workspace.meta.name ||
-              t["com.myoxus.rootAppSidebar.workspaces"]()
-            }
-            collapsed={false}
-            setCollapsed={keepStructureTreeRootOpen}
-            collapsible={false}
-            reorderable={false}
-            onClick={() =>
-              navigate.jumpToWorkspaceOverview(workspaceService.workspace.id)
-            }
-            operations={rootOperations}
-            canDrop={organizeEmptyRootCanDrop}
-            dndData={{
-              draggable: {},
-              dropTarget: { at: "structure-tree:organize:root" },
-            }}
-            dropEffect={organizeEmptyDropEffect}
-            onDrop={createFolderAndDrop}
-          >
-            {folderNodes}
-          </StructureTreeNode>
-        </StructureTreeRoot>
-      </>
-    );
-  }
-
   return (
-    <CollapsibleSection
-      path={path}
-      title={t["com.myoxus.rootAppSidebar.organize"]()}
-      actions={
-        <StructureTreeActionButton
-          data-testid="structure-tree-bar-add-organize-button"
-          onClick={handleCreateFolder}
-          tooltip={t[
-            "com.myoxus.rootAppSidebar.explorer.organize-section-add-tooltip"
-          ]()}
+    <>
+      <SidebarNavSectionHeading>
+        {t["com.myoxus.sidebar.hierarchy.folders"]()}
+      </SidebarNavSectionHeading>
+      <StructureTreeRoot density="compact">
+        <StructureTreeNode
+          icon={StructureTreeHomeIcon}
+          name={
+            workspaceService.workspace.meta.name ||
+            t["com.myoxus.rootAppSidebar.workspaces"]()
+          }
+          collapsed={false}
+          setCollapsed={keepStructureTreeRootOpen}
+          collapsible={false}
+          reorderable={false}
+          onClick={() =>
+            navigate.jumpToWorkspaceOverview(workspaceService.workspace.id)
+          }
+          operations={rootOperations}
+          canDrop={organizeEmptyRootCanDrop}
+          dndData={{
+            draggable: {},
+            dropTarget: { at: "structure-tree:organize:root" },
+          }}
+          dropEffect={organizeEmptyDropEffect}
+          onDrop={createFolderAndDrop}
         >
-          <AddOrganizeIcon />
-        </StructureTreeActionButton>
-      }
-    >
-      {foldersTree}
-    </CollapsibleSection>
+          {folderNodes}
+        </StructureTreeNode>
+      </StructureTreeRoot>
+    </>
   );
-};
-
-export const StructureTreeOrganize = () => {
-  return <StructureTreeOrganizeTree />;
 };

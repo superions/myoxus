@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   type CollectionInfo,
   CollectionService,
@@ -15,35 +18,45 @@ export const CollectionEditorDialog = ({
   close,
   collectionId,
   mode,
+  returnFocusRef,
 }: DialogComponentProps<WORKSPACE_DIALOG_SCHEMA["collection-editor"]>) => {
   const t = useI18n();
   const collectionService = useService(CollectionService);
   const collection = useLiveData(collectionService.collection$(collectionId));
-  const onConfirmOnCollection = useCallback(
-    (collection: CollectionInfo) => {
-      collectionService.updateCollection(collection.id, collection);
-      close();
-    },
-    [close, collectionService],
-  );
   const info = useLiveData(collection?.info$);
+
+  const [open, setOpen] = useState(true);
   const [selectedMode, setSelectedMode] = useState<
     EditCollectionMode | undefined
   >(mode);
-  const onCancel = useCallback(() => {
-    close();
-  }, [close]);
+
+  const requestClose = useCallback(() => {
+    setOpen(false);
+  }, []);
+
+  const handleConfirm = useCallback(
+    (updated: CollectionInfo) => {
+      collectionService.updateCollection(updated.id, updated);
+      setOpen(false);
+    },
+    [collectionService],
+  );
 
   if (!collection || !info) {
     return null;
   }
-  const activeMode =
+
+  const activeMode: EditCollectionMode =
     selectedMode ?? (info.rules.filters.length === 0 ? "page" : "rule");
 
   return (
     <Modal
-      open
-      onOpenChange={onCancel}
+      open={open}
+      returnFocusRef={returnFocusRef}
+      onExitTransitionEnd={() => close()}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) requestClose();
+      }}
       title={info.name?.trim() || t["Untitled"]()}
       width="xl"
       height={activeMode === "rule" ? "80%" : undefined}
@@ -52,12 +65,12 @@ export const CollectionEditorDialog = ({
       }
     >
       <EditCollection
-        onConfirmText={t["com.myoxus.editCollection.save"]()}
         init={info}
         mode={activeMode}
+        onConfirmText={t["com.myoxus.editCollection.save"]()}
         onModeChange={setSelectedMode}
-        onCancel={onCancel}
-        onConfirm={onConfirmOnCollection}
+        onCancel={requestClose}
+        onConfirm={handleConfirm}
       />
     </Modal>
   );

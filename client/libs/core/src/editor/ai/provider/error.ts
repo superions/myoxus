@@ -1,15 +1,17 @@
-abstract class BaseAIError extends Error {
-  abstract readonly type: AIErrorType;
-}
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 export enum AIErrorType {
   GeneralNetworkError = "GeneralNetworkError",
-  PaymentRequired = "PaymentRequired",
   Unauthorized = "Unauthorized",
   RequestTimeout = "RequestTimeout",
 }
 
-export class UnauthorizedError extends BaseAIError {
+abstract class AIErrorBase extends Error {
+  abstract readonly type: AIErrorType;
+}
+
+export class UnauthorizedError extends AIErrorBase {
   readonly type = AIErrorType.Unauthorized;
 
   constructor() {
@@ -17,38 +19,24 @@ export class UnauthorizedError extends BaseAIError {
   }
 }
 
-// HTTP 402 — mapped as a generic server-side error (no billing in Myoxus)
-export class PaymentRequiredError extends BaseAIError {
-  readonly type = AIErrorType.PaymentRequired;
-
-  constructor() {
-    super("Service temporarily unavailable");
-  }
-}
-
-// general 500x error
-export class GeneralNetworkError extends BaseAIError {
+export class GeneralNetworkError extends AIErrorBase {
   readonly type = AIErrorType.GeneralNetworkError;
 
   constructor(
-    message: string = "Network error",
+    message = "Network error",
     readonly code?: string,
   ) {
     super(message);
   }
 }
 
-// request timeout
-export class RequestTimeoutError extends BaseAIError {
+export class RequestTimeoutError extends AIErrorBase {
   readonly type = AIErrorType.RequestTimeout;
 
-  constructor(message: string = "Request timeout") {
+  constructor(message = "Request timeout") {
     super(message);
   }
 }
 
 export type AIError =
-  | UnauthorizedError
-  | PaymentRequiredError
-  | GeneralNetworkError
-  | RequestTimeoutError;
+  UnauthorizedError | GeneralNetworkError | RequestTimeoutError;

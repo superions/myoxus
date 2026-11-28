@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { DocModeProvider } from "@virgultum/editor/shared/services";
 import {
   type SlashMenuActionItem,
@@ -12,98 +15,93 @@ import { handleInlineAskAIAction } from "../actions/doc-handler";
 import type { AIItemConfig } from "../components/ai-item/types";
 import { AIPanelControllerIdentifier } from "../widgets/ai-panel/controller";
 
+const FROM_ABOVE_NAMES = new Set(["Fix spelling", "Fix grammar"]);
+const DIRECT_SLASH_NAMES = new Set(["Summarize", "Continue writing"]);
+const SUBMENU_GROUP_NAMES = new Set(["Translate to", "Change tone to"]);
+const SUBMENU_ACTION_NAMES = new Set([
+  "Improve writing",
+  "Make it longer",
+  "Make it shorter",
+  "Generate outline",
+  "Find actions",
+]);
+
+function makeWhenGuard(item?: AIItemConfig) {
+  return ({ std }: SlashMenuContext) => {
+    if (!std.getOptional(AIPanelControllerIdentifier)) return false;
+    const mode = std.get(DocModeProvider).getPrimaryMode(std.host.store.id);
+    return item?.showWhen?.(std.host.command.chain(), mode, std.host) ?? true;
+  };
+}
+
+function toActionItem(item: AIItemConfig): SlashMenuActionItem {
+  return {
+    name: item.name,
+    icon: item.iconName,
+    searchAlias: ["ai"],
+    when: makeWhenGuard(item),
+    action: ({ std }) => item.handler?.(std.host),
+  };
+}
+
+function toSubMenuItem(item: AIItemConfig): SlashMenuSubMenu {
+  return {
+    name: item.name,
+    icon: item.iconName,
+    searchAlias: ["ai"],
+    when: makeWhenGuard(item),
+    subMenu: (item.subItem ?? []).map<SlashMenuActionItem>(
+      ({ type, handler }) => ({
+        name: type,
+        action: ({ std }) => handler?.(std.host),
+      }),
+    ),
+  };
+}
+
 export function AiSlashMenuConfigExtension() {
-  const AIItems = pageAIGroups.flatMap((group) => group.items);
-  const showWhenWrapper =
-    (item?: AIItemConfig) =>
-    ({ std }: SlashMenuContext) => {
-      if (!std.getOptional(AIPanelControllerIdentifier)) return false;
+  const allItems = pageAIGroups.flatMap((group) => group.items);
+  let order = 0;
 
-      const chain = std.host.command.chain();
-      const docModeService = std.get(DocModeProvider);
-      const editorMode = docModeService.getPrimaryMode(std.host.store.id);
-
-      return item?.showWhen?.(chain, editorMode, std.host) ?? true;
-    };
-
-  const actionItemWrapper = (item: AIItemConfig): SlashMenuActionItem => ({
-    ...basicItemConfig(item),
-    action: ({ std }: SlashMenuContext) => {
-      item?.handler?.(std.host);
-    },
-  });
-
-  const subMenuWrapper = (item: AIItemConfig): SlashMenuSubMenu => {
-    return {
-      ...basicItemConfig(item),
-      subMenu: (item.subItem ?? []).map<SlashMenuActionItem>(
-        ({ type, handler }) => ({
-          name: type,
-          action: ({ std }) => handler?.(std.host),
-        }),
-      ),
-    };
-  };
-
-  const basicItemConfig = (item: AIItemConfig) => {
-    return {
-      name: item.name,
-      icon: item.iconName,
-      searchAlias: ["ai"],
-      when: showWhenWrapper(item),
-    };
-  };
-
-  let index = 0;
-  const AIMenuItems: SlashMenuItem[] = [
+  const items: SlashMenuItem[] = [
     {
       name: "Ask AI",
       icon: "AiIcon",
-      when: showWhenWrapper(),
+      when: makeWhenGuard(),
       action: ({ std }) => {
-        const aiPanel = std.getOptional(AIPanelControllerIdentifier);
-        if (!aiPanel) return;
-        handleInlineAskAIAction(aiPanel.host);
+        const panel = std.getOptional(AIPanelControllerIdentifier);
+        if (panel) {
+          handleInlineAskAIAction(panel.host);
+        }
       },
     },
-    ...AIItems.filter(({ name }) =>
-      ["Fix spelling", "Fix grammar"].includes(name),
-    ).map<SlashMenuActionItem>((item) => ({
-      ...actionItemWrapper(item),
-      name: `${item.name} from above`,
-      group: `1_Myoxus AI@${index++}`,
-    })),
-
-    ...AIItems.filter(({ name }) =>
-      ["Summarize", "Continue writing"].includes(name),
-    ).map<SlashMenuActionItem>((item) => ({
-      ...actionItemWrapper(item),
-      group: `1_Myoxus AI@${index++}`,
-    })),
-
+    ...allItems
+      .filter((item) => FROM_ABOVE_NAMES.has(item.name))
+      .map<SlashMenuActionItem>((item) => ({
+        ...toActionItem(item),
+        name: `${item.name} from above`,
+        group: `1_Myoxus AI@${order++}`,
+      })),
+    ...allItems
+      .filter((item) => DIRECT_SLASH_NAMES.has(item.name))
+      .map<SlashMenuActionItem>((item) => ({
+        ...toActionItem(item),
+        group: `1_Myoxus AI@${order++}`,
+      })),
     {
       name: "Action with above",
       icon: "MoreHorizontalIcon",
-      group: `1_Myoxus AI@${index++}`,
+      group: `1_Myoxus AI@${order++}`,
       subMenu: [
-        ...AIItems.filter(({ name }) =>
-          ["Translate to", "Change tone to"].includes(name),
-        ).map(subMenuWrapper),
-
-        ...AIItems.filter(({ name }) =>
-          [
-            "Improve writing",
-            "Make it longer",
-            "Make it shorter",
-            "Generate outline",
-            "Find actions",
-          ].includes(name),
-        ).map(actionItemWrapper),
+        ...allItems
+          .filter((item) => SUBMENU_GROUP_NAMES.has(item.name))
+          .map(toSubMenuItem),
+        ...allItems
+          .filter((item) => SUBMENU_ACTION_NAMES.has(item.name))
+          .map(toActionItem),
       ],
     },
   ];
 
-  return SlashMenuConfigExtension("ai", {
-    items: AIMenuItems,
-  });
+  return SlashMenuConfigExtension("ai", { items });
 }

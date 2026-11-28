@@ -96,7 +96,7 @@ describe("workspace property facade migration contract", () => {
       "client/libs/core/src/components/properties/widgets/radio-group.tsx",
     );
     const text = readRepoFile(
-      "client/libs/core/src/components/workspace-property-types/text.tsx",
+      "client/libs/core/src/components/workspace-property-types/basic-properties.tsx",
     );
 
     expect(manager).toContain("PropertyRoot");

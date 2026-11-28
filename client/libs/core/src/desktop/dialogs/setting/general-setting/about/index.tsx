@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useAppUpdater } from "@myoxus/core/components/hooks/use-app-updater";
 import { appNames } from "@myoxus/core/utils/channel";
 import { useI18n } from "@myoxus/i18n";
@@ -5,7 +8,7 @@ import { ArrowRightSmallIcon } from "@myoxus/icons/react";
 import { useService } from "@myoxus/infra";
 import { useCallback } from "react";
 
-import AboutMyoxusLogo from "../../../../../../../../../assets/branding/myoxus_text.svg";
+import MyoxusWordmark from "../../../../../../../../../assets/branding/myoxus_text.svg";
 import { useDeviceSettingHelper } from "../../../../../components/hooks/myoxus/use-device-setting-helper";
 import { useUserPreferences } from "../../../../../components/hooks/myoxus/use-user-preferences";
 import { UrlService } from "../../../../../modules/url";
@@ -30,29 +33,20 @@ export const AboutMyoxus = () => {
     currentVersion,
   } = useAppUpdater();
   const urlService = useService(UrlService);
-  const channel = BUILD_CONFIG.appBuildType;
-  const appName = appNames[channel];
+  const appName = appNames[BUILD_CONFIG.appBuildType];
 
-  const onSwitchAutoCheck = useCallback(
-    (checked: boolean) => {
-      toggleAutoCheck(checked);
-    },
-    [toggleAutoCheck],
-  );
-
-  const onSwitchAutoDownload = useCallback(
-    (checked: boolean) => {
-      toggleAutoDownload(checked);
-    },
-    [toggleAutoDownload],
-  );
-
-  const onSwitchTelemetry = useCallback(
+  const handleTelemetryToggle = useCallback(
     (checked: boolean) => {
       void updatePreferences({ telemetryEnabled: checked });
     },
     [updatePreferences],
   );
+
+  const handleOpenChangelog = useCallback(() => {
+    urlService.openPopupWindow(BUILD_CONFIG.changelogUrl);
+  }, [urlService]);
+
+  const showAutoUpdateSwitches = Boolean(updaterState && !externalMacosInstall);
 
   return (
     <SettingsPage
@@ -67,7 +61,7 @@ export const AboutMyoxus = () => {
         >
           <SettingsControlGroup>
             <img
-              src={AboutMyoxusLogo}
+              src={MyoxusWordmark}
               alt={`${appName} logo`}
               width={168}
               height={95}
@@ -76,14 +70,16 @@ export const AboutMyoxus = () => {
             />
           </SettingsControlGroup>
         </SettingsRow>
+
         <SettingsRow
           name={t["com.myoxus.aboutMyoxus.version.editor.title"]()}
           desc={BUILD_CONFIG.editorVersion}
         />
+
         {BUILD_CONFIG.isElectron ? (
           <>
             <UpdateCheckSection />
-            {updaterState && !externalMacosInstall ? (
+            {showAutoUpdateSwitches ? (
               <>
                 <SettingsRow
                   name={t["com.myoxus.aboutMyoxus.autoCheckUpdate.title"]()}
@@ -93,7 +89,7 @@ export const AboutMyoxus = () => {
                 >
                   <MyoxusSwitch
                     checked={deviceSettings.autoCheckUpdate}
-                    onChange={onSwitchAutoCheck}
+                    onChange={toggleAutoCheck}
                   />
                 </SettingsRow>
                 <SettingsRow
@@ -104,7 +100,7 @@ export const AboutMyoxus = () => {
                 >
                   <MyoxusSwitch
                     checked={deviceSettings.autoDownloadUpdate}
-                    onChange={onSwitchAutoDownload}
+                    onChange={toggleAutoDownload}
                   />
                 </SettingsRow>
               </>
@@ -112,21 +108,20 @@ export const AboutMyoxus = () => {
             <SettingsRow
               name={t["com.myoxus.aboutMyoxus.changelog.title"]()}
               desc={t["com.myoxus.aboutMyoxus.changelog.description"]()}
-              onClick={() => {
-                urlService.openPopupWindow(BUILD_CONFIG.changelogUrl);
-              }}
+              onClick={handleOpenChangelog}
             >
               <ArrowRightSmallIcon />
             </SettingsRow>
           </>
         ) : null}
+
         <SettingsRow
           name={t["com.myoxus.telemetry.enable"]()}
           desc={t["com.myoxus.telemetry.enable.desc"]()}
         >
           <MyoxusSwitch
             checked={effectivePreferences?.telemetryEnabled ?? true}
-            onChange={onSwitchTelemetry}
+            onChange={handleTelemetryToggle}
           />
         </SettingsRow>
       </SettingsSection>

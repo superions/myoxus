@@ -38,7 +38,7 @@ import {
 } from "./utils";
 
 async function openTocPanel(page: Page) {
-  const toc = page.locator("myoxus-outline-panel");
+  const toc = page.locator('[data-myoxus-ui-role="document-outline"]');
   if (await toc.isVisible()) return toc;
 
   await openRightSideBar(page, "outline");
@@ -250,7 +250,7 @@ test.describe("TOC and editor scroll", () => {
     );
 
     const activeHeadingContainer = toc.locator(
-      "myoxus-outline-panel-body .active",
+      '[data-outline-id][data-active="true"]',
     );
 
     await title.click();
@@ -272,7 +272,7 @@ test.describe("TOC and editor scroll", () => {
     const toc = await openTocPanel(page);
 
     const activeHeadingContainer = toc.locator(
-      "myoxus-outline-panel-body .active",
+      '[data-outline-id][data-active="true"]',
     );
 
     const headingsInPanel = Array.from({ length: 6 }, (_, i) =>

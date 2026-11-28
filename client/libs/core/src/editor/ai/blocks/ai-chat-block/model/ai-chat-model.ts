@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   type GfxCommonBlockProps,
   GfxCompatible,
@@ -8,16 +11,20 @@ import {
   defineBlockSchema,
 } from "@virgultum/editor/store";
 
-type AIChatProps = {
-  messages: string; // JSON string of ChatMessage[]
-  sessionId: string; // forked session id
-  rootWorkspaceId: string; // workspace id of root chat session
-  rootDocId: string; // doc id of root chat session
+type PersistedAIChatBlockProps = {
+  /** Serialized JSON array of ChatMessage entries. */
+  messages: string;
+  /** Forked session identifier stored on the block. */
+  sessionId: string;
+  /** Workspace ID owning the source chat session. */
+  rootWorkspaceId: string;
+  /** Document ID owning the source chat session. */
+  rootDocId: string;
 } & Omit<GfxCommonBlockProps, "rotate">;
 
 export const AIChatBlockSchema = defineBlockSchema({
   flavour: "myoxus:embed-ai-chat",
-  props: (): AIChatProps => ({
+  props: (): PersistedAIChatBlockProps => ({
     xywh: "[0,0,0,0]",
     index: "a0",
     lockedBySelf: false,
@@ -32,12 +39,12 @@ export const AIChatBlockSchema = defineBlockSchema({
     role: "content",
     children: [],
   },
-  toModel: () => {
-    return new AIChatBlockModel();
-  },
+  toModel: () => new AIChatBlockModel(),
 });
 
 export const AIChatBlockSchemaExtension =
   BlockSchemaExtension(AIChatBlockSchema);
 
-export class AIChatBlockModel extends GfxCompatible<AIChatProps>(BlockModel) {}
+export class AIChatBlockModel extends GfxCompatible<PersistedAIChatBlockProps>(
+  BlockModel,
+) {}

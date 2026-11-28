@@ -12,7 +12,6 @@
     { "path": "../../client/libs/core" },
     { "path": "../../client/libs/env" },
     { "path": "../../client/libs/i18n" },
-    { "path": "../../client/libs/icons" },
     { "path": "../../client/libs/ui-facade" },
     { "path": "../editor/all" }
   ]

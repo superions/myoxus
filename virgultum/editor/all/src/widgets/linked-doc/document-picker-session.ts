@@ -12,8 +12,11 @@ import type {
   EditorDocumentPickerState,
 } from "@virgultum/core/services";
 import { createKeydownObserver } from "@virgultum/core/utils";
-import type { LinkedDocContext, LinkedMenuGroup } from "./config";
-import { resolveSignal } from "./utils";
+import {
+  resolveSignal,
+  type LinkedDocContext,
+  type LinkedMenuGroup,
+} from "./picker-config";
 
 /** One input session; providers own search, permissions and document writes. */
 export class DocumentPickerSession implements EditorDocumentPickerControls {

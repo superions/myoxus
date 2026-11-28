@@ -1,4 +1,7 @@
-import { continueInChat, reviewCodeActions } from "./code-actions";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
+import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import {
   CodeBlockModel,
   ImageBlockModel,
@@ -10,372 +13,102 @@ import { matchModels } from "@virgultum/editor/shared/utils";
 import type { Chain, InitCommandCtx } from "@virgultum/editor/std";
 
 import { actionToHandler } from "../actions/doc-handler";
-import {
-  imageFilterStyles,
-  imageProcessingTypes,
-  textTones,
-  translateLangs,
-} from "../actions/types";
+import { textTones, translateLangs } from "../actions/types";
 import type {
+  AIItemConfig,
   AIItemGroupConfig,
   AISubItemConfig,
 } from "../components/ai-item/types";
 import { AIProvider } from "../provider";
 import { getAIPanelController } from "../utils/ai-widgets";
 import { getEdgelessCopilotWidget } from "../utils/get-edgeless-copilot-widget";
-import {
-  AIImageIconWithAnimation,
-  AIPenIconWithAnimation,
-  AIPresentationIconWithAnimation,
-  AIStarIconWithAnimation,
-  MakeItRealIconWithAnimation,
-} from "./icons";
+import { continueInChat, reviewCodeActions } from "./code-actions";
 
-export const translateSubItem: AISubItemConfig[] = translateLangs.map(
-  (lang) => {
-    return {
-      type: lang,
-      testId: `action-translate-${lang}`,
-      handler: actionToHandler("translate", AIStarIconWithAnimation, { lang }),
-    };
-  },
-);
+type SimpleActionSpec = {
+  name: string;
+  testId: string;
+  icon: MyoxusIconExportName;
+  command: keyof VirgultumPresets.AIActions;
+  generatingIcon: MyoxusIconExportName;
+  beta?: boolean;
+  showWhen?: AIItemConfig["showWhen"];
+};
 
-export const toneSubItem: AISubItemConfig[] = textTones.map((tone) => {
-  return {
-    type: tone,
-    testId: `action-change-tone-${tone.toLowerCase()}`,
-    handler: actionToHandler("changeTone", AIStarIconWithAnimation, { tone }),
-  };
-});
-
-export function createImageFilterSubItem(
-  trackerOptions?: VirgultumPresets.TrackerOptions,
-) {
-  return imageFilterStyles.map((style) => {
-    return {
-      type: style,
-      testId: `action-image-filter-${style.toLowerCase().replace(" ", "-")}`,
-      handler: actionToHandler(
-        "filterImage",
-        AIImageIconWithAnimation,
-        {
-          style,
-        },
-        trackerOptions,
-      ),
-    };
-  });
-}
-
-export function createImageProcessingSubItem(
-  trackerOptions?: VirgultumPresets.TrackerOptions,
-) {
-  return imageProcessingTypes.map((type) => {
-    return {
-      type,
-      testId: `action-image-processing-${type.toLowerCase().replace(" ", "-")}`,
-      handler: actionToHandler(
-        "processImage",
-        AIImageIconWithAnimation,
-        {
-          type,
-        },
-        trackerOptions,
-      ),
-    };
-  });
-}
-
-const blockActionTrackerOptions: VirgultumPresets.TrackerOptions = {
+const BLOCK_BAR_TRACKER: VirgultumPresets.TrackerOptions = {
   control: "block-action-bar",
   where: "ai-panel",
 };
 
-const textBlockShowWhen = (chain: Chain<InitCommandCtx>) => {
-  const [_, ctx] = chain
-    .pipe(getSelectedModelsCommand, {
-      types: ["block", "text"],
-    })
+const hasTextBlockSelection = (chain: Chain<InitCommandCtx>) => {
+  const [, ctx] = chain
+    .pipe(getSelectedModelsCommand, { types: ["block", "text"] })
     .run();
-  const { selectedModels } = ctx;
-  if (!selectedModels || selectedModels.length === 0) return false;
-
-  return selectedModels.some((model) =>
-    matchModels(model, [ParagraphBlockModel, ListBlockModel]),
+  return Boolean(
+    ctx.selectedModels?.some((model) =>
+      matchModels(model, [ParagraphBlockModel, ListBlockModel]),
+    ),
   );
 };
 
-const codeBlockShowWhen = (chain: Chain<InitCommandCtx>) => {
-  const [_, ctx] = chain
-    .pipe(getSelectedModelsCommand, {
-      types: ["block", "text"],
-    })
+const hasNonHeadingTextSelection = (chain: Chain<InitCommandCtx>) => {
+  const [, ctx] = chain
+    .pipe(getSelectedModelsCommand, { types: ["block", "text"] })
     .run();
-  const { selectedModels } = ctx;
-  if (!selectedModels || selectedModels.length > 1) return false;
-
-  const model = selectedModels[0];
-  return matchModels(model, [CodeBlockModel]);
+  if (!ctx.selectedModels?.length) return false;
+  return ctx.selectedModels.every(
+    (model) =>
+      matchModels(model, [ParagraphBlockModel, ListBlockModel]) &&
+      !model.props.type.startsWith("h"),
+  );
 };
 
-const imageBlockShowWhen = (chain: Chain<InitCommandCtx>) => {
-  const [_, ctx] = chain
-    .pipe(getSelectedModelsCommand, {
-      types: ["block"],
-    })
+const hasSingleCodeSelection = (chain: Chain<InitCommandCtx>) => {
+  const [, ctx] = chain
+    .pipe(getSelectedModelsCommand, { types: ["block", "text"] })
     .run();
-  const { selectedModels } = ctx;
-  if (!selectedModels || selectedModels.length > 1) return false;
-
-  const model = selectedModels[0];
-  return matchModels(model, [ImageBlockModel]);
+  return (
+    ctx.selectedModels?.length === 1 &&
+    matchModels(ctx.selectedModels[0], [CodeBlockModel])
+  );
 };
 
-const EditTextAIGroup: AIItemGroupConfig = {
-  name: "edit text",
-  items: [
-    {
-      name: "Translate to",
-      testId: "action-translate",
-      icon: "LanguageIcon",
-      iconName: "LanguageIcon",
-      showWhen: textBlockShowWhen,
-      subItem: translateSubItem,
-    },
-    {
-      name: "Change tone to",
-      testId: "action-change-tone",
-      icon: "ToneIcon",
-      iconName: "ToneIcon",
-      showWhen: textBlockShowWhen,
-      subItem: toneSubItem,
-    },
-    {
-      name: "Improve writing",
-      testId: "action-improve-writing",
-      icon: "ImproveWritingIcon",
-      iconName: "ImproveWritingIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("improveWriting", AIStarIconWithAnimation),
-    },
-    {
-      name: "Make it longer",
-      testId: "action-make-it-longer",
-      icon: "LongerIcon",
-      iconName: "LongerIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("makeLonger", AIStarIconWithAnimation),
-    },
-    {
-      name: "Make it shorter",
-      testId: "action-make-it-shorter",
-      icon: "ShorterIcon",
-      iconName: "ShorterIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("makeShorter", AIStarIconWithAnimation),
-    },
-    {
-      name: "Continue writing",
-      testId: "action-continue-writing",
-      icon: "PenIcon",
-      iconName: "PenIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("continueWriting", AIPenIconWithAnimation),
-    },
-  ],
+const hasSingleImageSelection = (chain: Chain<InitCommandCtx>) => {
+  const [, ctx] = chain
+    .pipe(getSelectedModelsCommand, { types: ["block"] })
+    .run();
+  return (
+    ctx.selectedModels?.length === 1 &&
+    matchModels(ctx.selectedModels[0], [ImageBlockModel])
+  );
 };
 
-const DraftFromTextAIGroup: AIItemGroupConfig = {
-  name: "draft from text",
-  items: [
-    {
-      name: "Write an article about this",
-      testId: "action-write-article",
-      icon: "PenIcon",
-      iconName: "PenIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("writeArticle", AIPenIconWithAnimation),
-    },
-    {
-      name: "Write a tweet about this",
-      testId: "action-write-twitter-post",
-      icon: "PenIcon",
-      iconName: "PenIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("writeTwitterPost", AIPenIconWithAnimation),
-    },
-    {
-      name: "Write a poem about this",
-      testId: "action-write-poem",
-      icon: "PenIcon",
-      iconName: "PenIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("writePoem", AIPenIconWithAnimation),
-    },
-    {
-      name: "Write a blog post about this",
-      testId: "action-write-blog-post",
-      icon: "PenIcon",
-      iconName: "PenIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("writeBlogPost", AIPenIconWithAnimation),
-    },
-    {
-      name: "Brainstorm ideas about this",
-      testId: "action-brainstorm",
-      icon: "PenIcon",
-      iconName: "PenIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("brainstorm", AIPenIconWithAnimation),
-    },
-  ],
-};
+function makeTextItems(specs: readonly SimpleActionSpec[]): AIItemConfig[] {
+  return specs.map((spec) => ({
+    name: spec.name,
+    testId: spec.testId,
+    icon: spec.icon,
+    iconName: spec.icon,
+    beta: spec.beta,
+    showWhen: spec.showWhen ?? hasTextBlockSelection,
+    handler: actionToHandler(spec.command, spec.generatingIcon),
+  }));
+}
 
-const ReviewImageAIGroup: AIItemGroupConfig = {
-  name: "review image",
-  items: [
-    {
-      name: "Explain this image",
-      testId: "action-explain-image",
-      icon: "PenIcon",
-      iconName: "PenIcon",
-      showWhen: imageBlockShowWhen,
-      handler: actionToHandler("explainImage", AIStarIconWithAnimation),
-    },
-  ],
-};
+export const translateSubItem: AISubItemConfig[] = translateLangs.map(
+  (lang) => ({
+    type: lang,
+    testId: `action-translate-${lang}`,
+    handler: actionToHandler("translate", "AiIcon", { lang }),
+  }),
+);
 
-const ReviewCodeAIGroup: AIItemGroupConfig = {
-  name: "review code",
-  items: reviewCodeActions.map(({ command, ...item }) => ({
-    ...item,
-    icon: "ExplainIcon",
-    showWhen: codeBlockShowWhen,
-    handler: actionToHandler(command, AIStarIconWithAnimation),
-  })),
-};
+export const toneSubItem: AISubItemConfig[] = textTones.map((tone) => ({
+  type: tone,
+  testId: `action-change-tone-${tone.toLowerCase()}`,
+  handler: actionToHandler("changeTone", "AiIcon", { tone }),
+}));
 
-const ReviewTextAIGroup: AIItemGroupConfig = {
-  name: "review text",
-  items: [
-    {
-      name: "Fix spelling",
-      testId: "action-fix-spelling",
-      icon: "DoneIcon",
-      iconName: "DoneIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("fixSpelling", AIStarIconWithAnimation),
-    },
-    {
-      name: "Fix grammar",
-      testId: "action-fix-grammar",
-      icon: "DoneIcon",
-      iconName: "DoneIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("improveGrammar", AIStarIconWithAnimation),
-    },
-
-    {
-      name: "Explain selection",
-      testId: "action-explain-selection",
-      icon: "SelectionIcon",
-      iconName: "SelectionIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("explain", AIStarIconWithAnimation),
-    },
-  ],
-};
-
-const GenerateFromTextAIGroup: AIItemGroupConfig = {
-  name: "generate from text",
-  items: [
-    {
-      name: "Summarize",
-      testId: "action-summarize",
-      icon: "PenIcon",
-      iconName: "PenIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("summary", AIPenIconWithAnimation),
-    },
-    {
-      name: "Generate headings",
-      testId: "action-generate-headings",
-      icon: "PenIcon",
-      iconName: "PenIcon",
-      beta: true,
-      handler: actionToHandler("createHeadings", AIPenIconWithAnimation),
-      showWhen: (chain) => {
-        const [_, ctx] = chain
-          .pipe(getSelectedModelsCommand, {
-            types: ["block", "text"],
-          })
-          .run();
-        const { selectedModels } = ctx;
-        if (!selectedModels || selectedModels.length === 0) return false;
-
-        return selectedModels.every(
-          (model) =>
-            matchModels(model, [ParagraphBlockModel, ListBlockModel]) &&
-            !model.props.type.startsWith("h"),
-        );
-      },
-    },
-    {
-      name: "Generate outline",
-      testId: "action-generate-outline",
-      icon: "PenIcon",
-      iconName: "PenIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("writeOutline", AIPenIconWithAnimation),
-    },
-    {
-      name: "Generate an image",
-      testId: "action-generate-image",
-      icon: "ImageIcon",
-      iconName: "ImageIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("createImage", AIImageIconWithAnimation),
-    },
-    {
-      name: "Brainstorm ideas with mind map",
-      testId: "action-brainstorm-mindmap",
-      icon: "MindmapIcon",
-      iconName: "MindmapIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("brainstormMindmap", AIPenIconWithAnimation),
-    },
-    {
-      name: "Generate presentation",
-      testId: "action-generate-presentation",
-      icon: "PresentationIcon",
-      iconName: "PresentationIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("createSlides", AIPresentationIconWithAnimation),
-      beta: true,
-    },
-    {
-      name: "Make it real",
-      testId: "action-make-it-real",
-      icon: "MakeItRealIcon",
-      iconName: "MakeItRealIcon",
-      beta: true,
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("makeItReal", MakeItRealIconWithAnimation),
-    },
-    {
-      name: "Find actions",
-      testId: "action-find-actions",
-      icon: "SearchIcon",
-      iconName: "SearchIcon",
-      showWhen: textBlockShowWhen,
-      handler: actionToHandler("findActions", AIStarIconWithAnimation),
-      beta: true,
-    },
-  ],
-};
-
-const OthersAIGroup: AIItemGroupConfig = {
+const othersGroup: AIItemGroupConfig = {
   name: "Others",
   items: [
     {
@@ -383,12 +116,9 @@ const OthersAIGroup: AIItemGroupConfig = {
       icon: "CommentIcon",
       handler: (host) => {
         const panel = getAIPanelController(host);
-        const edgelessCopilot = getEdgelessCopilotWidget(host);
-        AIProvider.slots.requestOpenWithChat.next({
-          host,
-          autoSelect: true,
-        });
-        edgelessCopilot?.hideCopilotPanel();
+        const copilot = getEdgelessCopilotWidget(host);
+        AIProvider.slots.requestOpenWithChat.next({ host, autoSelect: true });
+        copilot?.hideCopilotPanel();
         panel.hide();
       },
     },
@@ -396,13 +126,205 @@ const OthersAIGroup: AIItemGroupConfig = {
 };
 
 export const pageAIGroups: AIItemGroupConfig[] = [
-  ReviewTextAIGroup,
-  ReviewCodeAIGroup,
-  ReviewImageAIGroup,
-  EditTextAIGroup,
-  GenerateFromTextAIGroup,
-  DraftFromTextAIGroup,
-  OthersAIGroup,
+  {
+    name: "review text",
+    items: makeTextItems([
+      {
+        name: "Fix spelling",
+        testId: "action-fix-spelling",
+        icon: "DoneIcon",
+        command: "fixSpelling",
+        generatingIcon: "AiIcon",
+      },
+      {
+        name: "Fix grammar",
+        testId: "action-fix-grammar",
+        icon: "DoneIcon",
+        command: "improveGrammar",
+        generatingIcon: "AiIcon",
+      },
+      {
+        name: "Explain selection",
+        testId: "action-explain-selection",
+        icon: "SelectionIcon",
+        command: "explain",
+        generatingIcon: "AiIcon",
+      },
+    ]),
+  },
+  {
+    name: "review code",
+    items: reviewCodeActions.map(({ command, ...item }) => ({
+      ...item,
+      icon: "ExplainIcon",
+      showWhen: hasSingleCodeSelection,
+      handler: actionToHandler(command, "AiIcon"),
+    })),
+  },
+  {
+    name: "review image",
+    items: [
+      {
+        name: "Explain this image",
+        testId: "action-explain-image",
+        icon: "PenIcon",
+        iconName: "PenIcon",
+        showWhen: hasSingleImageSelection,
+        handler: actionToHandler("explainImage", "AiIcon"),
+      },
+    ],
+  },
+  {
+    name: "edit text",
+    items: [
+      {
+        name: "Translate to",
+        testId: "action-translate",
+        icon: "LanguageIcon",
+        iconName: "LanguageIcon",
+        showWhen: hasTextBlockSelection,
+        subItem: translateSubItem,
+      },
+      {
+        name: "Change tone to",
+        testId: "action-change-tone",
+        icon: "ToneIcon",
+        iconName: "ToneIcon",
+        showWhen: hasTextBlockSelection,
+        subItem: toneSubItem,
+      },
+      ...makeTextItems([
+        {
+          name: "Improve writing",
+          testId: "action-improve-writing",
+          icon: "ImproveWritingIcon",
+          command: "improveWriting",
+          generatingIcon: "AiIcon",
+        },
+        {
+          name: "Make it longer",
+          testId: "action-make-it-longer",
+          icon: "LongerIcon",
+          command: "makeLonger",
+          generatingIcon: "AiIcon",
+        },
+        {
+          name: "Make it shorter",
+          testId: "action-make-it-shorter",
+          icon: "ShorterIcon",
+          command: "makeShorter",
+          generatingIcon: "AiIcon",
+        },
+        {
+          name: "Continue writing",
+          testId: "action-continue-writing",
+          icon: "PenIcon",
+          command: "continueWriting",
+          generatingIcon: "PenIcon",
+        },
+      ]),
+    ],
+  },
+  {
+    name: "generate from text",
+    items: makeTextItems([
+      {
+        name: "Summarize",
+        testId: "action-summarize",
+        icon: "PenIcon",
+        command: "summary",
+        generatingIcon: "PenIcon",
+      },
+      {
+        name: "Generate headings",
+        testId: "action-generate-headings",
+        icon: "PenIcon",
+        command: "createHeadings",
+        generatingIcon: "PenIcon",
+        beta: true,
+        showWhen: hasNonHeadingTextSelection,
+      },
+      {
+        name: "Generate outline",
+        testId: "action-generate-outline",
+        icon: "PenIcon",
+        command: "writeOutline",
+        generatingIcon: "PenIcon",
+      },
+      {
+        name: "Brainstorm ideas with mind map",
+        testId: "action-brainstorm-mindmap",
+        icon: "MindmapIcon",
+        command: "brainstormMindmap",
+        generatingIcon: "PenIcon",
+      },
+      {
+        name: "Generate presentation",
+        testId: "action-generate-presentation",
+        icon: "PresentationIcon",
+        command: "createSlides",
+        generatingIcon: "PresentationIcon",
+        beta: true,
+      },
+      {
+        name: "Make it real",
+        testId: "action-make-it-real",
+        icon: "MakeItRealIcon",
+        command: "makeItReal",
+        generatingIcon: "CodeIcon",
+        beta: true,
+      },
+      {
+        name: "Find actions",
+        testId: "action-find-actions",
+        icon: "SearchIcon",
+        command: "findActions",
+        generatingIcon: "AiIcon",
+        beta: true,
+      },
+    ]),
+  },
+  {
+    name: "draft from text",
+    items: makeTextItems([
+      {
+        name: "Write an article about this",
+        testId: "action-write-article",
+        icon: "PenIcon",
+        command: "writeArticle",
+        generatingIcon: "PenIcon",
+      },
+      {
+        name: "Write a tweet about this",
+        testId: "action-write-twitter-post",
+        icon: "PenIcon",
+        command: "writeTwitterPost",
+        generatingIcon: "PenIcon",
+      },
+      {
+        name: "Write a poem about this",
+        testId: "action-write-poem",
+        icon: "PenIcon",
+        command: "writePoem",
+        generatingIcon: "PenIcon",
+      },
+      {
+        name: "Write a blog post about this",
+        testId: "action-write-blog-post",
+        icon: "PenIcon",
+        command: "writeBlogPost",
+        generatingIcon: "PenIcon",
+      },
+      {
+        name: "Brainstorm ideas about this",
+        testId: "action-brainstorm",
+        icon: "PenIcon",
+        command: "brainstorm",
+        generatingIcon: "PenIcon",
+      },
+    ]),
+  },
+  othersGroup,
 ];
 
 export function buildAIImageItemGroups(): AIItemGroupConfig[] {
@@ -418,27 +340,9 @@ export function buildAIImageItemGroups(): AIItemGroupConfig[] {
           showWhen: () => true,
           handler: actionToHandler(
             "explainImage",
-            AIStarIconWithAnimation,
+            "AiIcon",
             undefined,
-            blockActionTrackerOptions,
-          ),
-        },
-      ],
-    },
-    {
-      name: "generate from text",
-      items: [
-        {
-          name: "Generate an image",
-          testId: "action-generate-image",
-          icon: "ImageIcon",
-          iconName: "ImageIcon",
-          showWhen: () => true,
-          handler: actionToHandler(
-            "createImage",
-            AIImageIconWithAnimation,
-            undefined,
-            blockActionTrackerOptions,
+            BLOCK_BAR_TRACKER,
           ),
         },
       ],
@@ -446,26 +350,6 @@ export function buildAIImageItemGroups(): AIItemGroupConfig[] {
     {
       name: "touch up image",
       items: [
-        {
-          name: "Image processing",
-          testId: "action-image-processing",
-          icon: "ImageIcon",
-          iconName: "ImageIcon",
-          showWhen: () => true,
-          subItem: createImageProcessingSubItem(blockActionTrackerOptions),
-          subItemOffset: [12, -6],
-          beta: true,
-        },
-        {
-          name: "AI image filter",
-          testId: "action-ai-image-filter",
-          icon: "ImproveWritingIcon",
-          iconName: "ImproveWritingIcon",
-          showWhen: () => true,
-          subItem: createImageFilterSubItem(blockActionTrackerOptions),
-          subItemOffset: [12, -4],
-          beta: true,
-        },
         {
           name: "Generate a caption",
           testId: "action-generate-caption",
@@ -475,14 +359,14 @@ export function buildAIImageItemGroups(): AIItemGroupConfig[] {
           beta: true,
           handler: actionToHandler(
             "generateCaption",
-            AIStarIconWithAnimation,
+            "AiIcon",
             undefined,
-            blockActionTrackerOptions,
+            BLOCK_BAR_TRACKER,
           ),
         },
       ],
     },
-    OthersAIGroup,
+    othersGroup,
   ];
 }
 
@@ -495,12 +379,12 @@ export function buildAICodeItemGroups(): AIItemGroupConfig[] {
         icon: "ExplainIcon",
         handler: actionToHandler(
           command,
-          AIStarIconWithAnimation,
+          "AiIcon",
           undefined,
-          blockActionTrackerOptions,
+          BLOCK_BAR_TRACKER,
         ),
       })),
     },
-    OthersAIGroup,
+    othersGroup,
   ];
 }

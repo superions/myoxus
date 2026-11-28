@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
 import { useNavigateHelper } from "@myoxus/core/components/hooks/use-navigate-helper";
 import { BackupService } from "@myoxus/core/modules/backup/services";
@@ -34,113 +37,91 @@ import {
   useConfirmModal,
 } from "../../primitives";
 
-const Empty = () => {
-  const t = useI18n();
-  return (
-    <SettingsControlEmpty>
-      {t["com.myoxus.settings.workspace.backup.empty"]()}
-    </SettingsControlEmpty>
-  );
-};
+const BACKUPS_PER_PAGE = 6;
 
-const BlobAvatar = ({
-  blob,
-  name,
-}: {
-  blob: Uint8Array | null;
-  name: string;
-}) => {
-  const image = useMemo(() => {
-    if (!blob) return undefined;
-    return new Blob([toArrayBuffer(blob)]);
-  }, [blob]);
-
-  return <Avatar colorfulFallback image={image} kind="workspace" name={name} />;
-};
-
-type BackupWorkspaceItem = {
+interface BackupWorkspaceEntry {
   id: string;
   name: string;
   fileSize: number;
   updatedAt: Date;
   avatar: Uint8Array | null;
   dbPath: string;
+}
+
+const WorkspaceBackupAvatar = ({
+  blob,
+  name,
+}: {
+  blob: Uint8Array | null;
+  name: string;
+}) => {
+  const image = useMemo(
+    () => (blob ? new Blob([toArrayBuffer(blob)]) : undefined),
+    [blob],
+  );
+  return <Avatar colorfulFallback image={image} kind="workspace" name={name} />;
 };
 
-const BackupWorkspaceItem = ({ item }: { item: BackupWorkspaceItem }) => {
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const { openConfirmModal } = useConfirmModal();
-  const backupService = useService(BackupService);
+const BackupWorkspaceRow = ({ item }: { item: BackupWorkspaceEntry }) => {
   const t = useI18n();
+  const backupService = useService(BackupService);
+  const { openConfirmModal } = useConfirmModal();
+  const { jumpToPage } = useNavigateHelper();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [importing, setImporting] = useState(false);
 
-  const { jumpToPage } = useNavigateHelper();
-
-  const handleImport = useAsyncCallback(async () => {
+  const handleRecover = useAsyncCallback(async () => {
     setImporting(true);
-    track.$.settingsPanel.archivedWorkspaces.recoverArchivedWorkspace();
-    const result = await backupService.recoverBackupWorkspace(item.dbPath);
-    const workspaceId = result.workspaceId;
-    if (!workspaceId) {
-      if (result.error) {
-        notify.error({ title: t[result.error]() });
+    try {
+      track.$.settingsPanel.archivedWorkspaces.recoverArchivedWorkspace();
+      const result = await backupService.recoverBackupWorkspace(item.dbPath);
+      if (!result.workspaceId) {
+        if (result.error) {
+          notify.error({ title: t[result.error]() });
+        }
+        return;
       }
-      setImporting(false);
-      return;
-    }
-    notify.success({
-      title: t["com.myoxus.settings.workspace.backup.import.success"](),
-      actions: [
-        {
-          key: "open",
-          label:
-            t["com.myoxus.settings.workspace.backup.import.success.action"](),
-          onClick: () => {
-            jumpToPage(workspaceId, "home");
+
+      const recoveredId = result.workspaceId;
+      notify.success({
+        title: t["com.myoxus.settings.workspace.backup.import.success"](),
+        actions: [
+          {
+            key: "open",
+            label:
+              t["com.myoxus.settings.workspace.backup.import.success.action"](),
+            onClick: () => jumpToPage(recoveredId, "home"),
+            autoClose: false,
           },
-          autoClose: false,
-        },
-      ],
-    });
-    setMenuOpen(false);
-    setImporting(false);
+        ],
+      });
+      setMenuOpen(false);
+    } finally {
+      setImporting(false);
+    }
   }, [backupService, item.dbPath, jumpToPage, t]);
 
-  const handleDelete = useCallback(
-    (backupWorkspaceId: string) => {
-      openConfirmModal({
-        title: t["com.myoxus.workspaceDelete.title"](),
-        children: t["com.myoxus.settings.workspace.backup.delete.warning"](),
-        onConfirm: async () => {
-          track.$.settingsPanel.archivedWorkspaces.deleteArchivedWorkspace();
-          await backupService.deleteBackupWorkspace(backupWorkspaceId);
-          notify.success({
-            title: t["com.myoxus.settings.workspace.backup.delete.success"](),
-          });
-        },
-        confirmText: t["Confirm"](),
-        cancelText: t["Cancel"](),
-        confirmButtonOptions: {
-          variant: "error",
-        },
-      });
-    },
-    [backupService, openConfirmModal, t],
-  );
+  const handleDelete = useCallback(() => {
+    openConfirmModal({
+      title: t["com.myoxus.workspaceDelete.title"](),
+      children: t["com.myoxus.settings.workspace.backup.delete.warning"](),
+      confirmText: t["Confirm"](),
+      cancelText: t["Cancel"](),
+      confirmButtonOptions: { variant: "error" },
+      onConfirm: async () => {
+        track.$.settingsPanel.archivedWorkspaces.deleteArchivedWorkspace();
+        await backupService.deleteBackupWorkspace(item.id);
+        notify.success({
+          title: t["com.myoxus.settings.workspace.backup.delete.success"](),
+        });
+      },
+    });
+  }, [backupService, item.id, openConfirmModal, t]);
 
-  const updatedAtLabel = t["com.myoxus.settings.workspace.backup.delete-at"]({
-    date: i18nTime(item.updatedAt, {
-      absolute: {
-        accuracy: "day",
-      },
-    }),
+  const deletedAtLabel = t["com.myoxus.settings.workspace.backup.delete-at"]({
+    date: i18nTime(item.updatedAt, { absolute: { accuracy: "day" } }),
     time: i18nTime(item.updatedAt, {
-      absolute: {
-        accuracy: "minute",
-        noDate: true,
-        noYear: true,
-      },
+      absolute: { accuracy: "minute", noDate: true, noYear: true },
     }),
   });
 
@@ -148,16 +129,15 @@ const BackupWorkspaceItem = ({ item }: { item: BackupWorkspaceItem }) => {
     <SurfaceListItem
       component="div"
       data-testid="backup-workspace-item"
-      key={item.id}
       alignItems="center"
       density="compact"
       interactive
       justifyContent="space-between"
       layout="row"
-      onClick={() => setMenuOpen((v) => !v)}
+      onClick={() => setMenuOpen((prev) => !prev)}
       data-myoxus-ui-role="settings-backup-workspace-row"
     >
-      <BlobAvatar blob={item.avatar} name={item.name} />
+      <WorkspaceBackupAvatar blob={item.avatar} name={item.name} />
       <SurfaceListItemMain compact>
         <SettingsListItemTitle title={item.name} truncate>
           {item.name}
@@ -167,8 +147,8 @@ const BackupWorkspaceItem = ({ item }: { item: BackupWorkspaceItem }) => {
         </SettingsListItemMeta>
       </SurfaceListItemMain>
       <SurfaceListMeta layout="row-cluster">
-        <SettingsListItemMeta title={updatedAtLabel} truncate>
-          {updatedAtLabel}
+        <SettingsListItemMeta title={deletedAtLabel} truncate>
+          {deletedAtLabel}
         </SettingsListItemMeta>
         <Menu
           rootOptions={{
@@ -180,13 +160,13 @@ const BackupWorkspaceItem = ({ item }: { item: BackupWorkspaceItem }) => {
             <>
               <MenuItem
                 prefixIcon={<LocalWorkspaceIcon />}
-                onClick={handleImport}
+                onClick={handleRecover}
               >
                 {t["com.myoxus.settings.workspace.backup.import"]()}
               </MenuItem>
               <MenuItem
                 prefixIcon={<DeleteIcon />}
-                onClick={() => handleDelete(item.id)}
+                onClick={handleDelete}
                 type="danger"
               >
                 {t["Delete"]()}
@@ -204,78 +184,25 @@ const BackupWorkspaceItem = ({ item }: { item: BackupWorkspaceItem }) => {
   );
 };
 
-const PAGE_SIZE = 6;
-
 export const BackupSettingPanel = () => {
   const t = useI18n();
   const backupService = useService(BackupService);
+  const [pageNum, setPageNum] = useState(0);
 
   useEffect(() => {
     backupService.revalidate();
   }, [backupService]);
 
   const isLoading = useLiveData(backupService.isLoading$);
-  const backupWorkspaces = useLiveData(backupService.pageBackupWorkspaces$);
+  const backups = useLiveData(backupService.pageBackupWorkspaces$);
+  const items = backups?.items ?? [];
+  const isEmpty = !isLoading && items.length === 0;
 
-  const [pageNum, setPageNum] = useState(0);
-
-  const innerElement = useMemo(() => {
-    if (isLoading) {
-      return (
-        <SurfaceList label={t["com.myoxus.settings.workspace.backup"]()}>
-          <SurfaceListItem
-            component="div"
-            alignItems="center"
-            density="compact"
-            layout="row"
-            muted
-            data-myoxus-ui-role="settings-backup-loading-row"
-          >
-            <SurfaceListItemMain compact>
-              <SettingsListItemMeta>
-                <Loading />
-              </SettingsListItemMeta>
-            </SurfaceListItemMain>
-          </SurfaceListItem>
-        </SurfaceList>
-      );
-    }
-    if (!backupWorkspaces) {
-      return null;
-    }
-    return (
-      <>
-        <SurfaceList
-          label={t["com.myoxus.settings.workspace.backup"]()}
-          data-testid="backup-workspace-list"
-        >
-          {backupWorkspaces.items
-            .slice(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE)
-            .map((item) => (
-              <BackupWorkspaceItem key={item.id} item={item} />
-            ))}
-        </SurfaceList>
-        {backupWorkspaces.items.length > PAGE_SIZE && (
-          <Group
-            justify="flex-end"
-            data-myoxus-ui-role="settings-backup-pagination"
-          >
-            <Pagination
-              totalCount={backupWorkspaces?.items.length ?? 0}
-              countPerPage={PAGE_SIZE}
-              pageNum={pageNum}
-              onPageChange={(_, pageNum) => {
-                setPageNum(pageNum);
-              }}
-            />
-          </Group>
-        )}
-      </>
-    );
-  }, [isLoading, backupWorkspaces, pageNum, t]);
-
-  const isEmpty =
-    (backupWorkspaces?.items.length === 0 || !backupWorkspaces) && !isLoading;
+  const visibleItems = useMemo(
+    () =>
+      items.slice(pageNum * BACKUPS_PER_PAGE, (pageNum + 1) * BACKUPS_PER_PAGE),
+    [items, pageNum],
+  );
 
   return (
     <>
@@ -285,10 +212,53 @@ export const BackupSettingPanel = () => {
         data-testid="backup-title"
       />
       {isEmpty ? (
-        <Empty />
+        <SettingsControlEmpty>
+          {t["com.myoxus.settings.workspace.backup.empty"]()}
+        </SettingsControlEmpty>
       ) : (
         <Stack data-myoxus-ui-role="settings-backup-list-panel">
-          {innerElement}
+          {isLoading ? (
+            <SurfaceList label={t["com.myoxus.settings.workspace.backup"]()}>
+              <SurfaceListItem
+                component="div"
+                alignItems="center"
+                density="compact"
+                layout="row"
+                muted
+                data-myoxus-ui-role="settings-backup-loading-row"
+              >
+                <SurfaceListItemMain compact>
+                  <SettingsListItemMeta>
+                    <Loading />
+                  </SettingsListItemMeta>
+                </SurfaceListItemMain>
+              </SurfaceListItem>
+            </SurfaceList>
+          ) : backups ? (
+            <>
+              <SurfaceList
+                label={t["com.myoxus.settings.workspace.backup"]()}
+                data-testid="backup-workspace-list"
+              >
+                {visibleItems.map((item) => (
+                  <BackupWorkspaceRow key={item.id} item={item} />
+                ))}
+              </SurfaceList>
+              {items.length > BACKUPS_PER_PAGE ? (
+                <Group
+                  justify="flex-end"
+                  data-myoxus-ui-role="settings-backup-pagination"
+                >
+                  <Pagination
+                    totalCount={items.length}
+                    countPerPage={BACKUPS_PER_PAGE}
+                    pageNum={pageNum}
+                    onPageChange={(_, nextPage) => setPageNum(nextPage)}
+                  />
+                </Group>
+              ) : null}
+            </>
+          ) : null}
         </Stack>
       )}
     </>

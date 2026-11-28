@@ -1,19 +1,16 @@
-export const sharedEffectElementTags = [] as const;
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
-export type SharedEffectElementTag = (typeof sharedEffectElementTags)[number];
-
+/** Custom element tags for persisted AI block views that remain readable in stored documents. */
 export const storedBlockTags = [
   "myoxus-edgeless-ai-chat",
   "myoxus-ai-chat",
   "transcription-block",
 ] as const;
 
+/** Custom element tags for active Edgeless AI editor widgets. */
 export const interactiveEditorTags = [
-  "myoxus-block-diff-playground",
   "myoxus-edgeless-copilot-widget",
-  "myoxus-block-diff-widget-for-block",
-  "myoxus-block-diff-widget-for-page",
-  "edgeless-copilot-panel",
 ] as const;
 
 export const editorEffectElementTags = [
@@ -22,7 +19,3 @@ export const editorEffectElementTags = [
 ] as const;
 
 export type EditorEffectElementTag = (typeof editorEffectElementTags)[number];
-
-export const appEffectElementTags = [] as const;
-
-export type AppEffectElementTag = (typeof appEffectElementTags)[number];

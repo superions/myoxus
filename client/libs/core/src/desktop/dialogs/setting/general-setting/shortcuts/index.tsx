@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useI18n } from "@myoxus/i18n";
 
 import {
@@ -19,55 +22,41 @@ import {
   SurfaceListItemMain,
 } from "../../primitives";
 
-const ShortcutsPanel = ({
-  shortcutsInfo,
-}: {
-  shortcutsInfo: ShortcutsInfo;
-}) => {
-  return (
-    <SettingWrapper title={shortcutsInfo.title}>
-      <SurfaceList
-        label={shortcutsInfo.title}
-        data-testid="keyboard-shortcut-list"
-      >
-        {Object.entries(shortcutsInfo.shortcuts).map(([title, shortcuts]) => {
-          return (
-            <SurfaceListItem
-              key={title}
-              component="li"
-              alignItems="center"
-              appearance="row"
-              density="compact"
-              justifyContent="space-between"
-              layout="row"
-            >
-              <SurfaceListItemMain grow compact>
-                <SettingsListItemTitle>{title}</SettingsListItemTitle>
-              </SurfaceListItemMain>
-              <BadgeList>
-                {shortcuts.map((key) => {
-                  return (
-                    <BadgeListItem key={key}>
-                      <Badge>{key}</Badge>
-                    </BadgeListItem>
-                  );
-                })}
-              </BadgeList>
-            </SurfaceListItem>
-          );
-        })}
-      </SurfaceList>
-    </SettingWrapper>
-  );
-};
+const ShortcutGroupSection = ({ group }: { group: ShortcutsInfo }) => (
+  <SettingWrapper title={group.title}>
+    <SurfaceList label={group.title} data-testid="keyboard-shortcut-list">
+      {Object.entries(group.shortcuts).map(([actionLabel, keys]) => (
+        <SurfaceListItem
+          key={actionLabel}
+          component="li"
+          alignItems="center"
+          appearance="row"
+          density="compact"
+          justifyContent="space-between"
+          layout="row"
+        >
+          <SurfaceListItemMain grow compact>
+            <SettingsListItemTitle>{actionLabel}</SettingsListItemTitle>
+          </SurfaceListItemMain>
+          <BadgeList>
+            {keys.map((keyCombo) => (
+              <BadgeListItem key={keyCombo}>
+                <Badge>{keyCombo}</Badge>
+              </BadgeListItem>
+            ))}
+          </BadgeList>
+        </SurfaceListItem>
+      ))}
+    </SurfaceList>
+  </SettingWrapper>
+);
 
 export const Shortcuts = () => {
   const t = useI18n();
-
-  const markdownShortcutsInfo = useMarkdownShortcuts();
-  const pageShortcutsInfo = usePageShortcuts();
-  const edgelessShortcutsInfo = useEdgelessShortcuts();
-  const generalShortcutsInfo = useGeneralShortcuts();
+  const general = useGeneralShortcuts();
+  const page = usePageShortcuts();
+  const edgeless = useEdgelessShortcuts();
+  const markdown = useMarkdownShortcuts();
 
   return (
     <>
@@ -76,10 +65,10 @@ export const Shortcuts = () => {
         subtitle={t["com.myoxus.keyboardShortcuts.subtitle"]()}
         data-testid="keyboard-shortcuts-title"
       />
-      <ShortcutsPanel shortcutsInfo={generalShortcutsInfo} />
-      <ShortcutsPanel shortcutsInfo={pageShortcutsInfo} />
-      <ShortcutsPanel shortcutsInfo={edgelessShortcutsInfo} />
-      <ShortcutsPanel shortcutsInfo={markdownShortcutsInfo} />
+      <ShortcutGroupSection group={general} />
+      <ShortcutGroupSection group={page} />
+      <ShortcutGroupSection group={edgeless} />
+      <ShortcutGroupSection group={markdown} />
     </>
   );
 };

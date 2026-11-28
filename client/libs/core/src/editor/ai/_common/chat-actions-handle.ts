@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   BlockIcon,
   EdgelessIcon,
@@ -29,18 +32,22 @@ import {
   NotificationProvider,
   TelemetryProvider,
 } from "@virgultum/editor/shared/services";
-import {
-  type BlockComponent,
-  type BlockSelection,
-  type BlockStdScope,
-  type EditorHost,
-  type TextSelection,
+import type {
+  BlockComponent,
+  BlockSelection,
+  BlockStdScope,
+  EditorHost,
+  TextSelection,
 } from "@virgultum/editor/std";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
 import type { Store } from "@virgultum/editor/store";
 import { createElement, type ReactNode } from "react";
 
 import { insertFromMarkdown } from "../../utils";
+import {
+  CHAT_BLOCK_HEIGHT,
+  CHAT_BLOCK_WIDTH,
+} from "../blocks/ai-chat-block/model/consts";
 import type { ChatMessage } from "../components/ai-chat-messages";
 import { chatI18n } from "../components/chat-i18n";
 import { AIProvider, type AIUserInfo } from "../provider";
@@ -53,7 +60,7 @@ type Selections = {
   images?: ImageSelection[];
 };
 
-const AI_CHAT_ACTION_ICON_SIZE =
+const ACTION_ICON_SIZE =
   "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))";
 
 export type ChatAction = {
@@ -70,45 +77,39 @@ export type ChatAction = {
   ) => boolean | Promise<boolean>;
 };
 
+const isWritableHost = (host: EditorHost) => !host.std.store.readonly$.value;
+
 export async function queryHistoryMessages(
   workspaceId: string,
   forkSessionId: string,
   docId?: string,
 ): Promise<VirgultumPresets.AIHistory["messages"]> {
-  // Get fork session messages
   const histories = await AIProvider.histories?.chats(
     workspaceId,
     forkSessionId,
     docId,
   );
-
-  if (!histories || !histories.length) {
-    return [];
-  }
-
-  return histories[0].messages;
+  return histories?.[0]?.messages ?? [];
 }
 
-// Construct user info with messages
 export function constructUserInfoWithMessages(
   messages: ChatMessage[],
   userInfo: AIUserInfo | null,
 ) {
   return messages.map((message) => {
-    const { role, streamObjects } = message;
-    const isUser = role === "user";
-    const userInfoProps = isUser
-      ? {
-          userId: userInfo?.id,
-          userName: userInfo?.name,
-          avatarUrl: userInfo?.avatarUrl ?? undefined,
-        }
-      : {};
+    const userMeta =
+      message.role === "user"
+        ? {
+            userId: userInfo?.id,
+            userName: userInfo?.name,
+            avatarUrl: userInfo?.avatarUrl ?? undefined,
+          }
+        : {};
     return {
       ...message,
-      ...userInfoProps,
+      ...userMeta,
       attachments: [],
-      streamObjects: streamObjects || [],
+      streamObjects: message.streamObjects ?? [],
     };
   });
 }
@@ -117,80 +118,11 @@ export async function constructRootChatBlockMessages(
   doc: Store,
   forkSessionId: string,
 ) {
-  // Convert chat messages to AI chat block messages
-  const userInfo = await AIProvider.userInfo;
-  const forkMessages = (await queryHistoryMessages(
-    doc.workspace.id,
-    forkSessionId,
-    doc.id,
-  )) as ChatMessage[];
-  return constructUserInfoWithMessages(forkMessages, userInfo);
-}
-
-function getViewportCenter(mode: DocMode, std: BlockStdScope) {
-  const center = { x: 400, y: 50 };
-  if (mode === "page") {
-    const viewport = std.get(EditPropsStore).getStorage("viewport");
-    if (viewport) {
-      if ("xywh" in viewport) {
-        const bound = Bound.deserialize(viewport.xywh);
-        center.x = bound.x + bound.w / 2;
-        center.y = bound.y + bound.h / 2;
-      } else {
-        center.x = viewport.centerX;
-        center.y = viewport.centerY;
-      }
-    }
-  } else {
-    // Else we should get latest viewport center from the edgeless root service
-    const viewport = std.get(GfxControllerIdentifier).viewport;
-    center.x = viewport.centerX;
-    center.y = viewport.centerY;
-  }
-
-  return center;
-}
-
-// Add AI chat block and focus on it
-function addAIChatBlock(
-  host: EditorHost,
-  messages: ChatMessage[],
-  sessionId: string,
-  viewportCenter: { x: number; y: number },
-  index: string,
-) {
-  if (!messages.length || !sessionId) {
-    return;
-  }
-
-  const { store } = host;
-  const surfaceBlock = store
-    .getAllModels()
-    .find((block) => block.flavour === "myoxus:surface");
-  if (!surfaceBlock) {
-    return;
-  }
-
-  // Add AI chat block to the center of the viewport
-  const width = 300; // AI_CHAT_BLOCK_WIDTH = 300
-  const height = 320; // AI_CHAT_BLOCK_HEIGHT = 320
-  const x = viewportCenter.x - width / 2;
-  const y = viewportCenter.y - height / 2;
-  const bound = new Bound(x, y, width, height);
-  const aiChatBlockId = store.addBlock(
-    "myoxus:embed-ai-chat",
-    {
-      xywh: bound.serialize(),
-      messages: JSON.stringify(messages),
-      index,
-      sessionId,
-      rootWorkspaceId: store.workspace.id,
-      rootDocId: store.id,
-    },
-    surfaceBlock.id,
-  );
-
-  return aiChatBlockId;
+  const [userInfo, forkMessages] = await Promise.all([
+    AIProvider.userInfo,
+    queryHistoryMessages(doc.workspace.id, forkSessionId, doc.id),
+  ]);
+  return constructUserInfoWithMessages(forkMessages as ChatMessage[], userInfo);
 }
 
 export function promptDocTitle(host: EditorHost, autofill?: string) {
@@ -207,154 +139,180 @@ export function promptDocTitle(host: EditorHost, autofill?: string) {
   });
 }
 
-/**
- * Get insert below block based on current selections
- * @param host Editor host
- * @param currentSelections Current selections
- * @returns Selected blocks and selection state
- */
-async function getInsertBelowBlock(
-  host: EditorHost,
-  currentSelections: Selections,
-): Promise<BlockComponent | null> {
-  const currentTextSelection = currentSelections.text;
-  const currentBlockSelections = currentSelections.blocks;
-  const currentImageSelections = currentSelections.images;
-
-  const [_, { selectedBlocks: blocks }] = host.command.exec(
-    getSelectedBlocksCommand,
-    {
-      currentTextSelection,
-      currentBlockSelections,
-      currentImageSelections,
-    },
-  );
-
-  if (blocks && blocks.length) {
-    return blocks[blocks.length - 1];
+function resolveViewportCenter(mode: DocMode, std: BlockStdScope) {
+  if (mode === "edgeless") {
+    const { centerX, centerY } = std.get(GfxControllerIdentifier).viewport;
+    return { x: centerX, y: centerY };
   }
 
-  return null;
+  const stored = std.get(EditPropsStore).getStorage("viewport");
+  if (!stored) return { x: 400, y: 50 };
+  if ("xywh" in stored) {
+    const bound = Bound.deserialize(stored.xywh);
+    return { x: bound.x + bound.w / 2, y: bound.y + bound.h / 2 };
+  }
+  return { x: stored.centerX, y: stored.centerY };
 }
 
-/**
- * Base handler for inserting content below the block
- * @param host Editor host
- * @param content Content to insert
- * @param block block
- * @returns Whether insertion was successful
- */
-async function insertBelowBlock(
+function appendAIChatBlock(
+  host: EditorHost,
+  messages: ChatMessage[],
+  sessionId: string,
+  center: { x: number; y: number },
+  index: string,
+) {
+  if (!messages.length || !sessionId) return;
+
+  const { store } = host;
+  const surface = store
+    .getAllModels()
+    .find((block) => block.flavour === "myoxus:surface");
+  if (!surface) return;
+
+  const bound = new Bound(
+    center.x - CHAT_BLOCK_WIDTH / 2,
+    center.y - CHAT_BLOCK_HEIGHT / 2,
+    CHAT_BLOCK_WIDTH,
+    CHAT_BLOCK_HEIGHT,
+  );
+
+  return store.addBlock(
+    "myoxus:embed-ai-chat",
+    {
+      xywh: bound.serialize(),
+      messages: JSON.stringify(messages),
+      index,
+      sessionId,
+      rootWorkspaceId: store.workspace.id,
+      rootDocId: store.id,
+    },
+    surface.id,
+  );
+}
+
+function resolveSelectedTailBlock(
+  host: EditorHost,
+  selections: Selections,
+): BlockComponent | null {
+  const [, { selectedBlocks }] = host.command.exec(getSelectedBlocksCommand, {
+    currentTextSelection: selections.text,
+    currentBlockSelections: selections.blocks,
+    currentImageSelections: selections.images,
+  });
+  return selectedBlocks?.length
+    ? selectedBlocks[selectedBlocks.length - 1]
+    : null;
+}
+
+async function insertAnswerBelowBlock(
   host: EditorHost,
   content: string,
-  block: BlockComponent | null,
+  target: BlockComponent | null,
 ): Promise<boolean> {
-  if (!block) return false;
-
+  if (!target) return false;
   reportResponse("result:insert");
-  await insertBelow(host, content, block);
+  await insertBelow(host, content, target);
   return true;
 }
 
-export const PAGE_INSERT = {
+const ADD_TO_EDGELESS_AS_NOTE: ChatAction = {
+  icon: createElement(EdgelessIcon, {
+    width: ACTION_ICON_SIZE,
+    height: ACTION_ICON_SIZE,
+  }),
+  get title() {
+    return chatI18n()["com.myoxus.ai.chat-panel.add-as-note"]();
+  },
+  get toast() {
+    return chatI18n()["com.myoxus.ai.chat-panel.note-created"]();
+  },
+  showWhen: isWritableHost,
+  handler: async (host, content) => {
+    reportResponse("result:add-note");
+    const { store } = host;
+    const gfx = host.std.get(GfxControllerIdentifier);
+    const selected = gfx.selection.selectedElements;
+    const props: { displayMode: NoteDisplayMode; xywh?: SerializedXYWH } = {
+      displayMode: NoteDisplayMode.EdgelessOnly,
+    };
+
+    if (selected.length > 0) {
+      const bound = getCommonBoundWithRotation(
+        selected.map((el) => Bound.deserialize(el.xywh)),
+      );
+      props.xywh = new Bound(bound.x, bound.maxY + 10, bound.w).serialize();
+    }
+
+    const noteId = store.addBlock("myoxus:note", props, store.root?.id);
+    await insertFromMarkdown(host, content, store, noteId, 0);
+    gfx.selection.set({ elements: [noteId], editing: false });
+    return true;
+  },
+};
+
+export const PAGE_INSERT: ChatAction = {
   icon: createElement(InsertBelowIcon, {
-    width: AI_CHAT_ACTION_ICON_SIZE,
-    height: AI_CHAT_ACTION_ICON_SIZE,
+    width: ACTION_ICON_SIZE,
+    height: ACTION_ICON_SIZE,
   }),
   get title() {
     return chatI18n()["com.myoxus.common.insert"]();
   },
-  showWhen: (host: EditorHost) => {
-    if (host.std.store.readonly$.value) {
-      return false;
-    }
-
-    return true;
-  },
   get toast() {
     return chatI18n()["com.myoxus.ai.chat-panel.inserted"]();
   },
-  handler: async (
-    host: EditorHost,
-    content: string,
-    currentSelections: Selections,
-  ) => {
-    const block = await getInsertBelowBlock(host, currentSelections);
-
-    const isNothingSelected = !block;
-
-    // In page mode, if nothing is selected, use the last content block
-    if (isNothingSelected) {
-      const [_, { firstBlock: noteBlock }] = host.command.exec(
-        getFirstBlockCommand,
-        {
-          flavour: "myoxus:note",
-        },
-      );
-
-      const lastChild = noteBlock?.lastChild();
-      const lastBlock = lastChild ? host.std.view.getBlock(lastChild.id) : null;
-
-      return insertBelowBlock(host, content, lastBlock);
+  showWhen: isWritableHost,
+  handler: async (host, content, selections) => {
+    const selected = resolveSelectedTailBlock(host, selections);
+    if (selected) {
+      return insertAnswerBelowBlock(host, content, selected);
     }
 
-    return insertBelowBlock(host, content, block);
+    const [, { firstBlock: noteBlock }] = host.command.exec(
+      getFirstBlockCommand,
+      { flavour: "myoxus:note" },
+    );
+    const lastChild = noteBlock?.lastChild();
+    const fallback = lastChild ? host.std.view.getBlock(lastChild.id) : null;
+    return insertAnswerBelowBlock(host, content, fallback);
   },
 };
 
-export const EDGELESS_INSERT = {
-  ...PAGE_INSERT,
-  // Spreading an action evaluates getters; keep these labels locale-reactive.
+export const EDGELESS_INSERT: ChatAction = {
+  icon: PAGE_INSERT.icon,
   get title() {
     return PAGE_INSERT.title;
   },
   get toast() {
     return PAGE_INSERT.toast;
   },
-  handler: async (
-    host: EditorHost,
-    content: string,
-    currentSelections: Selections,
-  ): Promise<boolean> => {
-    const block = await getInsertBelowBlock(host, currentSelections);
-
-    const isNothingSelected = !block;
-
-    // In edgeless mode, handle special cases
-    if (isNothingSelected) {
-      const gfx = host.std.get(GfxControllerIdentifier);
-      const selectedElements = gfx.selection.selectedElements;
-      const isOnlyOneNoteSelected =
-        selectedElements.length === 1 &&
-        selectedElements[0] instanceof NoteBlockModel;
-
-      if (isOnlyOneNoteSelected) {
-        // Insert into selected note
-        const [_, { lastBlock: lastBlockModel }] = host.command.exec(
-          getLastBlockCommand,
-          {
-            root: selectedElements[0] as NoteBlockModel,
-          },
-        );
-
-        const lastBlock = lastBlockModel
-          ? host.std.view.getBlock(lastBlockModel.id)
-          : null;
-        return insertBelowBlock(host, content, lastBlock);
-      } else {
-        // Create a new note
-        return !!(await ADD_TO_EDGELESS_AS_NOTE.handler(host, content));
-      }
+  showWhen: isWritableHost,
+  handler: async (host, content, selections) => {
+    const selected = resolveSelectedTailBlock(host, selections);
+    if (selected) {
+      return insertAnswerBelowBlock(host, content, selected);
     }
 
-    return insertBelowBlock(host, content, block);
+    const elements = host.std.get(GfxControllerIdentifier).selection
+      .selectedElements;
+    if (elements.length === 1 && elements[0] instanceof NoteBlockModel) {
+      const [, { lastBlock }] = host.command.exec(getLastBlockCommand, {
+        root: elements[0],
+      });
+      const tail = lastBlock ? host.std.view.getBlock(lastBlock.id) : null;
+      return insertAnswerBelowBlock(host, content, tail);
+    }
+
+    return Boolean(
+      await ADD_TO_EDGELESS_AS_NOTE.handler(host, content, selections),
+    );
   },
 };
 
 const SAVE_AS_BLOCK: ChatAction = {
   icon: createElement(BlockIcon, {
-    width: AI_CHAT_ACTION_ICON_SIZE,
-    height: AI_CHAT_ACTION_ICON_SIZE,
+    width: ACTION_ICON_SIZE,
+    height: ACTION_ICON_SIZE,
   }),
   get title() {
     return chatI18n()["com.myoxus.ai.chat-panel.save-as-block"]();
@@ -362,76 +320,50 @@ const SAVE_AS_BLOCK: ChatAction = {
   get toast() {
     return chatI18n()["com.myoxus.ai.chat-panel.block-saved"]();
   },
-  showWhen: (host: EditorHost) => {
-    if (host.std.store.readonly$.value) {
-      return false;
-    }
-    return true;
-  },
-  handler: async (
-    host: EditorHost,
-    _,
-    __,
-    chatSessionId?: string,
-    messageId?: string,
-  ) => {
-    // The chat session id and the latest message id are required to fork the chat session
-    const parentSessionId = chatSessionId;
-    if (!messageId || !parentSessionId) {
-      return false;
-    }
+  showWhen: isWritableHost,
+  handler: async (host, _content, _selections, chatSessionId, messageId) => {
+    if (!chatSessionId || !messageId) return false;
 
-    const notificationService = host.std.getOptional(NotificationProvider);
-    const docModeService = host.std.get(DocModeProvider);
+    const notifications = host.std.getOptional(NotificationProvider);
+    const docMode = host.std.get(DocModeProvider);
     const layer = host.std.get(GfxControllerIdentifier).layer;
-    const curMode = docModeService.getEditorMode() || "page";
-    const viewportCenter = getViewportCenter(curMode, host.std);
-    const newBlockIndex = layer.generateIndex();
-    // If current mode is not edgeless, switch to edgeless mode first
-    if (curMode !== "edgeless") {
-      // Set mode to edgeless
-      docModeService.setEditorMode("edgeless" as DocMode);
-      // Notify user to switch to edgeless mode
-      notificationService?.notify({
+    const currentMode = docMode.getEditorMode() || "page";
+    const viewportCenter = resolveViewportCenter(currentMode, host.std);
+    const blockIndex = layer.generateIndex();
+
+    if (currentMode !== "edgeless") {
+      docMode.setEditorMode("edgeless" as DocMode);
+      notifications?.notify({
         title: chatI18n()["com.myoxus.ai.chat-panel.save-as-block"](),
         accent: "info",
         message: chatI18n()["com.myoxus.ai.chat-panel.block-mode"](),
-        onClose: function (): void {},
+        onClose: () => {},
       });
     }
 
     try {
-      const newSessionId = await AIProvider.forkChat?.({
+      const forkedSessionId = await AIProvider.forkChat?.({
         workspaceId: host.store.workspace.id,
         docId: host.store.id,
-        sessionId: parentSessionId,
+        sessionId: chatSessionId,
         latestMessageId: messageId,
       });
+      if (!forkedSessionId) return false;
 
-      if (!newSessionId) {
-        return false;
-      }
-
-      // Get messages before the latest message
       const messages = await constructRootChatBlockMessages(
         host.store,
-        newSessionId,
+        forkedSessionId,
       );
-
-      // After switching to edgeless mode, the user can save the chat to a block
-      const blockId = addAIChatBlock(
+      const blockId = appendAIChatBlock(
         host,
         messages,
-        newSessionId,
+        forkedSessionId,
         viewportCenter,
-        newBlockIndex,
+        blockIndex,
       );
-      if (!blockId) {
-        return false;
-      }
+      if (!blockId) return false;
 
-      const telemetryService = host.std.getOptional(TelemetryProvider);
-      telemetryService?.track("CanvasElementAdded", {
+      host.std.getOptional(TelemetryProvider)?.track("CanvasElementAdded", {
         control: "manually save",
         page: "whiteboard editor",
         module: "ai chat panel",
@@ -442,92 +374,44 @@ const SAVE_AS_BLOCK: ChatAction = {
       return true;
     } catch (err) {
       console.error(err);
-      notificationService?.notify({
+      notifications?.notify({
         title: chatI18n()["com.myoxus.ai.chat-panel.block-save-failed"](),
         accent: "error",
-        onClose: function (): void {},
+        onClose: () => {},
       });
       return false;
     }
   },
 };
 
-const ADD_TO_EDGELESS_AS_NOTE = {
-  icon: createElement(EdgelessIcon, {
-    width: AI_CHAT_ACTION_ICON_SIZE,
-    height: AI_CHAT_ACTION_ICON_SIZE,
-  }),
-  get title() {
-    return chatI18n()["com.myoxus.ai.chat-panel.add-as-note"]();
-  },
-  showWhen: (host: EditorHost) => {
-    if (host.std.store.readonly$.value) {
-      return false;
-    }
-    return true;
-  },
-  get toast() {
-    return chatI18n()["com.myoxus.ai.chat-panel.note-created"]();
-  },
-  handler: async (host: EditorHost, content: string): Promise<boolean> => {
-    reportResponse("result:add-note");
-    const { store } = host;
-
-    const gfx = host.std.get(GfxControllerIdentifier);
-    const elements = gfx.selection.selectedElements;
-    const props: { displayMode: NoteDisplayMode; xywh?: SerializedXYWH } = {
-      displayMode: NoteDisplayMode.EdgelessOnly,
-    };
-
-    if (elements.length > 0) {
-      const bound = getCommonBoundWithRotation(
-        elements.map((e) => Bound.deserialize(e.xywh)),
-      );
-      const newBound = new Bound(bound.x, bound.maxY + 10, bound.w);
-      props.xywh = newBound.serialize();
-    }
-
-    const id = store.addBlock("myoxus:note", props, store.root?.id);
-
-    await insertFromMarkdown(host, content, store, id, 0);
-
-    gfx.selection.set({
-      elements: [id],
-      editing: false,
-    });
-
-    return true;
-  },
-};
-
 export const SAVE_AS_DOC = {
   icon: createElement(PageIcon, {
-    width: AI_CHAT_ACTION_ICON_SIZE,
-    height: AI_CHAT_ACTION_ICON_SIZE,
+    width: ACTION_ICON_SIZE,
+    height: ACTION_ICON_SIZE,
   }),
   get title() {
     return chatI18n()["com.myoxus.ai.chat-panel.save-as-doc"]();
   },
-  showWhen: () => true,
   get toast() {
     return chatI18n()["com.myoxus.ai.chat-panel.doc-created"]();
   },
+  showWhen: () => true,
   handler: async (host: EditorHost, content: string) => {
     reportResponse("result:add-page");
     const workspace = host.store.workspace;
-    const newDoc = workspace.createDoc().getStore();
+    const targetDoc = workspace.createDoc().getStore();
     try {
-      newDoc.load();
-      const rootId = newDoc.addBlock("myoxus:page");
-      newDoc.addBlock("myoxus:surface", {}, rootId);
-      const noteId = newDoc.addBlock("myoxus:note", {}, rootId);
-      // Write into the destination Store before navigation replaces the source editor.
-      await insertFromMarkdown(host, content, newDoc, noteId, 0);
-      if (!newDoc.getModelById(noteId)?.children.length)
+      targetDoc.load();
+      const rootId = targetDoc.addBlock("myoxus:page");
+      targetDoc.addBlock("myoxus:surface", {}, rootId);
+      const noteId = targetDoc.addBlock("myoxus:note", {}, rootId);
+      await insertFromMarkdown(host, content, targetDoc, noteId, 0);
+      if (!targetDoc.getModelById(noteId)?.children.length) {
         throw new Error("The saved answer has no importable content");
-    } catch (error) {
-      workspace.removeDoc(newDoc.id);
-      console.error(error);
+      }
+    } catch (err) {
+      workspace.removeDoc(targetDoc.id);
+      console.error(err);
       host.std
         .getOptional(NotificationProvider)
         ?.toast(chatI18n()["com.myoxus.workspace-home.layout.save-failed"]());
@@ -535,88 +419,73 @@ export const SAVE_AS_DOC = {
     }
 
     host.std.getOptional(RefNodeSlotsProvider)?.docLinkClicked.next({
-      pageId: newDoc.id,
+      pageId: targetDoc.id,
       host,
     });
     return true;
   },
 };
 
-const CREATE_AS_LINKED_DOC = {
+const CREATE_AS_LINKED_DOC: ChatAction = {
   icon: createElement(LinkedPageIcon, {
-    width: AI_CHAT_ACTION_ICON_SIZE,
-    height: AI_CHAT_ACTION_ICON_SIZE,
+    width: ACTION_ICON_SIZE,
+    height: ACTION_ICON_SIZE,
   }),
   get title() {
     return chatI18n()["com.myoxus.editor.toolbar.create-linked-doc"]();
   },
-  showWhen: (host: EditorHost) => {
-    if (host.std.store.readonly$.value) {
-      return false;
-    }
-    return true;
-  },
   get toast() {
     return chatI18n()["com.myoxus.ai.chat-panel.doc-created"]();
   },
-  handler: async (host: EditorHost, content: string) => {
+  showWhen: isWritableHost,
+  handler: async (host, content) => {
     reportResponse("result:add-page");
-
     const { store } = host;
-    const surfaceBlock = store
+    const surface = store
       .getAllModels()
       .find((block) => block.flavour === "myoxus:surface");
-    if (!surfaceBlock) {
-      return false;
-    }
+    if (!surface) return false;
 
-    const docModeService = host.std.get(DocModeProvider);
-    const mode = docModeService.getEditorMode();
-    if (mode !== "edgeless") {
-      return false;
-    }
+    const mode = host.std.get(DocModeProvider).getEditorMode();
+    if (mode !== "edgeless") return false;
 
-    // Create a new doc and add the content to it
-    const newDoc = host.store.workspace.createDoc().getStore();
-    newDoc.load();
-    const rootId = newDoc.addBlock("myoxus:page");
-    newDoc.addBlock("myoxus:surface", {}, rootId);
-    const noteId = newDoc.addBlock("myoxus:note", {}, rootId);
-    await insertFromMarkdown(host, content, newDoc, noteId, 0);
+    const targetDoc = store.workspace.createDoc().getStore();
+    targetDoc.load();
+    const rootId = targetDoc.addBlock("myoxus:page");
+    targetDoc.addBlock("myoxus:surface", {}, rootId);
+    const noteId = targetDoc.addBlock("myoxus:note", {}, rootId);
+    await insertFromMarkdown(host, content, targetDoc, noteId, 0);
 
     const gfx = host.std.get(GfxControllerIdentifier);
-    // Add a linked doc card to link to the new doc
-    const elements = gfx.selection.selectedElements;
-    const width = 364;
-    const height = 390;
+    const selected = gfx.selection.selectedElements;
+    const cardWidth = 364;
+    const cardHeight = 390;
     let x = 0;
     let y = 0;
-    if (elements.length) {
-      // Calculate the bound of the selected elements first
+
+    if (selected.length > 0) {
       const bound = getCommonBoundWithRotation(
-        elements.map((e) => Bound.deserialize(e.xywh)),
+        selected.map((el) => Bound.deserialize(el.xywh)),
       );
       x = bound.x;
       y = bound.y + bound.h + 100;
     }
 
-    // If the selected elements are not in the viewport, center the linked doc card
-    if (x === Number.POSITIVE_INFINITY || y === Number.POSITIVE_INFINITY) {
-      const viewportCenter = getViewportCenter(mode, host.std);
-      x = viewportCenter.x - width / 2;
-      y = viewportCenter.y - height / 2;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      const center = resolveViewportCenter(mode, host.std);
+      x = center.x - cardWidth / 2;
+      y = center.y - cardHeight / 2;
     }
 
     host.std.get(EdgelessCRUDIdentifier).addBlock(
       "myoxus:embed-linked-doc",
       {
-        xywh: `[${x}, ${y}, ${width}, ${height}]`,
+        xywh: `[${x}, ${y}, ${cardWidth}, ${cardHeight}]`,
         style: "vertical",
-        pageId: newDoc.id,
+        pageId: targetDoc.id,
       },
-      surfaceBlock.id,
+      surface.id,
     );
-
     return true;
   },
 };

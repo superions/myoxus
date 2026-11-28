@@ -1,66 +1,56 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { EditorSettingService } from "@myoxus/core/modules/editor-setting";
 import { useI18n } from "@myoxus/i18n";
-import { useFramework, useLiveData } from "@myoxus/infra";
-import { getSurfaceBlock } from "@virgultum/editor/blocks/surface";
+import { useLiveData, useService } from "@myoxus/infra";
 import { DefaultTheme } from "@virgultum/editor/model";
-import type { Store } from "@virgultum/editor/store";
-import { isEqual } from "lodash-es";
 import { useCallback, useMemo } from "react";
 
 import { MenuItem, SettingsRow, SettingsSection } from "../../../primitives";
 import { DropdownMenu, DropdownTrigger, EditorSlider } from "../menu";
-import { usePalettes } from "../utils";
+import { colorsEqual, usePalettes } from "../utils";
 import { Point } from "./point";
-import { EdgelessSnapshot } from "./snapshot";
+import { EdgelessStylePreview } from "./preview";
+
+const THICKNESS_NODES = [2, 4, 6, 8, 10, 12];
 
 export const PenSettings = () => {
   const t = useI18n();
-  const framework = useFramework();
-  const { editorSetting } = framework.get(EditorSettingService);
+  const { editorSetting } = useService(EditorSettingService);
   const settings = useLiveData(editorSetting.settings$);
+  const { brush } = settings;
+
   const { palettes, getCurrentColor } = usePalettes(
     DefaultTheme.StrokeColorShortPalettes,
     DefaultTheme.black,
   );
+  const currentColor = getCurrentColor(brush.color);
 
-  const currentColor = useMemo(() => {
-    return getCurrentColor(settings.brush.color);
-  }, [getCurrentColor, settings.brush.color]);
-
-  const colorItems = useMemo(() => {
-    const { color } = settings.brush;
-    return palettes.map(({ key, label, value, resolvedValue }) => {
-      const handler = () => {
-        editorSetting.set("brush", { color: value });
-      };
-      const isSelected = isEqual(color, value);
-      return (
+  const colorItems = useMemo(
+    () =>
+      palettes.map(({ key, label, value, resolvedValue }) => (
         <MenuItem
           key={key}
-          onSelect={handler}
-          selected={isSelected}
+          onSelect={() => {
+            editorSetting.set("brush", { color: value });
+          }}
+          selected={colorsEqual(brush.color, value)}
           prefix={<Point color={resolvedValue} />}
         >
           {label}
         </MenuItem>
-      );
-    });
-  }, [editorSetting, settings.brush, palettes]);
+      )),
+    [brush.color, editorSetting, palettes],
+  );
 
-  const borderThickness = settings.brush.lineWidth;
-  const setBorderThickness = useCallback(
+  const setThickness = useCallback(
     (value: number[]) => {
-      editorSetting.set("brush", {
-        lineWidth: value[0],
-      });
+      editorSetting.set("brush", { lineWidth: value[0] });
     },
     [editorSetting],
   );
 
-  const getElements = useCallback((doc: Store) => {
-    const surface = getSurfaceBlock(doc);
-    return surface?.getElementsByType("brush") || [];
-  }, []);
   const title = t["com.myoxus.settings.editorSettings.edgeless.pen"]();
 
   return (
@@ -68,15 +58,30 @@ export const PenSettings = () => {
       title={title}
       testId="editor-settings-section-edgeless-pen"
     >
-      <EdgelessSnapshot
-        title={title}
-        docName="pen"
-        keyName="brush"
-        getElements={getElements}
+      <EdgelessStylePreview
+        items={[
+          ...(currentColor
+            ? [
+                {
+                  label:
+                    t[
+                      "com.myoxus.settings.editorSettings.edgeless.pen.color"
+                    ](),
+                  value: currentColor.label,
+                  color: currentColor.resolvedValue,
+                },
+              ]
+            : []),
+          {
+            label:
+              t["com.myoxus.settings.editorSettings.edgeless.pen.thickness"](),
+            value: `${brush.lineWidth}px`,
+          },
+        ]}
       />
       <SettingsRow
         name={t["com.myoxus.settings.editorSettings.edgeless.pen.color"]()}
-        desc={""}
+        desc=""
       >
         {currentColor ? (
           <DropdownMenu
@@ -93,15 +98,15 @@ export const PenSettings = () => {
       </SettingsRow>
       <SettingsRow
         name={t["com.myoxus.settings.editorSettings.edgeless.pen.thickness"]()}
-        desc={""}
+        desc=""
       >
         <EditorSlider
-          value={[borderThickness]}
-          onValueChange={setBorderThickness}
+          value={[brush.lineWidth]}
+          onValueChange={setThickness}
           min={2}
           max={12}
           step={2}
-          nodes={[2, 4, 6, 8, 10, 12]}
+          nodes={THICKNESS_NODES}
         />
       </SettingsRow>
     </SettingsSection>

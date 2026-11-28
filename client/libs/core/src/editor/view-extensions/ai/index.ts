@@ -1,6 +1,6 @@
 import type { MountReactPortal } from "@myoxus/core/editor/portal";
 import { nativeAIWidgetUI } from "../../ai/widgets/native-ui";
-import { toolbarAIEntryConfig } from "@myoxus/core/editor/ai";
+import { toolbarAIEntryConfig } from "@myoxus/core/editor/ai/entries/format-bar/setup-format-bar";
 import { AIChatBlockComponent } from "../../ai/blocks/ai-chat-block/ai-chat-block";
 import { EdgelessAIChatBlockComponent } from "../../ai/blocks/ai-chat-block/ai-chat-edgeless-block";
 import { TranscriptionBlockView } from "../../ai/blocks/ai-chat-block/ai-transcription-block";
@@ -24,13 +24,6 @@ import { ToolbarModuleExtension } from "@virgultum/editor/shared/services";
 import { BlockFlavourIdentifier } from "@virgultum/editor/std";
 import { z } from "zod";
 
-import {
-  BlockDiffService,
-  BlockDiffWatcher,
-} from "../../ai/services/block-diff";
-import { blockDiffWidgetForBlock } from "../../ai/widgets/block-diff/block";
-import { blockDiffWidgetForPage } from "../../ai/widgets/block-diff/page";
-import { blockDiffPlayground } from "../../ai/widgets/block-diff/playground";
 import { EdgelessClipboardAIChatConfig } from "./edgeless-clipboard";
 
 const optionsSchema = z.object({
@@ -106,18 +99,6 @@ export class AIViewExtension extends ViewExtensionProvider<AIViewOptions> {
           config: edgelessToolbarAIEntryConfig(),
         }),
       ]);
-    }
-    if (context.scope === "page") {
-      context.register([
-        blockDiffWidgetForPage,
-        blockDiffWidgetForBlock,
-        BlockDiffService,
-        BlockDiffWatcher,
-      ]);
-
-      if (process.env.NODE_ENV === "development") {
-        context.register([blockDiffPlayground]);
-      }
     }
   }
 }

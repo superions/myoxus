@@ -1,4 +1,3 @@
-import { AIPlaygroundService } from "@myoxus/core/modules/ai-button/services/playground";
 import { AIReasoningService } from "@myoxus/core/modules/ai-button/services/reasoning";
 import { CollectionService } from "@myoxus/core/modules/collection";
 import { DocsService } from "@myoxus/core/modules/doc";
@@ -25,7 +24,6 @@ export function useAIChatConfig() {
   const framework = useFramework();
 
   const reasoningService = framework.get(AIReasoningService);
-  const playgroundService = framework.get(AIPlaygroundService);
   const docDisplayMetaService = framework.get(DocDisplayMetaService);
   const workspaceService = framework.get(WorkspaceService);
   const searchMenuService = framework.get(SearchMenuService);
@@ -41,10 +39,6 @@ export function useAIChatConfig() {
     const reasoningConfig = {
       enabled: reasoningService.enabled,
       setEnabled: reasoningService.setEnabled,
-    };
-
-    const playgroundConfig = {
-      visible: playgroundService.visible,
     };
 
     const docDisplayConfig = {
@@ -142,11 +136,9 @@ export function useAIChatConfig() {
       reasoningConfig,
       docDisplayConfig,
       searchMenuConfig,
-      playgroundConfig,
     };
   }, [
     reasoningService,
-    playgroundService,
     docDisplayMetaService,
     workspaceService,
     searchMenuService,

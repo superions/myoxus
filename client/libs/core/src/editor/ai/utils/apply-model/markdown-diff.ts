@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 export type Block = {
   id: string;
   type: string;
@@ -9,102 +12,77 @@ export type PatchOp =
   | { op: "delete"; id: string }
   | { op: "insert"; index: number; after: string; block: Block };
 
-const BLOCK_MATCH_REGEXP = /^\s*<!--\s*block_id=(.*?)\s+flavour=(.*?)\s*-->/;
+const BLOCK_HEADER_PATTERN = /^\s*<!--\s*block_id=(.*?)\s+flavour=(.*?)\s*-->/;
 
 export function parseMarkdownToBlocks(markdown: string): Block[] {
-  const lines = markdown.split(/\r?\n/);
   const blocks: Block[] = [];
-  let currentBlockId: string | null = null;
-  let currentType: string | null = null;
-  let currentContent: string[] = [];
+  let activeId: string | null = null;
+  let activeType: string | null = null;
+  let buffer: string[] = [];
 
-  for (const line of lines) {
-    const match = line.match(BLOCK_MATCH_REGEXP);
-    if (match) {
-      // If there is a block being collected, push it into blocks first
-      if (currentBlockId && currentType) {
-        blocks.push({
-          id: currentBlockId,
-          type: currentType,
-          content: currentContent.join("\n").trim(),
-        });
-      }
-      // Start a new block
-      currentBlockId = match[1];
-      currentType = match[2];
-      currentContent = [];
-    } else {
-      // Collect content
-      if (currentBlockId && currentType) {
-        currentContent.push(line);
-      }
+  const flush = () => {
+    if (activeId && activeType) {
+      blocks.push({
+        id: activeId,
+        type: activeType,
+        content: buffer.join("\n").trim(),
+      });
+    }
+  };
+
+  for (const line of markdown.split(/\r?\n/)) {
+    const header = line.match(BLOCK_HEADER_PATTERN);
+    if (header) {
+      flush();
+      activeId = header[1];
+      activeType = header[2];
+      buffer = [];
+    } else if (activeId && activeType) {
+      buffer.push(line);
     }
   }
-  // Collect the last block
-  if (currentBlockId && currentType) {
-    blocks.push({
-      id: currentBlockId,
-      type: currentType,
-      content: currentContent.join("\n").trim(),
-    });
-  }
+  flush();
+
   return blocks;
 }
 
-function diffBlockLists(oldBlocks: Block[], newBlocks: Block[]): PatchOp[] {
-  const patch: PatchOp[] = [];
-  const oldMap = new Map<string, { block: Block; index: number }>();
-  oldBlocks.forEach((b, i) => oldMap.set(b.id, { block: b, index: i }));
-  const newMap = new Map<string, { block: Block; index: number }>();
-  newBlocks.forEach((b, i) => newMap.set(b.id, { block: b, index: i }));
+function computeBlockPatches(
+  previousBlocks: Block[],
+  nextBlocks: Block[],
+): PatchOp[] {
+  const ops: PatchOp[] = [];
+  const previousById = new Map(previousBlocks.map((b) => [b.id, b]));
+  const nextIds = new Set(nextBlocks.map((b) => b.id));
 
-  // Mark old blocks that have been handled
-  const handledOld = new Set<string>();
-
-  newBlocks.forEach((newBlock, newIdx) => {
-    const old = oldMap.get(newBlock.id);
-    if (old) {
-      handledOld.add(newBlock.id);
-      if (old.block.content !== newBlock.content) {
-        patch.push({
-          op: "replace",
-          id: newBlock.id,
-          content: newBlock.content,
-        });
+  for (let i = 0; i < nextBlocks.length; i++) {
+    const next = nextBlocks[i];
+    const prev = previousById.get(next.id);
+    if (prev) {
+      if (prev.content !== next.content) {
+        ops.push({ op: "replace", id: next.id, content: next.content });
       }
     } else {
-      const after = newIdx > 0 ? newBlocks[newIdx - 1].id : "HEAD";
-      patch.push({
+      ops.push({
         op: "insert",
-        index: newIdx,
-        after,
-        block: {
-          id: newBlock.id,
-          type: newBlock.type,
-          content: newBlock.content,
-        },
+        index: i,
+        after: i > 0 ? nextBlocks[i - 1].id : "HEAD",
+        block: { id: next.id, type: next.type, content: next.content },
       });
     }
-  });
+  }
 
-  // Then process deleted oldBlocks
-  oldBlocks.forEach((oldBlock) => {
-    if (!newMap.has(oldBlock.id)) {
-      patch.push({
-        op: "delete",
-        id: oldBlock.id,
-      });
+  for (const prev of previousBlocks) {
+    if (!nextIds.has(prev.id)) {
+      ops.push({ op: "delete", id: prev.id });
     }
-  });
+  }
 
-  return patch;
+  return ops;
 }
 
 export function diffMarkdown(oldMarkdown: string, newMarkdown: string) {
   const oldBlocks = parseMarkdownToBlocks(oldMarkdown);
   const newBlocks = parseMarkdownToBlocks(newMarkdown);
-
-  const patches: PatchOp[] = diffBlockLists(oldBlocks, newBlocks);
-
+  const patches = computeBlockPatches(oldBlocks, newBlocks);
   return { patches, newBlocks, oldBlocks };
 }

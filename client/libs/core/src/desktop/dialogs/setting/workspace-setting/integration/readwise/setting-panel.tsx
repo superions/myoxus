@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { WorkspaceTagsInlineEditor } from "@myoxus/core/components/tags";
 import {
   IntegrationService,
@@ -28,17 +31,8 @@ import { ReadwiseDisconnectButton } from "./connected";
 import { ImportDialog } from "./import-dialog";
 import { readwiseTrack } from "./track";
 
-export const ReadwiseSettingPanel = () => {
-  const readwise = useService(IntegrationService).readwise;
-  const settings = useLiveData(readwise.settings$);
-  const token = settings?.token;
-
-  return token ? <ReadwiseConnectedSetting /> : <ReadwiseNotConnectedSetting />;
-};
-
-const ReadwiseSettingHeader = ({ action }: { action?: ReactNode }) => {
+function ReadwiseHeader({ action }: { action?: ReactNode }) {
   const t = useI18n();
-
   return (
     <IntegrationSettingHeader
       icon={<IntegrationTypeIcon type="readwise" />}
@@ -47,208 +41,26 @@ const ReadwiseSettingHeader = ({ action }: { action?: ReactNode }) => {
       action={action}
     />
   );
-};
+}
 
-const ReadwiseNotConnectedSetting = () => {
-  const readwise = useService(IntegrationService).readwise;
-
-  const handleConnectSuccess = useCallback(
-    (token: string) => {
-      readwise.connect(token);
-    },
-    [readwise],
-  );
-
-  return (
-    <Stack data-myoxus-ui-role="readwise-not-connected-panel">
-      <ReadwiseSettingHeader
-        action={
-          <ReadwiseConnectButton
-            onSuccess={handleConnectSuccess}
-            prefix={<PlusIcon />}
-            data-testid="readwise-connect-button"
-          />
-        }
-      />
-    </Stack>
-  );
-};
-const ReadwiseConnectedSetting = () => {
-  const [openImportDialog, setOpenImportDialog] = useState(false);
-
-  const onImport = useCallback(() => {
-    setOpenImportDialog(true);
-  }, []);
-
-  const closeImportDialog = useCallback(() => {
-    setOpenImportDialog(false);
-  }, []);
-
-  return (
-    <Stack data-myoxus-ui-role="readwise-connected-panel">
-      <ReadwiseSettingHeader action={<ReadwiseDisconnectButton />} />
-      <SurfaceList label="Readwise settings">
-        <TagsSetting />
-        <NewHighlightSetting />
-        <UpdateStrategySetting />
-        <StartImport onImport={onImport} />
-      </SurfaceList>
-      {openImportDialog && <ImportDialog onClose={closeImportDialog} />}
-    </Stack>
-  );
-};
-
-const trackModifySetting = (
-  item: "New" | "Update" | "Tag",
-  option: "on" | "off",
-  method?: "append" | "override",
-) => {
-  readwiseTrack.modifyIntegrationSettings({
-    item,
-    option,
-    method,
-  });
-};
-
-const NewHighlightSetting = () => {
-  const t = useI18n();
-  const readwise = useService(IntegrationService).readwise;
-  const syncNewHighlights = useLiveData(
-    useMemo(() => readwise.setting$("syncNewHighlights"), [readwise]),
-  );
-
-  const toggle = useCallback(
-    (value: boolean) => {
-      trackModifySetting("New", value ? "on" : "off");
-      readwise.updateSetting("syncNewHighlights", value);
-    },
-    [readwise],
-  );
-
-  return (
-    <IntegrationSettingToggle
-      checked={!!syncNewHighlights}
-      name={t["com.myoxus.integration.readwise.setting.sync-new-name"]()}
-      desc={t["com.myoxus.integration.readwise.setting.sync-new-desc"]()}
-      onChange={toggle}
-    />
-  );
-};
-
-const UpdateStrategySetting = () => {
-  const t = useI18n();
-  const readwise = useService(IntegrationService).readwise;
-  const updateStrategy = useLiveData(
-    useMemo(() => readwise.setting$("updateStrategy"), [readwise]),
-  );
-
-  const toggle = useCallback(
-    (value: boolean) => {
-      trackModifySetting("Update", value ? "on" : "off", "append");
-      if (!value) readwise.updateSetting("updateStrategy", undefined);
-      else readwise.updateSetting("updateStrategy", "append");
-    },
-    [readwise],
-  );
-
-  const handleUpdate = useCallback(
-    (value: ReadwiseConfig["updateStrategy"]) => {
-      trackModifySetting("Update", "on", value);
-      readwise.updateSetting("updateStrategy", value);
-    },
-    [readwise],
-  );
-
-  const strategies = useMemo(
-    () =>
-      [
-        {
-          name: t[
-            "com.myoxus.integration.readwise.setting.update-append-name"
-          ](),
-          desc: t[
-            "com.myoxus.integration.readwise.setting.update-append-desc"
-          ](),
-          value: "append",
-        },
-        {
-          name: t[
-            "com.myoxus.integration.readwise.setting.update-override-name"
-          ](),
-          desc: t[
-            "com.myoxus.integration.readwise.setting.update-override-desc"
-          ](),
-          value: "override",
-        },
-      ] satisfies IntegrationSettingTextRadioGroupItem[],
-    [t],
-  );
-
-  return (
-    <>
-      <IntegrationSettingToggle
-        checked={!!updateStrategy}
-        name={t["com.myoxus.integration.readwise.setting.update-name"]()}
-        desc={t["com.myoxus.integration.readwise.setting.update-desc"]()}
-        onChange={toggle}
-      />
-      {updateStrategy ? (
-        <SettingsField
-          label={t["com.myoxus.integration.readwise.setting.update-strategy"]()}
-        >
-          <IntegrationSettingTextRadioGroup
-            items={strategies}
-            checked={updateStrategy}
-            onChange={handleUpdate}
-          />
-        </SettingsField>
-      ) : null}
-    </>
-  );
-};
-
-const StartImport = ({ onImport }: { onImport: () => void }) => {
-  const t = useI18n();
-  const readwise = useService(IntegrationService).readwise;
-
-  const handleImport = useCallback(() => {
-    const lastImportedAt = readwise.setting$("lastImportedAt").value;
-    readwiseTrack.startIntegrationImport({
-      method: lastImportedAt ? "withtimestamp" : "new",
-      control: "Readwise settings",
-    });
-    onImport();
-  }, [onImport, readwise]);
-
-  return (
-    <IntegrationSettingItem
-      name={t["com.myoxus.integration.readwise.setting.start-import-name"]()}
-      desc={t["com.myoxus.integration.readwise.setting.start-import-desc"]()}
-    >
-      <Button onClick={handleImport}>
-        {t["com.myoxus.integration.readwise.setting.start-import-button"]()}
-      </Button>
-    </IntegrationSettingItem>
-  );
-};
-
-const TagsSetting = () => {
+function TagsSetting() {
   const t = useI18n();
   const readwise = useService(IntegrationService).readwise;
   const tagIds = useLiveData(
     useMemo(() => readwise.setting$("tags"), [readwise]),
   );
 
-  const commit = useCallback(
+  const handleCommit = useCallback(
     (nextIds: string[]) => {
-      trackModifySetting(
-        "Tag",
-        nextIds.length >= (tagIds?.length ?? 0) ? "on" : "off",
-      );
+      readwiseTrack.modifyIntegrationSettings({
+        item: "Tag",
+        option: nextIds.length >= (tagIds?.length ?? 0) ? "on" : "off",
+      });
       readwise.updateSetting("tags", nextIds);
     },
     [readwise, tagIds?.length],
   );
+
   return (
     <SettingsField
       label={t["com.myoxus.integration.readwise.setting.tags-label"]()}
@@ -262,9 +74,177 @@ const TagsSetting = () => {
         }
         tagMode="inline-tag"
         selectedTags={tagIds ?? []}
-        commit={commit}
-        modalMenu={true}
+        commit={handleCommit}
+        modalMenu
       />
     </SettingsField>
+  );
+}
+
+function NewHighlightSetting() {
+  const t = useI18n();
+  const readwise = useService(IntegrationService).readwise;
+  const syncNewHighlights = useLiveData(
+    useMemo(() => readwise.setting$("syncNewHighlights"), [readwise]),
+  );
+
+  const handleToggle = useCallback(
+    (checked: boolean) => {
+      readwiseTrack.modifyIntegrationSettings({
+        item: "New",
+        option: checked ? "on" : "off",
+      });
+      readwise.updateSetting("syncNewHighlights", checked);
+    },
+    [readwise],
+  );
+
+  return (
+    <IntegrationSettingToggle
+      checked={Boolean(syncNewHighlights)}
+      name={t["com.myoxus.integration.readwise.setting.sync-new-name"]()}
+      desc={t["com.myoxus.integration.readwise.setting.sync-new-desc"]()}
+      onChange={handleToggle}
+    />
+  );
+}
+
+function UpdateStrategySetting() {
+  const t = useI18n();
+  const readwise = useService(IntegrationService).readwise;
+  const updateStrategy = useLiveData(
+    useMemo(() => readwise.setting$("updateStrategy"), [readwise]),
+  );
+
+  const handleToggle = useCallback(
+    (checked: boolean) => {
+      readwiseTrack.modifyIntegrationSettings({
+        item: "Update",
+        option: checked ? "on" : "off",
+        method: "append",
+      });
+      readwise.updateSetting("updateStrategy", checked ? "append" : undefined);
+    },
+    [readwise],
+  );
+
+  const handleSelectStrategy = useCallback(
+    (strategy: ReadwiseConfig["updateStrategy"]) => {
+      readwiseTrack.modifyIntegrationSettings({
+        item: "Update",
+        option: "on",
+        method: strategy,
+      });
+      readwise.updateSetting("updateStrategy", strategy);
+    },
+    [readwise],
+  );
+
+  const strategies = useMemo<
+    IntegrationSettingTextRadioGroupItem<
+      NonNullable<ReadwiseConfig["updateStrategy"]>
+    >[]
+  >(
+    () => [
+      {
+        name: t["com.myoxus.integration.readwise.setting.update-append-name"](),
+        desc: t["com.myoxus.integration.readwise.setting.update-append-desc"](),
+        value: "append",
+      },
+      {
+        name: t[
+          "com.myoxus.integration.readwise.setting.update-override-name"
+        ](),
+        desc: t[
+          "com.myoxus.integration.readwise.setting.update-override-desc"
+        ](),
+        value: "override",
+      },
+    ],
+    [t],
+  );
+
+  return (
+    <>
+      <IntegrationSettingToggle
+        checked={Boolean(updateStrategy)}
+        name={t["com.myoxus.integration.readwise.setting.update-name"]()}
+        desc={t["com.myoxus.integration.readwise.setting.update-desc"]()}
+        onChange={handleToggle}
+      />
+      {updateStrategy ? (
+        <SettingsField
+          label={t["com.myoxus.integration.readwise.setting.update-strategy"]()}
+        >
+          <IntegrationSettingTextRadioGroup
+            items={strategies}
+            checked={updateStrategy}
+            onChange={handleSelectStrategy}
+          />
+        </SettingsField>
+      ) : null}
+    </>
+  );
+}
+
+function StartImportRow({ onImport }: { onImport: () => void }) {
+  const t = useI18n();
+  const readwise = useService(IntegrationService).readwise;
+
+  const handleClick = useCallback(() => {
+    const lastImportedAt = readwise.setting$("lastImportedAt").value;
+    readwiseTrack.startIntegrationImport({
+      method: lastImportedAt ? "withtimestamp" : "new",
+      control: "Readwise settings",
+    });
+    onImport();
+  }, [onImport, readwise]);
+
+  return (
+    <IntegrationSettingItem
+      name={t["com.myoxus.integration.readwise.setting.start-import-name"]()}
+      desc={t["com.myoxus.integration.readwise.setting.start-import-desc"]()}
+    >
+      <Button onClick={handleClick}>
+        {t["com.myoxus.integration.readwise.setting.start-import-button"]()}
+      </Button>
+    </IntegrationSettingItem>
+  );
+}
+
+export const ReadwiseSettingPanel = () => {
+  const readwise = useService(IntegrationService).readwise;
+  const token = useLiveData(readwise.settings$)?.token;
+  const [importOpen, setImportOpen] = useState(false);
+
+  if (!token) {
+    return (
+      <Stack data-myoxus-ui-role="readwise-not-connected-panel">
+        <ReadwiseHeader
+          action={
+            <ReadwiseConnectButton
+              onSuccess={(nextToken) => readwise.connect(nextToken)}
+              prefix={<PlusIcon />}
+              data-testid="readwise-connect-button"
+            />
+          }
+        />
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack data-myoxus-ui-role="readwise-connected-panel">
+      <ReadwiseHeader action={<ReadwiseDisconnectButton />} />
+      <SurfaceList label="Readwise settings">
+        <TagsSetting />
+        <NewHighlightSetting />
+        <UpdateStrategySetting />
+        <StartImportRow onImport={() => setImportOpen(true)} />
+      </SurfaceList>
+      {importOpen ? (
+        <ImportDialog onClose={() => setImportOpen(false)} />
+      ) : null}
+    </Stack>
   );
 };

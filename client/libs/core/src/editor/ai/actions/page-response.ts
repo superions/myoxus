@@ -1,6 +1,7 @@
-import { acceptSourceMindmap } from "./mindmap-source";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { CodeBlockPreviewIdentifier } from "@virgultum/editor/blocks/code";
-import { addSiblingImageBlocks } from "@virgultum/editor/blocks/image";
 import {
   getSurfaceBlock,
   SurfaceBlockModel,
@@ -17,224 +18,72 @@ import { type BlockProps, Text } from "@virgultum/editor/store";
 import * as Y from "yjs";
 
 import { getAIPanelController } from "../utils/ai-widgets";
-import type { MyoxusNode, AIContext } from "../utils/context";
+import type { AIContext, MyoxusNode } from "../utils/context";
 import { insertAbove, insertBelow, replace } from "../utils/editor-actions";
 import { preprocessHtml } from "../utils/html";
-import { fetchImageToFile } from "../utils/image";
 import { getSelections } from "../utils/selection-utils";
+import { acceptSourceMindmap } from "./mindmap-source";
 
-const PADDING = 100;
+const SURFACE_PADDING = 100;
 
-type Place = "after" | "before";
+type InsertionSide = "after" | "before";
 
-export async function pageResponseHandler<
-  T extends keyof VirgultumPresets.AIActions,
->(id: T, host: EditorHost, ctx: AIContext, place: Place = "after") {
-  switch (id) {
-    case "brainstormMindmap":
-      return acceptSourceMindmap(host, ctx, { kind: "page", place });
-    case "makeItReal":
-      responseToMakeItReal(host, ctx, place);
-      break;
-    case "createSlides":
-      await responseToCreateSlides(host, ctx, place);
-      break;
-    case "createImage":
-    case "filterImage":
-    case "processImage":
-      responseToCreateImage(host, place);
-      break;
-    default:
-      await (place === "after"
-        ? insertMarkdownBelow(host)
-        : insertMarkdownAbove(host));
-      break;
-  }
-  return;
-}
-
-function responseToMakeItReal(host: EditorHost, ctx: AIContext, place: Place) {
-  const surface = getSurfaceBlock(host.store);
-  const aiPanel = getAIPanelController(host);
-  if (!aiPanel.answer || !surface) return;
-
-  const { width, height } = ctx.get();
-  const bound = getEdgelessContentBound(host);
-  const x = bound ? bound.x + bound.w + PADDING * 2 : 0;
-  const y = bound ? bound.y : 0;
-  const htmlBound = new Bound(x, y + PADDING, width || 800, height || 600);
-  const html = preprocessHtml(aiPanel.answer);
-  host.store.transact(() => {
-    const ifUseCodeBlock = host.std.getOptional(
-      CodeBlockPreviewIdentifier("html"),
-    );
-    if (ifUseCodeBlock) {
-      const note = host.store.addBlock(
-        "myoxus:note",
-        {
-          xywh: htmlBound.serialize(),
-        },
-        host.store.root,
-      );
-      host.store.addBlock(
-        "myoxus:code",
-        { text: new Text(html), language: "html", preview: true },
-        note,
-      );
-      const frameBound = expandBound(htmlBound, PADDING);
-      addSurfaceRefBlock(host, frameBound, place);
-    } else {
-      host.store.addBlock(
-        "myoxus:embed-html",
-        {
-          html,
-          design: "ai:makeItReal", // as tag
-          xywh: htmlBound.serialize(),
-        },
-        surface.id,
-      );
-      const frameBound = expandBound(htmlBound, PADDING);
-      addSurfaceRefBlock(host, frameBound, place);
-    }
-  });
-}
-
-async function responseToCreateSlides(
-  host: EditorHost,
-  ctx: AIContext,
-  place: Place,
-) {
-  const { contents, images = [] } = ctx.get();
-  const surface = getSurfaceBlock(host.store);
-  if (!contents || !surface) return;
-
-  try {
-    const frameIds: string[] = [];
-    for (let i = 0; i < contents.length; i++) {
-      const image = images[i];
-      const content = contents[i];
-      const job = createTemplateJob(host.std, "template");
-      await Promise.all(
-        image.map(({ id, url }) =>
-          fetch(url)
-            .then((res) => res.blob())
-            .then((blob) => job.job.assets.set(id, blob)),
-        ),
-      );
-      await job.insertTemplate(content);
-      const frame = findFrameObject(content.blocks);
-      frame && frameIds.push(frame.id);
-    }
-    const props = frameIds.map((id) => ({
-      flavour: "myoxus:surface-ref",
-      refFlavour: "myoxus:frame",
-      reference: id,
-      pageId: host.store.id,
-      workspaceId: host.store.workspace.id,
-    }));
-    addSiblingBlocks(host, props, place);
-  } catch (error) {
-    console.error("Error creating slides:", error);
-  }
-}
-
-export function responseToCreateImage(host: EditorHost, place: Place) {
-  const aiPanel = getAIPanelController(host);
-  const { answer } = aiPanel;
-  if (!answer) return;
-  const filename = "image";
-  const imageProxy = host.std.clipboard.configs.get("imageProxy");
-
-  fetchImageToFile(answer, filename, imageProxy)
-    .then((file) => {
-      if (!file) return;
-
-      const targetModel = getTargetModel(host, place);
-      if (!targetModel) return;
-
-      return addSiblingImageBlocks(host.std, [file], targetModel, place);
-    })
-    .catch(console.error);
-}
-
-export async function replaceWithMarkdown(host: EditorHost) {
-  const aiPanel = getAIPanelController(host);
-  const { answer } = aiPanel;
-  const selection = getSelection(host);
-  if (!answer || !selection) return;
-
-  const { textSelection, firstBlock, selectedModels } = selection;
-  await replace(host, answer, firstBlock, selectedModels, textSelection);
-}
-
-async function insertMarkdownBelow(host: EditorHost) {
-  const aiPanel = getAIPanelController(host);
-  const { answer } = aiPanel;
-  const selection = getSelection(host);
-  if (!answer || !selection) return;
-
-  const { lastBlock } = selection;
-  await insertBelow(host, answer, lastBlock);
-}
-
-async function insertMarkdownAbove(host: EditorHost) {
-  const aiPanel = getAIPanelController(host);
-  const { answer } = aiPanel;
-  const selection = getSelection(host);
-  if (!answer || !selection) return;
-
-  const { firstBlock } = selection;
-  await insertAbove(host, answer, firstBlock);
-}
-
-function getSelection(host: EditorHost) {
+function resolveSelectionTargets(host: EditorHost) {
   const textSelection = host.selection.find(TextSelection);
   const mode = textSelection ? "flat" : "highest";
   const { selectedBlocks } = getSelections(host, mode);
-  if (!selectedBlocks) return;
-  const length = selectedBlocks.length;
-  const firstBlock = selectedBlocks[0];
-  const lastBlock = selectedBlocks[length - 1];
-  const selectedModels = selectedBlocks.map((block) => block.model);
+  if (!selectedBlocks?.length) return null;
+
   return {
     textSelection,
-    selectedModels,
-    firstBlock,
-    lastBlock,
+    firstBlock: selectedBlocks[0],
+    lastBlock: selectedBlocks[selectedBlocks.length - 1],
+    selectedModels: selectedBlocks.map((block) => block.model),
   };
 }
 
-function getEdgelessContentBound(host: EditorHost) {
+function appendSiblingBlocks(
+  host: EditorHost,
+  props: Array<Partial<BlockProps>>,
+  side: InsertionSide,
+) {
+  const selection = resolveSelectionTargets(host);
+  if (!selection) return;
+  const anchor =
+    side === "before"
+      ? selection.selectedModels[0]
+      : selection.selectedModels[selection.selectedModels.length - 1];
+  return host.store.addSiblingBlocks(anchor, props, side);
+}
+
+function computeCanvasContentBound(host: EditorHost) {
+  const surface = getSurfaceBlock(host.store);
+  if (!surface) return null;
+
+  const surfaceBlocks = host.store
+    .getAllModels()
+    .filter(
+      (model): model is GfxBlockElementModel =>
+        model instanceof GfxBlockElementModel &&
+        (model.parent instanceof SurfaceBlockModel ||
+          model.parent?.role === "root"),
+    );
+  const allElements: GfxModel[] = [
+    ...surfaceBlocks,
+    ...(surface.elementModels ?? []),
+  ];
+  return getCommonBound(allElements.map((el) => Bound.deserialize(el.xywh)));
+}
+
+function addFrameSurfaceRef(
+  host: EditorHost,
+  bound: Bound,
+  side: InsertionSide,
+) {
   const surface = getSurfaceBlock(host.store);
   if (!surface) return;
 
-  const elements = (
-    host.store
-      .getAllModels()
-      .filter(
-        (model) =>
-          model instanceof GfxBlockElementModel &&
-          (model.parent instanceof SurfaceBlockModel ||
-            model.parent?.role === "root"),
-      ) as GfxModel[]
-  ).concat(surface.elementModels ?? []);
-  const bounds = elements.map((element) => Bound.deserialize(element.xywh));
-  const bound = getCommonBound(bounds);
-  return bound;
-}
-
-function expandBound(bound: Bound, margin: number) {
-  const x = bound.x - margin;
-  const y = bound.y - margin;
-  const w = bound.w + margin * 2;
-  const h = bound.h + margin * 2;
-  return new Bound(x, y, w, h);
-}
-
-function addSurfaceRefBlock(host: EditorHost, bound: Bound, place: Place) {
-  const surface = getSurfaceBlock(host.store);
-  if (!surface) return;
-  const frame = host.store.addBlock(
+  const frameId = host.store.addBlock(
     "myoxus:frame",
     {
       title: new Text(new Y.Text("Frame")),
@@ -243,47 +92,167 @@ function addSurfaceRefBlock(host: EditorHost, bound: Bound, place: Place) {
     },
     surface,
   );
-  const props = {
-    flavour: "myoxus:surface-ref",
-    refFlavour: "myoxus:frame",
-    reference: frame,
-    pageId: host.store.id,
-    workspaceId: host.store.workspace.id,
-  };
-  return addSiblingBlocks(host, [props], place);
+  return appendSiblingBlocks(
+    host,
+    [
+      {
+        flavour: "myoxus:surface-ref",
+        refFlavour: "myoxus:frame",
+        reference: frameId,
+        pageId: host.store.id,
+        workspaceId: host.store.workspace.id,
+      },
+    ],
+    side,
+  );
 }
 
-function getTargetModel(host: EditorHost, place: Place) {
-  const { selectedModels } = getSelection(host) || {};
-  if (!selectedModels) return;
-  return place === "before"
-    ? selectedModels[0]
-    : selectedModels[selectedModels.length - 1];
-}
-
-function addSiblingBlocks(
-  host: EditorHost,
-  props: Array<Partial<BlockProps>>,
-  place: Place,
-) {
-  const targetModel = getTargetModel(host, place);
-  if (!targetModel) return;
-  return host.store.addSiblingBlocks(targetModel, props, place);
-}
-
-function findFrameObject(obj: MyoxusNode): MyoxusNode | null {
-  if (obj.flavour === "myoxus:frame") {
-    return obj;
+function findFrameNode(root: MyoxusNode): MyoxusNode | null {
+  if (root.flavour === "myoxus:frame") return root;
+  for (const child of root.children ?? []) {
+    const match = findFrameNode(child);
+    if (match) return match;
   }
+  return null;
+}
 
-  if (obj.children) {
-    for (const child of obj.children) {
-      const result = findFrameObject(child);
-      if (result) {
-        return result;
+function insertMakeItRealArtifact(
+  host: EditorHost,
+  ctx: AIContext,
+  side: InsertionSide,
+) {
+  const surface = getSurfaceBlock(host.store);
+  const panel = getAIPanelController(host);
+  if (!panel.answer || !surface) return;
+
+  const { width, height } = ctx.get();
+  const contentBound = computeCanvasContentBound(host);
+  const x = contentBound
+    ? contentBound.x + contentBound.w + SURFACE_PADDING * 2
+    : 0;
+  const y = contentBound ? contentBound.y : 0;
+  const htmlBound = new Bound(
+    x,
+    y + SURFACE_PADDING,
+    width || 800,
+    height || 600,
+  );
+  const html = preprocessHtml(panel.answer);
+  const frameBound = new Bound(
+    htmlBound.x - SURFACE_PADDING,
+    htmlBound.y - SURFACE_PADDING,
+    htmlBound.w + SURFACE_PADDING * 2,
+    htmlBound.h + SURFACE_PADDING * 2,
+  );
+
+  host.store.transact(() => {
+    const useHtmlCodeBlock = host.std.getOptional(
+      CodeBlockPreviewIdentifier("html"),
+    );
+    if (useHtmlCodeBlock) {
+      const note = host.store.addBlock(
+        "myoxus:note",
+        { xywh: htmlBound.serialize() },
+        host.store.root,
+      );
+      host.store.addBlock(
+        "myoxus:code",
+        { text: new Text(html), language: "html", preview: true },
+        note,
+      );
+    } else {
+      host.store.addBlock(
+        "myoxus:embed-html",
+        {
+          html,
+          design: "ai:makeItReal",
+          xywh: htmlBound.serialize(),
+        },
+        surface.id,
+      );
+    }
+    addFrameSurfaceRef(host, frameBound, side);
+  });
+}
+
+async function insertGeneratedSlides(
+  host: EditorHost,
+  ctx: AIContext,
+  side: InsertionSide,
+) {
+  const { contents, images = [] } = ctx.get();
+  const surface = getSurfaceBlock(host.store);
+  if (!contents?.length || !surface) return;
+
+  try {
+    const frameIds: string[] = [];
+    for (let i = 0; i < contents.length; i++) {
+      const slideTemplate = contents[i];
+      const slideImages = images[i] ?? [];
+      const job = createTemplateJob(host.std, "template");
+      await Promise.all(
+        slideImages.map(async ({ id, url }) => {
+          const blob = await fetch(url).then((res) => res.blob());
+          job.job.assets.set(id, blob);
+        }),
+      );
+      await job.insertTemplate(slideTemplate);
+      const frame = findFrameNode(slideTemplate.blocks);
+      if (frame) frameIds.push(frame.id);
+    }
+
+    appendSiblingBlocks(
+      host,
+      frameIds.map((reference) => ({
+        flavour: "myoxus:surface-ref",
+        refFlavour: "myoxus:frame",
+        reference,
+        pageId: host.store.id,
+        workspaceId: host.store.workspace.id,
+      })),
+      side,
+    );
+  } catch (err) {
+    console.error("Error creating slides:", err);
+  }
+}
+
+export async function replaceWithMarkdown(host: EditorHost): Promise<void> {
+  const { answer } = getAIPanelController(host);
+  const targets = resolveSelectionTargets(host);
+  if (!answer || !targets) return;
+
+  await replace(
+    host,
+    answer,
+    targets.firstBlock,
+    targets.selectedModels,
+    targets.textSelection,
+  );
+}
+
+export async function pageResponseHandler<
+  K extends keyof VirgultumPresets.AIActions,
+>(id: K, host: EditorHost, ctx: AIContext, side: InsertionSide = "after") {
+  switch (id) {
+    case "brainstormMindmap":
+      return acceptSourceMindmap(host, ctx, { kind: "page", place: side });
+    case "makeItReal":
+      insertMakeItRealArtifact(host, ctx, side);
+      return;
+    case "createSlides":
+      await insertGeneratedSlides(host, ctx, side);
+      return;
+    default: {
+      const { answer } = getAIPanelController(host);
+      const targets = resolveSelectionTargets(host);
+      if (!answer || !targets) return;
+      if (side === "after") {
+        await insertBelow(host, answer, targets.lastBlock);
+      } else {
+        await insertAbove(host, answer, targets.firstBlock);
       }
+      return;
     }
   }
-
-  return null;
 }

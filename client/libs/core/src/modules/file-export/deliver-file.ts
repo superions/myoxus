@@ -2,7 +2,7 @@
 import type { FetchService } from "@myoxus/core/modules/server";
 import { getDesktopBridge } from "@myoxus/desktop-api-contract/bridge";
 import type { ExportFileFormat } from "@myoxus/desktop-api-contract";
-import { download } from "@virgultum/editor/widgets/linked-doc";
+import { download } from "@virgultum/editor/interchange";
 
 export const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";

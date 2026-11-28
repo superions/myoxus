@@ -13,7 +13,7 @@ import type { EditorHost } from "@virgultum/core/runtime";
 import { Text } from "@virgultum/core/store";
 import { TestWorkspace } from "@virgultum/core/store/test";
 import { afterEach, expect, test, vi } from "vitest";
-import { outlineSettingsKey } from "../config";
+import { outlineSettingsKey } from "../outline-helpers";
 import { DocumentOutlineController } from "../document-outline-controller";
 
 afterEach(() => vi.unstubAllGlobals());

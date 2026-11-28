@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { Signal } from "@preact/signals-core";
 
 import type { AIError } from "../../provider";
@@ -9,11 +12,6 @@ export interface AIReasoningConfig {
   setEnabled: (state: boolean) => void;
 }
 
-export interface AIPlaygroundConfig {
-  visible: Signal<boolean | undefined>;
-}
-
-// TODO: remove this type
 export type AIChatInputContext = {
   messages: HistoryMessage[];
   status: ChatStatus;

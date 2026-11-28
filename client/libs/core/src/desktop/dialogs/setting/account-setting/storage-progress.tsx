@@ -1,67 +1,36 @@
-import { useI18n } from "@myoxus/i18n";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useLiveData, useService } from "@myoxus/infra";
 import { useEffect } from "react";
 
 import { UserQuotaService } from "../../../../modules/server";
-import {
-  ErrorMessage,
-  Progress,
-  SettingsStatusText,
-  SettingsToolbar,
-  Skeleton,
-  Stack,
-} from "../primitives";
+import { StorageUsageMeter } from "../storage-usage-meter";
 
 export const StorageProgress = () => {
-  const t = useI18n();
   const quota = useService(UserQuotaService).quota;
 
   useEffect(() => {
-    // revalidate quota to get the latest status
     quota.revalidate();
   }, [quota]);
+
   const color = useLiveData(quota.color$);
   const usedFormatted = useLiveData(quota.usedFormatted$);
   const maxFormatted = useLiveData(quota.maxFormatted$);
   const percent = useLiveData(quota.percent$);
-  const usedLabel =
-    usedFormatted ?? t["com.myoxus.sidebar.common.not-available"]();
-  const maxLabel = maxFormatted ?? t["com.myoxus.storage.unlimited"]();
+  const loadError = useLiveData(quota.error$);
   const loading =
     percent === null && usedFormatted === null && maxFormatted === null;
-  const loadError = useLiveData(quota.error$);
-
-  if (loading) {
-    if (loadError) {
-      return (
-        <ErrorMessage>
-          {t["com.myoxus.settings.common.load-error"]()}
-        </ErrorMessage>
-      );
-    }
-    return <Skeleton variant="rectangular" />;
-  }
 
   return (
-    <Stack data-myoxus-ui-role="account-storage-progress-meter">
-      <SettingsToolbar
-        layout="split"
-        justify="space-between"
-        data-myoxus-ui-role="account-storage-progress-labels"
-      >
-        <SettingsStatusText>
-          {t["com.myoxus.storage.used.hint"]()}
-        </SettingsStatusText>
-        <SettingsStatusText tone="active">
-          {usedLabel} / {maxLabel}
-        </SettingsStatusText>
-      </SettingsToolbar>
-      <Progress
-        showValueLabel={false}
-        color={color ?? undefined}
-        value={percent ?? 0}
-        ariaLabel={t["com.myoxus.storage.used.hint"]()}
-      />
-    </Stack>
+    <StorageUsageMeter
+      usedFormatted={usedFormatted}
+      maxFormatted={maxFormatted}
+      percent={percent}
+      color={color}
+      loading={loading}
+      error={loadError}
+      uiRolePrefix="account"
+    />
   );
 };

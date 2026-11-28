@@ -354,7 +354,6 @@ describe("workspace page header facade contract", () => {
     expect(rootSidebar).not.toContain('startsWith("/collection/")');
 
     for (const sourcePath of [
-      "client/libs/core/src/components/page-list/page-group.tsx",
       "client/libs/core/src/components/structure-tree/nodes/collection/index.tsx",
       "client/libs/core/src/modules/app-tabs-header/services/app-tabs-header-service.ts",
       "client/libs/core/src/modules/workbench/view/split-view/types.ts",

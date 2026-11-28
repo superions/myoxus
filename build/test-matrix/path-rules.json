@@ -687,6 +687,7 @@
       "virgultum/embeds/src/database/**",
       "virgultum/editor/blocks/mermaid/**",
       "virgultum/editor/all/src/widgets/linked-doc/**",
+      "virgultum/editor/all/src/interchange/**",
       "build/scripts/ci/database-decommission-baseline.json",
       "build/scripts/ci/verify-database-decommission.mjs",
       "build/scripts/test/generate-workspace-import-fixtures.mjs",
@@ -2094,7 +2095,7 @@
       "virgultum/content/package.json",
       "virgultum/content/src/blocks/code/**",
       "virgultum/content/src/inlines/latex/**",
-      "client/libs/core/src/editor/ai/components/ai-tools/code-artifact.ts"
+      "client/libs/core/src/editor/ai/components/ai-tools/code-artifact.tsx"
     ],
     "select_suites": ["editor.syntax-highlighter.vitest"],
     "reason": "Protect native Oniguruma token parity and language metadata at the shared syntax owner."

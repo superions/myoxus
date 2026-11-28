@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { WorkspaceSettingTab } from "@myoxus/core/modules/dialogs/constant";
 import { EmbeddingSettings } from "@myoxus/core/modules/workspace-indexer-embedding";
 import { useI18n } from "@myoxus/i18n";
@@ -56,8 +59,8 @@ export const useWorkspaceSettingList =
   (): SettingSidebarItem<WorkspaceSettingTab>[] => {
     const t = useI18n();
 
-    const items = useMemo<SettingSidebarItem<WorkspaceSettingTab>[]>(() => {
-      return [
+    return useMemo<SettingSidebarItem<WorkspaceSettingTab>[]>(
+      () => [
         {
           key: "workspace:preference",
           title: t["com.myoxus.settings.workspace.preferences"](),
@@ -109,8 +112,7 @@ export const useWorkspaceSettingList =
           icon: <GroupingIcon />,
           testId: "workspace-setting:organization",
         },
-      ];
-    }, [t]);
-
-    return items;
+      ],
+      [t],
+    );
   };

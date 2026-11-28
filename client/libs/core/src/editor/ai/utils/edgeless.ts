@@ -1,33 +1,35 @@
-import { sourceMindmapSelection } from "../actions/mindmap-source";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { SurfaceBlockModel } from "@virgultum/editor/blocks/surface";
 import { NoteBlockModel, RootBlockModel } from "@virgultum/editor/model";
 import { matchModels } from "@virgultum/editor/shared/utils";
 import type { BlockComponent } from "@virgultum/editor/std";
 import type { GfxModel } from "@virgultum/editor/std/gfx";
 
-export function isMindMapRoot(element: GfxModel) {
+import { sourceMindmapSelection } from "../actions/mindmap-source";
+
+export { getEdgelessCopilotWidget } from "./get-edgeless-copilot-widget";
+
+export function isMindMapRoot(element: GfxModel): boolean {
   return sourceMindmapSelection(element)?.node.root ?? false;
 }
-export function isMindmapChild(element: GfxModel) {
+
+export function isMindmapChild(element: GfxModel): boolean {
   const selected = sourceMindmapSelection(element);
   return selected ? !selected.node.root : false;
 }
 
-export { getEdgelessCopilotWidget } from "./get-edgeless-copilot-widget";
-
-export function findNoteBlockModel(blockElement: BlockComponent) {
-  let curBlock = blockElement;
-  while (curBlock) {
-    if (matchModels(curBlock.model, [NoteBlockModel])) {
-      return curBlock.model;
+export function findNoteBlockModel(block: BlockComponent) {
+  let cursor: BlockComponent | null = block;
+  while (cursor) {
+    if (matchModels(cursor.model, [NoteBlockModel])) {
+      return cursor.model;
     }
-    if (matchModels(curBlock.model, [RootBlockModel, SurfaceBlockModel])) {
+    if (matchModels(cursor.model, [RootBlockModel, SurfaceBlockModel])) {
       return null;
     }
-    if (!curBlock.parentComponent) {
-      break;
-    }
-    curBlock = curBlock.parentComponent;
+    cursor = cursor.parentComponent ?? null;
   }
   return null;
 }

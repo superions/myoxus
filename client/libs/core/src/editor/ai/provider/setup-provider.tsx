@@ -1,25 +1,114 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { GlobalDialogService } from "@myoxus/core/modules/dialogs";
 import type { AuthAccountInfo, AuthService } from "@myoxus/core/modules/server";
 import type { WorkspaceService } from "@myoxus/core/modules/workspace";
-import {
-  type AddContextFileInput,
-  type ContextWorkspaceEmbeddingStatus,
-  type getCopilotHistoriesQuery,
-  type QueryChatHistoriesInput,
-  type RequestOptions,
-  type UpdateChatSessionInput,
+import type {
+  AddContextFileInput,
+  ContextWorkspaceEmbeddingStatus,
+  getCopilotHistoriesQuery,
+  QueryChatHistoriesInput,
+  RequestOptions,
+  UpdateChatSessionInput,
 } from "@myoxus/graphql";
-
-/** Context category enum — matches the server-side GraphQL enum. */
-const ContextCategories = { Tag: "Tag", Collection: "Collection" } as const;
 import { z } from "zod";
 
 import { AIProvider } from "./ai-provider";
 import { type CopilotClient, Endpoint } from "./copilot-client";
 import type { PromptKey } from "./prompt";
-import { textToText, toImage } from "./request";
+import { textToText } from "./request";
 import { persistAttachmentWithBlobSync } from "./request-attachments";
 import { setupTracker } from "./tracker";
+
+const ContextCategories = { Tag: "Tag", Collection: "Collection" } as const;
+
+const CHAT_MESSAGE_TIMEOUT_MS = 5 * 60 * 1000;
+const WORKFLOW_TIMEOUT_MS = 3 * 60 * 1000;
+const CONTEXT_POLL_MIN_MS = 1000;
+const CONTEXT_POLL_MAX_MS = 30_000;
+const EMBEDDING_POLL_MS = 10_000;
+
+type DirectTextActionKey =
+  | "summary"
+  | "improveWriting"
+  | "improveGrammar"
+  | "fixSpelling"
+  | "createHeadings"
+  | "makeLonger"
+  | "makeShorter"
+  | "checkCodeErrors"
+  | "explainCode"
+  | "writeArticle"
+  | "writeTwitterPost"
+  | "writePoem"
+  | "writeOutline"
+  | "writeBlogPost"
+  | "brainstorm"
+  | "findActions"
+  | "explain"
+  | "explainImage"
+  | "generateCaption"
+  | "continueWriting";
+
+/** Declarative prompt table for standard single-input text and vision actions. */
+const DIRECT_TEXT_ACTIONS: ReadonlyArray<
+  readonly [DirectTextActionKey, PromptKey]
+> = [
+  ["summary", "Summary"],
+  ["improveWriting", "Improve writing for it"],
+  ["improveGrammar", "Improve grammar for it"],
+  ["fixSpelling", "Fix spelling for it"],
+  ["createHeadings", "Create headings"],
+  ["makeLonger", "Make it longer"],
+  ["makeShorter", "Make it shorter"],
+  ["checkCodeErrors", "Check code error"],
+  ["explainCode", "Explain this code"],
+  ["writeArticle", "Write an article about this"],
+  ["writeTwitterPost", "Write a twitter about this"],
+  ["writePoem", "Write a poem about this"],
+  ["writeOutline", "Write outline"],
+  ["writeBlogPost", "Write a blog post about this"],
+  ["brainstorm", "Brainstorm ideas about this"],
+  ["findActions", "Find action items from it"],
+  ["explain", "Explain this"],
+  ["explainImage", "Explain this image"],
+  ["generateCaption", "Generate a caption"],
+  ["continueWriting", "Continue writing"],
+];
+
+const SlideLineSchema = z.object({
+  page: z.number(),
+  type: z.enum(["name", "title", "content"]),
+  content: z.string(),
+});
+
+function formatPresentationOutline(rawLines: string): string {
+  const formatted: string[] = [];
+  for (const line of rawLines.split("\n")) {
+    let parsed: z.infer<typeof SlideLineSchema> | null = null;
+    try {
+      parsed = SlideLineSchema.parse(JSON.parse(line));
+    } catch {
+      continue;
+    }
+    if (parsed.type === "name") {
+      formatted.push(`- ${parsed.content}`);
+    } else if (parsed.type === "title") {
+      formatted.push(`  - ${parsed.content}`);
+    } else if (parsed.content.includes("\n")) {
+      formatted.push(
+        parsed.content
+          .split("\n")
+          .map((part) => `    - ${part}`)
+          .join("\n"),
+      );
+    } else {
+      formatted.push(`    - ${parsed.content}`);
+    }
+  }
+  return formatted.join("\n");
+}
 
 function toAIUserInfo(account: AuthAccountInfo | null) {
   if (!account) return null;
@@ -31,22 +120,21 @@ function toAIUserInfo(account: AuthAccountInfo | null) {
   };
 }
 
-const filterStyleToPromptName = new Map<string, PromptKey>(
-  Object.entries({
-    "Clay style": "Convert to Clay style",
-    "Pixel style": "Convert to Pixel style",
-    "Sketch style": "Convert to Sketch style",
-    "Anime style": "Convert to Anime style",
-  }),
-);
-
-const processTypeToPromptName = new Map<string, PromptKey>(
-  Object.entries({
-    Clearer: "Upscale image",
-    "Remove background": "Remove background",
-    "Convert to sticker": "Convert to sticker",
-  }),
-);
+function waitAbortable(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve) => {
+    if (signal.aborted) {
+      resolve();
+      return;
+    }
+    const finish = () => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", finish);
+      resolve();
+    };
+    const timer = setTimeout(finish, ms);
+    signal.addEventListener("abort", finish, { once: true });
+  });
+}
 
 export function setupAIProvider(
   client: CopilotClient,
@@ -54,30 +142,24 @@ export function setupAIProvider(
   authService: AuthService,
   workspaceService: WorkspaceService,
 ) {
-  async function createSession({
-    promptName,
-    workspaceId,
-    docId,
-    sessionId,
-    retry,
-    pinned,
-    reuseLatestChat,
-  }: VirgultumPresets.AICreateSessionOptions) {
-    if (sessionId) return sessionId;
-    if (retry) return AIProvider.LAST_ACTION_SESSIONID;
+  async function createSession(
+    options: VirgultumPresets.AICreateSessionOptions,
+  ) {
+    if (options.sessionId) return options.sessionId;
+    if (options.retry) return AIProvider.LAST_ACTION_SESSIONID;
 
     return client.createSession({
-      workspaceId,
-      docId,
-      promptName,
-      pinned,
-      reuseLatestChat,
+      workspaceId: options.workspaceId,
+      docId: options.docId,
+      promptName: options.promptName,
+      pinned: options.pinned,
+      reuseLatestChat: options.reuseLatestChat,
     });
   }
 
-  AIProvider.provide("userInfo", () => {
-    return toAIUserInfo(authService.session.account$.value);
-  });
+  AIProvider.provide("userInfo", () =>
+    toAIUserInfo(authService.session.account$.value),
+  );
 
   const accountSubscription = authService.session.account$.subscribe(
     (account) => {
@@ -85,14 +167,25 @@ export function setupAIProvider(
     },
   );
 
-  //#region actions
+  for (const [actionId, promptName] of DIRECT_TEXT_ACTIONS) {
+    AIProvider.provide(actionId, async (options) => {
+      const sessionId = await createSession({ promptName, ...options });
+      return textToText({
+        ...options,
+        client,
+        sessionId,
+        content: options.input,
+      });
+    });
+  }
+
   AIProvider.provide("chat", async (options) => {
     const { input, contexts } = options;
-
     const sessionId = await createSession({
       promptName: "Chat With Myoxus AI",
       ...options,
     });
+
     return textToText({
       ...options,
       persistAttachment: (attachment) =>
@@ -105,7 +198,7 @@ export function setupAIProvider(
       client,
       sessionId,
       content: input,
-      timeout: 5 * 60 * 1000, // Message request only; provider owns stream lifetime.
+      timeout: CHAT_MESSAGE_TIMEOUT_MS,
       streamTimeout: null,
       params: {
         docs: contexts?.docs,
@@ -119,19 +212,6 @@ export function setupAIProvider(
     });
   });
 
-  AIProvider.provide("summary", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Summary",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
   AIProvider.provide("translate", async (options) => {
     const sessionId = await createSession({
       promptName: "Translate to",
@@ -142,9 +222,7 @@ export function setupAIProvider(
       client,
       sessionId,
       content: options.input,
-      params: {
-        language: options.lang,
-      },
+      params: { language: options.lang },
     });
   });
 
@@ -157,205 +235,8 @@ export function setupAIProvider(
       ...options,
       client,
       sessionId,
-      params: {
-        tone: options.tone.toLowerCase(),
-      },
       content: options.input,
-    });
-  });
-
-  AIProvider.provide("improveWriting", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Improve writing for it",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("improveGrammar", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Improve grammar for it",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("fixSpelling", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Fix spelling for it",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("createHeadings", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Create headings",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("makeLonger", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Make it longer",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("makeShorter", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Make it shorter",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("checkCodeErrors", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Check code error",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("explainCode", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Explain this code",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("writeArticle", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Write an article about this",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("writeTwitterPost", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Write a twitter about this",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("writePoem", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Write a poem about this",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("writeOutline", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Write outline",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("writeBlogPost", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Write a blog post about this",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("brainstorm", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Brainstorm ideas about this",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("findActions", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Find action items from it",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
+      params: { tone: options.tone.toLowerCase() },
     });
   });
 
@@ -369,8 +250,7 @@ export function setupAIProvider(
       client,
       sessionId,
       content: options.input,
-      // 3 minutes
-      timeout: 180000,
+      timeout: WORKFLOW_TIMEOUT_MS,
       endpoint: Endpoint.Workflow,
     });
   });
@@ -387,60 +267,22 @@ export function setupAIProvider(
       ...options,
       client,
       sessionId,
-      params: {
-        mindmap: options.mindmap,
-        node: options.input,
-      },
       content: options.input,
-    });
-  });
-
-  AIProvider.provide("explain", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Explain this",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("explainImage", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Explain this image",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
+      params: { mindmap: options.mindmap, node: options.input },
     });
   });
 
   AIProvider.provide("makeItReal", async (options) => {
-    let promptName: PromptKey = "Make it real";
-    let content = options.input || "";
+    const hasWireframes = Boolean(options.attachments?.length);
+    const promptName: PromptKey = hasWireframes
+      ? "Make it real"
+      : "Make it real with text";
+    const baseInput = options.input || "";
+    const content = hasWireframes
+      ? `Here are the latest wireframes. Could you make a new website based on these wireframes and notes and send back just the html file?\nHere are our design notes:\n ${baseInput}.`
+      : `Here are the latest notes: \n ${baseInput}.\nCould you make a new website based on these notes and send back just the html file?`;
 
-    // wireframes
-    if (options.attachments?.length) {
-      content = `Here are the latest wireframes. Could you make a new website based on these wireframes and notes and send back just the html file?
-Here are our design notes:\n ${content}.`;
-    } else {
-      // notes
-      promptName = "Make it real with text";
-      content = `Here are the latest notes: \n ${content}.
-Could you make a new website based on these notes and send back just the html file?`;
-    }
-
-    const sessionId = await createSession({
-      promptName,
-      ...options,
-    });
-
+    const sessionId = await createSession({ promptName, ...options });
     return textToText({
       ...options,
       client,
@@ -450,42 +292,6 @@ Could you make a new website based on these notes and send back just the html fi
   });
 
   AIProvider.provide("createSlides", async (options) => {
-    const SlideSchema = z.object({
-      page: z.number(),
-      type: z.enum(["name", "title", "content"]),
-      content: z.string(),
-    });
-    type Slide = z.infer<typeof SlideSchema>;
-    const parseJson = (json: string) => {
-      try {
-        return SlideSchema.parse(JSON.parse(json));
-      } catch {
-        return null;
-      }
-    };
-    // TODO(@darkskygit): move this to backend's workflow after workflow support custom code action
-    const postfix = (text: string): string => {
-      const slides = text
-        .split("\n")
-        .map(parseJson)
-        .filter((v): v is Slide => !!v);
-      return slides
-        .map((slide) => {
-          if (slide.type === "name") {
-            return `- ${slide.content}`;
-          } else if (slide.type === "title") {
-            return `  - ${slide.content}`;
-          } else if (slide.content.includes("\n")) {
-            return slide.content
-              .split("\n")
-              .map((c) => `    - ${c}`)
-              .join("\n");
-          } else {
-            return `    - ${slide.content}`;
-          }
-        })
-        .join("\n");
-    };
     const sessionId = await createSession({
       promptName: "workflow:presentation",
       ...options,
@@ -495,101 +301,11 @@ Could you make a new website based on these notes and send back just the html fi
       client,
       sessionId,
       content: options.input,
-      // 3 minutes
-      timeout: 180000,
+      timeout: WORKFLOW_TIMEOUT_MS,
       endpoint: Endpoint.Workflow,
-      postfix,
+      postfix: formatPresentationOutline,
     });
   });
-
-  AIProvider.provide("createImage", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Generate image",
-      ...options,
-    });
-    return toImage({
-      ...options,
-      client,
-      sessionId,
-      content:
-        !options.input && options.attachments
-          ? "Make the image more detailed."
-          : options.input,
-      // 5 minutes
-      timeout: 300000,
-    });
-  });
-
-  AIProvider.provide("filterImage", async (options) => {
-    // test to image
-    const promptName: PromptKey | undefined = filterStyleToPromptName.get(
-      options.style,
-    );
-    if (!promptName) {
-      throw new Error("filterImage requires a promptName");
-    }
-    const sessionId = await createSession({
-      promptName,
-      ...options,
-    });
-    const isWorkflow = !!promptName?.startsWith("workflow:");
-    return toImage({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-      timeout: 180000,
-      endpoint: isWorkflow ? Endpoint.Workflow : Endpoint.Images,
-    });
-  });
-
-  AIProvider.provide("processImage", async (options) => {
-    // test to image
-    const promptName: PromptKey | undefined = processTypeToPromptName.get(
-      options.type,
-    );
-    if (!promptName) {
-      throw new Error("processImage requires a promptName");
-    }
-    const sessionId = await createSession({
-      promptName,
-      ...options,
-    });
-    return toImage({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-      timeout: 180000,
-    });
-  });
-
-  AIProvider.provide("generateCaption", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Generate a caption",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-
-  AIProvider.provide("continueWriting", async (options) => {
-    const sessionId = await createSession({
-      promptName: "Continue writing",
-      ...options,
-    });
-    return textToText({
-      ...options,
-      client,
-      sessionId,
-      content: options.input,
-    });
-  });
-  //#endregion
 
   AIProvider.provide("session", {
     exportMessage: (messageId, format) =>
@@ -606,104 +322,79 @@ Could you make a new website based on these notes and send back just the html fi
           reuseLatestChat: options.reuseLatestChat,
         });
       }
-
       const sessionId = await createSession(options);
       if (!sessionId) return undefined;
       return client.getSession(options.workspaceId, sessionId);
     },
-    getSession: async (workspaceId: string, sessionId: string) => {
-      return client.getSession(workspaceId, sessionId);
-    },
-    getSessions: async (
+    getSession: (workspaceId: string, sessionId: string) =>
+      client.getSession(workspaceId, sessionId),
+    getSessions: (
       workspaceId: string,
       docId?: string,
       options?: QueryChatHistoriesInput,
-    ) => {
-      return client.getSessions(workspaceId, {}, docId, options);
-    },
-    getRecentSessions: async (
-      workspaceId: string,
-      limit?: number,
-      offset?: number,
-    ) => {
-      return client.getRecentSessions(workspaceId, limit, offset);
-    },
-    updateSession: async (options: UpdateChatSessionInput) => {
-      return client.updateSession(options);
-    },
+    ) => client.getSessions(workspaceId, {}, docId, options),
+    getRecentSessions: (workspaceId: string, limit?: number, offset?: number) =>
+      client.getRecentSessions(workspaceId, limit, offset),
+    updateSession: (options: UpdateChatSessionInput) =>
+      client.updateSession(options),
   });
 
   AIProvider.provide("context", {
-    createContext: async (workspaceId: string, sessionId: string) => {
-      return client.createContext(workspaceId, sessionId);
-    },
-    getContextId: async (workspaceId: string, sessionId: string) => {
-      return client.getContextId(workspaceId, sessionId);
-    },
-    addContextDoc: async (options: { contextId: string; docId: string }) => {
-      return client.addContextDoc(options);
-    },
-    removeContextDoc: async (options: { contextId: string; docId: string }) => {
-      return client.removeContextDoc(options);
-    },
-    addContextFile: async (file: File, options: AddContextFileInput) => {
-      return client.addContextFile(file, options);
-    },
-    removeContextFile: async (options: {
-      contextId: string;
-      fileId: string;
-    }) => {
-      return client.removeContextFile(options);
-    },
-    retryContextFile: async (options) => client.retryContextFile(options),
-    addContextTag: async (options: {
+    createContext: (workspaceId: string, sessionId: string) =>
+      client.createContext(workspaceId, sessionId),
+    getContextId: (workspaceId: string, sessionId: string) =>
+      client.getContextId(workspaceId, sessionId),
+    addContextDoc: (options: { contextId: string; docId: string }) =>
+      client.addContextDoc(options),
+    removeContextDoc: (options: { contextId: string; docId: string }) =>
+      client.removeContextDoc(options),
+    addContextFile: (file: File, options: AddContextFileInput) =>
+      client.addContextFile(file, options),
+    removeContextFile: (options: { contextId: string; fileId: string }) =>
+      client.removeContextFile(options),
+    retryContextFile: (options) => client.retryContextFile(options),
+    addContextTag: (options: {
       contextId: string;
       tagId: string;
       docIds: string[];
-    }) => {
-      return client.addContextCategory({
+    }) =>
+      client.addContextCategory({
         contextId: options.contextId,
         type: ContextCategories.Tag,
         categoryId: options.tagId,
         docs: options.docIds,
-      });
-    },
-    removeContextTag: async (options: { contextId: string; tagId: string }) => {
-      return client.removeContextCategory({
+      }),
+    removeContextTag: (options: { contextId: string; tagId: string }) =>
+      client.removeContextCategory({
         contextId: options.contextId,
         type: ContextCategories.Tag,
         categoryId: options.tagId,
-      });
-    },
-    addContextCollection: async (options: {
+      }),
+    addContextCollection: (options: {
       contextId: string;
       collectionId: string;
       docIds: string[];
-    }) => {
-      return client.addContextCategory({
+    }) =>
+      client.addContextCategory({
         contextId: options.contextId,
         type: ContextCategories.Collection,
         categoryId: options.collectionId,
         docs: options.docIds,
-      });
-    },
-    removeContextCollection: async (options: {
+      }),
+    removeContextCollection: (options: {
       contextId: string;
       collectionId: string;
-    }) => {
-      return client.removeContextCategory({
+    }) =>
+      client.removeContextCategory({
         contextId: options.contextId,
         type: ContextCategories.Collection,
         categoryId: options.collectionId,
-      });
-    },
-    getContextDocsAndFiles: async (
+      }),
+    getContextDocsAndFiles: (
       workspaceId: string,
       sessionId: string,
       contextId: string,
-    ) => {
-      return client.getContextDocsAndFiles(workspaceId, sessionId, contextId);
-    },
+    ) => client.getContextDocsAndFiles(workspaceId, sessionId, contextId),
     pollContextDocsAndFiles: async (
       workspaceId: string,
       sessionId: string,
@@ -713,27 +404,21 @@ Could you make a new website based on these notes and send back just the html fi
       ) => void,
       abortSignal: AbortSignal,
     ) => {
-      const poll = async () => {
+      let attempt = 0;
+      while (!abortSignal.aborted) {
         const result = await client.getContextDocsAndFiles(
           workspaceId,
           sessionId,
           contextId,
         );
+        if (abortSignal.aborted) return;
         onPoll(result);
-      };
-
-      let attempts = 0;
-      const MIN_INTERVAL = 1000;
-      const MAX_INTERVAL = 30 * 1000;
-
-      while (!abortSignal.aborted) {
-        await poll();
-        const interval = Math.min(
-          MIN_INTERVAL * Math.pow(1.5, attempts),
-          MAX_INTERVAL,
+        const delay = Math.min(
+          CONTEXT_POLL_MIN_MS * Math.pow(1.5, attempt),
+          CONTEXT_POLL_MAX_MS,
         );
-        attempts++;
-        await new Promise((resolve) => setTimeout(resolve, interval));
+        attempt += 1;
+        await waitAbortable(delay, abortSignal);
       }
     },
     pollEmbeddingStatus: async (
@@ -741,66 +426,47 @@ Could you make a new website based on these notes and send back just the html fi
       onPoll: (result: ContextWorkspaceEmbeddingStatus) => void,
       abortSignal: AbortSignal,
     ) => {
-      const INTERVAL = 10 * 1000;
       while (!abortSignal.aborted) {
         const result = await client.getEmbeddingStatus(workspaceId);
         if (abortSignal.aborted) return;
         onPoll(result);
-        // Finished/failed are terminal, including an unconfigured endpoint.
-        // Do not leave a workspace-wide timer running after a known outcome.
+        // Terminal outcomes (finished/failed/unconfigured) stop the poll loop.
         if (result.status !== "processing") return;
-        await new Promise<void>((resolve) => {
-          const done = () => {
-            clearTimeout(timer);
-            abortSignal.removeEventListener("abort", done);
-            resolve();
-          };
-          const timer = setTimeout(done, INTERVAL);
-          abortSignal.addEventListener("abort", done, { once: true });
-          if (abortSignal.aborted) done();
-        });
+        await waitAbortable(EMBEDDING_POLL_MS, abortSignal);
       }
     },
-    matchContext: async (
+    matchContext: (
       content: string,
       contextId?: string,
       workspaceId?: string,
       limit?: number,
       scopedThreshold?: number,
       threshold?: number,
-    ) => {
-      return client.matchContext(
+    ) =>
+      client.matchContext(
         content,
         contextId,
         workspaceId,
         limit,
         scopedThreshold,
         threshold,
-      );
-    },
-    applyDocUpdates: async (
+      ),
+    applyDocUpdates: (
       workspaceId: string,
       docId: string,
       op: string,
       updates: string,
-    ) => {
-      return client.applyDocUpdates(workspaceId, docId, op, updates);
-    },
-    addContextBlob: async (options: { blobId: string; contextId: string }) => {
-      return client.addContextBlob({
+    ) => client.applyDocUpdates(workspaceId, docId, op, updates),
+    addContextBlob: (options: { blobId: string; contextId: string }) =>
+      client.addContextBlob({
         contextId: options.contextId,
         blobId: options.blobId,
-      });
-    },
-    removeContextBlob: async (options: {
-      blobId: string;
-      contextId: string;
-    }) => {
-      return client.removeContextBlob({
+      }),
+    removeContextBlob: (options: { blobId: string; contextId: string }) =>
+      client.removeContextBlob({
         contextId: options.contextId,
         blobId: options.blobId,
-      });
-    },
+      }),
   });
 
   AIProvider.provide("histories", {
@@ -808,27 +474,23 @@ Could you make a new website based on these notes and send back just the html fi
       workspaceId: string,
       docId: string,
     ): Promise<VirgultumPresets.AIHistory[]> => {
-      // @ts-expect-error - 'action' is missing in server impl
-      return (
-        (await client.getHistories(workspaceId, {}, docId, {
-          action: true,
-          withPrompt: true,
-          withMessages: true,
-        })) ?? []
-      );
+      const rows = await client.getHistories(workspaceId, {}, docId, {
+        action: true,
+        withPrompt: true,
+        withMessages: true,
+      });
+      return (rows ?? []) as unknown as VirgultumPresets.AIHistory[];
     },
     chats: async (
       workspaceId: string,
       sessionId: string,
       docId?: string,
     ): Promise<VirgultumPresets.AIHistory[]> => {
-      // @ts-expect-error - 'action' is missing in server impl
-      return (
-        (await client.getHistories(workspaceId, {}, docId, {
-          sessionId,
-          withMessages: true,
-        })) ?? []
-      );
+      const rows = await client.getHistories(workspaceId, {}, docId, {
+        sessionId,
+        withMessages: true,
+      });
+      return (rows ?? []) as unknown as VirgultumPresets.AIHistory[];
     },
     cleanup: async (
       workspaceId: string,
@@ -844,51 +506,47 @@ Could you make a new website based on these notes and send back just the html fi
         typeof getCopilotHistoriesQuery
       >["variables"]["options"],
     ): Promise<VirgultumPresets.AIHistoryIds[]> => {
-      // @ts-expect-error - 'action' is missing in server impl
-      return await client.getHistoryIds(workspaceId, {}, docId, options);
+      const rows = await client.getHistoryIds(workspaceId, {}, docId, options);
+      return rows as unknown as VirgultumPresets.AIHistoryIds[];
     },
   });
 
   AIProvider.provide("photoEngine", {
     async searchImages(options): Promise<string[]> {
-      let url = "/api/copilot/unsplash/photos";
-      if (options.query) {
-        url += `?query=${encodeURIComponent(options.query)}`;
+      const endpoint = options.query
+        ? `/api/copilot/unsplash/photos?query=${encodeURIComponent(options.query)}`
+        : "/api/copilot/unsplash/photos";
+      const response = await fetch(endpoint);
+      const payload: {
+        results?: Array<{ urls: { regular: string } }>;
+      } = await response.json();
+      if (!payload.results?.length) {
+        return [];
       }
-      const result: {
-        results?: {
-          urls: {
-            regular: string;
-          };
-        }[];
-      } = await fetch(url.toString()).then((res: Response) => res.json());
-      if (!result.results) return [];
-      return result.results.map((r) => {
-        const url = new URL(r.urls.regular);
-        url.searchParams.set("fit", "crop");
-        url.searchParams.set("crop", "edges");
-        url.searchParams.set("dpr", (window.devicePixelRatio ?? 2).toString());
-        url.searchParams.set("w", `${options.width}`);
-        url.searchParams.set("h", `${options.height}`);
-        return url.toString();
+
+      const dpr = String(window.devicePixelRatio ?? 2);
+      return payload.results.map((entry) => {
+        const parsed = new URL(entry.urls.regular);
+        parsed.searchParams.set("fit", "crop");
+        parsed.searchParams.set("crop", "edges");
+        parsed.searchParams.set("dpr", dpr);
+        parsed.searchParams.set("w", String(options.width));
+        parsed.searchParams.set("h", String(options.height));
+        return parsed.toString();
       });
     },
   });
 
-  AIProvider.provide("forkChat", (options) => {
-    return client.forkSession(options);
-  });
+  AIProvider.provide("forkChat", (options) => client.forkSession(options));
 
-  const disposeRequestLoginHandler = AIProvider.slots.requestLogin.subscribe(
-    () => {
-      globalDialogService.open("sign-in", {});
-    },
-  );
+  const loginSubscription = AIProvider.slots.requestLogin.subscribe(() => {
+    globalDialogService.open("sign-in", {});
+  });
 
   setupTracker();
 
   return () => {
-    disposeRequestLoginHandler.unsubscribe();
+    loginSubscription.unsubscribe();
     accountSubscription.unsubscribe();
   };
 }

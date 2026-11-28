@@ -4,7 +4,7 @@
 
 import { signal } from "@preact/signals-core";
 import { afterEach, expect, it, vi } from "vitest";
-import type { LinkedDocContext, LinkedMenuGroup } from "../config";
+import type { LinkedDocContext, LinkedMenuGroup } from "../picker-config";
 import { DocumentPickerSession } from "../document-picker-session";
 
 const sessions: DocumentPickerSession[] = [];

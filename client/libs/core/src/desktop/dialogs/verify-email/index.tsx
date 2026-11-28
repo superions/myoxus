@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type {
   DialogComponentProps,
   GLOBAL_DIALOG_SCHEMA,
@@ -15,7 +18,7 @@ import {
 import { useI18n } from "@myoxus/i18n";
 import { useLiveData, useService } from "@myoxus/infra";
 import { ConfirmModal, Input, notify } from "@myoxus/ui-facade";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 export const VerifyEmailDialog = ({
   close,
@@ -25,15 +28,12 @@ export const VerifyEmailDialog = ({
   const t = useI18n();
   const defaultServerService = useService(DefaultServerService);
   const serversService = useService(ServersService);
-  let server;
 
-  if (serverBaseUrl) {
-    server = serversService.getServerByBaseUrl(serverBaseUrl);
-    if (!server) {
-      throw new Unreachable("Server not found");
-    }
-  } else {
-    server = defaultServerService.server;
+  const server = serverBaseUrl
+    ? serversService.getServerByBaseUrl(serverBaseUrl)
+    : defaultServerService.server;
+  if (!server) {
+    throw new Unreachable("Server not found");
   }
 
   const authService = server.scope.get(AuthService);
@@ -42,25 +42,20 @@ export const VerifyEmailDialog = ({
   const [hasSentEmail, setHasSentEmail] = useState(false);
 
   if (!email) {
-    // should not happen
     throw new Unreachable();
   }
 
-  const onSendEmail = async () => {
+  const handleSendEmail = useCallback(async () => {
     try {
       if (changeEmail) {
         await server.gql({
           query: sendChangeEmailMutation,
-          variables: {
-            callbackUrl: `/auth/changeEmail`,
-          },
+          variables: { callbackUrl: "/auth/changeEmail" },
         });
       } else {
         await server.gql({
           query: sendVerifyEmailMutation,
-          variables: {
-            callbackUrl: `/auth/verify-email`,
-          },
+          variables: { callbackUrl: "/auth/verify-email" },
         });
       }
 
@@ -68,19 +63,21 @@ export const VerifyEmailDialog = ({
         title: t["com.myoxus.auth.send.verify.email.hint"](),
       });
       setHasSentEmail(true);
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       notify.error({
         title: t["com.myoxus.auth.sent.change.email.fail"](),
       });
-      throw err;
+      throw error;
     }
-  };
+  }, [changeEmail, server, t]);
 
   return (
     <ConfirmModal
       open
-      onOpenChange={(open) => !open && close()}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) close();
+      }}
       title={
         changeEmail
           ? t["com.myoxus.settings.email.action.change"]()
@@ -99,7 +96,7 @@ export const VerifyEmailDialog = ({
       }
       confirmButtonOptions={{ disabled: hasSentEmail }}
       closeOnConfirm={false}
-      onConfirm={onSendEmail}
+      onConfirm={handleSendEmail}
       contentOptions={{
         ["data-testid" as string]: "verify-email-modal",
       }}

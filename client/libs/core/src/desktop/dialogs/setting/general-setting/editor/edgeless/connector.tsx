@@ -1,12 +1,14 @@
-import { TextUtils } from "@virgultum/editor/blocks/surface";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   edgelessTextSizeOptions,
   EditorSettingService,
   formatEdgelessTextSizeLabel,
 } from "@myoxus/core/modules/editor-setting";
 import { useI18n } from "@myoxus/i18n";
-import { useFramework, useLiveData } from "@myoxus/infra";
-import { getSurfaceBlock } from "@virgultum/editor/blocks/surface";
+import { useLiveData, useService } from "@myoxus/infra";
+import { TextUtils } from "@virgultum/editor/blocks/surface";
 import {
   ConnectorMode,
   DefaultTheme,
@@ -16,8 +18,6 @@ import {
   StrokeStyle,
   TextAlign,
 } from "@virgultum/editor/model";
-import type { Store } from "@virgultum/editor/store";
-import { isEqual } from "lodash-es";
 import { useCallback, useMemo } from "react";
 
 import {
@@ -32,75 +32,71 @@ import {
   EditorRadioGroup,
   EditorSlider,
 } from "../menu";
-import { sortedFontWeightEntries, usePalettes } from "../utils";
+import { colorsEqual, sortedFontWeightEntries, usePalettes } from "../utils";
 import { Point } from "./point";
-import { EdgelessSnapshot } from "./snapshot";
+import { EdgelessStylePreview } from "./preview";
 
-enum ConnecterStyle {
-  General = "general",
-  Scribbled = "scribbled",
-}
+type ConnectorStyleKind = "general" | "scribbled";
+
+const THICKNESS_NODES = [2, 4, 6, 8, 10, 12];
 
 export const ConnectorSettings = () => {
   const t = useI18n();
-  const framework = useFramework();
-  const { editorSetting } = framework.get(EditorSettingService);
+  const { editorSetting } = useService(EditorSettingService);
   const settings = useLiveData(editorSetting.settings$);
-  const {
-    palettes: StrokeColorShortPalettes,
-    getCurrentColor: getCurrentStrokeColor,
-  } = usePalettes(
-    DefaultTheme.StrokeColorShortPalettes,
-    DefaultTheme.connectorColor,
-  );
-  const { palettes: textColorPalettes, getCurrentColor: getCurrentTextColor } =
+  const connector = settings.connector;
+
+  const { palettes: strokePalettes, getCurrentColor: getCurrentStrokeColor } =
+    usePalettes(
+      DefaultTheme.StrokeColorShortPalettes,
+      DefaultTheme.connectorColor,
+    );
+  const { palettes: textPalettes, getCurrentColor: getCurrentTextColor } =
     usePalettes(DefaultTheme.StrokeColorShortPalettes, DefaultTheme.black);
 
-  const connecterStyleItems = useMemo<RadioItem[]>(
+  const currentColor = getCurrentStrokeColor(connector.stroke);
+  const textColor = getCurrentTextColor(connector.labelStyle.color);
+
+  const updateLabelStyle = useCallback(
+    (patch: Partial<typeof connector.labelStyle>) => {
+      editorSetting.set("connector", { labelStyle: patch });
+    },
+    [editorSetting],
+  );
+
+  const styleItems = useMemo<RadioItem[]>(
     () => [
       {
-        value: ConnecterStyle.General,
+        value: "general",
         label: t["com.myoxus.settings.editorSettings.edgeless.style.general"](),
       },
       {
-        value: ConnecterStyle.Scribbled,
+        value: "scribbled",
         label:
           t["com.myoxus.settings.editorSettings.edgeless.style.scribbled"](),
       },
     ],
     [t],
   );
-  const connecterStyle: ConnecterStyle = settings.connector.rough
-    ? ConnecterStyle.Scribbled
-    : ConnecterStyle.General;
-  const setConnecterStyle = useCallback(
-    (value: ConnecterStyle) => {
-      const isRough = value === ConnecterStyle.Scribbled;
-      editorSetting.set("connector", {
-        rough: isRough,
-      });
-    },
-    [editorSetting],
-  );
 
   const connectorShapeItems = useMemo<RadioItem[]>(
     () => [
       {
-        value: ConnectorMode.Orthogonal as any,
+        value: ConnectorMode.Orthogonal as unknown as string,
         label:
           t[
             "com.myoxus.settings.editorSettings.edgeless.connecter.connector-shape.elbowed"
           ](),
       },
       {
-        value: ConnectorMode.Curve as any,
+        value: ConnectorMode.Curve as unknown as string,
         label:
           t[
             "com.myoxus.settings.editorSettings.edgeless.connecter.connector-shape.curve"
           ](),
       },
       {
-        value: ConnectorMode.Straight as any,
+        value: ConnectorMode.Straight as unknown as string,
         label:
           t[
             "com.myoxus.settings.editorSettings.edgeless.connecter.connector-shape.straight"
@@ -108,15 +104,6 @@ export const ConnectorSettings = () => {
       },
     ],
     [t],
-  );
-  const connectorShape: ConnectorMode = settings.connector.mode;
-  const setConnectorShape = useCallback(
-    (value: ConnectorMode) => {
-      editorSetting.set("connector", {
-        mode: value,
-      });
-    },
-    [editorSetting],
   );
 
   const borderStyleItems = useMemo<RadioItem[]>(
@@ -134,82 +121,6 @@ export const ConnectorSettings = () => {
     ],
     [t],
   );
-  const borderStyle: StrokeStyle = settings.connector.strokeStyle;
-  const setBorderStyle = useCallback(
-    (value: StrokeStyle) => {
-      editorSetting.set("connector", {
-        strokeStyle: value,
-      });
-    },
-    [editorSetting],
-  );
-
-  const borderThickness = settings.connector.strokeWidth;
-  const setBorderThickness = useCallback(
-    (value: number[]) => {
-      editorSetting.set("connector", {
-        strokeWidth: value[0],
-      });
-    },
-    [editorSetting],
-  );
-
-  const currentColor = useMemo(() => {
-    const color = settings.connector.stroke;
-    return getCurrentStrokeColor(color);
-  }, [getCurrentStrokeColor, settings.connector.stroke]);
-
-  const colorItems = useMemo(() => {
-    const { stroke } = settings.connector;
-    return StrokeColorShortPalettes.map(
-      ({ key, label, value, resolvedValue }) => {
-        const handler = () => {
-          editorSetting.set("connector", { stroke: value });
-        };
-        const isSelected = isEqual(stroke, value);
-        return (
-          <MenuItem
-            key={key}
-            onSelect={handler}
-            selected={isSelected}
-            prefix={<Point color={resolvedValue} />}
-          >
-            {label}
-          </MenuItem>
-        );
-      },
-    );
-  }, [editorSetting, settings, StrokeColorShortPalettes]);
-
-  const startEndPointItems = useMemo(() => {
-    const { frontEndpointStyle } = settings.connector;
-    return Object.entries(PointStyle).map(([name, value]) => {
-      const handler = () => {
-        editorSetting.set("connector", { frontEndpointStyle: value });
-      };
-      const isSelected = frontEndpointStyle === value;
-      return (
-        <MenuItem key={name} onSelect={handler} selected={isSelected}>
-          {name}
-        </MenuItem>
-      );
-    });
-  }, [editorSetting, settings]);
-
-  const endEndPointItems = useMemo(() => {
-    const { rearEndpointStyle } = settings.connector;
-    return Object.entries(PointStyle).map(([name, value]) => {
-      const handler = () => {
-        editorSetting.set("connector", { rearEndpointStyle: value });
-      };
-      const isSelected = rearEndpointStyle === value;
-      return (
-        <MenuItem key={name} onSelect={handler} selected={isSelected}>
-          {name}
-        </MenuItem>
-      );
-    });
-  }, [editorSetting, settings]);
 
   const alignItems = useMemo<RadioItem[]>(
     () => [
@@ -238,129 +149,173 @@ export const ConnectorSettings = () => {
     [t],
   );
 
-  const textAlignment = settings.connector.labelStyle.textAlign;
-  const setTextAlignment = useCallback(
-    (value: TextAlign) => {
-      editorSetting.set("connector", {
-        labelStyle: {
-          textAlign: value,
-        },
-      });
+  const connectorStyle: ConnectorStyleKind = connector.rough
+    ? "scribbled"
+    : "general";
+
+  const setConnectorStyle = useCallback(
+    (value: ConnectorStyleKind) => {
+      editorSetting.set("connector", { rough: value === "scribbled" });
     },
     [editorSetting],
   );
 
-  const fontFamilyItems = useMemo(() => {
-    const { fontFamily } = settings.connector.labelStyle;
-    return TextUtils.getFontFamilies().map((value) => {
-      const name = value;
-      const handler = () => {
-        editorSetting.set("connector", {
-          labelStyle: {
-            fontFamily: value,
-          },
-        });
-      };
-      const isSelected = TextUtils.getFontFamilyName(fontFamily) === value;
-      return (
-        <MenuItem key={name} onSelect={handler} selected={isSelected}>
-          {name}
-        </MenuItem>
-      );
-    });
-  }, [editorSetting, settings]);
+  const setConnectorShape = useCallback(
+    (value: ConnectorMode) => {
+      editorSetting.set("connector", { mode: value });
+    },
+    [editorSetting],
+  );
 
-  const fontStyleItems = useMemo(() => {
-    const { fontStyle } = settings.connector.labelStyle;
-    return Object.entries(FontStyle).map(([name, value]) => {
-      const handler = () => {
-        editorSetting.set("connector", {
-          labelStyle: {
-            fontStyle: value,
-          },
-        });
-      };
-      const isSelected = fontStyle === value;
-      return (
-        <MenuItem key={name} onSelect={handler} selected={isSelected}>
-          {name}
-        </MenuItem>
-      );
-    });
-  }, [editorSetting, settings]);
+  const setBorderStyle = useCallback(
+    (value: StrokeStyle) => {
+      editorSetting.set("connector", { strokeStyle: value });
+    },
+    [editorSetting],
+  );
 
-  const fontWeightItems = useMemo(() => {
-    const { fontWeight } = settings.connector.labelStyle;
-    return sortedFontWeightEntries.map(([name, value]) => {
-      const handler = () => {
-        editorSetting.set("connector", {
-          labelStyle: {
-            fontWeight: value,
-          },
-        });
-      };
-      const isSelected = fontWeight === value;
-      return (
-        <MenuItem key={name} onSelect={handler} selected={isSelected}>
-          {name}
-        </MenuItem>
-      );
-    });
-  }, [editorSetting, settings]);
+  const setBorderThickness = useCallback(
+    (value: number[]) => {
+      editorSetting.set("connector", { strokeWidth: value[0] });
+    },
+    [editorSetting],
+  );
 
-  const fontSizeItems = useMemo(() => {
-    const { fontSize } = settings.connector.labelStyle;
-    return edgelessTextSizeOptions.map((value) => {
-      const handler = () => {
-        editorSetting.set("connector", {
-          labelStyle: {
-            fontSize: value,
-          },
-        });
-      };
-      const label = formatEdgelessTextSizeLabel(value);
-      const isSelected = fontSize === value;
-      return (
-        <MenuItem key={value} onSelect={handler} selected={isSelected}>
-          {label}
-        </MenuItem>
-      );
-    });
-  }, [editorSetting, settings]);
+  const setTextAlignment = useCallback(
+    (value: TextAlign) => updateLabelStyle({ textAlign: value }),
+    [updateLabelStyle],
+  );
 
-  const textColorItems = useMemo(() => {
-    const { color } = settings.connector.labelStyle;
-    return textColorPalettes.map(({ key, label, value, resolvedValue }) => {
-      const handler = () => {
-        editorSetting.set("connector", {
-          labelStyle: {
-            color: value,
-          },
-        });
-      };
-      const isSelected = isEqual(color, value);
-      return (
+  const colorItems = useMemo(
+    () =>
+      strokePalettes.map(({ key, label, value, resolvedValue }) => (
         <MenuItem
           key={key}
-          onSelect={handler}
-          selected={isSelected}
+          onSelect={() => {
+            editorSetting.set("connector", { stroke: value });
+          }}
+          selected={colorsEqual(connector.stroke, value)}
           prefix={<Point color={resolvedValue} />}
         >
           {label}
         </MenuItem>
-      );
-    });
-  }, [editorSetting, settings, textColorPalettes]);
+      )),
+    [connector.stroke, editorSetting, strokePalettes],
+  );
 
-  const textColor = useMemo(() => {
-    const { color } = settings.connector.labelStyle;
-    return getCurrentTextColor(color);
-  }, [getCurrentTextColor, settings]);
+  const startEndpointItems = useMemo(
+    () =>
+      Object.entries(PointStyle).map(([name, value]) => (
+        <MenuItem
+          key={name}
+          onSelect={() => {
+            editorSetting.set("connector", { frontEndpointStyle: value });
+          }}
+          selected={connector.frontEndpointStyle === value}
+        >
+          {name}
+        </MenuItem>
+      )),
+    [connector.frontEndpointStyle, editorSetting],
+  );
 
-  const getElements = useCallback((doc: Store) => {
-    const surface = getSurfaceBlock(doc);
-    return surface?.getElementsByType("connector") || [];
-  }, []);
+  const endEndpointItems = useMemo(
+    () =>
+      Object.entries(PointStyle).map(([name, value]) => (
+        <MenuItem
+          key={name}
+          onSelect={() => {
+            editorSetting.set("connector", { rearEndpointStyle: value });
+          }}
+          selected={connector.rearEndpointStyle === value}
+        >
+          {name}
+        </MenuItem>
+      )),
+    [connector.rearEndpointStyle, editorSetting],
+  );
+
+  const currentFontFamily = TextUtils.getFontFamilyName(
+    connector.labelStyle.fontFamily,
+  );
+  const fontFamilyItems = useMemo(
+    () =>
+      TextUtils.getFontFamilies().map((family) => (
+        <MenuItem
+          key={family}
+          onSelect={() => updateLabelStyle({ fontFamily: family })}
+          selected={currentFontFamily === family}
+        >
+          {family}
+        </MenuItem>
+      )),
+    [currentFontFamily, updateLabelStyle],
+  );
+
+  const fontSizeItems = useMemo(
+    () =>
+      edgelessTextSizeOptions.map((size) => (
+        <MenuItem
+          key={size}
+          onSelect={() => updateLabelStyle({ fontSize: size })}
+          selected={connector.labelStyle.fontSize === size}
+        >
+          {formatEdgelessTextSizeLabel(size)}
+        </MenuItem>
+      )),
+    [connector.labelStyle.fontSize, updateLabelStyle],
+  );
+
+  const fontStyleItems = useMemo(
+    () =>
+      Object.entries(FontStyle).map(([name, value]) => (
+        <MenuItem
+          key={name}
+          onSelect={() => updateLabelStyle({ fontStyle: value })}
+          selected={connector.labelStyle.fontStyle === value}
+        >
+          {name}
+        </MenuItem>
+      )),
+    [connector.labelStyle.fontStyle, updateLabelStyle],
+  );
+
+  const fontWeightItems = useMemo(
+    () =>
+      sortedFontWeightEntries.map(([name, value]) => (
+        <MenuItem
+          key={name}
+          onSelect={() => updateLabelStyle({ fontWeight: value })}
+          selected={connector.labelStyle.fontWeight === value}
+        >
+          {name}
+        </MenuItem>
+      )),
+    [connector.labelStyle.fontWeight, updateLabelStyle],
+  );
+
+  const textColorItems = useMemo(
+    () =>
+      textPalettes.map(({ key, label, value, resolvedValue }) => (
+        <MenuItem
+          key={key}
+          onSelect={() => updateLabelStyle({ color: value })}
+          selected={colorsEqual(connector.labelStyle.color, value)}
+          prefix={<Point color={resolvedValue} />}
+        >
+          {label}
+        </MenuItem>
+      )),
+    [connector.labelStyle.color, textPalettes, updateLabelStyle],
+  );
+
+  const currentShapeLabel =
+    connectorShapeItems.find(
+      (item) => item.value === (connector.mode as unknown as string),
+    )?.label ?? String(connector.mode);
+  const currentBorderLabel =
+    borderStyleItems.find((item) => item.value === connector.strokeStyle)
+      ?.label ?? connector.strokeStyle;
   const title = t["com.myoxus.settings.editorSettings.edgeless.connecter"]();
 
   return (
@@ -368,17 +323,60 @@ export const ConnectorSettings = () => {
       title={title}
       testId="editor-settings-section-edgeless-connector"
     >
-      <EdgelessSnapshot
-        title={title}
-        docName="connector"
-        keyName="connector"
-        getElements={getElements}
+      <EdgelessStylePreview
+        sampleTitle={t[
+          "com.myoxus.settings.editorSettings.edgeless.preview.connector.label"
+        ]()}
+        items={[
+          ...(currentColor
+            ? [
+                {
+                  label:
+                    t[
+                      "com.myoxus.settings.editorSettings.edgeless.connecter.color"
+                    ](),
+                  value: currentColor.label,
+                  color: currentColor.resolvedValue,
+                },
+              ]
+            : []),
+          {
+            label:
+              t[
+                "com.myoxus.settings.editorSettings.edgeless.connecter.connector-shape"
+              ](),
+            value: currentShapeLabel,
+          },
+          {
+            label:
+              t[
+                "com.myoxus.settings.editorSettings.edgeless.connecter.border-style"
+              ](),
+            value: (
+              <>
+                {currentBorderLabel} ({connector.strokeWidth}px)
+              </>
+            ),
+          },
+          ...(textColor
+            ? [
+                {
+                  label:
+                    t[
+                      "com.myoxus.settings.editorSettings.edgeless.shape.text-color"
+                    ](),
+                  value: textColor.label,
+                  color: textColor.resolvedValue,
+                },
+              ]
+            : []),
+        ]}
       />
       <SettingsRow
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.connecter.color"
         ]()}
-        desc={""}
+        desc=""
       >
         {currentColor ? (
           <DropdownMenu
@@ -395,23 +393,23 @@ export const ConnectorSettings = () => {
       </SettingsRow>
       <SettingsRow
         name={t["com.myoxus.settings.editorSettings.edgeless.style"]()}
-        desc={""}
+        desc=""
       >
         <EditorRadioGroup
-          items={connecterStyleItems}
-          value={connecterStyle}
-          onChange={setConnecterStyle}
+          items={styleItems}
+          value={connectorStyle}
+          onChange={setConnectorStyle}
         />
       </SettingsRow>
       <SettingsRow
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.connecter.connector-shape"
         ]()}
-        desc={""}
+        desc=""
       >
         <EditorRadioGroup
           items={connectorShapeItems}
-          value={connectorShape}
+          value={connector.mode}
           onChange={setConnectorShape}
         />
       </SettingsRow>
@@ -419,11 +417,11 @@ export const ConnectorSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.connecter.border-style"
         ]()}
-        desc={""}
+        desc=""
       >
         <EditorRadioGroup
           items={borderStyleItems}
-          value={borderStyle}
+          value={connector.strokeStyle}
           onChange={setBorderStyle}
         />
       </SettingsRow>
@@ -431,28 +429,28 @@ export const ConnectorSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.connecter.border-thickness"
         ]()}
-        desc={""}
+        desc=""
       >
         <EditorSlider
-          value={[borderThickness]}
+          value={[connector.strokeWidth]}
           onValueChange={setBorderThickness}
           min={2}
           max={12}
           step={2}
-          nodes={[2, 4, 6, 8, 10, 12]}
+          nodes={THICKNESS_NODES}
         />
       </SettingsRow>
       <SettingsRow
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.connecter.start-endpoint"
         ]()}
-        desc={""}
+        desc=""
       >
         <DropdownMenu
-          items={startEndPointItems}
+          items={startEndpointItems}
           trigger={
             <DropdownTrigger>
-              {String(settings.connector.frontEndpointStyle)}
+              {String(connector.frontEndpointStyle)}
             </DropdownTrigger>
           }
         />
@@ -461,13 +459,13 @@ export const ConnectorSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.connecter.end-endpoint"
         ]()}
-        desc={""}
+        desc=""
       >
         <DropdownMenu
-          items={endEndPointItems}
+          items={endEndpointItems}
           trigger={
             <DropdownTrigger>
-              {String(settings.connector.rearEndpointStyle)}
+              {String(connector.rearEndpointStyle)}
             </DropdownTrigger>
           }
         />
@@ -476,7 +474,7 @@ export const ConnectorSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.shape.text-color"
         ]()}
-        desc={""}
+        desc=""
       >
         {textColor ? (
           <DropdownMenu
@@ -495,32 +493,24 @@ export const ConnectorSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.text.font-family"
         ]()}
-        desc={""}
+        desc=""
       >
         <DropdownMenu
           items={fontFamilyItems}
-          trigger={
-            <DropdownTrigger>
-              {TextUtils.getFontFamilyName(
-                settings.connector.labelStyle.fontFamily,
-              )}
-            </DropdownTrigger>
-          }
+          trigger={<DropdownTrigger>{currentFontFamily}</DropdownTrigger>}
         />
       </SettingsRow>
       <SettingsRow
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.shape.font-size"
         ]()}
-        desc={""}
+        desc=""
       >
         <DropdownMenu
           items={fontSizeItems}
           trigger={
             <DropdownTrigger>
-              {formatEdgelessTextSizeLabel(
-                settings.connector.labelStyle.fontSize,
-              )}
+              {formatEdgelessTextSizeLabel(connector.labelStyle.fontSize)}
             </DropdownTrigger>
           }
         />
@@ -529,14 +519,12 @@ export const ConnectorSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.text.font-style"
         ]()}
-        desc={""}
+        desc=""
       >
         <DropdownMenu
           items={fontStyleItems}
           trigger={
-            <DropdownTrigger>
-              {settings.connector.labelStyle.fontStyle}
-            </DropdownTrigger>
+            <DropdownTrigger>{connector.labelStyle.fontStyle}</DropdownTrigger>
           }
         />
       </SettingsRow>
@@ -544,13 +532,13 @@ export const ConnectorSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.text.font-weight"
         ]()}
-        desc={""}
+        desc=""
       >
         <DropdownMenu
           items={fontWeightItems}
           trigger={
             <DropdownTrigger>
-              {FontWeightMap[settings.connector.labelStyle.fontWeight]}
+              {FontWeightMap[connector.labelStyle.fontWeight]}
             </DropdownTrigger>
           }
         />
@@ -559,11 +547,11 @@ export const ConnectorSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.shape.text-alignment"
         ]()}
-        desc={""}
+        desc=""
       >
         <EditorRadioGroup
           items={alignItems}
-          value={textAlignment}
+          value={connector.labelStyle.textAlign}
           onChange={setTextAlignment}
         />
       </SettingsRow>

@@ -46,7 +46,7 @@ vi.mock("@myoxus/ui-facade", async (importOriginal) => {
   };
 });
 
-vi.mock("@virgultum/editor/widgets/linked-doc", () => ({
+vi.mock("@virgultum/editor/interchange", () => ({
   download: (...args: unknown[]) => mocks.download(...args),
 }));
 

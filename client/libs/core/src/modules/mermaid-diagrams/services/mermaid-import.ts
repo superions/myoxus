@@ -6,7 +6,7 @@ import {
 } from "@virgultum/block-mermaid";
 import type { MermaidBlockModel } from "@virgultum/core/models";
 import type { Workspace } from "@virgultum/editor/store";
-import { MarkdownTransformer } from "@virgultum/editor/widgets/linked-doc";
+import { MarkdownTransformer } from "@virgultum/editor/interchange";
 
 const MERMAID_FENCE_RE = /```(?:mermaid|mmd)\b/i;
 const MERMAID_FILE_RE = /\.(?:mmd|mermaid)$/i;

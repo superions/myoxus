@@ -336,7 +336,7 @@ test.describe("edgeless note element toolbar", () => {
 
     await displayInPage.click();
     await viewTocButton.click();
-    const toc = page.locator("myoxus-outline-panel");
+    const toc = page.locator('[data-myoxus-ui-role="document-outline"]');
     await toc.waitFor({ state: "visible" });
     const highlightNoteCards = toc.locator(
       'myoxus-outline-note-card > [data-status="selected"]',

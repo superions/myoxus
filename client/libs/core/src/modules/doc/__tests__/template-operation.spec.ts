@@ -456,7 +456,9 @@ test("document duplication retains exact BPMN heads and rejects failed content c
     query: JSON.parse(JSON.stringify(copiedDirectory.props.query)),
   }).toEqual(directoryDefinition);
   const copiedToc = target.getBlocksByFlavour("myoxus:table-of-contents")[0]
-    .model as { props: { title: string; minLevel: number; maxLevel: number } };
+    .model as unknown as {
+    props: { title: string; minLevel: number; maxLevel: number };
+  };
   expect({
     title: copiedToc.props.title,
     minLevel: copiedToc.props.minLevel,

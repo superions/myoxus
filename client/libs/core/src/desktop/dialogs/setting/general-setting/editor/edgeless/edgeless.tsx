@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useI18n } from "@myoxus/i18n";
 
 import { SettingsSection } from "../../../primitives";
@@ -10,8 +13,9 @@ import { PenSettings } from "./pen";
 import { ShapeSettings } from "./shape";
 import { TextSettings } from "./text";
 
-export const Edgeless = () => {
+export function Edgeless() {
   const t = useI18n();
+
   return (
     <>
       <SettingsSection
@@ -29,4 +33,4 @@ export const Edgeless = () => {
       <MindMapSettings />
     </>
   );
-};
+}

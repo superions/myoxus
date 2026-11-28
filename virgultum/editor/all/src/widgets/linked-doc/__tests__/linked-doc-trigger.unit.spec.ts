@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 // @vitest-environment happy-dom
 
-import { signal } from "@preact/signals-core";
 import { BLOCK_ID_ATTR } from "@virgultum/core/runtime";
 import { INLINE_ROOT_ATTR } from "@virgultum/core/runtime/inline";
 import { describe, expect, it, vi } from "vitest";
 
-import { MyoxusLinkedDocWidget } from "../widget.js";
+import { handleLinkedDocBeforeInput } from "../picker-controller.js";
 
-// Exercise the production beforeInput handler with the range after insertion.
+// Exercise the production beforeInput trigger contract with the range after insertion.
 function input(
   text: string,
   convertTriggerKey = false,
@@ -37,33 +37,24 @@ function input(
     },
   });
   const show = vi.fn();
-  let handler!: (ctx: unknown) => void;
-  const widget = {
-    _mode$: signal("none"),
-    config: {
-      triggerKeys: ["@", "[[", "【【"],
-      convertTriggerKey,
-      ignoreSelector: "code",
-      ignoreBlockTypes: ["myoxus:code"],
-    },
-    std: {
-      host: {
-        range: { value: { collapsed: true, commonAncestorContainer: element } },
+  handleLinkedDocBeforeInput(
+    {
+      isActive: () => false,
+      config: {
+        triggerKeys: ["@", "[[", "【【"],
+        convertTriggerKey,
+        ignoreSelector: "code",
+        ignoreBlockTypes: ["myoxus:code"],
       },
+      getRange: () =>
+        ({
+          collapsed: true,
+          commonAncestorContainer: element,
+        }) as unknown as Range,
+      show,
     },
-    show,
-    handleEvent: (_name: string, callback: typeof handler) => {
-      handler = callback;
-    },
-  };
-  MyoxusLinkedDocWidget.prototype["_watchInput"].call(
-    widget as unknown as MyoxusLinkedDocWidget,
+    new InputEvent("beforeinput", { data: text.slice(-1) }),
   );
-  handler({
-    get: () => ({
-      event: new InputEvent("beforeinput", { data: text.slice(-1) }),
-    }),
-  });
   return { inlineEditor, show };
 }
 

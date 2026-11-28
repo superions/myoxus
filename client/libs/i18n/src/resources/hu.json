@@ -4625,8 +4625,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "Haladó blokkláthatóság-vezérlés",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "AI cseveglési blokkok engedélyezése.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "AI csevegési blokk",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "AI modellváltó funkció engedélyezése vagy letiltása.",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "AI modellváltó engedélyezése",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "Ha ki van kapcsolva, a „Folytatás AI-val” minden alkalommal csak egy képernyőképet kap az AI.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "Részletes objektuminformáció küldése AI-nak",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "MINDEN AI funkció engedélyezése vagy letiltása.",

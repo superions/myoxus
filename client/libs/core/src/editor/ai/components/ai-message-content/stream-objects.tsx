@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import type { PeekViewService } from "@myoxus/core/modules/peek-view";
 import type { NotificationService } from "@virgultum/core/services";
@@ -26,7 +27,7 @@ import { StoredAnswerText } from "./stored-answer-text";
 import { StoredToolView } from "./stored-tool-view";
 import { StreamParts } from "./stream-parts";
 
-type StreamObjectsPresentation = {
+export interface StreamObjectsViewProps {
   answer: readonly StreamObject[];
   reasoningIdentity?: ReactNode;
   host?: EditorHost | null;
@@ -45,29 +46,32 @@ type StreamObjectsPresentation = {
     file: CopilotGeneratedFile,
     current: () => boolean,
   ) => Promise<void>;
-};
+}
 
-export function StreamObjectsView(p: StreamObjectsPresentation) {
-  const richText = (text: string, annotation = false) => (
+/** Dispatches streamed assistant parts to markdown, artifact, compose, or stored tool views. */
+export function StreamObjectsView(props: StreamObjectsViewProps) {
+  const activeStd = props.std ?? props.host?.std;
+
+  const renderRichText = (text: string, annotation = false) => (
     <StoredAnswerText
-      host={p.host}
-      pageBridge={p.pageBridge}
+      host={props.host}
+      pageBridge={props.pageBridge}
       text={text}
       annotation={annotation}
     />
   );
 
-  const tool = (
+  const renderTool = (
     data: Extract<StreamObject, { type: "tool-call" | "tool-result" }>,
   ) => {
     if (data.toolName === "doc_compose") {
       return (
         <DocComposeTool
           data={data as DocComposeToolCall | DocComposeToolResult}
-          std={p.std ?? p.host?.std}
-          pageBridge={p.pageBridge}
-          readOnly={p.readOnly}
-          notificationService={p.notificationService}
+          std={activeStd}
+          pageBridge={props.pageBridge}
+          readOnly={props.readOnly}
+          notificationService={props.notificationService}
         />
       );
     }
@@ -75,40 +79,40 @@ export function StreamObjectsView(p: StreamObjectsPresentation) {
       return (
         <CodeArtifactTool
           data={data as CodeArtifactToolCall | CodeArtifactToolResult}
-          std={p.std ?? p.host?.std}
-          independentMode={p.independentMode || p.readOnly}
-          notificationService={p.notificationService}
+          std={activeStd}
+          independentMode={props.independentMode || props.readOnly}
+          notificationService={props.notificationService}
         />
       );
     }
     return (
       <StoredToolView
         data={data}
-        host={p.host}
-        pageBridge={p.pageBridge}
-        readOnly={p.readOnly}
-        independentMode={p.independentMode}
-        generating={p.state === "generating"}
-        docDisplayService={p.docDisplayService}
-        peekViewService={p.peekViewService}
-        onOpenDoc={p.onOpenDoc}
-        notificationService={p.notificationService}
-        renderRichText={richText}
-        messageId={p.messageId}
-        generatedFiles={p.generatedFiles}
-        downloadSavedFile={p.downloadSavedFile}
+        host={props.host}
+        pageBridge={props.pageBridge}
+        readOnly={props.readOnly}
+        independentMode={props.independentMode}
+        generating={props.state === "generating"}
+        docDisplayService={props.docDisplayService}
+        peekViewService={props.peekViewService}
+        onOpenDoc={props.onOpenDoc}
+        notificationService={props.notificationService}
+        renderRichText={renderRichText}
+        messageId={props.messageId}
+        generatedFiles={props.generatedFiles}
+        downloadSavedFile={props.downloadSavedFile}
       />
     );
   };
 
   return (
     <StreamParts
-      answer={p.answer}
-      state={p.state}
-      reasoningIdentity={p.reasoningIdentity}
+      answer={props.answer}
+      state={props.state}
+      reasoningIdentity={props.reasoningIdentity}
       showReasoning
-      renderText={richText}
-      renderTool={tool}
+      renderText={renderRichText}
+      renderTool={renderTool}
     />
   );
 }

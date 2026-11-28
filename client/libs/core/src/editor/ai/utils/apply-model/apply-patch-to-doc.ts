@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { Store } from "@virgultum/core/store";
 import type { EditorHost } from "@virgultum/editor/std";
 
@@ -5,53 +8,54 @@ import { insertFromMarkdown, replaceFromMarkdown } from "../../../utils";
 import type { PatchOp } from "./markdown-diff";
 
 /**
- * Apply a list of PatchOp to the page doc (children of the first note block)
- * @param doc The page document Store
- * @param patch Array of PatchOp
+ * Applies structured block diff operations against the first note block of a
+ * page document, failing closed if the document becomes read-only or detached.
  */
 export async function applyPatchToDoc(
   doc: Store,
   patch: PatchOp[],
   host?: EditorHost,
 ): Promise<void> {
-  // Get all note blocks
   const notes = doc.getBlocksByFlavour("myoxus:note");
   if (notes.length === 0) return;
-  // Only handle the first note block
-  const note = notes[0].model;
 
-  // Build a map from block_id to BlockModel for quick lookup
-  const blockIdMap = new Map<string, any>();
-  note.children.forEach((child) => {
-    blockIdMap.set(child.id, child);
-  });
+  const primaryNote = notes[0].model;
+  const initialIds = new Set(primaryNote.children.map((child) => child.id));
 
   for (const op of patch) {
-    if (doc.readonly || !doc.root || !doc.workspace.meta.getDocMeta(doc.id))
+    if (doc.readonly || !doc.root || !doc.workspace.meta.getDocMeta(doc.id)) {
       throw new Error("Markdown patch destination unavailable");
-    if (op.op === "delete") {
-      // Delete block
-      doc.deleteBlock(op.id);
-    } else if (op.op === "replace") {
-      const oldBlock = blockIdMap.get(op.id);
-      if (!oldBlock) continue;
-      const parentId = note.id;
-      const index = note.children.findIndex((child) => child.id === op.id);
-      if (index === -1) continue;
-
-      await replaceFromMarkdown(host, op.content, doc, parentId, index, op.id);
-    } else if (op.op === "insert") {
-      // Insert new block
-      const parentId = note.id;
-      const index = op.index;
-      await insertFromMarkdown(
-        host,
-        op.block.content,
-        doc,
-        parentId,
-        index,
-        op.block.id,
-      );
     }
+
+    if (op.op === "delete") {
+      doc.deleteBlock(op.id);
+      continue;
+    }
+
+    if (op.op === "replace") {
+      if (!initialIds.has(op.id)) continue;
+      const index = primaryNote.children.findIndex(
+        (child) => child.id === op.id,
+      );
+      if (index === -1) continue;
+      await replaceFromMarkdown(
+        host,
+        op.content,
+        doc,
+        primaryNote.id,
+        index,
+        op.id,
+      );
+      continue;
+    }
+
+    await insertFromMarkdown(
+      host,
+      op.block.content,
+      doc,
+      primaryNote.id,
+      op.index,
+      op.block.id,
+    );
   }
 }

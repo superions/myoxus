@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useGuard } from "@myoxus/core/components/guard";
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
 import { WorkspaceShareSettingService } from "@myoxus/core/modules/share-setting";
@@ -7,24 +10,19 @@ import { useI18n } from "@myoxus/i18n";
 import { useLiveData, useService } from "@myoxus/infra";
 
 import {
+  notify,
   SettingRow,
   SettingWrapper,
   Switch,
-  notify,
   useConfirmModal,
 } from "../../primitives";
-
-export const SharingPanel = () => {
-  const workspace = useService(WorkspaceService).workspace;
-  if (workspace.flavour === "local") {
-    return null;
-  }
-  return <Sharing />;
-};
 
 export const Sharing = () => {
   const t = useI18n();
   const shareSetting = useService(WorkspaceShareSettingService).sharePreview;
+  const canUpdateSettings = useGuard("Workspace_Settings_Update");
+  const { openConfirmModal } = useConfirmModal();
+
   const enableSharing = useLiveData(shareSetting.enableSharing$);
   const publicAccess = useLiveData(shareSetting.public$);
   const publicDeliveryEnabled = useLiveData(
@@ -36,8 +34,6 @@ export const Sharing = () => {
   const enableUrlPreview = useLiveData(shareSetting.enableUrlPreview$);
   const loading = useLiveData(shareSetting.isLoading$);
   const error = useLiveData(shareSetting.error$);
-  const canUpdateWorkspaceSettings = useGuard("Workspace_Settings_Update");
-  const { openConfirmModal } = useConfirmModal();
 
   const handleToggleSharing = useAsyncCallback(
     async (checked: boolean) => {
@@ -75,10 +71,10 @@ export const Sharing = () => {
         onConfirm: async () => {
           try {
             await shareSetting.setPublic(checked);
-          } catch (error) {
-            const friendly = UserFriendlyError.fromAny(error);
+          } catch (err) {
+            const friendly = UserFriendlyError.fromAny(err);
             notify.error({ title: friendly.name, message: friendly.message });
-            throw error;
+            throw err;
           }
         },
       });
@@ -86,16 +82,14 @@ export const Sharing = () => {
     [openConfirmModal, publicDocumentSelectionCount, shareSetting, t],
   );
 
-  const handleCheck = useAsyncCallback(
+  const handleToggleUrlPreview = useAsyncCallback(
     async (checked: boolean) => {
       await shareSetting.setEnableUrlPreview(checked);
     },
     [shareSetting],
   );
 
-  if (!canUpdateWorkspaceSettings) {
-    return null;
-  }
+  if (!canUpdateSettings) return null;
 
   return (
     <SettingWrapper title={t["com.myoxus.settings.workspace.sharing.title"]()}>
@@ -131,8 +125,8 @@ export const Sharing = () => {
         ]()}
       >
         <Switch
-          checked={enableUrlPreview || false}
-          onChange={handleCheck}
+          checked={Boolean(enableUrlPreview)}
+          onChange={handleToggleUrlPreview}
           disabled={loading}
         />
       </SettingRow>
@@ -152,4 +146,10 @@ export const Sharing = () => {
       </SettingRow>
     </SettingWrapper>
   );
+};
+
+export const SharingPanel = () => {
+  const workspace = useService(WorkspaceService).workspace;
+  if (workspace.flavour === "local") return null;
+  return <Sharing />;
 };

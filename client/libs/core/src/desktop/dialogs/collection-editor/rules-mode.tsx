@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   createDocExplorerContext,
   DocExplorerContext,
@@ -35,23 +38,82 @@ import {
 } from "@myoxus/ui-facade";
 import { memo, type ReactNode, useEffect, useMemo, useState } from "react";
 
-export const RulesMode = ({
-  collection,
-  updateCollection,
-  reset,
-  buttons,
+const IncludedDocTitle = memo(function IncludedDocTitle({
+  component,
+  id,
 }: {
+  component?: "div" | "span";
+  id: string;
+}) {
+  const displayMeta = useService(DocDisplayMetaService);
+  const docsService = useService(DocsService);
+  const doc = useLiveData(docsService.list.doc$(id));
+  const trash = useLiveData(doc?.trash$);
+  const title = useLiveData(displayMeta.title$(id));
+
+  return (
+    <SurfaceListText
+      data-myoxus-ui-role="collection-rules-include-title"
+      kind="title"
+      component={component}
+      strikethrough={Boolean(trash)}
+    >
+      {title}
+    </SurfaceListText>
+  );
+});
+
+function RulesEmptyNotice({
+  action,
+  noRules,
+}: {
+  action?: ReactNode;
+  noRules: boolean;
+}) {
+  const t = useI18n();
+  return (
+    <EmptyState
+      cta={action}
+      data-myoxus-ui-role="collection-rules-empty"
+      title={
+        noRules
+          ? t["com.myoxus.editCollection.rules.empty.noRules"]()
+          : t["com.myoxus.editCollection.rules.empty.noResults"]()
+      }
+      description={
+        noRules ? (
+          <Trans i18nKey="com.myoxus.editCollection.rules.empty.noRules.tips">
+            Please <strong>add rules</strong> to save this collection or switch
+            to <strong>Pages</strong>, use manual selection mode
+          </Trans>
+        ) : (
+          t["com.myoxus.editCollection.rules.empty.noResults.tips"]()
+        )
+      }
+    />
+  );
+}
+
+export interface RulesModeProps {
   collection: CollectionInfo;
   updateCollection: (collection: CollectionInfo) => void;
   reset: () => void;
   buttons: ReactNode;
-}) => {
+}
+
+export function RulesMode({
+  collection,
+  updateCollection,
+  reset,
+  buttons,
+}: RulesModeProps) {
   const t = useI18n();
-  const [showPreview, setShowPreview] = useState(false);
   const docsService = useService(DocsService);
   const collectionRulesService = useService(CollectionRulesService);
-  const [rulesPageIds, setRulesPageIds] = useState<string[]>([]);
-  const [docExplorerContextValue] = useState(() =>
+
+  const [showPreview, setShowPreview] = useState(false);
+  const [matchedDocIds, setMatchedDocIds] = useState<string[]>([]);
+  const [explorerContext] = useState(() =>
     createDocExplorerContext({
       displayProperties: ["createdAt", "updatedAt", "tags"],
       showDragHandle: false,
@@ -67,12 +129,7 @@ export const RulesMode = ({
       .watch({
         filters: collection.rules.filters,
         extraFilters: [
-          {
-            type: "system",
-            key: "trash",
-            method: "is",
-            value: "false",
-          },
+          { type: "system", key: "trash", method: "is", value: "false" },
           {
             type: "system",
             key: "empty-journal",
@@ -80,24 +137,18 @@ export const RulesMode = ({
             value: "false",
           },
         ],
-        orderBy: {
-          type: "system",
-          key: "updatedAt",
-          desc: true,
-        },
+        orderBy: { type: "system", key: "updatedAt", desc: true },
       })
-      .subscribe((rules) => {
-        setRulesPageIds(rules.groups.flatMap((group) => group.items));
+      .subscribe((result) => {
+        setMatchedDocIds(result.groups.flatMap((group) => group.items));
       });
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [collection, collectionRulesService]);
 
-  const previewIsEmpty =
-    rulesPageIds.length === 0 && collection.allowList.length === 0;
   const editorIsEmpty =
     collection.rules.filters.length === 0 && collection.allowList.length === 0;
+  const previewIsEmpty =
+    matchedDocIds.length === 0 && collection.allowList.length === 0;
 
   useEffect(() => {
     if (editorIsEmpty) {
@@ -105,22 +156,19 @@ export const RulesMode = ({
     }
   }, [editorIsEmpty]);
 
-  const filters = (
+  const filterEditor = (
     <Filters
       filters={collection.rules.filters}
-      onChange={(filters) => {
+      onChange={(nextFilters) =>
         updateCollection({
           ...collection,
-          rules: {
-            ...collection.rules,
-            filters,
-          },
-        });
-      }}
+          rules: { ...collection.rules, filters: nextFilters },
+        })
+      }
     />
   );
 
-  const tips = useMemo(
+  const tipsCopy = useMemo(
     () => (
       <Trans
         i18nKey="com.myoxus.editCollection.rules.tips"
@@ -154,13 +202,13 @@ export const RulesMode = ({
           tone="secondary"
           typographySlot="body-small"
         >
-          {tips}
+          {tipsCopy}
         </MyoxusText>
         <Group data-myoxus-ui-role="collection-rules-secondary-actions">
           <Button
             aria-pressed={showPreview}
             disabled={editorIsEmpty}
-            onClick={() => setShowPreview((current) => !current)}
+            onClick={() => setShowPreview((prev) => !prev)}
             variant={showPreview ? "primary" : "secondary"}
           >
             {t["com.myoxus.editCollection.rules.preview"]()}
@@ -190,10 +238,10 @@ export const RulesMode = ({
               data-myoxus-ui-role="collection-rules-filter-stack"
             >
               {editorIsEmpty ? (
-                <RulesEmpty action={filters} noRules />
+                <RulesEmptyNotice action={filterEditor} noRules />
               ) : (
                 <Stack data-myoxus-ui-role="collection-rules-editor-stack">
-                  {filters}
+                  {filterEditor}
                   {collection.allowList.length > 0 ? (
                     <Accordion
                       defaultValue="include"
@@ -222,56 +270,58 @@ export const RulesMode = ({
                         </AccordionControl>
                         <AccordionPanel flushHorizontal>
                           <BadgeList data-myoxus-ui-role="collection-rules-include-items">
-                            {collection.allowList.map((id) => {
-                              return (
-                                <BadgeListItem
-                                  data-myoxus-ui-role="collection-rules-include-item"
-                                  key={id}
+                            {collection.allowList.map((docId) => (
+                              <BadgeListItem
+                                data-myoxus-ui-role="collection-rules-include-item"
+                                key={docId}
+                              >
+                                <RemovableBadge
+                                  prefix={
+                                    <SurfaceListItemIcon size="sm">
+                                      {docsService.list.getPrimaryMode(
+                                        docId,
+                                      ) === "edgeless" ? (
+                                        <EdgelessIcon />
+                                      ) : (
+                                        <PageIcon />
+                                      )}
+                                    </SurfaceListItemIcon>
+                                  }
+                                  removeLabel={t["Remove"]()}
+                                  onRemove={() =>
+                                    updateCollection({
+                                      ...collection,
+                                      allowList: collection.allowList.filter(
+                                        (entry) => entry !== docId,
+                                      ),
+                                    })
+                                  }
                                 >
-                                  <RemovableBadge
-                                    prefix={
-                                      <SurfaceListItemIcon size="sm">
-                                        {docsService.list.getPrimaryMode(id) ===
-                                        "edgeless" ? (
-                                          <EdgelessIcon />
-                                        ) : (
-                                          <PageIcon />
-                                        )}
-                                      </SurfaceListItemIcon>
-                                    }
-                                    removeLabel={t["Remove"]()}
-                                    onRemove={() => {
-                                      updateCollection({
-                                        ...collection,
-                                        allowList: collection.allowList.filter(
-                                          (value) => value !== id,
-                                        ),
-                                      });
-                                    }}
+                                  <MyoxusText
+                                    component="span"
+                                    typographySlot="body-small"
                                   >
-                                    <MyoxusText
-                                      component="span"
-                                      typographySlot="body-small"
-                                    >
-                                      {t[
-                                        "com.myoxus.editCollection.rules.include.page"
-                                      ]()}
-                                    </MyoxusText>{" "}
-                                    <MyoxusText
-                                      component="span"
-                                      data-myoxus-ui-role="collection-rules-include-operator"
-                                      tone="secondary"
-                                      typographySlot="body-small"
-                                    >
-                                      {t[
-                                        "com.myoxus.editCollection.rules.include.is"
-                                      ]()}
-                                    </MyoxusText>{" "}
-                                    <DocTitle component="span" id={id} />
-                                  </RemovableBadge>
-                                </BadgeListItem>
-                              );
-                            })}
+                                    {t[
+                                      "com.myoxus.editCollection.rules.include.page"
+                                    ]()}
+                                  </MyoxusText>{" "}
+                                  <MyoxusText
+                                    component="span"
+                                    data-myoxus-ui-role="collection-rules-include-operator"
+                                    tone="secondary"
+                                    typographySlot="body-small"
+                                  >
+                                    {t[
+                                      "com.myoxus.editCollection.rules.include.is"
+                                    ]()}
+                                  </MyoxusText>{" "}
+                                  <IncludedDocTitle
+                                    component="span"
+                                    id={docId}
+                                  />
+                                </RemovableBadge>
+                              </BadgeListItem>
+                            ))}
                           </BadgeList>
                         </AccordionPanel>
                       </AccordionItem>
@@ -282,6 +332,7 @@ export const RulesMode = ({
             </Scrollable.Viewport>
           </Flex>
         </Flex>
+
         {showPreview ? (
           <>
             <Divider orientation="vertical" space="none" />
@@ -292,12 +343,14 @@ export const RulesMode = ({
               miw={0}
             >
               {previewIsEmpty ? (
-                <RulesEmpty noRules={collection.rules.filters.length === 0} />
+                <RulesEmptyNotice
+                  noRules={collection.rules.filters.length === 0}
+                />
               ) : (
                 <Scrollable.Viewport fill>
-                  <DocExplorerContext.Provider value={docExplorerContextValue}>
+                  <DocExplorerContext.Provider value={explorerContext}>
                     <Stack gap={0}>
-                      {rulesPageIds.map((docId) => (
+                      {matchedDocIds.map((docId) => (
                         <DocListItemComponent
                           key={`rule:${docId}`}
                           itemId={docId}
@@ -331,6 +384,7 @@ export const RulesMode = ({
           </>
         ) : null}
       </Flex>
+
       <DialogFooter data-myoxus-ui-role="collection-rules-footer">
         <Group data-myoxus-ui-role="collection-rules-footer-summary">
           <MyoxusText
@@ -343,7 +397,7 @@ export const RulesMode = ({
               i18nKey="com.myoxus.editCollection.rules.countTips"
               values={{
                 selectedCount: collection.allowList.length,
-                filteredCount: rulesPageIds.length,
+                filteredCount: matchedDocIds.length,
               }}
             >
               Selected
@@ -369,59 +423,4 @@ export const RulesMode = ({
       </DialogFooter>
     </Stack>
   );
-};
-const RulesEmpty = ({
-  action,
-  noRules,
-}: {
-  action?: ReactNode;
-  noRules: boolean;
-}) => {
-  const t = useI18n();
-  return (
-    <EmptyState
-      cta={action}
-      data-myoxus-ui-role="collection-rules-empty"
-      description={
-        noRules ? (
-          <Trans i18nKey="com.myoxus.editCollection.rules.empty.noRules.tips">
-            Please <strong>add rules</strong> to save this collection or switch
-            to <strong>Pages</strong>, use manual selection mode
-          </Trans>
-        ) : (
-          t["com.myoxus.editCollection.rules.empty.noResults.tips"]()
-        )
-      }
-      title={
-        noRules
-          ? t["com.myoxus.editCollection.rules.empty.noRules"]()
-          : t["com.myoxus.editCollection.rules.empty.noResults"]()
-      }
-    />
-  );
-};
-
-const DocTitle = memo(function DocTitle({
-  component,
-  id,
-}: {
-  component?: "div" | "span";
-  id: string;
-}) {
-  const docDisplayMetaService = useService(DocDisplayMetaService);
-  const docsService = useService(DocsService);
-  const doc = useLiveData(docsService.list.doc$(id));
-  const trash = useLiveData(doc?.trash$);
-  const title = useLiveData(docDisplayMetaService.title$(id));
-
-  return (
-    <SurfaceListText
-      data-myoxus-ui-role="collection-rules-include-title"
-      kind="title"
-      component={component}
-      strikethrough={Boolean(trash)}
-    >
-      {title}
-    </SurfaceListText>
-  );
-});
+}

@@ -19,7 +19,7 @@ test.describe("frame panel", () => {
   test("should update panel when frames change", async ({ page }) => {
     await edgelessCommonSetup(page);
     await mountFramePanelFixture(page);
-    const frameCards = page.locator("myoxus-frame-card");
+    const frameCards = page.getByTestId("frame-navigator-card");
     await expect(frameCards).toHaveCount(0);
     await expect(page.getByTestId("frame-navigator-empty")).toBeVisible();
 
@@ -65,7 +65,7 @@ test.describe("frame panel", () => {
       await waitNextFrame(page, 100);
 
       const edgelessNote = page.locator(
-        "myoxus-frame-card myoxus-edgeless-note",
+        '[data-testid="frame-navigator-card"] myoxus-edgeless-note',
       );
       expect(await edgelessNote.count()).toBe(1);
 
@@ -101,10 +101,10 @@ test.describe("frame panel", () => {
 
       await switchEditorMode(page);
       await page.evaluate(async () => {
-        const panel = document.querySelector("myoxus-frame-panel")!;
+        const fixture = window.__frameNavigatorFixture;
         const host = window.editor.host;
-        if (!host) throw new Error("Editor host is not mounted");
-        panel.host = host;
+        if (!fixture || !host) throw new Error("Editor host is not mounted");
+        fixture.setHost(host);
         await new Promise<void>((resolve) =>
           requestAnimationFrame(() => resolve()),
         );
@@ -113,10 +113,10 @@ test.describe("frame panel", () => {
 
       await switchEditorMode(page);
       await page.evaluate(async () => {
-        const panel = document.querySelector("myoxus-frame-panel")!;
+        const fixture = window.__frameNavigatorFixture;
         const host = window.editor.host;
-        if (!host) throw new Error("Editor host is not mounted");
-        panel.host = host;
+        if (!fixture || !host) throw new Error("Editor host is not mounted");
+        fixture.setHost(host);
         await new Promise<void>((resolve) =>
           requestAnimationFrame(() => resolve()),
         );
@@ -132,20 +132,20 @@ test.describe("frame panel", () => {
 
       await switchEditorMode(page);
       await page.evaluate(async () => {
-        const panel = document.querySelector("myoxus-frame-panel")!;
+        const fixture = window.__frameNavigatorFixture;
         const host = window.editor.host;
-        if (!host) throw new Error("Editor host is not mounted");
-        panel.host = host;
+        if (!fixture || !host) throw new Error("Editor host is not mounted");
+        fixture.setHost(host);
         await new Promise<void>((resolve) =>
           requestAnimationFrame(() => resolve()),
         );
       });
       await switchEditorMode(page);
       await page.evaluate(async () => {
-        const panel = document.querySelector("myoxus-frame-panel")!;
+        const fixture = window.__frameNavigatorFixture;
         const host = window.editor.host;
-        if (!host) throw new Error("Editor host is not mounted");
-        panel.host = host;
+        if (!fixture || !host) throw new Error("Editor host is not mounted");
+        fixture.setHost(host);
         await new Promise<void>((resolve) =>
           requestAnimationFrame(() => resolve()),
         );
@@ -208,7 +208,7 @@ test.describe("frame panel", () => {
       await waitNextFrame(page);
 
       const frames = page.locator("myoxus-frame");
-      const frameCards = page.locator("myoxus-frame-card");
+      const frameCards = page.getByTestId("frame-navigator-card");
       expect(await frames.count()).toBe(1);
       expect(await frameCards.count()).toBe(1);
 

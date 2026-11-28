@@ -1,13 +1,23 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { BlobManagementService } from "@myoxus/core/modules/blob-management/services";
 import { useI18n } from "@myoxus/i18n";
 import { DeleteIcon } from "@myoxus/icons/react";
 import { useLiveData, useService } from "@myoxus/infra";
 import type { ListedBlobRecord } from "@myoxus/storage";
 import track from "@myoxus/track";
-import { getAttachmentFileIconRC } from "@virgultum/editor/components/icons";
 import { formatByteSize } from "@virgultum/core/primitives/utils";
-import type { KeyboardEvent, MouseEvent } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getAttachmentFileIconRC } from "@virgultum/editor/components/icons";
+import {
+  type KeyboardEvent,
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   Button,
@@ -31,62 +41,41 @@ import {
   useDisposable,
 } from "../../primitives";
 
-const Empty = () => {
-  const t = useI18n();
-  return (
-    <SettingsControlEmpty data-testid="workspace-storage-unused-blobs-empty">
-      {t["com.myoxus.settings.workspace.storage.unused-blobs.empty"]()}
-    </SettingsControlEmpty>
-  );
-};
+const PAGE_SIZE = 9;
+const SCAN_TIMEOUT_MS = 10_000;
 
-const useBlob = (blobRecord: ListedBlobRecord) => {
-  const unusedBlobsEntity = useService(BlobManagementService).unusedBlobs;
-  return useDisposable(
-    (abortSignal?: AbortSignal) =>
-      unusedBlobsEntity.hydrateBlob(blobRecord, abortSignal),
-    [blobRecord],
-  );
-};
-
-const BlobPreview = ({
+function BlobPreview({
   blobRecord,
   selected,
 }: {
   blobRecord: ListedBlobRecord;
   selected: boolean;
-}) => {
-  const { data, loading, error } = useBlob(blobRecord);
+}) {
+  const unusedBlobs = useService(BlobManagementService).unusedBlobs;
+  const { data, loading, error } = useDisposable(
+    (abortSignal?: AbortSignal) =>
+      unusedBlobs.hydrateBlob(blobRecord, abortSignal),
+    [blobRecord],
+  );
 
-  const element = useMemo(() => {
+  const previewNode = useMemo(() => {
     if (loading) return <Loading />;
     if (!data?.url || !data.type) return null;
 
-    const { url, type, mime } = data;
-    const Icon = getAttachmentFileIconRC(type);
-
-    if (error) {
-      return (
-        <MediaPreviewIcon aria-label={blobRecord.key}>
-          <Icon />
-        </MediaPreviewIcon>
-      );
+    const Icon = getAttachmentFileIconRC(data.type);
+    if (!error && data.mime?.startsWith("image/")) {
+      return <MediaPreviewImage src={data.url} alt={blobRecord.key} />;
     }
-
-    if (mime?.startsWith("image/")) {
-      return <MediaPreviewImage src={url} alt={blobRecord.key} />;
-    } else {
-      return (
-        <MediaPreviewIcon aria-label={blobRecord.key}>
-          <Icon />
-        </MediaPreviewIcon>
-      );
-    }
-  }, [loading, data, error, blobRecord.key]);
+    return (
+      <MediaPreviewIcon aria-label={blobRecord.key}>
+        <Icon />
+      </MediaPreviewIcon>
+    );
+  }, [blobRecord.key, data, error, loading]);
 
   return (
     <Stack data-myoxus-ui-role="workspace-blob-preview">
-      <MediaPreviewFrame selected={selected}>{element}</MediaPreviewFrame>
+      <MediaPreviewFrame selected={selected}>{previewNode}</MediaPreviewFrame>
       <Stack data-myoxus-ui-role="workspace-blob-preview-meta">
         <SettingsListItemTitle truncate title={blobRecord.key}>
           {blobRecord.key}
@@ -98,25 +87,23 @@ const BlobPreview = ({
       </Stack>
     </Stack>
   );
-};
+}
 
-const BlobCard = ({
+function BlobCard({
   blobRecord,
-  onClick,
   selected,
+  onClick,
   onCheckedChange,
   onToggle,
 }: {
   blobRecord: ListedBlobRecord;
-  onClick: (e: MouseEvent<HTMLElement>) => void;
+  selected: boolean;
+  onClick: (event: MouseEvent<HTMLElement>) => void;
   onCheckedChange: (checked: boolean) => void;
   onToggle: () => void;
-  selected: boolean;
-}) => {
+}) {
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if (event.key !== "Enter" && event.key !== " ") {
-      return;
-    }
+    if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
     onToggle();
   };
@@ -150,33 +137,35 @@ const BlobCard = ({
       <BlobPreview blobRecord={blobRecord} selected={selected} />
     </SurfaceListItem>
   );
-};
-
-const PAGE_SIZE = 9;
-const UNUSED_BLOBS_UI_TIMEOUT_MS = 10_000;
+}
 
 export const BlobManagementPanel = () => {
   const t = useI18n();
+  const unusedBlobs = useService(BlobManagementService).unusedBlobs;
+  const { openConfirmModal } = useConfirmModal();
 
-  const unusedBlobsEntity = useService(BlobManagementService).unusedBlobs;
-  const unusedBlobsPage = useLiveData(unusedBlobsEntity.unusedBlobs$);
-  const total = useLiveData(unusedBlobsEntity.total$);
-  const isLoading = useLiveData(unusedBlobsEntity.isLoading$);
-  const loadError = useLiveData(unusedBlobsEntity.loadError$);
+  const pageBlobs = useLiveData(unusedBlobs.unusedBlobs$);
+  const total = useLiveData(unusedBlobs.total$);
+  const isLoading = useLiveData(unusedBlobs.isLoading$);
+  const loadError = useLiveData(unusedBlobs.loadError$);
+
   const [scanTimedOut, setScanTimedOut] = useState(false);
   const [pageNum, setPageNum] = useState(0);
-  const [selectionAnchor, setSelectionAnchor] =
-    useState<ListedBlobRecord | null>(null);
+  const [selectedBlobs, setSelectedBlobs] = useState<ListedBlobRecord[]>([]);
+  const [anchorBlob, setAnchorBlob] = useState<ListedBlobRecord | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    unusedBlobsEntity.revalidate({
+    unusedBlobs.revalidate({
       offset: pageNum * PAGE_SIZE,
       first: PAGE_SIZE,
     });
-  }, [unusedBlobsEntity, pageNum]);
+  }, [pageNum, unusedBlobs]);
+
   useEffect(() => {
-    setPageNum((p) =>
-      Math.min(p, Math.max(0, Math.ceil(total / PAGE_SIZE) - 1)),
+    setPageNum((current) =>
+      Math.min(current, Math.max(0, Math.ceil(total / PAGE_SIZE) - 1)),
     );
   }, [total]);
 
@@ -185,99 +174,87 @@ export const BlobManagementPanel = () => {
       setScanTimedOut(false);
       return;
     }
-
-    // A blocked sync must not leave the settings panel spinning indefinitely.
-    const timeout = setTimeout(
-      () => setScanTimedOut(true),
-      UNUSED_BLOBS_UI_TIMEOUT_MS,
-    );
-    return () => clearTimeout(timeout);
+    const timer = setTimeout(() => setScanTimedOut(true), SCAN_TIMEOUT_MS);
+    return () => clearTimeout(timer);
   }, [isLoading]);
 
-  const [selectedBlobs, setSelectedBlobs] = useState<ListedBlobRecord[]>([]);
-  const [deleting, setDeleting] = useState(false);
-
-  const handleSelectBlob = useCallback((blob: ListedBlobRecord) => {
-    setSelectedBlobs((prev) => {
-      if (prev.some((b) => b.key === blob.key)) {
-        return prev;
+  useEffect(() => {
+    const handleOutsideClick = (event: globalThis.MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        panelRef.current &&
+        !event.composedPath().includes(panelRef.current) &&
+        !target.closest('[role="dialog"]')
+      ) {
+        setSelectedBlobs([]);
       }
-      return [...prev, blob];
-    });
+    };
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
   }, []);
 
-  const handleUnselectBlob = useCallback((blob: ListedBlobRecord) => {
-    setSelectedBlobs((prev) => prev.filter((b) => b.key !== blob.key));
+  const selectBlob = useCallback((blob: ListedBlobRecord) => {
+    setSelectedBlobs((prev) =>
+      prev.some((entry) => entry.key === blob.key) ? prev : [...prev, blob],
+    );
   }, []);
 
-  const handleBlobClick = useCallback(
+  const unselectBlob = useCallback((blob: ListedBlobRecord) => {
+    setSelectedBlobs((prev) => prev.filter((entry) => entry.key !== blob.key));
+  }, []);
+
+  const handleCardClick = useCallback(
     (blob: ListedBlobRecord, event: MouseEvent<HTMLElement>) => {
-      const isMetaKey = event.metaKey || event.ctrlKey;
-
-      if (event.shiftKey && selectionAnchor) {
-        // Shift+click: Select range from anchor to current
-        const anchorIndex = unusedBlobsPage.findIndex(
-          (b) => b.key === selectionAnchor.key,
+      if (event.shiftKey && anchorBlob) {
+        const anchorIndex = pageBlobs.findIndex(
+          (entry) => entry.key === anchorBlob.key,
         );
-        const currentIndex = unusedBlobsPage.findIndex(
-          (b) => b.key === blob.key,
+        const targetIndex = pageBlobs.findIndex(
+          (entry) => entry.key === blob.key,
         );
-
-        if (anchorIndex !== -1 && currentIndex !== -1) {
-          const start = Math.min(anchorIndex, currentIndex);
-          const end = Math.max(anchorIndex, currentIndex);
-          const blobsToSelect = unusedBlobsPage.slice(start, end + 1);
-
-          setSelectedBlobs((prev) => {
-            // If meta/ctrl is also pressed, add to existing selection
-            const baseSelection = isMetaKey ? prev : [];
-            return [
-              ...new Map(
-                [...baseSelection, ...blobsToSelect].map((b) => [b.key, b]),
-              ).values(),
-            ];
-          });
-        }
-      } else {
-        if (selectedBlobs.some((b) => b.key === blob.key)) {
-          handleUnselectBlob(blob);
-        } else {
-          handleSelectBlob(blob);
-        }
-        if (selectedBlobs.length === 0) {
-          setSelectionAnchor(
-            selectedBlobs.some((b) => b.key === blob.key) ? null : blob,
+        if (anchorIndex !== -1 && targetIndex !== -1) {
+          const slice = pageBlobs.slice(
+            Math.min(anchorIndex, targetIndex),
+            Math.max(anchorIndex, targetIndex) + 1,
           );
+          const mergeExisting = event.metaKey || event.ctrlKey;
+          setSelectedBlobs((prev) => {
+            const merged = mergeExisting ? [...prev, ...slice] : slice;
+            return Array.from(
+              new Map(merged.map((entry) => [entry.key, entry])).values(),
+            );
+          });
+          return;
         }
+      }
+
+      const alreadySelected = selectedBlobs.some(
+        (entry) => entry.key === blob.key,
+      );
+      if (alreadySelected) {
+        unselectBlob(blob);
+      } else {
+        selectBlob(blob);
+      }
+      if (selectedBlobs.length === 0) {
+        setAnchorBlob(alreadySelected ? null : blob);
       }
     },
-    [
-      selectionAnchor,
-      unusedBlobsPage,
-      selectedBlobs,
-      handleSelectBlob,
-      handleUnselectBlob,
-    ],
+    [anchorBlob, pageBlobs, selectBlob, selectedBlobs, unselectBlob],
   );
 
   const handleSelectAll = useCallback(
-    (e: MouseEvent<HTMLElement>) => {
-      e.stopPropagation();
-      unusedBlobsPage.forEach((blob) => handleSelectBlob(blob));
+    (event: MouseEvent<HTMLElement>) => {
+      event.stopPropagation();
+      pageBlobs.forEach((blob) => selectBlob(blob));
     },
-    [unusedBlobsPage, handleSelectBlob],
+    [pageBlobs, selectBlob],
   );
 
-  const showSelectAll = !unusedBlobsPage.every((blob) =>
-    selectedBlobs.some((b) => b.key === blob.key),
-  );
-
-  const { openConfirmModal } = useConfirmModal();
-
-  const handleDeleteSelectedBlobs = useCallback(
-    (e: MouseEvent<HTMLElement>) => {
-      e.stopPropagation();
-      const currentSelectedBlobs = selectedBlobs;
+  const handleDeleteSelected = useCallback(
+    (event: MouseEvent<HTMLElement>) => {
+      event.stopPropagation();
+      const targets = selectedBlobs;
       openConfirmModal({
         title:
           t[
@@ -287,13 +264,16 @@ export const BlobManagementPanel = () => {
           t[
             "com.myoxus.settings.workspace.storage.unused-blobs.delete.warning"
           ](),
+        confirmText: t["Delete"](),
+        cancelText: t["Cancel"](),
+        confirmButtonOptions: { variant: "error" },
         onConfirm: async () => {
           setDeleting(true);
           track.$.settingsPanel.workspace.deleteUnusedBlob();
           try {
-            for (const blob of currentSelectedBlobs) {
-              await unusedBlobsEntity.deleteBlob(blob.key, true);
-              handleUnselectBlob(blob);
+            for (const blob of targets) {
+              await unusedBlobs.deleteBlob(blob.key, true);
+              unselectBlob(blob);
             }
           } catch {
             notify.error({
@@ -301,53 +281,22 @@ export const BlobManagementPanel = () => {
             });
           } finally {
             setDeleting(false);
-            unusedBlobsEntity.revalidate({
+            unusedBlobs.revalidate({
               offset: pageNum * PAGE_SIZE,
               first: PAGE_SIZE,
             });
           }
         },
-        confirmText: t["Delete"](),
-        cancelText: t["Cancel"](),
-        confirmButtonOptions: {
-          variant: "error",
-        },
       });
     },
-    [
-      selectedBlobs,
-      openConfirmModal,
-      t,
-      unusedBlobsEntity,
-      handleUnselectBlob,
-      pageNum,
-    ],
+    [openConfirmModal, pageNum, selectedBlobs, t, unselectBlob, unusedBlobs],
   );
 
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (panelRef.current) {
-      const unselectBlobs = (e: globalThis.MouseEvent) => {
-        const target = e.target as HTMLElement;
-        if (
-          panelRef.current &&
-          !e.composedPath().includes(panelRef.current) &&
-          !target.closest('[role="dialog"]')
-        ) {
-          setSelectedBlobs([]);
-        }
-      };
-      document.addEventListener("click", unselectBlobs);
-      return () => {
-        document.removeEventListener("click", unselectBlobs);
-      };
-    }
-    return;
-  }, []);
-
+  const showLoadError = Boolean(loadError) || scanTimedOut;
   const isEmpty = total === 0 && !isLoading;
-  const showLoadError = !!loadError || scanTimedOut;
+  const showSelectAll = !pageBlobs.every((blob) =>
+    selectedBlobs.some((entry) => entry.key === blob.key),
+  );
 
   return (
     <Stack ref={panelRef} data-myoxus-ui-role="workspace-blob-management">
@@ -360,14 +309,14 @@ export const BlobManagementPanel = () => {
             {`${selectedBlobs.length} ${t["com.myoxus.settings.workspace.storage.unused-blobs.selected"]()}`}
           </SettingsListItemTitle>
           <SettingsToolbar data-myoxus-ui-role="workspace-blob-management-selection-actions">
-            {showSelectAll && (
+            {showSelectAll ? (
               <Button onClick={handleSelectAll} variant="primary">
                 {t["com.myoxus.keyboardShortcuts.selectAll"]()}
               </Button>
-            )}
+            ) : null}
             <Button
               loading={deleting}
-              onClick={handleDeleteSelectedBlobs}
+              onClick={handleDeleteSelected}
               prefix={<DeleteIcon />}
               disabled={deleting}
               variant="error"
@@ -377,6 +326,7 @@ export const BlobManagementPanel = () => {
           </SettingsToolbar>
         </SettingsToolbar>
       ) : null}
+
       {showLoadError ? (
         <ErrorMessage
           data-testid="workspace-storage-unused-blobs-error"
@@ -385,7 +335,9 @@ export const BlobManagementPanel = () => {
           {t["com.myoxus.settings.common.load-error"]()}
         </ErrorMessage>
       ) : isEmpty ? (
-        <Empty />
+        <SettingsControlEmpty data-testid="workspace-storage-unused-blobs-empty">
+          {t["com.myoxus.settings.workspace.storage.unused-blobs.empty"]()}
+        </SettingsControlEmpty>
       ) : (
         <Stack data-myoxus-ui-role="workspace-blob-management-surface">
           {isLoading ? (
@@ -402,51 +354,48 @@ export const BlobManagementPanel = () => {
                 data-myoxus-ui-role="workspace-blob-grid-frame"
               >
                 <ResponsiveGrid data-myoxus-ui-role="workspace-blob-grid">
-                  {unusedBlobsPage.map((blob) => {
+                  {pageBlobs.map((blob) => {
                     const selected = selectedBlobs.some(
-                      (b) => b.key === blob.key,
+                      (entry) => entry.key === blob.key,
                     );
-                    const toggleBlob = () => {
-                      if (selected) {
-                        handleUnselectBlob(blob);
-                      } else {
-                        handleSelectBlob(blob);
-                        setSelectionAnchor(blob);
-                      }
-                    };
                     return (
                       <BlobCard
                         key={blob.key}
                         blobRecord={blob}
-                        onClick={(e) => handleBlobClick(blob, e)}
+                        selected={selected}
+                        onClick={(event) => handleCardClick(blob, event)}
                         onCheckedChange={(checked) => {
                           if (checked) {
-                            handleSelectBlob(blob);
-                            setSelectionAnchor(blob);
+                            selectBlob(blob);
+                            setAnchorBlob(blob);
                           } else {
-                            handleUnselectBlob(blob);
-                            if (selectionAnchor?.key === blob.key) {
-                              setSelectionAnchor(null);
+                            unselectBlob(blob);
+                            if (anchorBlob?.key === blob.key) {
+                              setAnchorBlob(null);
                             }
                           }
                         }}
-                        onToggle={toggleBlob}
-                        selected={selected}
+                        onToggle={() => {
+                          if (selected) {
+                            unselectBlob(blob);
+                          } else {
+                            selectBlob(blob);
+                            setAnchorBlob(blob);
+                          }
+                        }}
                       />
                     );
                   })}
                 </ResponsiveGrid>
               </SurfaceListItemFrame>
-              {total > PAGE_SIZE && (
+              {total > PAGE_SIZE ? (
                 <Pagination
                   pageNum={pageNum}
                   totalCount={total}
                   countPerPage={PAGE_SIZE}
-                  onPageChange={(_, pageNum) => {
-                    setPageNum(pageNum);
-                  }}
+                  onPageChange={(_, nextPage) => setPageNum(nextPage)}
                 />
-              )}
+              ) : null}
             </>
           )}
         </Stack>

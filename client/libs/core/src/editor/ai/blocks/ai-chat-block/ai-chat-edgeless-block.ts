@@ -1,30 +1,33 @@
-import { Bound, clamp } from "@virgultum/editor/global/gfx";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
+import { GfxViewInteractionExtension } from "@virgultum/core/runtime/gfx";
 import { NativeGfxBlockComponent } from "@virgultum/editor/blocks/surface";
 import { Peekable } from "@virgultum/editor/components/peek";
-import { GfxViewInteractionExtension } from "@virgultum/core/runtime/gfx";
+import { Bound, clamp } from "@virgultum/editor/global/gfx";
 
 import { mountStoredAIChat } from "./ai-chat-block";
-import { AIChatBlockSchema, type AIChatBlockModel } from "./model";
+import { type AIChatBlockModel, AIChatBlockSchema } from "./model";
 
 @Peekable({
   enableOn: () => !BUILD_CONFIG.isMobileEdition,
 })
 export class EdgelessAIChatBlockComponent extends NativeGfxBlockComponent<AIChatBlockModel> {
-  private readonly card = document.createElement("div");
+  private readonly frame = document.createElement("div");
 
-  connectedCallback() {
+  connectedCallback(): void {
     if (!this.connectBlock()) return;
-    this.card.className = "edgeless-ai-chat";
-    this.append(this.card);
-    this.disposables.add(() => this.card.remove());
+    this.frame.className = "edgeless-ai-chat";
+    this.append(this.frame);
+    this.disposables.add(() => this.frame.remove());
     this.bindGfx();
-    mountStoredAIChat(this, this.card);
+    mountStoredAIChat(this, this.frame);
   }
 
-  protected override renderGfxView() {
+  protected override renderGfxView(): void {
     const bound = Bound.deserialize(this.model.props.xywh$.value);
     const scale = this.model.props.scale$.value;
-    Object.assign(this.card.style, {
+    Object.assign(this.frame.style, {
       width: `${bound.w / scale}px`,
       height: `${bound.h / scale}px`,
       borderRadius: "var(--mantine-radius-lg)",
@@ -47,50 +50,44 @@ export const EdgelessAIChatBlockInteraction =
         maxWidth: 320,
         maxHeight: 300,
       },
-
       handleRotate() {
         return {
           beforeRotate(context) {
-            context.set({
-              rotatable: false,
-            });
+            context.set({ rotatable: false });
           },
         };
       },
-
       handleResize({ model }) {
-        const initialScale = model.props.scale$.peek();
+        const startScale = model.props.scale$.peek();
 
         return {
           onResizeStart(context) {
             context.default(context);
             model.stash("scale");
           },
-
           onResizeMove(context) {
             const { newBound, originalBound, lockRatio, constraint } = context;
-            const { minWidth, maxWidth, minHeight, maxHeight } = constraint;
+            const baseWidth = originalBound.w / startScale;
+            const nextScale = lockRatio ? newBound.w / baseWidth : startScale;
 
-            let scale = initialScale;
-            const originalRealWidth = originalBound.w / scale;
+            const clampedWidth = clamp(
+              newBound.w / nextScale,
+              constraint.minWidth,
+              constraint.maxWidth,
+            );
+            const clampedHeight = clamp(
+              newBound.h / nextScale,
+              constraint.minHeight,
+              constraint.maxHeight,
+            );
 
-            // update scale if resize is proportional
-            if (lockRatio) {
-              scale = newBound.w / originalRealWidth;
-            }
-
-            let newRealWidth = clamp(newBound.w / scale, minWidth, maxWidth);
-            let newRealHeight = clamp(newBound.h / scale, minHeight, maxHeight);
-
-            newBound.w = newRealWidth * scale;
-            newBound.h = newRealHeight * scale;
-
+            newBound.w = clampedWidth * nextScale;
+            newBound.h = clampedHeight * nextScale;
             model.props.xywh = newBound.serialize();
-            if (scale !== initialScale) {
-              model.props.scale = scale;
+            if (nextScale !== startScale) {
+              model.props.scale = nextScale;
             }
           },
-
           onResizeEnd(context) {
             context.default(context);
             model.pop("scale");

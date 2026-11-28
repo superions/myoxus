@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { z } from "zod";
 
 export const CopilotGeneratedFileSchema = z.object({
@@ -33,7 +36,6 @@ export const StreamObjectSchema = z.discriminatedUnion("type", [
     result: z.any().optional(),
   }),
 ]);
-
 export type StreamObject = z.infer<typeof StreamObjectSchema>;
 
 const ChatMessageSchema = z.object({
@@ -41,8 +43,7 @@ const ChatMessageSchema = z.object({
   content: z.string(),
   role: z.union([z.literal("user"), z.literal("assistant")]),
   createdAt: z.string(),
-  // Persisted legacy params are opaque JSON; correlation readers validate only
-  // the server-owned fields they consume, never reject old message bodies.
+  /** Persisted message params are opaque JSON; consumers inspect only known keys. */
   params: z.any().optional(),
   streamObjects: z.array(StreamObjectSchema).optional(),
   attachments: z.array(z.string()).optional(),
@@ -55,16 +56,14 @@ const ChatMessageSchema = z.object({
 export const ChatMessagesSchema = z.array(ChatMessageSchema);
 
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
-
 export type HistoryMessage = ChatMessage;
-
 export type MessageRole = "user" | "assistant";
 
-export type MessageUserInfo = {
+export interface MessageUserInfo {
   userId?: string;
   userName?: string;
   avatarUrl?: string;
-};
+}
 
 export function isChatMessage(item: HistoryMessage): item is ChatMessage {
   return "role" in item;

@@ -1,8 +1,7 @@
-import {
-  sourceMindmapSelection,
-  sourceMindmapOutline,
-  captureMindmapSourceBasis,
-} from "./mindmap-source";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
+import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import { splitElements } from "@virgultum/editor/blocks/root";
 import { DefaultTool } from "@virgultum/editor/blocks/surface";
 import {
@@ -10,7 +9,6 @@ import {
   EdgelessTextBlockModel,
   EmbedSyncedDocModel,
   ImageBlockModel,
-  type ImageBlockProps,
   NoteBlockModel,
   ShapeElementModel,
   TextElementModel,
@@ -21,12 +19,11 @@ import {
   GfxControllerIdentifier,
   type GfxModel,
 } from "@virgultum/editor/std/gfx";
-import type { MyoxusIconExportName } from "@myoxus/icons/names";
-import { type BlockModel, Slice } from "@virgultum/editor/store";
+import { Slice } from "@virgultum/editor/store";
 
 import { getContentFromSlice } from "../../utils";
 import { AIChatBlockModel } from "../blocks";
-import { type AIError, AIProvider } from "../provider";
+import { AIProvider } from "../provider";
 import { reportResponse } from "../utils/action-reporter";
 import { getAIPanelController } from "../utils/ai-widgets";
 import { AIContext } from "../utils/context";
@@ -42,7 +39,6 @@ import {
   getSelections,
 } from "../utils/selection-utils";
 import type { AIPanelController } from "../widgets/ai-panel/controller";
-import type { AIActionAnswer } from "../widgets/ai-panel/type";
 import type { EdgelessCopilotWidget } from "../widgets/edgeless-copilot";
 import { actionToAnswerRenderer } from "./answer-renderer";
 import { EXCLUDING_COPY_ACTIONS } from "./consts";
@@ -53,301 +49,191 @@ import {
   actionToResponse,
   getToolbar,
 } from "./edgeless-response";
+import {
+  captureMindmapSourceBasis,
+  sourceMindmapOutline,
+  sourceMindmapSelection,
+} from "./mindmap-source";
 
-async function getContentFromEmbedSyncedDocModel(
-  host: EditorHost,
-  models: EmbedSyncedDocModel[],
-) {
-  const slice = Slice.fromModels(host.store, models);
-  return (await getContentFromSlice(host, slice)).trim();
-}
+type ActionVariants<K extends keyof VirgultumPresets.AIActions> = Omit<
+  Parameters<VirgultumPresets.AIActions[K]>[0],
+  keyof VirgultumPresets.AITextActionOptions
+>;
 
-async function getContentFromHubBlockModel(
+type CustomInputExtractor = (
   host: EditorHost,
-  models: EdgelessTextBlockModel[] | NoteBlockModel[],
-) {
-  return (
-    await Promise.all(
-      models.map((model) => {
-        const slice = Slice.fromModels(host.store, model.children);
-        return getContentFromSlice(host, slice);
-      }),
-    )
-  )
-    .map((content) => content.trim())
-    .filter((content) => content.length);
+  ctx: AIContext,
+) => Promise<{
+  input?: string;
+  content?: string;
+  attachments?: Array<string | Blob>;
+  seed?: string;
+  mindmap?: string;
+} | void>;
+
+async function extractContainerBlockText(
+  host: EditorHost,
+  blocks: Array<EdgelessTextBlockModel | NoteBlockModel>,
+): Promise<string[]> {
+  const rendered = await Promise.all(
+    blocks.map((model) =>
+      getContentFromSlice(host, Slice.fromModels(host.store, model.children)),
+    ),
+  );
+  return rendered.map((text) => text.trim()).filter(Boolean);
 }
 
 export async function getContentFromSelected(
   host: EditorHost,
   selected: GfxModel[],
-) {
+): Promise<string> {
   if (selected.length === 1) {
-    const selection = sourceMindmapSelection(selected[0]);
-    if (selection) return sourceMindmapOutline(selection);
-  }
-  type RemoveUndefinedKey<T, K extends keyof T> = T & {
-    [P in K]-?: Exclude<T[P], undefined>;
-  };
-
-  function isShapeWithText(
-    el: ShapeElementModel,
-  ): el is RemoveUndefinedKey<ShapeElementModel, "text"> {
-    return el.text !== undefined && el.text.length !== 0;
+    const mindmap = sourceMindmapSelection(selected[0]);
+    if (mindmap) return sourceMindmapOutline(mindmap);
   }
 
-  function isImageWithCaption(
-    el: ImageBlockModel,
-  ): el is ImageBlockModel &
-    BlockModel<RemoveUndefinedKey<ImageBlockProps, "caption">> {
-    return el.props.caption !== undefined && el.props.caption.length !== 0;
+  const notes: NoteBlockModel[] = [];
+  const edgelessTexts: EdgelessTextBlockModel[] = [];
+  const syncedDocs: EmbedSyncedDocModel[] = [];
+  const plainTexts: string[] = [];
+  const shapeTexts: string[] = [];
+  const captions: string[] = [];
+
+  for (const item of selected) {
+    if (item instanceof NoteBlockModel) {
+      notes.push(item);
+    } else if (item instanceof TextElementModel) {
+      plainTexts.push(item.text.toString());
+    } else if (item instanceof ShapeElementModel && item.text?.length) {
+      shapeTexts.push(item.text.toString());
+    } else if (item instanceof ImageBlockModel && item.props.caption?.length) {
+      captions.push(item.props.caption);
+    } else if (item instanceof EdgelessTextBlockModel) {
+      edgelessTexts.push(item);
+    } else if (item instanceof EmbedSyncedDocModel) {
+      syncedDocs.push(item);
+    }
   }
 
-  const { notes, texts, shapes, images, edgelessTexts, embedSyncedDocs } =
-    selected.reduce<{
-      notes: NoteBlockModel[];
-      texts: TextElementModel[];
-      shapes: RemoveUndefinedKey<ShapeElementModel, "text">[];
-      images: RemoveUndefinedKey<ImageBlockProps, "caption">[];
-      edgelessTexts: EdgelessTextBlockModel[];
-      embedSyncedDocs: EmbedSyncedDocModel[];
-    }>(
-      (pre, cur) => {
-        if (cur instanceof NoteBlockModel) {
-          pre.notes.push(cur);
-        } else if (cur instanceof TextElementModel) {
-          pre.texts.push(cur);
-        } else if (cur instanceof ShapeElementModel && isShapeWithText(cur)) {
-          pre.shapes.push(cur);
-        } else if (cur instanceof ImageBlockModel && isImageWithCaption(cur)) {
-          pre.images.push(cur.props);
-        } else if (cur instanceof EdgelessTextBlockModel) {
-          pre.edgelessTexts.push(cur);
-        } else if (cur instanceof EmbedSyncedDocModel) {
-          pre.embedSyncedDocs.push(cur);
-        }
-
-        return pre;
-      },
-      {
-        notes: [],
-        texts: [],
-        shapes: [],
-        images: [],
-        edgelessTexts: [],
-        embedSyncedDocs: [],
-      },
-    );
-
-  const hasPageBlock = notes.find((note) => note.isPageBlock());
-  const title =
-    hasPageBlock && host.std.store.meta?.title
-      ? `# ${host.std.store.meta?.title}\n`
+  const pageNote = notes.find((note) => note.isPageBlock());
+  const titlePrefix =
+    pageNote && host.std.store.meta?.title
+      ? `# ${host.std.store.meta.title}\n`
       : "";
 
-  const noteContent = await getContentFromHubBlockModel(host, notes);
-  const edgelessTextContent = await getContentFromHubBlockModel(
-    host,
-    edgelessTexts,
-  );
-  const syncedDocsContent = await getContentFromEmbedSyncedDocModel(
-    host,
-    embedSyncedDocs,
-  );
-
-  return `${title}${noteContent.join("\n")}
-${edgelessTextContent.join("\n")}
-${syncedDocsContent}
-${texts.map((text) => text.text.toString()).join("\n")}
-${shapes.map((shape) => shape.text.toString()).join("\n")}
-${images.map((image) => image.caption.toString()).join("\n")}
-`.trim();
-}
-
-function getTextFromSelected(host: EditorHost) {
-  const selected = getCopilotSelectedElems(host);
-  return getContentFromSelected(host, selected);
-}
-
-function actionToStream<T extends keyof VirgultumPresets.AIActions>(
-  id: T,
-  signal?: AbortSignal,
-  variants?: Omit<
-    Parameters<VirgultumPresets.AIActions[T]>[0],
-    keyof VirgultumPresets.AITextActionOptions
-  >,
-  extract?: (
-    host: EditorHost,
-    ctx: AIContext,
-  ) => Promise<{
-    content?: string;
-    attachments?: (string | Blob)[];
-    seed?: string;
-  } | void>,
-  trackerOptions?: VirgultumPresets.TrackerOptions,
-  panelInput?: string,
-) {
-  const action = AIProvider.actions[id];
-
-  if (!action || typeof action !== "function") return;
-
-  if (extract && typeof extract === "function") {
-    return (host: EditorHost, ctx: AIContext): VirgultumPresets.TextStream => {
-      let stream: VirgultumPresets.TextStream | undefined;
-      const control = trackerOptions?.control || "format-bar";
-      const where = trackerOptions?.where || "ai-panel";
-      return {
-        async *[Symbol.asyncIterator]() {
-          const models = getCopilotSelectedElems(host);
-          const options = {
-            ...variants,
-            signal,
-            input: panelInput ?? "",
-            stream: true,
-            control,
-            where,
-            models,
-            host,
-            docId: host.store.id,
-            workspaceId: host.store.workspace.id,
-          } as Parameters<typeof action>[0];
-
-          const content = ctx.get().content;
-          if (typeof content === "string" && !content.length && panelInput) {
-            ctx.set({
-              content: panelInput,
-            });
-          }
-          const data = await extract(host, ctx);
-          if (data) {
-            Object.assign(options, data);
-          }
-
-          // @ts-expect-error TODO(@Peng): maybe fix this
-          stream = await action(options);
-          if (!stream) return;
-          yield* stream;
-        },
-      };
-    };
-  }
-
-  return (host: EditorHost): VirgultumPresets.TextStream => {
-    let stream: VirgultumPresets.TextStream | undefined;
-    return {
-      async *[Symbol.asyncIterator]() {
-        const panel = getAIPanelController(host);
-        const models = getCopilotSelectedElems(host);
-        const markdown = await getTextFromSelected(panel.host);
-
-        const options = {
-          ...variants,
-          signal,
-          input: markdown,
-          stream: true,
-          where: "ai-panel",
-          models,
-          control: "format-bar",
+  const [noteParts, edgelessTextParts, syncedDocText] = await Promise.all([
+    extractContainerBlockText(host, notes),
+    extractContainerBlockText(host, edgelessTexts),
+    syncedDocs.length
+      ? getContentFromSlice(
           host,
-          docId: host.store.id,
-          workspaceId: host.store.workspace.id,
-        } as Parameters<typeof action>[0];
+          Slice.fromModels(host.store, syncedDocs),
+        ).then((text) => text.trim())
+      : Promise.resolve(""),
+  ]);
 
-        // @ts-expect-error TODO(@Peng): maybe fix this
-        stream = await action(options);
-        if (!stream) return;
-        yield* stream;
-      },
-    };
-  };
+  return [
+    `${titlePrefix}${noteParts.join("\n")}`,
+    edgelessTextParts.join("\n"),
+    syncedDocText,
+    plainTexts.join("\n"),
+    shapeTexts.join("\n"),
+    captions.join("\n"),
+  ]
+    .join("\n")
+    .trim();
 }
 
-function actionToGeneration<T extends keyof VirgultumPresets.AIActions>(
-  id: T,
-  variants?: Omit<
-    Parameters<VirgultumPresets.AIActions[T]>[0],
-    keyof VirgultumPresets.AITextActionOptions
-  >,
-  extract?: (
-    host: EditorHost,
-    ctx: AIContext,
-  ) => Promise<{
-    content?: string;
-    attachments?: (string | Blob)[];
-    seed?: string;
-  } | void>,
+function createEdgelessStream<K extends keyof VirgultumPresets.AIActions>(
+  id: K,
+  host: EditorHost,
+  ctx: AIContext,
+  input: string,
+  signal?: AbortSignal,
+  variants?: ActionVariants<K>,
+  customInput?: CustomInputExtractor,
   trackerOptions?: VirgultumPresets.TrackerOptions,
-) {
-  return (host: EditorHost, ctx: AIContext) => {
-    return ({
-      input,
-      signal,
-      update,
-      finish,
-    }: {
-      input: string;
-      signal?: AbortSignal;
-      update: (answer: AIActionAnswer) => void;
-      finish: (state: "success" | "error" | "aborted", err?: AIError) => void;
-    }) => {
-      if (!extract) {
-        const selectedElements = getCopilotSelectedElems(host);
-        if (selectedElements.length === 0) return;
+): VirgultumPresets.TextStream | undefined {
+  const action = AIProvider.actions[id];
+  if (typeof action !== "function") return;
+
+  return {
+    async *[Symbol.asyncIterator]() {
+      const models = getCopilotSelectedElems(host);
+      const baseOptions: Record<string, unknown> = {
+        ...variants,
+        signal,
+        stream: true,
+        host,
+        models,
+        docId: host.store.id,
+        workspaceId: host.store.workspace.id,
+        control: trackerOptions?.control ?? "format-bar",
+        where: trackerOptions?.where ?? "ai-panel",
+      };
+
+      if (customInput) {
+        baseOptions.input = input;
+        if (ctx.get().content === "" && input) {
+          ctx.set({ content: input });
+        }
+        const extracted = await customInput(host, ctx);
+        if (extracted) {
+          Object.assign(baseOptions, extracted);
+        }
+      } else {
+        baseOptions.input = await getContentFromSelected(
+          getAIPanelController(host).host,
+          models,
+        );
       }
 
-      const stream = actionToStream(
-        id,
-        signal,
-        variants,
-        extract,
-        trackerOptions,
-        input,
-      )?.(host, ctx);
-
-      if (!stream) return;
-
-      bindTextStream(stream, { update, finish, signal });
-    };
+      const stream = (await (
+        action as (
+          opts: Record<string, unknown>,
+        ) => Promise<VirgultumPresets.TextStream | undefined>
+      )(baseOptions)) as VirgultumPresets.TextStream | undefined;
+      if (stream) {
+        yield* stream;
+      }
+    },
   };
 }
 
-function updateEdgelessAIPanelConfig<
-  T extends keyof VirgultumPresets.AIActions,
->(
-  aiPanel: AIPanelController,
-  edgelessCopilot: EdgelessCopilotWidget,
-  id: T,
+function configureEdgelessPanel<K extends keyof VirgultumPresets.AIActions>(
+  panel: AIPanelController,
+  copilot: EdgelessCopilotWidget,
+  id: K,
   generatingIcon: MyoxusIconExportName,
   ctx: AIContext,
-  variants?: Omit<
-    Parameters<VirgultumPresets.AIActions[T]>[0],
-    keyof VirgultumPresets.AITextActionOptions
-  >,
-  customInput?: (
-    host: EditorHost,
-    ctx: AIContext,
-  ) => Promise<{
-    input?: string;
-    content?: string;
-    attachments?: (string | Blob)[];
-    seed?: string;
-  } | void>,
+  variants?: ActionVariants<K>,
+  customInput?: CustomInputExtractor,
   trackerOptions?: VirgultumPresets.TrackerOptions,
-) {
-  const host = aiPanel.host;
-  const { config } = aiPanel;
+): void {
+  const { config, host } = panel;
   if (!config) return;
+
   config.answerRenderer = actionToAnswerRenderer(id, host, ctx);
-  config.generateAnswer = actionToGeneration(
-    id,
-    variants,
-    customInput,
-    trackerOptions,
-  )(host, ctx);
+  config.generateAnswer = ({ input, signal, update, finish }) => {
+    if (!customInput && getCopilotSelectedElems(host).length === 0) return;
+    const stream = createEdgelessStream(
+      id,
+      host,
+      ctx,
+      input,
+      signal,
+      variants,
+      customInput,
+      trackerOptions,
+    );
+    if (stream) {
+      bindTextStream(stream, { update, finish, signal });
+    }
+  };
   config.finishStateConfig = actionToResponse(id, host, ctx, variants);
   config.generatingStateConfig = actionToGenerating(id, generatingIcon);
   config.errorStateConfig = actionToErrorResponse(
-    aiPanel,
+    panel,
     id,
     host,
     ctx,
@@ -355,45 +241,27 @@ function updateEdgelessAIPanelConfig<
   );
   config.copy = {
     allowed: !EXCLUDING_COPY_ACTIONS.includes(id),
-    onCopy: () => {
-      return copyTextAnswer(aiPanel);
-    },
+    onCopy: () => copyTextAnswer(panel),
   };
-  config.discardCallback = () => {
-    reportResponse("result:discard");
-  };
+  config.discardCallback = () => reportResponse("result:discard");
   config.hideCallback = () => {
-    edgelessCopilot.gfx.tool.setTool(DefaultTool);
-    edgelessCopilot.gfx.selection.set({
-      elements: [],
-      editing: false,
-    });
+    copilot.gfx.tool.setTool(DefaultTool);
+    copilot.gfx.selection.set({ elements: [], editing: false });
     host.selection.clear();
-    edgelessCopilot.lockToolbar(false);
+    copilot.lockToolbar(false);
   };
 }
 
-export function actionToHandler<T extends keyof VirgultumPresets.AIActions>(
-  id: T,
+export function actionToHandler<K extends keyof VirgultumPresets.AIActions>(
+  id: K,
   generatingIcon: MyoxusIconExportName,
-  variants?: Omit<
-    Parameters<VirgultumPresets.AIActions[T]>[0],
-    keyof VirgultumPresets.AITextActionOptions
-  >,
-  customInput?: (
-    host: EditorHost,
-    ctx: AIContext,
-  ) => Promise<{
-    input?: string;
-    content?: string;
-    attachments?: (string | Blob)[];
-    seed?: string;
-  } | void>,
+  variants?: ActionVariants<K>,
+  customInput?: CustomInputExtractor,
   trackerOptions?: VirgultumPresets.TrackerOptions,
 ) {
   return (host: EditorHost) => {
-    const aiPanel = getAIPanelController(host);
-    const edgelessCopilot = getEdgelessCopilotWidget(host);
+    const panel = getAIPanelController(host);
+    const copilot = getEdgelessCopilotWidget(host);
     const selectedElements = getCopilotSelectedElems(host);
     const { selectedBlocks } = getSelections(host);
     const ctx = new AIContext({
@@ -404,12 +272,11 @@ export function actionToHandler<T extends keyof VirgultumPresets.AIActions>(
           : undefined,
     });
 
-    edgelessCopilot.hideCopilotPanel();
-    edgelessCopilot.lockToolbar(true);
-
-    updateEdgelessAIPanelConfig(
-      aiPanel,
-      edgelessCopilot,
+    copilot.hideCopilotPanel();
+    copilot.lockToolbar(true);
+    configureEdgelessPanel(
+      panel,
+      copilot,
       id,
       generatingIcon,
       ctx,
@@ -420,67 +287,58 @@ export function actionToHandler<T extends keyof VirgultumPresets.AIActions>(
 
     const toolbar = getToolbar(host);
     const isEmpty = selectedElements.length === 0;
-    const isCreateImageAction = id === "createImage";
-    const isMakeItRealAction = !isCreateImageAction && id === "makeItReal";
-    let referenceElement = null;
-    let togglePanel = () => Promise.resolve(isEmpty);
+    let anchor: Element | null | undefined = null;
 
-    if (selectedBlocks && selectedBlocks.length !== 0) {
-      referenceElement = selectedBlocks.at(-1);
-    } else if (edgelessCopilot.visible && edgelessCopilot.selectionElem) {
-      referenceElement = edgelessCopilot.selectionElem;
+    if (selectedBlocks?.length) {
+      anchor = selectedBlocks.at(-1);
+    } else if (copilot.visible && copilot.selectionElem) {
+      anchor = copilot.selectionElem;
     } else if (toolbar?.dataset.open) {
-      referenceElement = toolbar;
+      anchor = toolbar;
     } else if (!isEmpty) {
-      const lastSelected = selectedElements.at(-1)?.id;
-      if (!lastSelected) return;
-      const noteAnchor = getSelectedNoteAnchor(host, lastSelected);
-      referenceElement = noteAnchor;
+      const lastId = selectedElements.at(-1)?.id;
+      if (!lastId) return;
+      anchor = getSelectedNoteAnchor(host, lastId);
     }
 
-    if (!referenceElement) {
-      const gfx = host.std.get(GfxControllerIdentifier);
-      gfx?.tool.setTool(DefaultTool);
-      edgelessCopilot.lockToolbar(false);
+    if (!anchor) {
+      host.std.get(GfxControllerIdentifier)?.tool.setTool(DefaultTool);
+      copilot.lockToolbar(false);
       return;
     }
 
-    if (isCreateImageAction || isMakeItRealAction) {
-      togglePanel = async () => {
-        if (isEmpty) return true;
-        const { notes, shapes, images, edgelessTexts, embedSyncedDocs } =
-          splitElements(selectedElements);
-        const blocks = [
-          ...notes,
-          ...shapes,
-          ...images,
-          ...edgelessTexts,
-          ...embedSyncedDocs,
-        ];
-        if (blocks.length === 0) return true;
-        const content = await getContentFromSelected(host, blocks);
-        ctx.set({
-          content,
-        });
-        return content.length === 0;
-      };
-    }
+    const resolveShouldPromptInput = async () => {
+      if (id !== "makeItReal") return isEmpty;
+      if (isEmpty) return true;
+      const { notes, shapes, images, edgelessTexts, embedSyncedDocs } =
+        splitElements(selectedElements);
+      const targets = [
+        ...notes,
+        ...shapes,
+        ...images,
+        ...edgelessTexts,
+        ...embedSyncedDocs,
+      ];
+      if (targets.length === 0) return true;
+      const content = await getContentFromSelected(host, targets);
+      ctx.set({ content });
+      return content.length === 0;
+    };
 
-    togglePanel()
-      .then((isEmpty) => {
-        aiPanel.toggle(referenceElement, isEmpty ? "input" : "generate");
+    resolveShouldPromptInput()
+      .then((openInput) => {
+        panel.toggle(anchor, openInput ? "input" : "generate");
       })
       .catch(console.error);
   };
 }
 
 export function noteBlockOrTextShowWhen(
-  _: unknown,
-  __: unknown,
+  _chain: unknown,
+  _mode: unknown,
   host: EditorHost,
-) {
-  const selected = getCopilotSelectedElems(host);
-  return selected.some(
+): boolean {
+  return getCopilotSelectedElems(host).some(
     (el) =>
       el instanceof NoteBlockModel ||
       el instanceof TextElementModel ||
@@ -488,18 +346,14 @@ export function noteBlockOrTextShowWhen(
   );
 }
 
-/**
- * Checks if the selected element is a NoteBlockModel with a single child element of code block.
- */
 export function noteWithCodeBlockShowWen(
-  _: unknown,
-  __: unknown,
+  _chain: unknown,
+  _mode: unknown,
   host: EditorHost,
-) {
+): boolean {
   const selected = getCopilotSelectedElems(host);
-  if (!selected.length) return false;
-
   return (
+    selected.length > 0 &&
     selected[0] instanceof NoteBlockModel &&
     selected[0].children.length === 1 &&
     matchModels(selected[0].children[0], [CodeBlockModel])
@@ -507,38 +361,40 @@ export function noteWithCodeBlockShowWen(
 }
 
 export function mindmapChildShowWhen(
-  _: unknown,
-  __: unknown,
+  _chain: unknown,
+  _mode: unknown,
   host: EditorHost,
-) {
+): boolean {
   const selected = getCopilotSelectedElems(host);
-
   return selected.length === 1 && isMindmapChild(selected[0]);
 }
 
-export function imageOnlyShowWhen(_: unknown, __: unknown, host: EditorHost) {
+export function imageOnlyShowWhen(
+  _chain: unknown,
+  _mode: unknown,
+  host: EditorHost,
+): boolean {
   const selected = getCopilotSelectedElems(host);
-
   return selected.length === 1 && selected[0] instanceof ImageBlockModel;
 }
 
-export function mindmapRootShowWhen(_: unknown, __: unknown, host: EditorHost) {
+export function mindmapRootShowWhen(
+  _chain: unknown,
+  _mode: unknown,
+  host: EditorHost,
+): boolean {
   const selected = getCopilotSelectedElems(host);
-
   return selected.length === 1 && isMindMapRoot(selected[0]);
 }
 
-// TODO(@chen): remove this function after the new AI chat block related function is fully implemented
 export function notAllAIChatBlockShowWhen(
-  _: unknown,
-  __: unknown,
+  _chain: unknown,
+  _mode: unknown,
   host: EditorHost,
-) {
+): boolean {
   const selected = getCopilotSelectedElems(host);
-  if (selected.length === 0) return true;
-
-  const allAIChatBlocks = selected.every(
-    (model) => model instanceof AIChatBlockModel,
+  return (
+    selected.length === 0 ||
+    !selected.every((model) => model instanceof AIChatBlockModel)
   );
-  return !allAIChatBlocks;
 }

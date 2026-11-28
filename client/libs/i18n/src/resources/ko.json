@@ -3164,8 +3164,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "고급 블록 가시성 제어",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "AI 채팅 블록을 활성화합니다.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "AI 채팅 블록",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "AI 모델 전환 기능을 활성화하거나 비활성화합니다.",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "AI 모델 전환 활성화",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "비활성화하면 \"AI로 계속하기\"를 선택할 때마다 AI는 스크린샷만 받습니다.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "AI에 상세한 객체 정보 전송",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "모든 AI 기능을 활성화하거나 비활성화합니다.",

@@ -222,7 +222,7 @@ function SavedOperation({
   const t = useI18n();
   const activeStore = host?.store ?? pageBridge?.store;
   const readonlyStore = useSignalValue(activeStore?.readonly$);
-  const editable = !!(host || pageBridge) && !readOnly && !readonlyStore;
+  const editable = !!pageBridge && !readOnly && !readonlyStore;
   const [busy, setBusy] = useState<EditAction | null>(null);
   const active = useRef<AbortController | null>(null);
   useLayoutEffect(() => {
@@ -233,12 +233,7 @@ function SavedOperation({
     };
   }, [host, pageBridge, docId, readOnly, readonlyStore]);
   const run = async (action: EditAction) => {
-    if (
-      (!host && !pageBridge) ||
-      active.current ||
-      activeStore?.readonly ||
-      readOnly
-    )
+    if (!pageBridge || active.current || activeStore?.readonly || readOnly)
       return;
     const task = new AbortController();
     active.current = task;
@@ -246,40 +241,13 @@ function SavedOperation({
     // A reopened or revoked Peek must never receive an older async edit.
     const current = () => !task.signal.aborted && !activeStore?.readonly;
     try {
-      if (!host && pageBridge) {
-        const event = { instruction, operation: change.op };
-        if (action === "reject") {
-          track.applyModel.chat.$.reject(event);
-          return;
-        }
-        track.applyModel.chat.$[action](event);
-        await pageBridge.applyDocUpdate(change.op, change.updates);
-        return;
-      }
-      if (!host) return;
-      const { BlockDiffProvider } = await import("../../services/block-diff");
-      if (!current()) return;
-      const service = host.std.getOptional(BlockDiffProvider);
       const event = { instruction, operation: change.op };
       if (action === "reject") {
         track.applyModel.chat.$.reject(event);
-        service?.setChangedMarkdown(null);
-        service?.rejectAll();
         return;
       }
-      const { AIProvider } = await import("../../provider");
-      if (!current()) return;
-      const markdown = await AIProvider.context?.applyDocUpdates(
-        host.std.workspace.id,
-        docId,
-        change.op,
-        change.updates,
-      );
-      if (!markdown || !current()) return;
       track.applyModel.chat.$[action](event);
-      await service?.apply(host.store, markdown);
-      if (action === "accept" && current())
-        await service?.acceptAll(host.store);
+      await pageBridge.applyDocUpdate(change.op, change.updates);
     } catch (error) {
       if (current())
         notify(

@@ -8,7 +8,6 @@ import {
   configureAIButtonModule,
   configureAIDraftModule,
   configureAIModelModule,
-  configureAIPlaygroundModule,
   configureAIReasoningModule,
   configureAIToolsConfigModule,
 } from "./ai-button";
@@ -79,7 +78,6 @@ export function configureCommonWorkspaceFeatureModules(framework: Framework) {
   configSearchMenuModule(framework);
   configureDndModule(framework);
   configureAIReasoningModule(framework);
-  configureAIPlaygroundModule(framework);
   configureAIButtonModule(framework);
   configureAIDraftModule(framework);
   configureAIToolsConfigModule(framework);

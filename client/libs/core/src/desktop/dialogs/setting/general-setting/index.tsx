@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { UserSettingTab } from "@myoxus/core/modules/dialogs/constant";
 import { UserFeatureService } from "@myoxus/core/modules/server/services/user-feature";
 import { useI18n } from "@myoxus/i18n";
@@ -37,15 +40,15 @@ export const useGeneralSettingList = (): GeneralSettingList => {
     AuthService,
     UserFeatureService,
   });
-  const status = useLiveData(authService.session.status$);
-  const loggedIn = status === "authenticated";
+  const isSignedIn =
+    useLiveData(authService.session.status$) === "authenticated";
 
   useEffect(() => {
     userFeatureService.userFeature.revalidate();
   }, [userFeatureService]);
 
   return useMemo(() => {
-    const settings: GeneralSettingList = [
+    const items: GeneralSettingList = [
       {
         key: "appearance",
         title: t["com.myoxus.settings.appearance"](),
@@ -77,8 +80,9 @@ export const useGeneralSettingList = (): GeneralSettingList => {
         testId: "journal-panel-trigger",
       },
     ];
-    if (loggedIn) {
-      settings.push({
+
+    if (isSignedIn) {
+      items.push({
         key: "notifications",
         title: t["com.myoxus.setting.notifications"](),
         icon: <NotificationIcon />,
@@ -86,11 +90,11 @@ export const useGeneralSettingList = (): GeneralSettingList => {
       });
     }
 
-    if (
-      (environment.isMacOs || environment.isWindows || environment.isLinux) &&
-      BUILD_CONFIG.isElectron
-    ) {
-      settings.push({
+    const supportsDesktopMeetings =
+      BUILD_CONFIG.isElectron &&
+      (environment.isMacOs || environment.isWindows || environment.isLinux);
+    if (supportsDesktopMeetings) {
+      items.push({
         key: "meetings",
         title: t["com.myoxus.settings.meetings"](),
         icon: <MeetingIcon />,
@@ -99,7 +103,7 @@ export const useGeneralSettingList = (): GeneralSettingList => {
     }
 
     if (BUILD_CONFIG.isElectron) {
-      settings.push({
+      items.push({
         key: "backup",
         title: t["com.myoxus.settings.workspace.backup"](),
         icon: <FolderIcon />,
@@ -107,7 +111,7 @@ export const useGeneralSettingList = (): GeneralSettingList => {
       });
     }
 
-    settings.push(
+    items.push(
       {
         key: "experimental-features",
         title: t["com.myoxus.settings.workspace.experimental-features"](),
@@ -121,36 +125,37 @@ export const useGeneralSettingList = (): GeneralSettingList => {
         testId: "about-panel-trigger",
       },
     );
-    return settings;
-  }, [t, loggedIn]);
+
+    return items;
+  }, [isSignedIn, t]);
 };
 
-interface GeneralSettingProps {
+export const GeneralSetting = ({
+  activeTab,
+}: {
   activeTab: UserSettingTab;
-}
-
-export const GeneralSetting = ({ activeTab }: GeneralSettingProps) => {
+}) => {
   switch (activeTab) {
-    case "shortcuts":
-      return <Shortcuts />;
-    case "notifications":
-      return <NotificationSettings />;
-    case "editor":
-      return <EditorSettings />;
     case "appearance":
       return <AppearanceSettings />;
+    case "editor":
+      return <EditorSettings />;
     case "language-region":
       return <LanguageRegionSettings />;
-    case "meetings":
-      return <MeetingsSettings />;
-    case "about":
-      return <AboutMyoxus />;
-    case "experimental-features":
-      return <ExperimentalFeatures />;
-    case "backup":
-      return <BackupSettingPanel />;
+    case "shortcuts":
+      return <Shortcuts />;
     case "journal":
       return <JournalSettings />;
+    case "notifications":
+      return <NotificationSettings />;
+    case "meetings":
+      return <MeetingsSettings />;
+    case "backup":
+      return <BackupSettingPanel />;
+    case "experimental-features":
+      return <ExperimentalFeatures />;
+    case "about":
+      return <AboutMyoxus />;
     default:
       return null;
   }

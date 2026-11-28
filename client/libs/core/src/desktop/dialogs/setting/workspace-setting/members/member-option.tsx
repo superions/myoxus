@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   type Member,
   WorkspaceMembersService,
@@ -25,28 +28,23 @@ export const MemberOptions = ({
   const t = useI18n();
   const membersService = useService(WorkspaceMembersService);
   const { openConfirmModal } = useConfirmModal();
+  const memberName = member.name || member.email || member.id;
 
-  const openRemoveConfirmModal = useCallback(
-    (successNotify: { title: string; message: string }) => {
+  const confirmRevoke = useCallback(
+    (title: string, message: string) => {
       openConfirmModal({
         title: t["com.myoxus.member.remove.confirm.title"](),
         description: t["com.myoxus.member.remove.confirm.description"](),
         confirmText: t["com.myoxus.member.remove.confirm.confirm-button"](),
         cancelText: t["com.myoxus.member.remove.confirm.cancel"](),
-        confirmButtonOptions: {
-          variant: "error",
-        },
+        confirmButtonOptions: { variant: "error" },
         onConfirm: () =>
           membersService
             .revokeMember(member.id)
-            .then((result) => {
-              if (result) {
-                notify.success({
-                  title: successNotify.title,
-                  message: successNotify.message,
-                });
-                membersService.members.revalidate();
-              }
+            .then((ok) => {
+              if (!ok) return;
+              notify.success({ title, message });
+              membersService.members.revalidate();
             })
             .catch((error) => {
               notify.error({
@@ -56,144 +54,116 @@ export const MemberOptions = ({
             }),
       });
     },
-    [member, membersService, openConfirmModal, t],
+    [member.id, membersService, openConfirmModal, t],
   );
-
-  const handleAssignOwner = useCallback(() => {
-    openAssignModal();
-  }, [openAssignModal]);
-
-  const handleRevoke = useCallback(() => {
-    openRemoveConfirmModal({
-      title: t["com.myoxus.member.revoke.notify.title"](),
-      message: t["com.myoxus.member.revoke.notify.message"]({
-        name: member.name || member.email || member.id,
-      }),
-    });
-  }, [openRemoveConfirmModal, member, t]);
 
   const handleApprove = useCallback(() => {
     membersService
       .approveMember(member.id)
-      .then((result) => {
-        if (result) {
-          notify.success({
-            title: t["com.myoxus.member.approve.notify.title"](),
-            message: t["com.myoxus.member.approve.notify.message"]({
-              name: member.name || member.email || member.id,
-            }),
-          });
-          membersService.members.revalidate();
-        }
+      .then((ok) => {
+        if (!ok) return;
+        notify.success({
+          title: t["com.myoxus.member.approve.notify.title"](),
+          message: t["com.myoxus.member.approve.notify.message"]({
+            name: memberName,
+          }),
+        });
+        membersService.members.revalidate();
       })
       .catch((error) => {
         notify.error({
           title: t["com.myoxus.common.operation-failed"](),
-          message: error.message,
+          message: error instanceof Error ? error.message : String(error),
         });
       });
-  }, [member, membersService, t]);
+  }, [member.id, memberName, membersService, t]);
 
-  const handleDecline = useCallback(() => {
-    openRemoveConfirmModal({
-      title: t["com.myoxus.member.decline.notify.title"](),
-      message: t["com.myoxus.member.decline.notify.message"]({
-        name: member.name || member.email || member.id,
-      }),
-    });
-  }, [member, openRemoveConfirmModal, t]);
-
-  const handleRemove = useCallback(() => {
-    openRemoveConfirmModal({
-      title: t["com.myoxus.member.remove.notify.title"](),
-      message: t["com.myoxus.member.remove.notify.message"]({
-        name: member.name || member.email || member.id,
-      }),
-    });
-  }, [member, openRemoveConfirmModal, t]);
-
-  const handleChangePermission = useCallback(
+  const handleChangeRole = useCallback(
     (permission: Permission) => {
       membersService
         .adjustMemberPermission(member.id, permission)
-        .then((result) => {
-          if (result) {
-            notify.success({
-              title: t["com.myoxus.member.change.notify.title"](),
-            });
-            membersService.members.revalidate();
-          }
+        .then((ok) => {
+          if (!ok) return;
+          notify.success({
+            title: t["com.myoxus.member.change.notify.title"](),
+          });
+          membersService.members.revalidate();
         })
         .catch((error) => {
           notify.error({
             title: t["com.myoxus.common.operation-failed"](),
-            message: error.message,
+            message: error instanceof Error ? error.message : String(error),
           });
         });
     },
     [member.id, membersService, t],
   );
 
-  const roleOptions = useMemo(
-    () => [
-      { permission: Permission.Reader, label: t["Reader"]() },
-      { permission: Permission.Commenter, label: t["Commenter"]() },
-      { permission: Permission.Collaborator, label: t["Collaborator"]() },
-      { permission: Permission.Manager, label: t["Manager"]() },
-    ],
-    [t],
-  );
-
   const canManageTarget =
     member.directRole === Permission.Admin ? canManageAdmins : canManageUsers;
   const isAccepted = member.status === WorkspaceMemberStatus.Accepted;
 
-  const operationButtonInfo = useMemo(() => {
-    const roleItems = roleOptions.map(({ permission, label }) => ({
-      label,
-      onClick: () => handleChangePermission(permission),
-      show:
-        isAccepted &&
-        canManageTarget &&
-        member.directRole !== permission &&
-        member.directRole !== Permission.Owner,
-    }));
+  const actions = useMemo(() => {
+    const standardRoles: Array<{ permission: Permission; label: string }> = [
+      { permission: Permission.Reader, label: t["Reader"]() },
+      { permission: Permission.Commenter, label: t["Commenter"]() },
+      { permission: Permission.Collaborator, label: t["Collaborator"]() },
+      { permission: Permission.Manager, label: t["Manager"]() },
+    ];
 
     return [
       {
         label: t["com.myoxus.member.approve"](),
         onClick: handleApprove,
-        show:
+        visible:
           canManageTarget &&
           member.status === WorkspaceMemberStatus.UnderReview,
       },
       {
         label: t["com.myoxus.member.decline"](),
-        onClick: handleDecline,
-        show:
+        onClick: () =>
+          confirmRevoke(
+            t["com.myoxus.member.decline.notify.title"](),
+            t["com.myoxus.member.decline.notify.message"]({ name: memberName }),
+          ),
+        visible:
           canManageTarget &&
           member.status === WorkspaceMemberStatus.UnderReview,
       },
       {
         label: t["com.myoxus.member.revoke"](),
-        onClick: handleRevoke,
-        show:
+        onClick: () =>
+          confirmRevoke(
+            t["com.myoxus.member.revoke.notify.title"](),
+            t["com.myoxus.member.revoke.notify.message"]({ name: memberName }),
+          ),
+        visible:
           canManageTarget &&
-          [
-            WorkspaceMemberStatus.NeedMoreSeat,
-            WorkspaceMemberStatus.Pending,
-          ].includes(member.status),
+          (member.status === WorkspaceMemberStatus.NeedMoreSeat ||
+            member.status === WorkspaceMemberStatus.Pending),
       },
       {
         label: t["com.myoxus.member.remove"](),
-        onClick: handleRemove,
-        show: canManageTarget && isAccepted,
+        onClick: () =>
+          confirmRevoke(
+            t["com.myoxus.member.remove.notify.title"](),
+            t["com.myoxus.member.remove.notify.message"]({ name: memberName }),
+          ),
+        visible: canManageTarget && isAccepted,
       },
-      ...roleItems,
+      ...standardRoles.map(({ permission, label }) => ({
+        label,
+        onClick: () => handleChangeRole(permission),
+        visible:
+          isAccepted &&
+          canManageTarget &&
+          member.directRole !== permission &&
+          member.directRole !== Permission.Owner,
+      })),
       {
         label: t["Admin"](),
-        onClick: () => handleChangePermission(Permission.Admin),
-        show:
+        onClick: () => handleChangeRole(Permission.Admin),
+        visible:
           canManageAdmins &&
           isAccepted &&
           member.directRole !== Permission.Owner &&
@@ -201,36 +171,34 @@ export const MemberOptions = ({
       },
       {
         label: t["com.myoxus.member.assign"](),
-        onClick: handleAssignOwner,
-        show: canTransferOwner && isAccepted,
+        onClick: openAssignModal,
+        visible: canTransferOwner && isAccepted,
       },
     ];
   }, [
     canManageAdmins,
     canManageTarget,
     canTransferOwner,
+    confirmRevoke,
     handleApprove,
-    handleAssignOwner,
-    handleChangePermission,
-    handleDecline,
-    handleRemove,
-    handleRevoke,
+    handleChangeRole,
     isAccepted,
     member.directRole,
     member.status,
-    roleOptions,
+    memberName,
+    openAssignModal,
     t,
   ]);
 
   return (
     <>
-      {operationButtonInfo.map((item) =>
-        item.show ? (
+      {actions
+        .filter((item) => item.visible)
+        .map((item) => (
           <MenuItem key={item.label} onSelect={item.onClick}>
             {item.label}
           </MenuItem>
-        ) : null,
-      )}
+        ))}
     </>
   );
 };

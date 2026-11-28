@@ -272,6 +272,8 @@ test("outline viewer should be useable in doc peek preview", async ({
     await page.waitForTimeout(500);
     await expect(peekView).toBeHidden();
     await expect(viewer).toBeHidden();
-    await expect(page.locator("myoxus-outline-panel")).toBeVisible();
+    await expect(
+      page.locator('[data-myoxus-ui-role="document-outline"]'),
+    ).toBeVisible();
   }
 });

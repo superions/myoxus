@@ -15,15 +15,6 @@ export const MYOXUS_FLAGS = {
     configurable: true,
     defaultState: true,
   },
-  enable_ai_playground: {
-    category: "affine",
-    displayName:
-      "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name",
-    description:
-      "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description",
-    configurable: isInternalBuild,
-    defaultState: isInternalBuild,
-  },
   enable_ai_chat_block: {
     category: "virgultum",
     bsFlag: "enable_ai_chat_block",

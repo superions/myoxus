@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { Member } from "@myoxus/core/modules/permissions";
 import { useI18n } from "@myoxus/i18n";
 
@@ -50,7 +53,6 @@ export const ConfirmAssignModal = ({
             t["com.myoxus.member.assign.confirm.description-3"](),
           ].join(" ")}
         </SettingsNotice>
-
         <FormRow label={t["com.myoxus.member.assign.confirm.description-4"]()}>
           <Input
             block

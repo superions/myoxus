@@ -4,10 +4,13 @@
 import { patchCalloutTitleHost } from "@myoxus/core/editor/view-extensions/editor-view/callout";
 import { patchMermaidFamilyReactHost } from "@myoxus/core/editor/view-extensions/editor-view/mermaid-family-react-host";
 import { patchEditorChromeHost } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome";
+import { EditorFrameNavigator } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome/frame-navigator";
 import { setupGlobal } from "@myoxus/env/global";
 import { getOrCreateI18n, I18nextProvider } from "@myoxus/i18n";
 import { usePortalFactory } from "@myoxus/core/editor/portal";
 import { MyoxusEmbeddedUIProvider } from "@myoxus/ui-facade/provider";
+import { FrameNavigatorController } from "@virgultum/editor/fragments/frame-panel";
+import type { EditorHost } from "@virgultum/editor/std";
 import type { ExtensionType } from "@virgultum/editor/store";
 import { MermaidFamilyReactHostIdentifier } from "@virgultum/editor/blocks/mermaid";
 import { Fragment, useLayoutEffect, useMemo } from "react";
@@ -66,5 +69,47 @@ export function mountEditorChrome(
   return () => {
     reactRoot.unmount();
     container.remove();
+  };
+}
+
+/**
+ * Mounts the production {@link EditorFrameNavigator} backed by
+ * {@link FrameNavigatorController} inside an isolated fixed fixture pane for
+ * Playwright E2E tests, supporting host rebinding across mode switches.
+ */
+export function mountFrameNavigatorFixture(host: EditorHost): {
+  setHost(nextHost: EditorHost): void;
+  unmount(): void;
+} {
+  const controller = new FrameNavigatorController(host);
+  const container = document.createElement("div");
+  Object.assign(container.style, {
+    position: "fixed",
+    insetBlock: "0",
+    insetInlineEnd: "0",
+    inlineSize: "30vw",
+    blockSize: "100vh",
+    overflowY: "auto",
+  });
+  document.body.append(container);
+  const reactRoot = createRoot(container);
+  reactRoot.render(
+    <I18nextProvider i18n={getOrCreateI18n()}>
+      <MyoxusEmbeddedUIProvider getRootElement={() => container}>
+        <EditorFrameNavigator
+          controller={controller}
+          emptyLabel="Add frames to organize your presentation."
+        />
+      </MyoxusEmbeddedUIProvider>
+    </I18nextProvider>,
+  );
+  return {
+    setHost(nextHost: EditorHost) {
+      controller.setHost(nextHost);
+    },
+    unmount() {
+      reactRoot.unmount();
+      container.remove();
+    },
   };
 }

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { EditorSettingService } from "@myoxus/core/modules/editor-setting";
 import { useI18n } from "@myoxus/i18n";
 import { useLiveData, useService } from "@myoxus/infra";
@@ -6,12 +9,12 @@ import { useCallback, useMemo } from "react";
 import { type RadioItem, SettingsRow, SettingsSection } from "../../primitives";
 import { EditorRadioGroup } from "./menu";
 
-export const Page = () => {
+export function Page() {
   const t = useI18n();
   const editorSetting = useService(EditorSettingService).editorSetting;
   const settings = useLiveData(editorSetting.settings$);
 
-  const radioItems = useMemo<RadioItem[]>(
+  const widthOptions = useMemo<RadioItem[]>(
     () => [
       {
         value: "standard",
@@ -33,13 +36,13 @@ export const Page = () => {
     [t],
   );
 
-  const handleFullWidthLayoutChange = useCallback(
+  const handleChange = useCallback(
     (value: string) => {
-      const checked = value === "fullWidth";
-      editorSetting.set("fullWidthLayout", checked);
+      editorSetting.set("fullWidthLayout", value === "fullWidth");
     },
     [editorSetting],
   );
+
   return (
     <SettingsSection
       title={t["com.myoxus.settings.editorSettings.page.full-width.title"]()}
@@ -57,11 +60,11 @@ export const Page = () => {
         ]()}
       >
         <EditorRadioGroup
-          items={radioItems}
+          items={widthOptions}
           value={settings.fullWidthLayout ? "fullWidth" : "standard"}
-          onChange={handleFullWidthLayoutChange}
+          onChange={handleChange}
         />
       </SettingsRow>
     </SettingsSection>
   );
-};
+}

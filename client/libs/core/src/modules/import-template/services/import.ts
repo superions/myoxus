@@ -1,7 +1,7 @@
 import { toArrayBuffer } from "@myoxus/core/utils/array-buffer";
 import { Service } from "@myoxus/infra";
 import type { DocMode } from "@virgultum/editor/model";
-import { ZipTransformer } from "@virgultum/editor/widgets/linked-doc";
+import { ZipTransformer } from "@virgultum/editor/interchange";
 
 import { DocsService } from "../../doc";
 import {

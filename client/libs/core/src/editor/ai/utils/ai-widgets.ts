@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { EditorHost } from "@virgultum/editor/std";
 
 import {
@@ -5,10 +8,10 @@ import {
   AIPanelControllerIdentifier,
 } from "../widgets/ai-panel/controller";
 
-export const getAIPanelController = (host: EditorHost): AIPanelController => {
-  const aiPanel = host.std.getOptional(AIPanelControllerIdentifier);
-  if (!aiPanel) {
+export function getAIPanelController(host: EditorHost): AIPanelController {
+  const controller = host.std.getOptional(AIPanelControllerIdentifier);
+  if (!controller) {
     throw new Error("AI panel not found");
   }
-  return aiPanel;
-};
+  return controller;
+}

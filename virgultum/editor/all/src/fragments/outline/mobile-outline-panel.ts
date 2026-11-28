@@ -15,11 +15,11 @@ import {
 import type { BlockModel } from "@virgultum/core/store";
 import { matchModels } from "@virgultum/core/utils";
 
-import { getHeadingBlocksFromDoc } from "./utils/query.js";
 import {
+  getHeadingBlocksFromDoc,
   observeActiveHeadingDuringScroll,
   scrollToBlockWithHighlight,
-} from "./utils/scroll.js";
+} from "./outline-helpers.js";
 
 export const MYOXUS_MOBILE_OUTLINE_MENU = "myoxus-mobile-outline-menu";
 

@@ -58,9 +58,9 @@ import {
   preserveMermaidProjectionOwnerGeometry,
   resolveMermaidProjectionOwnerBoundForVisualModel,
 } from "../../../../editor/all/src/test-support/mermaid.js";
-import { wait } from "../utils/common.js";
-import { addNote } from "../utils/edgeless.js";
-import { setupEditor } from "../utils/setup.js";
+import { flushFrame as wait } from "../../harness/pointer.js";
+import { insertTestNote as addNote } from "../../harness/session.js";
+import { mountTestSession as setupEditor } from "../../harness/session.js";
 
 const FLOWCHART_SOURCE = [
   "flowchart TD",

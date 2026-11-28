@@ -30,19 +30,16 @@ import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import type { BlockModel } from "@virgultum/core/store";
 import {
   defaultOutlinePanelLabels,
-  outlineSettingsKey,
-  type OutlinePanelLabels,
-} from "./config";
-import {
   getHeadingBlocksFromDoc,
   getNotesFromStore,
   isHeadingBlock,
-} from "./utils/query";
-import {
   observeActiveHeadingDuringScroll,
+  outlineSettingsKey,
   scrollToBlockWithHighlight,
-} from "./utils/scroll";
-import type { NoteCardEntity, NoteDropPayload } from "./utils/drag";
+  type NoteCardEntity,
+  type NoteDropPayload,
+  type OutlinePanelLabels,
+} from "./outline-helpers";
 
 /** Project authored previews without mounting a second editor or loading document bodies. */
 export function describeOutlineBlock(

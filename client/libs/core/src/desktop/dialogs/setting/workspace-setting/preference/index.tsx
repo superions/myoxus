@@ -1,11 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useWorkspaceInfo } from "@myoxus/core/components/hooks/use-workspace-info";
-import { GlobalState } from "@myoxus/core/modules/storage";
+import { WorkspaceServerService } from "@myoxus/core/modules/server";
+import { UserPreferencesService } from "@myoxus/core/modules/server/services/user-preferences";
 import {
   AssistancePreference,
   LocalAssistancePreference,
 } from "@myoxus/core/modules/server/views/assistance-preference";
-import { UserPreferencesService } from "@myoxus/core/modules/server/services/user-preferences";
-import { WorkspaceServerService } from "@myoxus/core/modules/server";
+import { GlobalState } from "@myoxus/core/modules/storage";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { canUseLocalWorkspaces } from "@myoxus/core/modules/workspace/local-workspace-capability";
 import { UNTITLED_WORKSPACE_NAME } from "@myoxus/env/constant";
@@ -33,27 +36,23 @@ export const WorkspaceSettingDetail = ({
 }: WorkspaceSettingDetailProps) => {
   const t = useI18n();
   const globalState = useService(GlobalState);
-
   const workspace = useService(WorkspaceService).workspace;
   const server = workspace?.scope.get(WorkspaceServerService).server;
-
   const workspaceInfo = useWorkspaceInfo(workspace);
 
-  const handleResetSyncStatus = useCallback(() => {
+  const handleResetSync = useCallback(() => {
     workspace?.engine.doc
       .resetSync()
-      .then(() => {
-        onCloseSetting();
-      })
-      .catch((err) => {
-        console.error(err);
+      .then(() => onCloseSetting())
+      .catch((error) => {
+        console.error(error);
       });
   }, [onCloseSetting, workspace]);
 
   return (
     <FrameworkScope scope={server?.scope}>
       <SettingHeader
-        title={t[`Workspace Settings with name`]({
+        title={t["Workspace Settings with name"]({
           name: workspaceInfo?.name ?? UNTITLED_WORKSPACE_NAME,
         })}
         subtitle={t["com.myoxus.settings.workspace.description"]()}
@@ -62,9 +61,9 @@ export const WorkspaceSettingDetail = ({
         <SettingRow name={t["Workspace Profile"]()} spreadCol={false}>
           <ProfilePanel />
           <LabelsPanel />
-          {workspace.flavour === "local" && canUseLocalWorkspaces() && (
+          {workspace.flavour === "local" && canUseLocalWorkspaces() ? (
             <EnableCloudPanel onCloseSetting={onCloseSetting} />
-          )}
+          ) : null}
         </SettingRow>
       </SettingWrapper>
       {server && workspace.flavour !== "local" ? (
@@ -100,7 +99,7 @@ export const WorkspaceSettingDetail = ({
               </MyoxusText>
             }
             desc={t["com.myoxus.resetSyncStatus.description"]()}
-            onClick={handleResetSyncStatus}
+            onClick={handleResetSync}
             data-testid="reset-sync-status"
           >
             <ArrowRightSmallIcon />

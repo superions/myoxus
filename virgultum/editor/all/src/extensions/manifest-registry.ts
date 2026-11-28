@@ -44,7 +44,6 @@ import {
 } from "@virgultum/core/extensions";
 import { FoundationViewExtension } from "../foundation/view";
 import { DocTitleViewExtension } from "@virgultum/content/view";
-import { FramePanelViewExtension } from "../fragments/frame-panel/view";
 import { OutlineViewExtension } from "../fragments/outline/view";
 import { BrushViewExtension } from "@virgultum/canvas/view";
 import { ConnectorViewExtension } from "@virgultum/canvas/view";
@@ -285,10 +284,6 @@ const INTERNAL_MANIFESTS: ReadonlyArray<FeatureManifest> = [
     view: [DocTitleViewExtension],
   },
   {
-    id: featureManifestId("fragment-frame-panel"),
-    view: [FramePanelViewExtension],
-  },
-  {
     id: featureManifestId("fragment-outline"),
     view: [OutlineViewExtension],
   },
@@ -363,7 +358,6 @@ const INTERNAL_VIEW_ORDER: ReadonlyArray<FeatureManifestId> = [
   featureManifestId("widget-edgeless-selected-rect"),
   // Fragment
   featureManifestId("fragment-doc-title"),
-  featureManifestId("fragment-frame-panel"),
   featureManifestId("fragment-outline"),
 ];
 

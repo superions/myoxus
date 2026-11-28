@@ -1,18 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { TagMeta } from "@myoxus/core/components/page-list";
 import type { Signal } from "@preact/signals-core";
 import type { DocMeta, Store } from "@virgultum/editor/store";
-
 import type { ReactElement } from "react";
 
 export type ChipState = "candidate" | "processing" | "finished" | "failed";
 
 export interface BaseChip {
-  /**
-   * candidate: the chip is a candidate for the chat
-   * processing: the chip is processing
-   * finished: the chip is successfully processed
-   * failed: the chip is failed to process
-   */
   state: ChipState;
   tooltip?: string | null;
   createdAt?: number | null;
@@ -69,12 +65,7 @@ export interface DocDisplayConfig {
   getDocPrimaryMode: (docId: string) => "page" | "edgeless";
   getDoc: (docId: string) => Store | null;
   getReferenceDocs: (docIds: string[]) => {
-    signal: Signal<
-      Array<{
-        docId: string;
-        title: string;
-      }>
-    >;
+    signal: Signal<Array<{ docId: string; title: string }>>;
     cleanup: () => void;
   };
   getTags: () => {
@@ -84,7 +75,7 @@ export interface DocDisplayConfig {
   getTagTitle: (tagId: string) => string;
   getTagPageIds: (tagId: string) => string[];
   getCollections: () => {
-    signal: Signal<{ id: string; name: string }[]>;
+    signal: Signal<Array<{ id: string; name: string }>>;
     cleanup: () => void;
   };
   getCollectionPageIds: (collectionId: string) => string[];

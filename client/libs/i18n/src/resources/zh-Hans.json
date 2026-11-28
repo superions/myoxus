@@ -3164,8 +3164,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "高级块可见性控制",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "启用 AI 聊天块。",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "AI聊天块",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "启用或禁用 AI 模型切换功能。",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "启用AI模型切换",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "关闭此选项后，每次选择“继续使用 AI”，AI 只会获取屏幕截图。",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "发送详细的对象信息给AI",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "启用或禁用所有 AI 功能。",

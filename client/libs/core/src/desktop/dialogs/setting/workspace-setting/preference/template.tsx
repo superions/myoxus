@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { DocsService } from "@myoxus/core/modules/doc";
 import { DocDisplayMetaService } from "@myoxus/core/modules/doc-display-meta";
 import {
+  TemplateApplicationService,
   type TemplateCategoryFilter,
   TemplateDocService,
-  TemplateApplicationService,
 } from "@myoxus/core/modules/template-doc";
 import { TemplateListMenu } from "@myoxus/core/modules/template-doc/view/template-list-menu";
 import { useI18n } from "@myoxus/i18n";
@@ -20,22 +23,62 @@ import {
   Switch,
 } from "../../primitives";
 
-const genericPickerFilter: TemplateCategoryFilter = { exclude: ["onboarding"] };
+const GENERIC_TEMPLATE_FILTER: TemplateCategoryFilter = {
+  exclude: ["onboarding"],
+};
+
+function TemplateSelector({
+  current,
+  testId,
+  onChange,
+}: {
+  current?: string;
+  testId?: string;
+  onChange?: (id?: string) => void;
+}) {
+  const t = useI18n();
+  const docsService = useService(DocsService);
+  const docDisplayService = useService(DocDisplayMetaService);
+  const doc = useLiveData(current ? docsService.list.doc$(current) : null);
+  const title = useLiveData(doc ? docDisplayService.title$(doc.id) : null);
+
+  return (
+    <TemplateListMenu
+      onSelect={onChange}
+      categoryFilter={GENERIC_TEMPLATE_FILTER}
+      contentOptions={{ align: "end" }}
+      suffixItems={
+        <>
+          <MenuSeparator />
+          <MenuItem
+            prefixIcon={<DeleteIcon />}
+            onClick={() => onChange?.()}
+            type="danger"
+            data-testid="template-doc-item-remove"
+          >
+            {t["com.myoxus.settings.workspace.template.remove"]()}
+          </MenuItem>
+        </>
+      }
+    >
+      <MenuTrigger data-testid={testId}>
+        {title ?? t["com.myoxus.settings.workspace.template.keep-empty"]()}
+      </MenuTrigger>
+    </TemplateListMenu>
+  );
+}
 
 export const TemplateDocSetting = () => {
   const t = useI18n();
-  const templateDocService = useService(TemplateDocService);
+  const setting = useService(TemplateDocService).setting;
   const application = useService(TemplateApplicationService);
-  const setting = templateDocService.setting;
 
   const enablePageTemplate = useLiveData(setting.enablePageTemplate$);
   const pageTemplateDocId = useLiveData(setting.pageTemplateDocId$);
   const journalTemplateDocId = useLiveData(setting.journalTemplateDocId$);
 
   const togglePageTemplate = useCallback(
-    (enable: boolean) => {
-      setting.togglePageTemplate(enable);
-    },
+    (enable: boolean) => setting.togglePageTemplate(enable),
     [setting],
   );
 
@@ -88,49 +131,5 @@ export const TemplateDocSetting = () => {
         </SettingRow>
       ) : null}
     </SettingWrapper>
-  );
-};
-
-interface TemplateSelectorProps {
-  current?: string;
-  testId?: string;
-  onChange?: (id?: string) => void;
-}
-const TemplateSelector = ({
-  current,
-  testId,
-  onChange,
-}: TemplateSelectorProps) => {
-  const t = useI18n();
-  const docsService = useService(DocsService);
-  const docDisplayService = useService(DocDisplayMetaService);
-  const doc = useLiveData(current ? docsService.list.doc$(current) : null);
-  const title = useLiveData(doc ? docDisplayService.title$(doc.id) : null);
-  // const isInTrash = useLiveData(doc?.trash$);
-
-  return (
-    <TemplateListMenu
-      onSelect={onChange}
-      categoryFilter={genericPickerFilter}
-      contentOptions={{ align: "end" }}
-      suffixItems={
-        <>
-          <MenuSeparator />
-          <MenuItem
-            prefixIcon={<DeleteIcon />}
-            onClick={() => onChange?.()}
-            type="danger"
-            data-testid="template-doc-item-remove"
-          >
-            {t["com.myoxus.settings.workspace.template.remove"]()}
-          </MenuItem>
-        </>
-      }
-    >
-      <MenuTrigger data-testid={testId}>
-        {/* TODO: in trash design */}
-        {title ?? t["com.myoxus.settings.workspace.template.keep-empty"]()}
-      </MenuTrigger>
-    </TemplateListMenu>
   );
 };

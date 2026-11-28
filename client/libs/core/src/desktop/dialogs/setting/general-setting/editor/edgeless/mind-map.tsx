@@ -1,18 +1,13 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { EditorSettingService } from "@myoxus/core/modules/editor-setting";
 import { useI18n } from "@myoxus/i18n";
-import { useFramework, useLiveData } from "@myoxus/infra";
-import { MermaidBlockModel } from "@virgultum/editor/model";
+import { useLiveData, useService } from "@myoxus/infra";
 import {
-  MindmapLayoutType as LayoutType,
   MindmapDesign as MindmapStyle,
-  applyMermaidVisualModelCommand,
-  getMermaidBlockSource,
-  getMermaidVisualModel,
-  projectMindmapTree,
-  readMindmapProjectionModel,
+  MindmapLayoutType as LayoutType,
 } from "@virgultum/block-mermaid";
-import type { EditorHost } from "@virgultum/editor/std";
-import type { Store } from "@virgultum/editor/store";
 import { useCallback, useMemo } from "react";
 
 import {
@@ -22,60 +17,46 @@ import {
   SettingsSection,
 } from "../../../primitives";
 import { DropdownMenu, DropdownTrigger, EditorRadioGroup } from "../menu";
-import { EdgelessSnapshot } from "./snapshot";
+import { EdgelessStylePreview } from "./preview";
 
-const MINDMAP_STYLES = [
-  {
-    value: MindmapStyle.ONE,
-    name: "1",
-  },
-  {
-    value: MindmapStyle.TWO,
-    name: "2",
-  },
-  {
-    value: MindmapStyle.THREE,
-    name: "3",
-  },
-  {
-    value: MindmapStyle.FOUR,
-    name: "4",
-  },
-];
+const MINDMAP_STYLE_OPTIONS = [
+  { value: MindmapStyle.ONE, name: "1" },
+  { value: MindmapStyle.TWO, name: "2" },
+  { value: MindmapStyle.THREE, name: "3" },
+  { value: MindmapStyle.FOUR, name: "4" },
+] as const;
 
 export const MindMapSettings = () => {
   const t = useI18n();
-  const framework = useFramework();
-  const { editorSetting } = framework.get(EditorSettingService);
+  const { editorSetting } = useService(EditorSettingService);
   const settings = useLiveData(editorSetting.settings$);
+  const { layoutType, style } = settings.mindmap;
 
-  const { layoutType } = settings.mindmap;
   const setLayoutType = useCallback(
     (value: LayoutType) => {
-      editorSetting.set("mindmap", {
-        layoutType: value,
-      });
+      editorSetting.set("mindmap", { layoutType: value });
     },
     [editorSetting],
   );
+
   const layoutTypeItems = useMemo<RadioItem[]>(
     () => [
       {
-        value: LayoutType.LEFT as any,
+        value: LayoutType.LEFT as unknown as string,
         label:
           t[
             "com.myoxus.settings.editorSettings.edgeless.mind-map.layout.left"
           ](),
       },
       {
-        value: LayoutType.BALANCE as any,
+        value: LayoutType.BALANCE as unknown as string,
         label:
           t[
             "com.myoxus.settings.editorSettings.edgeless.mind-map.layout.radial"
           ](),
       },
       {
-        value: LayoutType.RIGHT as any,
+        value: LayoutType.RIGHT as unknown as string,
         label:
           t[
             "com.myoxus.settings.editorSettings.edgeless.mind-map.layout.right"
@@ -85,48 +66,26 @@ export const MindMapSettings = () => {
     [t],
   );
 
-  const styleItems = useMemo(() => {
-    const { style } = settings.mindmap;
-    return MINDMAP_STYLES.map(({ name, value }) => {
-      const handler = () => {
-        editorSetting.set("mindmap", { style: value });
-      };
-      const isSelected = style === value;
-      return (
-        <MenuItem key={name} onSelect={handler} selected={isSelected}>
+  const styleItems = useMemo(
+    () =>
+      MINDMAP_STYLE_OPTIONS.map(({ name, value }) => (
+        <MenuItem
+          key={name}
+          onSelect={() => {
+            editorSetting.set("mindmap", { style: value });
+          }}
+          selected={style === value}
+        >
           {name}
         </MenuItem>
-      );
-    });
-  }, [editorSetting, settings]);
+      )),
+    [editorSetting, style],
+  );
 
-  const getElements = useCallback(
-    (doc: Store) => doc.getBlocksByFlavour("myoxus:mermaid"),
-    [],
-  );
-  const applySettings = useCallback(
-    (doc: Store, host: EditorHost) => {
-      const owner = doc.getBlocksByFlavour("myoxus:mermaid")[0]?.model;
-      if (!(owner instanceof MermaidBlockModel)) return;
-      const source = getMermaidBlockSource(owner.props);
-      const model = readMindmapProjectionModel(
-        source,
-        getMermaidVisualModel(owner) ?? undefined,
-      );
-      if (!model) return;
-      const values = editorSetting.get("mindmap");
-      host.std.command.exec(applyMermaidVisualModelCommand, {
-        model: owner,
-        sourceWrite: { baseSource: source, source },
-        visualModel: projectMindmapTree(model, {
-          layout: values.layoutType,
-          design: values.style,
-        }),
-      });
-      return owner.elementBound.clone();
-    },
-    [editorSetting],
-  );
+  const currentLayoutLabel =
+    layoutTypeItems.find(
+      (item) => item.value === (layoutType as unknown as string),
+    )?.label ?? String(layoutType);
   const title = t["com.myoxus.settings.editorSettings.edgeless.mind-map"]();
 
   return (
@@ -134,30 +93,38 @@ export const MindMapSettings = () => {
       title={title}
       testId="editor-settings-section-edgeless-mind-map"
     >
-      <EdgelessSnapshot
-        title={title}
-        docName="mindmap"
-        keyName={"mindmap" as any}
-        getElements={getElements}
-        applySettings={applySettings}
-        previewSize="mindmap"
+      <EdgelessStylePreview
+        sampleTitle={t[
+          "com.myoxus.settings.editorSettings.edgeless.preview.mindmap.title"
+        ]()}
+        items={[
+          {
+            label: t["com.myoxus.settings.editorSettings.edgeless.style"](),
+            value: String(style),
+          },
+          {
+            label:
+              t[
+                "com.myoxus.settings.editorSettings.edgeless.mind-map.layout"
+              ](),
+            value: currentLayoutLabel,
+          },
+        ]}
       />
       <SettingsRow
         name={t["com.myoxus.settings.editorSettings.edgeless.style"]()}
-        desc={""}
+        desc=""
       >
         <DropdownMenu
           items={styleItems}
-          trigger={
-            <DropdownTrigger>{String(settings.mindmap.style)}</DropdownTrigger>
-          }
+          trigger={<DropdownTrigger>{String(style)}</DropdownTrigger>}
         />
       </SettingsRow>
       <SettingsRow
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.mind-map.layout"
         ]()}
-        desc={""}
+        desc=""
       >
         <EditorRadioGroup
           items={layoutTypeItems}

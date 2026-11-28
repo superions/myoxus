@@ -16,7 +16,7 @@ import {
 import { PlainTextDocGroupHeader } from "../explorer/docs-view/group-header";
 import { StackProperty } from "../explorer/docs-view/stack-property";
 import type { GroupHeaderProps } from "../explorer/types";
-import { TextFilterValue } from "../workspace-property-types/text";
+import { TextFilterValue } from "../workspace-property-types";
 
 function displayMessages(
   t: ReturnType<typeof useI18n>,

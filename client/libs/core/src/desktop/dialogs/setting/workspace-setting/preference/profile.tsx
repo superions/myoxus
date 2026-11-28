@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useGuard } from "@myoxus/core/components/guard/use-guard";
 import { useCatchEventCallback } from "@myoxus/core/components/hooks/use-catch-event-hook";
 import { Upload } from "@myoxus/core/components/pure/file-upload";
@@ -31,65 +34,57 @@ import {
 
 export const ProfilePanel = () => {
   const t = useI18n();
-
   const workspace = useService(WorkspaceService).workspace;
   const workspacesService = useService(WorkspacesService);
   const permissionService = useService(WorkspacePermissionService);
+
   const isOwner = useLiveData(permissionService.permission.isOwner$);
-  const canUpdateWorkspaceSettings = useGuard("Workspace_Settings_Update");
+  const canUpdateSettings = useGuard("Workspace_Settings_Update");
+  const currentName = useLiveData(workspace.name$);
+  const workspaceIsReady = useLiveData(
+    useMemo(
+      () =>
+        workspace
+          ? LiveData.from(
+              workspace.engine.doc
+                .docState$(workspace.id)
+                .pipe(map((state) => state.ready)),
+              false,
+            )
+          : null,
+      [workspace],
+    ),
+  );
+
+  const resolvedName = currentName ?? UNTITLED_WORKSPACE_NAME;
+  const [input, setInput] = useState(resolvedName);
+
   useEffect(() => {
     permissionService.permission.revalidate();
   }, [permissionService]);
-  const workspaceIsReady = useLiveData(
-    useMemo(() => {
-      return workspace
-        ? LiveData.from(
-            workspace.engine.doc
-              .docState$(workspace.id)
-              .pipe(map((v) => v.ready)),
-            false,
-          )
-        : null;
-    }, [workspace]),
-  );
-  const [name, setName] = useState("");
-  const currentName = useLiveData(workspace.name$);
 
   useEffect(() => {
-    setName(currentName ?? UNTITLED_WORKSPACE_NAME);
-  }, [currentName]);
+    setInput(resolvedName);
+  }, [resolvedName]);
 
-  const setWorkspaceAvatar = useCallback(
+  const updateAvatar = useCallback(
     async (file: File | null) => {
-      if (!workspace) {
-        return;
-      }
+      if (!workspace) return;
       if (!file) {
         workspace.setAvatar("");
         return;
       }
-      try {
-        const reducedFile = await validateAndReduceImage(file);
-        const blobs = workspace.docCollection.blobSync;
-        const blobId = await blobs.set(reducedFile);
-        workspace.setAvatar(blobId);
-      } catch (error) {
-        console.error(error);
-        throw error;
-      }
+      const reduced = await validateAndReduceImage(file);
+      const blobId = await workspace.docCollection.blobSync.set(reduced);
+      workspace.setAvatar(blobId);
     },
     [workspace],
   );
 
-  const [input, setInput] = useState<string>("");
-  useEffect(() => {
-    setInput(name);
-  }, [name]);
-
-  const handleUpdateWorkspaceName = useCallback(
-    async (name: string) => {
+  const handleSaveName = useCallback(
+    async (nextName: string) => {
       try {
-        await workspacesService.updateWorkspaceName(workspace, name);
+        await workspacesService.updateWorkspaceName(workspace, nextName);
         notify.success({ title: t["Update workspace name success"]() });
       } catch (error) {
         notify.error({
@@ -97,33 +92,25 @@ export const ProfilePanel = () => {
         });
       }
     },
-    [workspace, workspacesService, t],
+    [t, workspace, workspacesService],
   );
-
-  const handleSetInput = useCallback((value: string) => {
-    setInput(value);
-  }, []);
 
   const handleKeyUp = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.code === "Enter" && name !== input) {
-        void handleUpdateWorkspaceName(input);
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.code === "Enter" && resolvedName !== input) {
+        void handleSaveName(input);
       }
     },
-    [handleUpdateWorkspaceName, input, name],
+    [handleSaveName, input, resolvedName],
   );
 
-  const handleClick = useCallback(() => {
-    void handleUpdateWorkspaceName(input);
-  }, [handleUpdateWorkspaceName, input]);
-
-  const handleRemoveUserAvatar = useCatchEventCallback(async () => {
-    await setWorkspaceAvatar(null);
-  }, [setWorkspaceAvatar]);
+  const handleRemoveAvatar = useCatchEventCallback(async () => {
+    await updateAvatar(null);
+  }, [updateAvatar]);
 
   const handleUploadAvatar = useCallback(
     (file: File) => {
-      setWorkspaceAvatar(file)
+      updateAvatar(file)
         .then(() => {
           notify.success({
             title:
@@ -140,10 +127,12 @@ export const ProfilePanel = () => {
           });
         });
     },
-    [setWorkspaceAvatar, t],
+    [t, updateAvatar],
   );
 
-  const canAdjustAvatar = workspaceIsReady && isOwner;
+  const canAdjustAvatar = Boolean(workspaceIsReady && isOwner);
+  const hasUnsavedName =
+    input !== resolvedName || workspace.meta.name !== resolvedName;
 
   return (
     <SettingsInlineControl
@@ -159,10 +148,10 @@ export const ProfilePanel = () => {
         <WorkspaceAvatar
           meta={workspace.meta}
           size="lg"
-          name={name}
+          name={resolvedName}
           colorfulFallback
           hoverIcon={isOwner ? <CameraIcon /> : undefined}
-          onRemove={canAdjustAvatar ? handleRemoveUserAvatar : undefined}
+          onRemove={canAdjustAvatar ? handleRemoveAvatar : undefined}
           avatarTooltipOptions={
             canAdjustAvatar
               ? { content: t["Click to replace photo"]() }
@@ -192,21 +181,24 @@ export const ProfilePanel = () => {
           {t["Workspace Name"]()}
         </MyoxusText>
         <Input
-          disabled={!canUpdateWorkspaceSettings}
+          disabled={!canUpdateSettings}
           value={input}
           block
           data-testid="workspace-name-input"
           placeholder={t["Workspace Name"]()}
           maxLength={64}
           minLength={0}
-          onChange={handleSetInput}
+          onChange={setInput}
           onKeyUp={handleKeyUp}
         />
-        {input === name && workspace.meta.name === name ? null : (
-          <Button data-testid="save-workspace-name" onClick={handleClick}>
+        {hasUnsavedName ? (
+          <Button
+            data-testid="save-workspace-name"
+            onClick={() => void handleSaveName(input)}
+          >
             {t["com.myoxus.editCollection.save"]()}
           </Button>
-        )}
+        ) : null}
       </SettingsInlineControl>
     </SettingsInlineControl>
   );

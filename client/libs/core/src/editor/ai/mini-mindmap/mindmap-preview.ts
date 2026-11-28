@@ -1,4 +1,6 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   MermaidFamilyReactHostIdentifier,
   mermaidMessages as m,
@@ -12,8 +14,9 @@ import type { EditorHost } from "@virgultum/editor/std";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import type { AIContext } from "../utils/context";
-import { markdownToMindmap } from "./markdown.js";
-export { markdownToMindmap } from "./markdown.js";
+import { markdownToMindmap } from "./markdown";
+
+export { markdownToMindmap } from "./markdown";
 
 export interface MiniMindmapPreviewProps {
   answer: string;
@@ -24,8 +27,16 @@ export interface MiniMindmapPreviewProps {
   templateShow?: boolean;
 }
 
-/** AI state remains a local candidate. Confirmed document writes belong to the
- * existing response/insert consumers, never to rendering or streaming. */
+type PreviewResolution = {
+  candidate: PreparedMindmapTree | null;
+  node: ReturnType<typeof markdownToMindmap> | null;
+  error: string | null;
+};
+
+/**
+ * Renders a read-only candidate mindmap preview inside the AI answer panel.
+ * Confirmed canvas mutations happen only when the user accepts an insert action.
+ */
 export function MiniMindmapPreview({
   answer,
   ctx,
@@ -34,7 +45,7 @@ export function MiniMindmapPreview({
   mindmapStyle,
   templateShow = true,
 }: MiniMindmapPreviewProps): ReactNode {
-  const [limit, setLimit] = useState<number | null>(null);
+  const [sourceLimit, setSourceLimit] = useState<number | null>(null);
   const [limitError, setLimitError] = useState<string | null>(null);
   const [design, setDesign] = useState<MindmapDesign>(
     mindmapStyle ?? MindmapDesign.FOUR,
@@ -47,46 +58,44 @@ export function MiniMindmapPreview({
   }, [mindmapStyle]);
 
   useEffect(() => {
-    let active = true;
+    let mounted = true;
     readMermaidSourceLimit()
-      .then((resolved) => {
-        if (active) {
-          setLimit(resolved);
-          setLimitError(null);
-        }
+      .then((limit) => {
+        if (!mounted) return;
+        setSourceLimit(limit);
+        setLimitError(null);
       })
       .catch(() => {
-        if (active) {
-          setLimitError(m.errorTitle());
-        }
+        if (!mounted) return;
+        setLimitError(m.errorTitle());
       });
     return () => {
-      active = false;
+      mounted = false;
     };
   }, []);
 
-  const computed = useMemo<{
-    candidate: PreparedMindmapTree | null;
-    node: ReturnType<typeof markdownToMindmap> | null;
-    error: string | null;
-  }>(() => {
+  const resolution = useMemo<PreviewResolution>(() => {
     if (limitError) {
       return { candidate: null, node: null, error: limitError };
     }
-    if (!host || limit === null) {
+    if (!host || sourceLimit === null) {
       return { candidate: null, node: null, error: null };
     }
     try {
-      if (answer.length > limit) throw new Error("source-limit");
-      const node = markdownToMindmap(
+      if (answer.length > sourceLimit) {
+        throw new Error("mindmap-source-limit-exceeded");
+      }
+      const parsed = markdownToMindmap(
         answer,
         host.store,
         host.std.store.provider,
       );
-      if (!node) throw new Error("mindmap-tree");
+      if (!parsed) {
+        throw new Error("mindmap-tree-invalid");
+      }
       return {
-        candidate: prepareMindmapTree(node, limit, design),
-        node,
+        candidate: prepareMindmapTree(parsed, sourceLimit, design),
+        node: parsed,
         error: null,
       };
     } catch {
@@ -96,36 +105,36 @@ export function MiniMindmapPreview({
         error: m.visualMutationSourceRejected("mindmap"),
       };
     }
-  }, [answer, design, host, limit, limitError]);
+  }, [answer, design, host, limitError, sourceLimit]);
 
   useEffect(() => {
-    if (!ctx || limit === null) return;
-    if (computed.node && !computed.error) {
-      ctx.set({ node: computed.node, style: design });
-    } else if (computed.error) {
+    if (!ctx || sourceLimit === null) return;
+    if (resolution.node && !resolution.error) {
+      ctx.set({ node: resolution.node, style: design });
+    } else if (resolution.error) {
       ctx.set({ node: null });
     }
-  }, [computed.error, computed.node, ctx, design, limit]);
+  }, [ctx, design, resolution.error, resolution.node, sourceLimit]);
 
   const mermaidHost = host?.std.getOptional(MermaidFamilyReactHostIdentifier);
   if (!mermaidHost) return null;
 
-  if (computed.error) {
+  if (resolution.error) {
     return mermaidHost.renderShellNotice({
       title: m.errorTitle(),
-      message: computed.error,
+      message: resolution.error,
       tone: "error",
     });
   }
 
-  if (!computed.candidate) {
+  if (!resolution.candidate) {
     return m.loading();
   }
 
   return mermaidHost.renderFamilyEditor(mermaidMindmapRendererToken, {
     surface: "preview",
     host,
-    model: computed.candidate.model,
+    model: resolution.candidate.model,
     design,
     height,
     showDesigns: templateShow,

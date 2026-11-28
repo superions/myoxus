@@ -354,7 +354,7 @@ const WorkspacePage = ({ meta }: { meta: WorkspaceMetadata }) => {
           .filter((doc) => (docs ? docs.includes(doc.id) : true))
           .map((doc) => doc.getStore());
         const { ZipTransformer } =
-          await import("@virgultum/editor/widgets/linked-doc");
+          await import("@virgultum/editor/interchange");
         await ZipTransformer.exportDocs(
           workspace.docCollection,
           getMyoxusWorkspaceSchema(),

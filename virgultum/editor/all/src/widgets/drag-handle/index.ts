@@ -1,14 +1,15 @@
-import { WidgetViewExtension } from "@virgultum/core/runtime";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
-import { MYOXUS_DRAG_HANDLE_WIDGET } from "./consts";
-
-export * from "./consts";
-export * from "./drag-handle";
-export * from "./utils";
-export type { DragBlockPayload } from "./watchers/drag-event-watcher";
-
-export const dragHandleWidget = WidgetViewExtension(
-  "myoxus:page",
+export {
+  dragHandleWidget,
+  MyoxusDragHandleWidget,
+  registerDragHandleWidget,
+} from "./controller";
+export {
   MYOXUS_DRAG_HANDLE_WIDGET,
-  MYOXUS_DRAG_HANDLE_WIDGET,
-);
+  type DragBlockEntity,
+  type DragBlockPayload,
+  type DragHandleMode,
+  type HoverBounds,
+} from "./types";

@@ -1,4 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
+import {
+  RouteLogic,
+  useNavigateHelper,
+} from "@myoxus/core/components/hooks/use-navigate-helper";
 import { GlobalContextService } from "@myoxus/core/modules/global-context";
 import { WorkspacePermissionService } from "@myoxus/core/modules/permissions";
 import {
@@ -10,10 +17,6 @@ import { ArrowRightSmallIcon } from "@myoxus/icons/react";
 import { useLiveData, useServices } from "@myoxus/infra";
 import { useCallback, useEffect, useState } from "react";
 
-import {
-  RouteLogic,
-  useNavigateHelper,
-} from "../../../../../../components/hooks/use-navigate-helper";
 import {
   ConfirmModal,
   MyoxusText,
@@ -41,7 +44,7 @@ export const DeleteLeaveWorkspace = ({
   const t = useI18n();
   const workspace = workspaceService.workspace;
   const { jumpToPage, jumpToIndex } = useNavigateHelper();
-  // fixme: cloud regression
+
   const [showDelete, setShowDelete] = useState(false);
   const [showLeave, setShowLeave] = useState(false);
 
@@ -49,32 +52,27 @@ export const DeleteLeaveWorkspace = ({
   const currentWorkspaceId = useLiveData(
     globalContextService.globalContext.workspaceId.$,
   );
-
   const isOwner = useLiveData(workspacePermissionService.permission.isOwner$);
+
   useEffect(() => {
     workspacePermissionService.permission.revalidate();
   }, [workspacePermissionService]);
 
-  const onLeaveOrDelete = useCallback(() => {
-    if (isOwner !== null) {
-      if (isOwner) {
-        setShowDelete(true);
-      } else {
-        setShowLeave(true);
-      }
-    }
+  const handleOpenConfirm = useCallback(() => {
+    if (isOwner === null) return;
+    if (isOwner) setShowDelete(true);
+    else setShowLeave(true);
   }, [isOwner]);
 
-  const onDeleteConfirm = useAsyncCallback(async () => {
+  const handleConfirm = useAsyncCallback(async () => {
     onCloseSetting?.();
 
     if (currentWorkspaceId === workspace.id) {
-      const backWorkspace = workspaceList.find(
-        (ws) => ws.id !== currentWorkspaceId,
+      const fallbackWorkspace = workspaceList.find(
+        (candidate) => candidate.id !== currentWorkspaceId,
       );
-      // TODO(@eyhn): if there is no workspace, jump to a new page(wait for design)
-      if (backWorkspace) {
-        jumpToPage(backWorkspace?.id || "", "home", RouteLogic.REPLACE);
+      if (fallbackWorkspace) {
+        jumpToPage(fallbackWorkspace.id, "home", RouteLogic.REPLACE);
       } else {
         jumpToIndex(RouteLogic.REPLACE);
       }
@@ -87,17 +85,17 @@ export const DeleteLeaveWorkspace = ({
     }
     notify.success({ title: t["Successfully deleted"]() });
   }, [
-    onCloseSetting,
     currentWorkspaceId,
+    isOwner,
+    jumpToIndex,
+    jumpToPage,
+    onCloseSetting,
+    t,
     workspace.id,
     workspace.meta,
-    isOwner,
-    t,
     workspaceList,
-    jumpToPage,
-    jumpToIndex,
-    workspacesService,
     workspacePermissionService,
+    workspacesService,
   ]);
 
   return (
@@ -116,14 +114,14 @@ export const DeleteLeaveWorkspace = ({
           </MyoxusText>
         }
         desc={t["com.myoxus.deleteLeaveWorkspace.description"]()}
-        onClick={onLeaveOrDelete}
+        onClick={handleOpenConfirm}
         data-testid="delete-workspace-button"
       >
         <ArrowRightSmallIcon />
       </SettingRow>
       {isOwner ? (
         <WorkspaceDeleteModal
-          onConfirm={onDeleteConfirm}
+          onConfirm={handleConfirm}
           open={showDelete}
           onOpenChange={setShowDelete}
           workspaceMetadata={workspace.meta}
@@ -132,14 +130,12 @@ export const DeleteLeaveWorkspace = ({
         <ConfirmModal
           open={showLeave}
           cancelText={t["com.myoxus.confirmModal.button.cancel"]()}
-          onConfirm={onDeleteConfirm}
+          onConfirm={handleConfirm}
           onOpenChange={setShowLeave}
           title={`${t["com.myoxus.deleteLeaveWorkspace.leave"]()}?`}
           description={t["com.myoxus.deleteLeaveWorkspace.leaveDescription"]()}
           confirmText={t["Leave"]()}
-          confirmButtonOptions={{
-            variant: "error",
-          }}
+          confirmButtonOptions={{ variant: "error" }}
         />
       )}
     </>

@@ -1,20 +1,17 @@
 /**
  * EditorChatPanel — the AI chat sidebar tab for the document editor.
  *
- * Renders the shared React `AIChatContent`, `ChatToolbar`, and optional
- * `PlaygroundDialog` / `PlaygroundContent`.
+ * Renders the shared React `AIChatContent` and `ChatToolbar`.
  */
 
 import { useAIChatConfig } from "@myoxus/core/components/hooks/myoxus/use-ai-chat-config";
-import { AIProvider } from "@myoxus/core/editor/ai";
+import { AIProvider } from "@myoxus/core/editor/ai/provider/ai-provider";
 import {
   AIChatContent,
   type ChatContextValue,
 } from "@myoxus/core/editor/ai/components/ai-chat-content";
 import type { ChatStatus } from "@myoxus/core/editor/ai/components/ai-chat-messages";
 import { ChatToolbar } from "@myoxus/core/editor/ai/components/ai-chat-toolbar";
-import { PlaygroundContent } from "@myoxus/core/editor/ai/components/playground/content";
-import { PlaygroundDialog } from "@myoxus/core/editor/ai/components/playground/view";
 import { NotificationServiceImpl } from "@myoxus/core/editor/view-extensions/editor-view/notification-service";
 import { createPageAiBridge } from "@myoxus/core/editor/virgultum/doc-editor/page-ai-bridge";
 import type { MyoxusEditorContainer } from "@myoxus/core/editor/virgultum/doc-editor";
@@ -23,7 +20,6 @@ import {
   AIToolsConfigService,
 } from "@myoxus/core/modules/ai-button";
 import { AIModelService } from "@myoxus/core/modules/ai-button/services/models";
-import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
 import { EditorService } from "@myoxus/core/modules/editor";
 import { PeekViewService } from "@myoxus/core/modules/peek-view";
 import { ServerService } from "@myoxus/core/modules/server";
@@ -34,14 +30,12 @@ import type {
   UpdateChatSessionInput,
 } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
-import { CenterPeekIcon } from "@myoxus/icons/react";
 import { useFramework, useService, useServiceOptional } from "@myoxus/infra";
 import {
   Alert,
   Box,
   Button,
   Group,
-  IconButton,
   MyoxusText,
   Stack,
   useConfirmModal,
@@ -74,13 +68,8 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
     () => new NotificationServiceImpl(closeConfirmModal, openConfirmModal),
     [closeConfirmModal, openConfirmModal],
   );
-  const {
-    docDisplayConfig,
-    searchMenuConfig,
-    reasoningConfig,
-    playgroundConfig,
-  } = useAIChatConfig();
-  const playgroundVisible = useSignalValue(playgroundConfig.visible) ?? false;
+  const { docDisplayConfig, searchMenuConfig, reasoningConfig } =
+    useAIChatConfig();
 
   const [session, setSession] = useState<
     CopilotChatHistoryFragment | null | undefined
@@ -398,8 +387,6 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
     }
   }, [session?.sessionId]);
 
-  const [playgroundDocId, setPlaygroundDocId] = useState<string | null>(null);
-
   const onHostBoxRef = useCallback(
     (node: HTMLDivElement | null) => {
       if (node && !loadedNotifiedRef.current) {
@@ -452,30 +439,6 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
       style={{ flex: "1 1 auto" }}
       data-myoxus-ui-role="chat-panel-root"
     >
-      <PlaygroundDialog
-        key={doc?.id}
-        open={!!doc && playgroundDocId === doc.id}
-        onOpenChange={(open) => {
-          if (!open) setPlaygroundDocId(null);
-        }}
-        title={t["com.myoxus.ai.chat-panel.playground"]()}
-      >
-        {doc && playgroundDocId === doc.id ? (
-          <PlaygroundContent
-            host={host}
-            pageBridge={pageBridge}
-            doc={doc}
-            peekViewService={peekViewService}
-            onOpenDoc={handleOpenDoc}
-            reasoningConfig={reasoningConfig}
-            searchMenuConfig={searchMenuConfig}
-            docDisplayConfig={docDisplayConfig}
-            notificationService={notificationService}
-            aiToolsConfigService={framework.get(AIToolsConfigService)}
-            aiModelService={framework.get(AIModelService)}
-          />
-        ) : null}
-      </PlaygroundDialog>
       {sessionError ? (
         <Alert>
           <MyoxusText>
@@ -512,18 +475,6 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
                   total,
                 })}
               </MyoxusText>
-            ) : null}
-            {playgroundVisible ? (
-              <IconButton
-                aria-label={t["com.myoxus.ai.chat-panel.playground"]()}
-                tooltip={t["com.myoxus.ai.chat-panel.playground"]()}
-                tooltipOptions={{ side: "left" }}
-                onClick={() => {
-                  if (doc) setPlaygroundDocId(doc.id);
-                }}
-              >
-                <CenterPeekIcon />
-              </IconButton>
             ) : null}
             {doc ? (
               <ChatToolbar

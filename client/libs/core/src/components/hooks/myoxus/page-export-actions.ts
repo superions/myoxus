@@ -50,7 +50,7 @@ import {
   download,
   MarkdownTransformer,
   ZipTransformer,
-} from "@virgultum/editor/widgets/linked-doc";
+} from "@virgultum/editor/interchange";
 
 import { openEdgelessPreflightDialog } from "../../../modules/pdf-export/edgeless-preflight-dialog";
 import {

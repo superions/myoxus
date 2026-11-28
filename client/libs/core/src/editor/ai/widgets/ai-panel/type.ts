@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import type { ReactNode } from "react";
 
@@ -17,7 +20,6 @@ export interface AIPanelAnswerConfig {
 
 export interface AIPanelErrorConfig {
   login: () => void;
-  upgrade: () => void;
   cancel: () => void;
   responses: AIItemGroupConfig[];
   error?: AIError;
@@ -34,16 +36,17 @@ export type AIActionAnswer = {
   streamObjects?: StreamObject[];
 };
 
+export type MyoxusAIPanelState =
+  "hidden" | "input" | "generating" | "finished" | "error";
+
 export interface MyoxusAIPanelWidgetConfig {
   answerRenderer: (answer: string, state?: MyoxusAIPanelState) => ReactNode;
   generateAnswer?: (props: {
     input: string;
     update: (answer: AIActionAnswer) => void;
     finish: (type: "success" | "error" | "aborted", err?: AIError) => void;
-    // Used to allow users to stop actively when generating
     signal: AbortSignal;
   }) => void;
-
   finishStateConfig: AIPanelAnswerConfig;
   generatingStateConfig: AIPanelGeneratingConfig;
   errorStateConfig: AIPanelErrorConfig;
@@ -52,6 +55,3 @@ export interface MyoxusAIPanelWidgetConfig {
   inputCallback?: (input: string) => void;
   copy?: CopyConfig;
 }
-
-export type MyoxusAIPanelState =
-  "hidden" | "input" | "generating" | "finished" | "error";

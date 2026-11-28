@@ -1,15 +1,23 @@
-import { patchEditorChromeHost } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome";
-import {
-  usePortalFactory,
-  type MountReactPortal,
-} from "@myoxus/core/editor/portal";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { DocumentViewport } from "@myoxus/core/editor/editors";
+import {
+  type MountReactPortal,
+  usePortalFactory,
+} from "@myoxus/core/editor/portal";
+import { patchEditorChromeHost } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome";
 import { SnapshotHelper } from "@myoxus/core/modules/comment/services/snapshot-helper";
 import type { CommentAttachment } from "@myoxus/core/modules/comment/types";
 import { PeekViewService } from "@myoxus/core/modules/peek-view";
 import { downloadResourceWithUrl } from "@myoxus/core/utils/resource";
 import { DebugLogger } from "@myoxus/debug";
-import { ArrowUpBigIcon, AttachmentIcon, CloseIcon } from "@myoxus/icons/react";
+import {
+  ArrowUpBigIcon,
+  AttachmentIcon,
+  CloseIcon,
+  ResetIcon,
+} from "@myoxus/icons/react";
 import { useFramework, useService } from "@myoxus/infra";
 import {
   commentEditorViewportClassName,
@@ -25,13 +33,13 @@ import {
   SurfaceListAction,
   SurfaceListItem,
 } from "@myoxus/ui-facade";
+import { formatByteSize } from "@virgultum/core/primitives/utils";
+import type { EditorHost, TextSelection } from "@virgultum/core/runtime";
 import { getAttachmentFileIconRC } from "@virgultum/editor/components/icons";
 import { type RichText, selectTextModel } from "@virgultum/editor/rich-text";
 import { ViewportElementExtension } from "@virgultum/editor/shared/services";
 import { openFilesWith } from "@virgultum/editor/shared/utils";
 import { type DocSnapshot, nanoid, Store } from "@virgultum/editor/store";
-import type { TextSelection, EditorHost } from "@virgultum/core/runtime";
-import { formatByteSize } from "@virgultum/core/primitives/utils";
 import {
   forwardRef,
   Fragment,
@@ -49,47 +57,23 @@ import { getCommentEditorViewManager } from "./specs";
 const MAX_ATTACHMENT_COUNT = 10;
 const logger = new DebugLogger("CommentEditor");
 
-const usePatchSpecs = (readonly: boolean, mountPortal: MountReactPortal) => {
-  const framework = useFramework();
-  // const confirmModal = useConfirmModal();
-
-  const patchedSpecs = useMemo(() => {
-    const manager = getCommentEditorViewManager(framework);
-    return manager
-      .get(readonly ? "preview-page" : "page")
-      .concat([
-        ViewportElementExtension(`.${commentEditorViewportClassName}`),
-        ...(!readonly ? [patchEditorChromeHost(mountPortal)] : []),
-      ]);
-  }, [framework, readonly, mountPortal]);
-
-  return patchedSpecs;
-};
-
-interface EditorAttachment extends CommentAttachment {
+export interface CommentEditorAttachment extends CommentAttachment {
   status?: "uploading" | "success" | "error";
   file?: File;
-  localUrl?: string; // for previewing
+  localUrl?: string;
 }
 
-interface CommentEditorProps {
+export interface CommentEditorProps {
   readonly?: boolean;
   doc?: Store;
   defaultSnapshot?: DocSnapshot;
-  // for performance, we only update the snapshot when the editor blurs
   onChange?: (snapshot: DocSnapshot) => void;
   onCommit?: () => void;
   onCancel?: () => void;
-
-  /**
-   * upload comment attachment to the server
-   * @param file
-   * @returns remote url of the attachment
-   */
   uploadCommentAttachment?: (id: string, file: File) => Promise<string>;
   autoFocus?: boolean;
-  attachments?: EditorAttachment[];
-  onAttachmentsChange?: (atts: EditorAttachment[]) => void;
+  attachments?: CommentEditorAttachment[];
+  onAttachmentsChange?: (attachments: CommentEditorAttachment[]) => void;
 }
 
 export interface CommentEditorRef {
@@ -97,58 +81,88 @@ export interface CommentEditorRef {
   focus: () => void;
 }
 
-// todo: get rid of circular data changes
-const useSnapshotDoc = (
-  defaultSnapshotOrDoc: DocSnapshot | Store,
+const isImageAttachment = (attachment: CommentEditorAttachment): boolean => {
+  const mime = attachment.mimeType || attachment.file?.type || "";
+  if (mime) {
+    return mime.startsWith("image/");
+  }
+  return Boolean(
+    attachment.url && /\.(png|jpe?g|gif|webp|svg)$/i.test(attachment.url),
+  );
+};
+
+const useCommentEditorSpecs = (
+  readonly: boolean,
+  mountPortal: MountReactPortal,
+) => {
+  const framework = useFramework();
+  return useMemo(() => {
+    const manager = getCommentEditorViewManager(framework);
+    return manager
+      .get(readonly ? "preview-page" : "page")
+      .concat([
+        ViewportElementExtension(`.${commentEditorViewportClassName}`),
+        ...(!readonly ? [patchEditorChromeHost(mountPortal)] : []),
+      ]);
+  }, [framework, mountPortal, readonly]);
+};
+
+const useResolvedCommentStore = (
+  source: DocSnapshot | Store,
   readonly?: boolean,
 ) => {
   const snapshotHelper = useService(SnapshotHelper);
-  const [doc, setDoc] = useState<Store | undefined>(
-    defaultSnapshotOrDoc instanceof Store ? defaultSnapshotOrDoc : undefined,
+  const [store, setStore] = useState<Store | undefined>(
+    source instanceof Store ? source : undefined,
   );
 
   useEffect(() => {
-    if (defaultSnapshotOrDoc instanceof Store) {
+    if (source instanceof Store) {
+      setStore(source);
       return;
     }
 
+    let cancelled = false;
     snapshotHelper
-      .createStore(defaultSnapshotOrDoc)
-      .then((d) => {
-        if (d) {
-          setDoc(d);
-          d.readonly = readonly ?? false;
-        }
+      .createStore(source)
+      .then((created) => {
+        if (cancelled || !created) return;
+        created.readonly = readonly ?? false;
+        setStore(created);
       })
-      .catch((e) => {
-        console.error(e);
+      .catch((error) => {
+        logger.error("Failed to create comment snapshot store", { error });
       });
-  }, [defaultSnapshotOrDoc, readonly, snapshotHelper]);
 
-  return doc;
+    return () => {
+      cancelled = true;
+    };
+  }, [readonly, snapshotHelper, source]);
+
+  return store;
 };
 
-const isImageAttachment = (att: EditorAttachment) => {
-  const type = att.mimeType || att.file?.type || "";
-  if (type) return type.startsWith("image/");
-  return !!att.url && /\.(png|jpe?g|gif|webp|svg)$/i.test(att.url);
-};
-
-const AttachmentPreviewItem: React.FC<{
-  attachment: EditorAttachment;
-  index: number;
-  readonly?: boolean;
-  handleAttachmentClick: (e: React.MouseEvent, index: number) => void;
-  handleAttachmentRemove: (id: string) => void;
-}> = ({
+const AttachmentPreviewTile = ({
   attachment,
   index,
   readonly,
-  handleAttachmentClick,
-  handleAttachmentRemove,
+  onOpen,
+  onRemove,
+  onRetry,
+}: {
+  attachment: CommentEditorAttachment;
+  index: number;
+  readonly?: boolean;
+  onOpen: (event: React.MouseEvent, index: number) => void;
+  onRemove: (id: string) => void;
+  onRetry: (id: string) => void;
 }) => {
-  const isImg = isImageAttachment(attachment);
-  const Icon = !isImg
+  const isImage = isImageAttachment(attachment);
+  const label = attachment.filename || attachment.file?.name || "Attachment";
+  const previewUrl = attachment.localUrl ?? attachment.url ?? "";
+  const canRetry =
+    !readonly && attachment.status === "error" && Boolean(attachment.file);
+  const FileIcon = !isImage
     ? getAttachmentFileIconRC(
         attachment.mimeType ||
           attachment.file?.type ||
@@ -156,46 +170,54 @@ const AttachmentPreviewItem: React.FC<{
           "none",
       )
     : undefined;
-  const previewUrl = attachment.localUrl ?? attachment.url ?? "";
+
+  const overlayAction = !readonly ? (
+    <Group gap="xs" wrap="nowrap">
+      {canRetry ? (
+        <IconButton
+          size="xs"
+          aria-label={`Retry upload ${label}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRetry(attachment.id);
+          }}
+          icon={<ResetIcon />}
+        />
+      ) : null}
+      <IconButton
+        size="xs"
+        loading={attachment.status === "uploading"}
+        variant="danger"
+        aria-label={`Remove ${label}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          onRemove(attachment.id);
+        }}
+        icon={<CloseIcon />}
+      />
+    </Group>
+  ) : undefined;
 
   return (
     <SurfaceListAction
-      key={attachment.id}
-      aria-label={attachment.filename || attachment.file?.name || "Attachment"}
+      aria-label={label}
       component="div"
-      mediaPreview={isImg ? "image" : "file"}
-      overlayAction={
-        !readonly ? (
-          <IconButton
-            size="xs"
-            loading={attachment.status === "uploading"}
-            variant="danger"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleAttachmentRemove(attachment.id);
-            }}
-            icon={<CloseIcon />}
-          />
-        ) : undefined
-      }
+      mediaPreview={isImage ? "image" : "file"}
+      overlayAction={overlayAction}
       role="button"
       surface
       tabIndex={0}
-      onClick={(e) => handleAttachmentClick(e, index)}
+      onClick={(event) => onOpen(event, index)}
       onKeyDown={(event) => {
         if (event.key !== "Enter" && event.key !== " ") return;
         event.preventDefault();
         event.currentTarget.click();
       }}
     >
-      {isImg ? (
+      {isImage ? (
         <MediaPreviewFrame fit="cover">
           {previewUrl ? (
-            <MediaPreviewImage
-              alt={attachment.filename || attachment.file?.name || "Attachment"}
-              fit="cover"
-              src={previewUrl}
-            />
+            <MediaPreviewImage alt={label} fit="cover" src={previewUrl} />
           ) : (
             <MediaPreviewIcon aria-label="Image attachment preview unavailable">
               <AttachmentIcon />
@@ -204,17 +226,25 @@ const AttachmentPreviewItem: React.FC<{
         </MediaPreviewFrame>
       ) : (
         <Group align="center" miw={0} w="100%">
-          {Icon ? (
+          {FileIcon ? (
             <MediaPreviewIcon previewSize="file">
-              <Icon />
+              <FileIcon />
             </MediaPreviewIcon>
           ) : null}
           <Stack miw={0}>
             <MyoxusText truncate typographySlot="body-small">
               {attachment.filename || attachment.file?.name || "File"}
             </MyoxusText>
-            <MyoxusText tone="secondary" truncate typographySlot="caption">
-              {attachment.size ? formatByteSize(attachment.size) : ""}
+            <MyoxusText
+              tone={attachment.status === "error" ? "danger" : "secondary"}
+              truncate
+              typographySlot="caption"
+            >
+              {attachment.status === "error"
+                ? "Upload failed"
+                : attachment.size
+                  ? formatByteSize(attachment.size)
+                  : ""}
             </MyoxusText>
           </Stack>
         </Group>
@@ -238,23 +268,27 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
     },
     ref,
   ) {
-    const defaultSnapshotOrDoc = defaultSnapshot ?? userDoc;
-    if (!defaultSnapshotOrDoc) {
+    const source = defaultSnapshot ?? userDoc;
+    if (!source) {
       throw new Error("Either defaultSnapshot or doc must be provided");
     }
+
     const [portals, mountPortal] = usePortalFactory();
-    const specs = usePatchSpecs(!!readonly, mountPortal);
-    const doc = useSnapshotDoc(defaultSnapshotOrDoc, readonly);
+    const specs = useCommentEditorSpecs(Boolean(readonly), mountPortal);
+    const doc = useResolvedCommentStore(source, readonly);
     const snapshotHelper = useService(SnapshotHelper);
     const peekViewService = useService(PeekViewService);
-    const editorRef = useRef<EditorHost>(null);
+
+    const editorHostRef = useRef<EditorHost>(null);
     const [empty, setEmpty] = useState(true);
     const attachmentsRef = useRef(attachments);
     attachmentsRef.current = attachments;
 
-    const setAttachments = useCallback(
-      (updater: (prev: EditorAttachment[]) => EditorAttachment[]) => {
-        // Upload completions must update the current draft, not their initial render.
+    const updateAttachments = useCallback(
+      (
+        updater: (prev: CommentEditorAttachment[]) => CommentEditorAttachment[],
+      ) => {
+        // Apply async upload completions against the latest draft state.
         const next = updater(attachmentsRef.current ?? []);
         attachmentsRef.current = next;
         onAttachmentsChange?.(next);
@@ -262,93 +296,136 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
       [onAttachmentsChange],
     );
 
-    const isUploadDisabled = (attachments?.length ?? 0) >= MAX_ATTACHMENT_COUNT;
-    const uploadingAttachments = attachments?.some(
-      (att) => att.status === "uploading",
+    const uploadSingleAttachment = useCallback(
+      async (pending: CommentEditorAttachment) => {
+        if (!uploadCommentAttachment || !pending.file) return;
+        try {
+          const remoteUrl = await uploadCommentAttachment(
+            pending.id,
+            pending.file,
+          );
+          logger.info("uploadCommentAttachment success", { remoteUrl });
+          if (pending.localUrl) {
+            URL.revokeObjectURL(pending.localUrl);
+          }
+          updateAttachments((prev) =>
+            prev.map((item) =>
+              item.id === pending.id
+                ? {
+                    ...item,
+                    status: "success",
+                    url: remoteUrl,
+                    localUrl: undefined,
+                  }
+                : item,
+            ),
+          );
+        } catch (error: unknown) {
+          logger.error("uploadCommentAttachment failed", { error });
+          notify.error({
+            title: "Failed to upload attachment",
+            message: error instanceof Error ? error.message : String(error),
+          });
+          if (pending.localUrl) {
+            URL.revokeObjectURL(pending.localUrl);
+          }
+          updateAttachments((prev) =>
+            prev.map((item) =>
+              item.id === pending.id
+                ? { ...item, status: "error", localUrl: undefined }
+                : item,
+            ),
+          );
+        }
+      },
+      [updateAttachments, uploadCommentAttachment],
     );
-    const commitDisabled =
-      (empty && (attachments?.length ?? 0) === 0) || uploadingAttachments;
+
+    const attachmentCount = attachments?.length ?? 0;
+    const uploadLimitReached = attachmentCount >= MAX_ATTACHMENT_COUNT;
+    const hasUploadingAttachment = Boolean(
+      attachments?.some((item) => item.status === "uploading"),
+    );
+    const hasFailedAttachment = Boolean(
+      attachments?.some((item) => item.status === "error"),
+    );
+    const submitDisabled =
+      (empty && attachmentCount === 0) ||
+      hasUploadingAttachment ||
+      hasFailedAttachment;
 
     const addAttachments = useAsyncCallback(
       async (files: File[]) => {
         if (!uploadCommentAttachment) return;
-        const remaining = MAX_ATTACHMENT_COUNT - (attachments?.length ?? 0);
-        const valid = files.slice(0, remaining);
-        if (!valid.length) return;
-        logger.info("addAttachments", { files: valid });
+        const remainingSlots =
+          MAX_ATTACHMENT_COUNT - (attachmentsRef.current?.length ?? 0);
+        const acceptedFiles = files.slice(0, Math.max(0, remainingSlots));
+        if (acceptedFiles.length === 0) return;
 
-        const pendingAttachments: EditorAttachment[] = valid.map((f) => ({
-          id: nanoid(),
-          file: f,
-          localUrl: URL.createObjectURL(f),
-          status: "uploading",
-          filename: f.name,
-          mimeType: f.type,
-        }));
+        logger.info("addAttachments", { files: acceptedFiles });
+        const pendingEntries: CommentEditorAttachment[] = acceptedFiles.map(
+          (file) => ({
+            id: nanoid(),
+            file,
+            localUrl: URL.createObjectURL(file),
+            status: "uploading",
+            filename: file.name,
+            mimeType: file.type,
+            size: file.size,
+          }),
+        );
 
-        setAttachments((prev) => [...prev, ...pendingAttachments]);
-
-        for (const pending of pendingAttachments) {
-          if (!pending.file) continue; // should not happen
-          try {
-            const remoteUrl = await uploadCommentAttachment(
-              pending.id,
-              pending.file,
-            );
-            logger.info("uploadCommentAttachment success", {
-              remoteUrl,
-            });
-            pending.localUrl && URL.revokeObjectURL(pending.localUrl);
-            setAttachments((prev) => {
-              const index = prev.findIndex((att) => att.id === pending.id);
-              if (index === -1) return prev;
-              // create a shallow copy to trigger re-render
-              const next = [...prev];
-              next[index] = {
-                ...next[index],
-                status: "success",
-                url: remoteUrl,
-                localUrl: undefined,
-              };
-              return next;
-            });
-          } catch (e: unknown) {
-            logger.error("uploadCommentAttachment failed", { error: e });
-            notify.error({
-              title: "Failed to upload attachment",
-              message: e instanceof Error ? e.message : String(e),
-            });
-            pending.localUrl && URL.revokeObjectURL(pending.localUrl);
-            setAttachments((prev) => {
-              const index = prev.findIndex((att) => att.id === pending.id);
-              if (index === -1) return prev;
-              const next = [...prev];
-              next[index] = {
-                ...next[index],
-                status: "error",
-                localUrl: undefined,
-              };
-              return next;
-            });
-          }
+        updateAttachments((prev) => [...prev, ...pendingEntries]);
+        for (const pending of pendingEntries) {
+          await uploadSingleAttachment(pending);
         }
       },
-      [attachments?.length, setAttachments, uploadCommentAttachment],
+      [updateAttachments, uploadCommentAttachment, uploadSingleAttachment],
+    );
+
+    const handleRetryAttachment = useAsyncCallback(
+      async (id: string) => {
+        const target = attachmentsRef.current?.find((item) => item.id === id);
+        if (!target?.file || !uploadCommentAttachment) return;
+
+        const retryEntry: CommentEditorAttachment = {
+          ...target,
+          status: "uploading",
+          localUrl: URL.createObjectURL(target.file),
+        };
+        updateAttachments((prev) =>
+          prev.map((item) => (item.id === id ? retryEntry : item)),
+        );
+        await uploadSingleAttachment(retryEntry);
+      },
+      [updateAttachments, uploadCommentAttachment, uploadSingleAttachment],
+    );
+
+    const handleRemoveAttachment = useCallback(
+      (id: string) => {
+        updateAttachments((prev) => {
+          const target = prev.find((item) => item.id === id);
+          if (target?.localUrl) {
+            URL.revokeObjectURL(target.localUrl);
+          }
+          return prev.filter((item) => item.id !== id);
+        });
+      },
+      [updateAttachments],
     );
 
     const handlePaste = useCallback(
       (event: React.ClipboardEvent) => {
-        const items = event.clipboardData?.items;
-        if (!items) return;
+        const clipboardItems = event.clipboardData?.items;
+        if (!clipboardItems) return;
         const files: File[] = [];
-        for (const index in items) {
-          const item = items[index as any];
+        for (const item of Array.from(clipboardItems)) {
           if (item.kind === "file") {
-            const blob = item.getAsFile();
-            if (blob) files.push(blob);
+            const file = item.getAsFile();
+            if (file) files.push(file);
           }
         }
-        if (files.length) {
+        if (files.length > 0) {
           event.preventDefault();
           addAttachments(files);
         }
@@ -357,113 +434,94 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
     );
 
     const handleDragOver = useCallback(
-      (e: React.DragEvent) => {
+      (event: React.DragEvent) => {
         if (readonly) return;
-        // Prevent default to allow drop
-        e.preventDefault();
+        event.preventDefault();
       },
       [readonly],
     );
 
     const handleDrop = useCallback(
-      (e: React.DragEvent) => {
+      (event: React.DragEvent) => {
         if (readonly) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const files = Array.from(e.dataTransfer?.files ?? []);
-        if (files.length) {
+        event.preventDefault();
+        event.stopPropagation();
+        const files = Array.from(event.dataTransfer?.files ?? []);
+        if (files.length > 0) {
           addAttachments(files);
         }
       },
       [addAttachments, readonly],
     );
 
-    const openFilePicker = useAsyncCallback(async () => {
-      if (isUploadDisabled) return;
+    const handleOpenFilePicker = useAsyncCallback(async () => {
+      if (uploadLimitReached) return;
       const files = await openFilesWith("Any");
       if (files) {
         addAttachments(files);
       }
-    }, [isUploadDisabled, addAttachments]);
+    }, [addAttachments, uploadLimitReached]);
 
-    const handleAttachmentRemove = useCallback(
-      (id: string) => {
-        setAttachments((prev) => {
-          const att = prev.find((att) => att.id === id);
-          if (att?.localUrl) URL.revokeObjectURL(att.localUrl);
-          return prev.filter((att) => att.id !== id);
-        });
-      },
-      [setAttachments],
-    );
-
-    const handleImagePreview = useCallback(
-      (index: number) => {
+    const openImagePreview = useCallback(
+      (imageIndex: number) => {
         if (!attachments) return;
-        const imageAttachments = attachments.filter(isImageAttachment);
+        const images = attachments.filter(isImageAttachment);
+        if (imageIndex < 0 || imageIndex >= images.length) return;
 
-        if (index >= imageAttachments.length) return;
-
-        const getImageData = (currentIndex: number) => {
-          const attachment = imageAttachments[currentIndex];
-          if (!attachment) return undefined;
-
+        const buildSlide = (idx: number) => {
+          const item = images[idx];
+          if (!item) return undefined;
           return {
-            index: currentIndex,
-            url: attachment.url || attachment.localUrl || "",
-            caption: attachment.file?.name || `Image ${currentIndex + 1}`,
-            previous:
-              currentIndex > 0
-                ? () => getImageData(currentIndex - 1)
-                : undefined,
+            index: idx,
+            url: item.url || item.localUrl || "",
+            caption: item.file?.name || `Image ${idx + 1}`,
+            previous: idx > 0 ? () => buildSlide(idx - 1) : undefined,
             next:
-              currentIndex < imageAttachments.length - 1
-                ? () => getImageData(currentIndex + 1)
-                : undefined,
+              idx < images.length - 1 ? () => buildSlide(idx + 1) : undefined,
           };
         };
 
-        const imageData = getImageData(index);
-        if (!imageData) return;
+        const slide = buildSlide(imageIndex);
+        if (!slide) return;
 
         peekViewService.peekView
           .open({
             type: "image-list",
-            data: {
-              image: imageData,
-              total: imageAttachments.length,
-            },
+            data: { image: slide, total: images.length },
           })
           .catch((error) => {
-            console.error("Failed to open image preview", error);
+            logger.error("Failed to open image preview", { error });
           });
       },
       [attachments, peekViewService],
     );
 
-    const handleAttachmentClick = useCallback(
-      (e: React.MouseEvent, index: number) => {
-        e.stopPropagation();
-        if (!attachments) return;
-        const att = attachments[index];
-        if (!att) return;
-        if (isImageAttachment(att)) {
-          // translate attachment index to image index
-          const imageAttachments = attachments.filter(isImageAttachment);
-          const imageIndex = imageAttachments.findIndex((i) => i.id === att.id);
+    const handleAttachmentOpen = useCallback(
+      (event: React.MouseEvent, index: number) => {
+        event.stopPropagation();
+        const attachment = attachments?.[index];
+        if (!attachment) return;
+
+        if (isImageAttachment(attachment)) {
+          const images = (attachments ?? []).filter(isImageAttachment);
+          const imageIndex = images.findIndex(
+            (item) => item.id === attachment.id,
+          );
           if (imageIndex >= 0) {
-            handleImagePreview(imageIndex);
+            openImagePreview(imageIndex);
           }
-        } else if (att.url) {
-          // todo: open attachment preview. for now, just download it
+          return;
+        }
+
+        if (attachment.url) {
           downloadResourceWithUrl(
-            att.url,
-            att.filename ?? att.file?.name ?? "attachment",
-          ).catch((e) => {
-            console.error("Failed to download attachment", e);
+            attachment.url,
+            attachment.filename ?? attachment.file?.name ?? "attachment",
+          ).catch((error) => {
+            logger.error("Failed to download attachment", { error });
             notify.error({
               title: "Failed to download attachment",
-              message: e.message,
+              message: error instanceof Error ? error.message : String(error),
             });
           });
           notify({
@@ -471,216 +529,194 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
           });
         }
       },
-      [attachments, handleImagePreview],
+      [attachments, openImagePreview],
     );
 
-    // upload attachments and call original onCommit
     const handleCommit = useAsyncCallback(async () => {
-      if (readonly || commitDisabled) return;
+      if (readonly || submitDisabled) return;
       onCommit?.();
-      setAttachments((prev) => {
-        prev.forEach(
-          (att) => att.localUrl && URL.revokeObjectURL(att.localUrl),
-        );
+      updateAttachments((prev) => {
+        prev.forEach((item) => {
+          if (item.localUrl) URL.revokeObjectURL(item.localUrl);
+        });
         return [];
       });
-    }, [readonly, commitDisabled, onCommit, setAttachments]);
+    }, [onCommit, readonly, submitDisabled, updateAttachments]);
 
     const focusEditor = useAsyncCallback(async () => {
-      if (editorRef.current) {
-        const selectionService = editorRef.current.std.selection;
-        const selection = selectionService.value.at(-1) as TextSelection;
-        editorRef.current.std.event.active = true;
-        await editorRef.current.updateComplete;
-        if (selection) {
-          selectTextModel(
-            editorRef.current.std,
-            selection.blockId,
-            selection.from.index,
-            selection.from.length,
-          );
-        } else {
-          const richTexts = Array.from(
-            editorRef.current?.querySelectorAll("rich-text") ?? [],
-          ) as unknown as RichText[];
-
-          const lastRichText = richTexts.at(-1);
-          if (lastRichText) {
-            lastRichText.inlineEditor?.focusEnd();
-          }
-        }
+      const host = editorHostRef.current;
+      if (!host) return;
+      const selection = host.std.selection.value.at(-1) as
+        TextSelection | undefined;
+      host.std.event.active = true;
+      await host.updateComplete;
+      if (selection) {
+        selectTextModel(
+          host.std,
+          selection.blockId,
+          selection.from.index,
+          selection.from.length,
+        );
+      } else {
+        const richTexts = Array.from(
+          host.querySelectorAll("rich-text"),
+        ) as unknown as RichText[];
+        richTexts.at(-1)?.inlineEditor?.focusEnd();
       }
-    }, [editorRef]);
+    }, []);
 
     useImperativeHandle(
       ref,
       () => ({
-        getSnapshot: () => {
-          if (!doc) {
-            return null;
-          }
-          return snapshotHelper.getSnapshot(doc);
-        },
+        getSnapshot: () => (doc ? snapshotHelper.getSnapshot(doc) : null),
         focus: focusEditor,
       }),
       [doc, focusEditor, snapshotHelper],
     );
 
     useEffect(() => {
-      let cancel = false;
-      if (autoFocus && editorRef.current && doc) {
-        // Wait for editor to be fully loaded before focusing
-        editorRef.current.updateComplete
-          .then(async () => {
-            if (cancel) return;
-            const richText = editorRef.current?.querySelector(
-              "rich-text",
-            ) as unknown as RichText;
-            if (!richText) return;
-            richText.scrollIntoView({
-              behavior: "smooth",
-              block: "center",
-            });
-            // Finally focus the inline editor
-            richText.focus();
-            focusEditor();
-          })
-          .catch(console.error);
-      }
+      if (!autoFocus || !editorHostRef.current || !doc) return;
+      let cancelled = false;
+      editorHostRef.current.updateComplete
+        .then(() => {
+          if (cancelled) return;
+          const richText = editorHostRef.current?.querySelector(
+            "rich-text",
+          ) as unknown as RichText | null;
+          if (!richText) return;
+          richText.scrollIntoView({ behavior: "smooth", block: "center" });
+          richText.focus();
+          focusEditor();
+        })
+        .catch((error) => {
+          logger.error("Failed to focus comment editor", { error });
+        });
       return () => {
-        cancel = true;
+        cancelled = true;
       };
     }, [autoFocus, doc, focusEditor]);
 
     useEffect(() => {
-      if (doc) {
-        const subscription = doc.slots.blockUpdated.subscribe(() => {
-          if (onChange) {
-            const snapshot = snapshotHelper.getSnapshot(doc);
-            if (snapshot) {
-              onChange?.(snapshot);
-            }
-          }
-          setEmpty(snapshotHelper.isDocEmpty(doc));
-        });
-        return () => {
-          subscription?.unsubscribe();
-        };
-      }
-      return;
+      if (!doc) return;
+      const subscription = doc.slots.blockUpdated.subscribe(() => {
+        if (onChange) {
+          const snapshot = snapshotHelper.getSnapshot(doc);
+          if (snapshot) onChange(snapshot);
+        }
+        setEmpty(snapshotHelper.isDocEmpty(doc));
+      });
+      return () => {
+        subscription?.unsubscribe();
+      };
     }, [doc, onChange, snapshotHelper]);
 
-    // Add keydown handler to commit on Enter key
+    useEffect(() => {
+      return () => {
+        attachmentsRef.current?.forEach((item) => {
+          if (item.localUrl) URL.revokeObjectURL(item.localUrl);
+        });
+      };
+    }, []);
+
     const handleKeyDown = useCallback(
-      (e: React.KeyboardEvent) => {
+      (event: React.KeyboardEvent) => {
         if (readonly) return;
-
-        // Only handle Enter if focus is within the editor
-        const activeElement = document.activeElement;
-        if (!editorRef.current?.contains(activeElement)) return;
-
-        // If Enter is pressed without CMD/CTRL key, commit the comment
-        if (e.key === "Enter" && !(e.metaKey || e.ctrlKey)) {
-          e.preventDefault();
-          e.stopPropagation();
+        if (!editorHostRef.current?.contains(document.activeElement)) return;
+        if (event.key === "Enter" && !(event.metaKey || event.ctrlKey)) {
+          event.preventDefault();
+          event.stopPropagation();
           handleCommit();
         }
       },
       [handleCommit, readonly],
     );
 
-    const handleClickEditor = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleSurfaceClick = useCallback(
+      (event: React.MouseEvent) => {
+        event.stopPropagation();
         focusEditor();
       },
       [focusEditor],
     );
 
-    useEffect(() => {
-      return () => {
-        // Cleanup any remaining local URLs on unmount
-        attachmentsRef.current?.forEach((att) => {
-          if (att.localUrl) URL.revokeObjectURL(att.localUrl);
-        });
-      };
-    }, []);
-
-    const editorContent = (
+    const innerContent = (
       <>
         {portals.map(({ id, portal }) => (
           <Fragment key={id}>{portal}</Fragment>
         ))}
-        {attachments?.length && attachments.length > 0 ? (
+
+        {attachments && attachments.length > 0 ? (
           <Group data-testid="comment-attachment-preview" w="100%">
-            {attachments.map((att, index) => (
-              <AttachmentPreviewItem
-                key={att.id}
-                attachment={att}
+            {attachments.map((attachment, index) => (
+              <AttachmentPreviewTile
+                key={attachment.id}
+                attachment={attachment}
                 index={index}
                 readonly={readonly}
-                handleAttachmentClick={handleAttachmentClick}
-                handleAttachmentRemove={handleAttachmentRemove}
+                onOpen={handleAttachmentOpen}
+                onRemove={handleRemoveAttachment}
+                onRetry={handleRetryAttachment}
               />
             ))}
           </Group>
         ) : null}
 
-        {doc && (
+        {doc ? (
           <DocumentViewport
             key={doc.id}
-            ref={editorRef}
+            ref={editorHostRef}
             specs={specs}
             doc={doc}
           />
-        )}
-        {!readonly && (
+        ) : null}
+
+        {!readonly ? (
           <DialogFooterActions>
             <IconButton
               icon={<AttachmentIcon />}
               aria-label="Add attachment"
-              onClick={openFilePicker}
-              disabled={isUploadDisabled}
+              onClick={handleOpenFilePicker}
+              disabled={uploadLimitReached}
             />
             <IconButton
               icon={<ArrowUpBigIcon />}
               variant="primary"
               onClick={handleCommit}
               aria-label="Submit comment"
-              disabled={commitDisabled}
+              disabled={submitDisabled}
             />
           </DialogFooterActions>
-        )}
+        ) : null}
       </>
     );
 
-    const editorProps = {
-      onClick: readonly ? undefined : handleClickEditor,
+    const sharedContainerProps = {
+      onClick: readonly ? undefined : handleSurfaceClick,
       onKeyDown: handleKeyDown,
       onPaste: handlePaste,
       onDragOver: handleDragOver,
       onDrop: handleDrop,
-      "data-readonly": !!readonly,
+      "data-readonly": Boolean(readonly),
       className: commentEditorViewportClassName,
     };
 
     if (readonly) {
       return (
         <Stack
-          {...editorProps}
+          {...sharedContainerProps}
           data-myoxus-ui-role="comment-editor-readonly"
           h="100%"
           style={{ overflow: "hidden" }}
           w="100%"
         >
-          {editorContent}
+          {innerContent}
         </Stack>
       );
     }
 
     return (
       <SurfaceListItem
-        {...editorProps}
+        {...sharedContainerProps}
         component="div"
         density="compact"
         fullWidth
@@ -689,7 +725,7 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
         role="group"
         data-myoxus-ui-role="comment-editor-composer"
       >
-        {editorContent}
+        {innerContent}
       </SurfaceListItem>
     );
   },

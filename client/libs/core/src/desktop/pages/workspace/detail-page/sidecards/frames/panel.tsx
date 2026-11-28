@@ -1,7 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
+import { EditorFrameNavigator } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome/frame-navigator";
 import { useI18n } from "@myoxus/i18n";
 import { PresentationIcon, SettingsIcon } from "@myoxus/icons/react";
 import {
-  Box,
   Button,
   Divider,
   Group,
@@ -13,64 +16,39 @@ import {
   SettingsSwitchRow,
   Stack,
 } from "@myoxus/ui-facade";
-import {
-  type NavigatorMode,
-  PresentTool,
-} from "@virgultum/editor/blocks/frame";
-import { EdgelessLegacySlotIdentifier } from "@virgultum/editor/blocks/surface";
-import { FramePanel } from "@virgultum/editor/fragments/frame-panel";
-import {
-  DocModeProvider,
-  EditPropsStore,
-} from "@virgultum/editor/shared/services";
+import { FrameNavigatorController } from "@virgultum/editor/fragments/frame-panel";
 import type { EditorHost } from "@virgultum/editor/std";
-import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
-type FrameNavigatorSettings = {
-  darkBackground: boolean;
-  fillScreen: boolean;
-  hideToolbar: boolean;
-};
+const FRAME_FIT_PADDING = [20, 20, 20, 20] as const;
 
-type DisposableLike = {
-  dispose?: () => void;
-  unsubscribe?: () => void;
-};
-
-const disposeSubscription = (subscription: DisposableLike | undefined) => {
-  subscription?.dispose?.();
-  subscription?.unsubscribe?.();
-};
-
-const readNavigatorSettings = (
-  editor: EditorHost | null,
-): FrameNavigatorSettings => {
-  if (!editor) {
-    return {
-      darkBackground: true,
-      fillScreen: false,
-      hideToolbar: false,
-    };
-  }
-
-  const editPropsStore = editor.std.get(EditPropsStore);
-  return {
-    darkBackground: editPropsStore.getStorage("presentBlackBackground") ?? true,
-    fillScreen: editPropsStore.getStorage("presentFillScreen") ?? false,
-    hideToolbar: editPropsStore.getStorage("presentHideToolbar") ?? false,
-  };
-};
-
+/** Desktop Frames sidecard backed directly by {@link FrameNavigatorController}. */
 export const EditorFramePanel = ({ editor }: { editor: EditorHost | null }) => {
   const t = useI18n();
-  const framePanelRef = useRef<FramePanel | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [navigatorSettings, setNavigatorSettings] =
-    useState<FrameNavigatorSettings>(() => readNavigatorSettings(editor));
+
+  const controller = useMemo(
+    () =>
+      new FrameNavigatorController(editor, {
+        fitPadding: FRAME_FIT_PADDING,
+      }),
+    // Keep controller identity stable across mode switches; `setHost` updates it below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  useEffect(() => {
+    controller.setHost(editor);
+  }, [controller, editor]);
+
+  const state = useSyncExternalStore(
+    controller.subscribe,
+    controller.getSnapshot,
+  );
+  const { settings } = state;
+
   const labels = useMemo(
     () => ({
-      allFrames: t["com.myoxus.sidebar.frame.all-frames"](),
       allFramesSettings: t["com.myoxus.sidebar.frame.all-frames-settings"](),
       presentation: t["com.myoxus.sidebar.frame.presentation"](),
       previewSettings: t["com.myoxus.sidebar.frame.preview-settings"](),
@@ -82,97 +60,6 @@ export const EditorFramePanel = ({ editor }: { editor: EditorHost | null }) => {
     }),
     [t],
   );
-
-  const setNavigatorSetting = useCallback(
-    <Key extends keyof FrameNavigatorSettings>(
-      key: Key,
-      value: FrameNavigatorSettings[Key],
-    ) => {
-      if (!editor) return;
-
-      setNavigatorSettings((settings) => ({
-        ...settings,
-        [key]: value,
-      }));
-
-      const editPropsStore = editor.std.get(EditPropsStore);
-      const slots = editor.std.get(EdgelessLegacySlotIdentifier);
-      if (key === "fillScreen") {
-        editPropsStore.setStorage("presentFillScreen", value);
-        slots.navigatorSettingUpdated.next({ fillScreen: value });
-      } else if (key === "darkBackground") {
-        editPropsStore.setStorage("presentBlackBackground", value);
-        slots.navigatorSettingUpdated.next({ blackBackground: value });
-      } else {
-        editPropsStore.setStorage("presentHideToolbar", value);
-        slots.navigatorSettingUpdated.next({ hideToolbar: value });
-      }
-    },
-    [editor],
-  );
-
-  const enterPresentationMode = useCallback(() => {
-    if (!editor) return;
-
-    const docModeProvider = editor.std.get(DocModeProvider);
-    if (docModeProvider.getEditorMode() !== "edgeless") {
-      docModeProvider.setEditorMode("edgeless");
-    }
-
-    const navigatorMode: NavigatorMode = navigatorSettings.fillScreen
-      ? "fill"
-      : "fit";
-    window.setTimeout(() => {
-      editor.std.get(GfxControllerIdentifier).tool.setTool(PresentTool, {
-        mode: navigatorMode,
-      });
-    }, 100);
-  }, [editor, navigatorSettings.fillScreen]);
-
-  const onRefChange = useCallback(
-    (container: HTMLDivElement | null) => {
-      if (editor && container && container.children.length === 0) {
-        framePanelRef.current = new FramePanel();
-        framePanelRef.current.host = editor;
-        framePanelRef.current.hideHeader = true;
-        framePanelRef.current.fitPadding = [20, 20, 20, 20];
-        framePanelRef.current.labels = labels;
-        container.append(framePanelRef.current);
-      }
-    },
-    [editor, labels],
-  );
-
-  useEffect(() => {
-    setNavigatorSettings(readNavigatorSettings(editor));
-
-    if (!editor) return;
-
-    const slots = editor.std.get(EdgelessLegacySlotIdentifier);
-    const subscription = slots.navigatorSettingUpdated.subscribe(
-      ({ blackBackground, fillScreen, hideToolbar }) => {
-        setNavigatorSettings((settings) => ({
-          darkBackground: blackBackground ?? settings.darkBackground,
-          fillScreen: fillScreen ?? settings.fillScreen,
-          hideToolbar: hideToolbar ?? settings.hideToolbar,
-        }));
-      },
-    ) as DisposableLike;
-
-    return () => disposeSubscription(subscription);
-  }, [editor]);
-
-  useEffect(() => {
-    if (editor && framePanelRef.current) {
-      framePanelRef.current.host = editor;
-    }
-  }, [editor]);
-
-  useEffect(() => {
-    if (framePanelRef.current) {
-      framePanelRef.current.labels = labels;
-    }
-  }, [labels]);
 
   return (
     <Stack h="100%" mih={0} w="100%" data-myoxus-ui-role="frame-panel-root">
@@ -204,10 +91,10 @@ export const EditorFramePanel = ({ editor }: { editor: EditorHost | null }) => {
                 {labels.previewSettings}
               </MyoxusText>
               <SettingsSwitchRow
-                checked={navigatorSettings.fillScreen}
+                checked={settings.fillScreen}
                 label={labels.fillScreen}
                 onCheckedChange={(checked) =>
-                  setNavigatorSetting("fillScreen", checked)
+                  controller.setSetting("fillScreen", checked)
                 }
               />
               <Divider />
@@ -220,17 +107,17 @@ export const EditorFramePanel = ({ editor }: { editor: EditorHost | null }) => {
                 {labels.playbackSettings}
               </MyoxusText>
               <SettingsSwitchRow
-                checked={navigatorSettings.darkBackground}
+                checked={settings.darkBackground}
                 label={labels.darkBackground}
                 onCheckedChange={(checked) =>
-                  setNavigatorSetting("darkBackground", checked)
+                  controller.setSetting("darkBackground", checked)
                 }
               />
               <SettingsSwitchRow
-                checked={navigatorSettings.hideToolbar}
+                checked={settings.hideToolbar}
                 label={labels.hideToolbar}
                 onCheckedChange={(checked) =>
-                  setNavigatorSetting("hideToolbar", checked)
+                  controller.setSetting("hideToolbar", checked)
                 }
               />
             </Stack>
@@ -239,18 +126,14 @@ export const EditorFramePanel = ({ editor }: { editor: EditorHost | null }) => {
         <Button
           data-testid="context-presentation-button"
           prefix={<PresentationIcon />}
-          onClick={enterPresentationMode}
+          onClick={controller.enterPresentationMode}
         >
           {labels.presentation}
         </Button>
       </Group>
-      <Box
-        ref={onRefChange}
-        flex={1}
-        h="100%"
-        mih={0}
-        w="100%"
-        data-myoxus-ui-role="editor-frame-panel-mount"
+      <EditorFrameNavigator
+        controller={controller}
+        emptyLabel={labels.emptyPlaceholder}
       />
     </Stack>
   );

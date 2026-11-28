@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { RichText } from "@virgultum/editor/rich-text";
 import { type EditorHost, TextSelection } from "@virgultum/editor/std";
 
@@ -5,77 +8,57 @@ import { handleInlineAskAIAction } from "../../actions/doc-handler";
 import { AIProvider } from "../../provider";
 import type { AIPanelController } from "../../widgets/ai-panel/controller";
 
-function isSpaceEvent(event: KeyboardEvent) {
+function isDirectSpaceKeypress(event: KeyboardEvent): boolean {
   return event.key === " " && event.which === 32 && !event.isComposing;
 }
 
-function insertSpace(host: EditorHost) {
-  const textSelection = host.selection.find(TextSelection);
-  if (!textSelection || !textSelection.isCollapsed()) return;
+function insertLiteralSpace(host: EditorHost): void {
+  const selection = host.selection.find(TextSelection);
+  if (!selection?.isCollapsed()) return;
 
-  const blockComponent = host.view.getBlock(textSelection.from.blockId);
-  if (!blockComponent) return;
-
-  const richText = blockComponent.querySelector("rich-text") as RichText | null;
-  if (!richText) return;
-
-  const inlineEditor = richText.inlineEditor;
-  inlineEditor?.insertText(
-    {
-      index: textSelection.from.index,
-      length: 0,
-    },
+  const block = host.view.getBlock(selection.from.blockId);
+  const richText = block?.querySelector("rich-text") as RichText | null;
+  richText?.inlineEditor?.insertText(
+    { index: selection.from.index, length: 0 },
     " ",
   );
 }
 
-export function setupSpaceAIEntry(panel: AIPanelController) {
-  // Background: The keydown event triggered by a space may originate from:
-  // 1. Normal space insertion
-  // 2. Space triggered by input method confirming candidate words
-  // In scenarios like (2), some browsers and input method callbacks produce
-  // events identical to scenario (1),
-  // making it impossible to distinguish between the two.
-  //
-  // To fix this, the space-activated AI listener uses the `keypress` event:
-  // In scenario 2, `event.which !== 32` (may be `30430` or other values) can be used to differentiate from scenario 1.
+/**
+ * Opens inline Ask AI when pressing Space at index 0 of an empty paragraph.
+ * Uses `keyPress` (`which === 32`) so IME candidate confirmation does not
+ * masquerade as an intentional leading space shortcut.
+ */
+export function setupSpaceAIEntry(panel: AIPanelController): void {
   panel.disposables.add(
     panel.std.event.add("keyPress", (ctx) => {
-      const host = panel.host;
-      const keyboardState = ctx.get("keyboardState");
-      const event = keyboardState.raw;
-      if (AIProvider.actions.chat && isSpaceEvent(event)) {
-        // If the AI panel is in the input state and the input content is empty,
-        // insert a space back into the editor.
-        if (panel.state === "input") {
-          const input = panel.inputElement;
-          if (input?.value.trim() === "") {
-            event.preventDefault();
-            insertSpace(host);
-            panel.hide();
-          }
+      const event = ctx.get("keyboardState").raw;
+      if (!AIProvider.actions.chat || !isDirectSpaceKeypress(event)) return;
 
-          return;
-        }
-
-        const selection = host.selection.find(TextSelection);
-        if (
-          selection &&
-          selection.isCollapsed() &&
-          selection.from.index === 0
-        ) {
-          const block = host.view.getBlock(selection.blockId);
-          if (
-            !block?.model?.text ||
-            block.model.text?.length > 0 ||
-            block.model.flavour !== "myoxus:paragraph"
-          )
-            return;
-
+      const { host } = panel;
+      if (panel.state === "input") {
+        if (panel.inputElement?.value.trim() === "") {
           event.preventDefault();
-          handleInlineAskAIAction(host);
+          insertLiteralSpace(host);
+          panel.hide();
         }
+        return;
       }
+
+      const selection = host.selection.find(TextSelection);
+      if (!selection?.isCollapsed() || selection.from.index !== 0) return;
+
+      const block = host.view.getBlock(selection.blockId);
+      if (
+        !block?.model?.text ||
+        block.model.text.length > 0 ||
+        block.model.flavour !== "myoxus:paragraph"
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      handleInlineAskAIAction(host);
     }),
   );
 }

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   BlockModel,
   BlockSchemaExtension,
@@ -6,15 +9,19 @@ import {
 
 export const TranscriptionBlockFlavour = "myoxus:transcription";
 
-const defaultProps: TranscriptionBlockProps = {
-  transcription: {},
-  jobId: undefined,
-  createdBy: undefined, // the user id of the creator
+export type TranscriptionBlockProps = {
+  transcription: Record<string, unknown>;
+  jobId?: string;
+  createdBy?: string;
 };
 
 export const TranscriptionBlockSchema = defineBlockSchema({
   flavour: TranscriptionBlockFlavour,
-  props: () => defaultProps,
+  props: (): TranscriptionBlockProps => ({
+    transcription: {},
+    jobId: undefined,
+    createdBy: undefined,
+  }),
   metadata: {
     version: 1,
     role: "attachment-viewer",
@@ -23,12 +30,6 @@ export const TranscriptionBlockSchema = defineBlockSchema({
   },
   toModel: () => new TranscriptionBlockModel(),
 });
-
-export type TranscriptionBlockProps = {
-  transcription: Record<string, any>;
-  jobId?: string;
-  createdBy?: string;
-};
 
 export class TranscriptionBlockModel extends BlockModel<TranscriptionBlockProps> {}
 

@@ -9,7 +9,7 @@ import { getMyoxusWorkspaceSchema } from "@myoxus/core/modules/workspace";
 import { parsePageDoc } from "@myoxus/reader";
 import type { NotificationService } from "@virgultum/core/services";
 import type { Store } from "@virgultum/core/store";
-import { MarkdownTransformer } from "@virgultum/editor/widgets/linked-doc";
+import { MarkdownTransformer } from "@virgultum/editor/interchange";
 
 import { chatI18n } from "../../ai/components/chat-i18n";
 import { AIProvider } from "../../ai/provider";

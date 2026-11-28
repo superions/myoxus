@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
 import {
   FeatureFlagService,
@@ -30,79 +33,71 @@ import {
   Stack,
 } from "../../primitives";
 
-const feedbackLink: Record<NonNullable<Flag["feedbackType"]>, string> = {
+const DEFAULT_FEEDBACK_URLS: Record<
+  NonNullable<Flag["feedbackType"]>,
+  string
+> = {
   email: "mailto:myoxus@blume29.de",
-  github: BUILD_CONFIG.githubUrl + "/issues",
+  github: `${BUILD_CONFIG.githubUrl}/issues`,
 };
 
-const FeedbackIcon = ({ type }: { type: Flag["feedbackType"] }) => {
-  switch (type) {
-    case "email":
-      return <EmailIcon size="var(--mantine-spacing-lg)" />;
-    case "github":
-      return <GithubIcon size="var(--mantine-spacing-lg)" />;
-    default:
-      return null;
+const experimentalDisclaimerAtom = atomWithStorage(
+  "myoxus:experimental-features-disclaimer",
+  false,
+);
+
+const FeedbackChannelIcon = ({ type }: { type: Flag["feedbackType"] }) => {
+  if (type === "email") {
+    return <EmailIcon size="var(--mantine-spacing-lg)" />;
   }
+  if (type === "github") {
+    return <GithubIcon size="var(--mantine-spacing-lg)" />;
+  }
+  return null;
 };
 
-const FeedbackLink = ({
-  link,
-  type,
-}: {
-  link: string;
-  type: NonNullable<Flag["feedbackType"]>;
-}) => {
-  const t = useI18n();
-
-  return (
-    <InlineLink
-      href={link}
-      target="_blank"
-      rel="noreferrer"
-      prefix={<FeedbackIcon type={type} />}
-    >
-      {t["com.myoxus.settings.experimental-feedback.discussion"]()}
-      <ArrowRightSmallIcon size="var(--mantine-spacing-lg)" />
-    </InlineLink>
-  );
-};
-
-const DescriptionWithFeedback = ({
+const FlagDescription = ({
   description,
-  link,
-  type,
+  feedbackUrl,
+  feedbackType,
 }: {
   description?: string;
-  link?: string;
-  type?: Flag["feedbackType"];
+  feedbackUrl?: string;
+  feedbackType?: Flag["feedbackType"];
 }) => {
-  if (!description && !link) {
+  const t = useI18n();
+  if (!description && !feedbackUrl) {
     return null;
   }
 
   return (
     <>
       {description ? <>{description} </> : null}
-      {link && type ? <FeedbackLink link={link} type={type} /> : null}
+      {feedbackUrl && feedbackType ? (
+        <InlineLink
+          href={feedbackUrl}
+          target="_blank"
+          rel="noreferrer"
+          prefix={<FeedbackChannelIcon type={feedbackType} />}
+        >
+          {t["com.myoxus.settings.experimental-feedback.discussion"]()}
+          <ArrowRightSmallIcon size="var(--mantine-spacing-lg)" />
+        </InlineLink>
+      ) : null}
     </>
   );
 };
 
-const ExperimentalFeaturesPrompt = ({
-  onConfirm,
-}: {
-  onConfirm: () => void;
-}) => {
+const ExperimentalDisclaimerGate = ({ onAccept }: { onAccept: () => void }) => {
   const t = useI18n();
-  const [checked, setChecked] = useState(false);
+  const [acknowledged, setAcknowledged] = useState(false);
 
-  const onChange: (
-    event: ChangeEvent<HTMLInputElement>,
-    checked: boolean,
-  ) => void = useCallback((_, checked) => {
-    setChecked(checked);
-  }, []);
+  const handleAcknowledgeChange = useCallback(
+    (_event: ChangeEvent<HTMLInputElement>, checked: boolean) => {
+      setAcknowledged(checked);
+    },
+    [],
+  );
 
   return (
     <SettingsPage
@@ -135,16 +130,16 @@ const ExperimentalFeaturesPrompt = ({
             testId="experimental-prompt-disclaimer-row"
           >
             <Checkbox
-              checked={checked}
-              onChange={onChange}
+              checked={acknowledged}
+              onChange={handleAcknowledgeChange}
               data-testid="experimental-prompt-disclaimer"
             />
           </SettingsRow>
 
           <DialogFooterActions>
             <Button
-              disabled={!checked}
-              onClick={onConfirm}
+              disabled={!acknowledged}
+              onClick={onAccept}
               variant="primary"
               data-testid="experimental-confirm-button"
             >
@@ -159,41 +154,35 @@ const ExperimentalFeaturesPrompt = ({
   );
 };
 
-const ExperimentalFeaturesItem = ({
-  flag,
-  flagKey,
-}: {
-  flag: Flag;
-  flagKey: string;
-}) => {
-  const value = useLiveData(flag.$);
+const FeatureFlagRow = ({ flag, flagKey }: { flag: Flag; flagKey: string }) => {
   const t = useI18n();
-  const onChange = useCallback(
+  const enabled = useLiveData(flag.$);
+
+  const handleToggle = useCallback(
     (checked: boolean) => {
       flag.set(checked);
     },
     [flag],
   );
-  const link = flag.feedbackType
-    ? flag.feedbackLink
-      ? flag.feedbackLink
-      : feedbackLink[flag.feedbackType]
-    : undefined;
-  const name = t[flag.displayName]();
-  const description = flag.description ? t[flag.description]() : undefined;
 
   if (flag.configurable === false || flag.hide) {
     return null;
   }
 
+  const label = t[flag.displayName]();
+  const description = flag.description ? t[flag.description]() : undefined;
+  const feedbackUrl = flag.feedbackType
+    ? (flag.feedbackLink ?? DEFAULT_FEEDBACK_URLS[flag.feedbackType])
+    : undefined;
+
   return (
     <SettingsRow
-      name={name}
+      name={label}
       desc={
-        <DescriptionWithFeedback
+        <FlagDescription
           description={description}
-          link={link}
-          type={flag.feedbackType}
+          feedbackUrl={feedbackUrl}
+          feedbackType={flag.feedbackType}
         />
       }
       testId={`experimental-feature-row-${flagKey}`}
@@ -201,16 +190,16 @@ const ExperimentalFeaturesItem = ({
       <SettingsControlGroup>
         <MyoxusSwitch
           data-testid={flagKey}
-          checked={value}
-          onChange={onChange}
-          aria-label={name}
+          checked={enabled}
+          onChange={handleToggle}
+          aria-label={label}
         />
       </SettingsControlGroup>
     </SettingsRow>
   );
 };
 
-const ExperimentalFeaturesMain = () => {
+const ExperimentalFlagsList = () => {
   const t = useI18n();
   const { featureFlagService } = useServices({ FeatureFlagService });
 
@@ -230,11 +219,11 @@ const ExperimentalFeaturesMain = () => {
         ]()}
       >
         <Stack gap="xs" data-testid="experimental-settings">
-          {Object.keys(MYOXUS_FLAGS).map((key) => (
-            <ExperimentalFeaturesItem
-              key={key}
-              flagKey={key}
-              flag={featureFlagService.flags[key as keyof MYOXUS_FLAGS]}
+          {Object.keys(MYOXUS_FLAGS).map((flagKey) => (
+            <FeatureFlagRow
+              key={flagKey}
+              flagKey={flagKey}
+              flag={featureFlagService.flags[flagKey as keyof MYOXUS_FLAGS]}
             />
           ))}
         </Stack>
@@ -243,24 +232,19 @@ const ExperimentalFeaturesMain = () => {
   );
 };
 
-// TODO(@Peng): save to workspace meta instead?
-const experimentalFeaturesDisclaimerAtom = atomWithStorage(
-  "myoxus:experimental-features-disclaimer",
-  false,
-);
-
 export const ExperimentalFeatures = () => {
-  const [enabled, setEnabled] = useAtom(experimentalFeaturesDisclaimerAtom);
-  const handleConfirm = useAsyncCallback(async () => {
-    setEnabled(true);
-  }, [setEnabled]);
-  if (!enabled) {
-    return <ExperimentalFeaturesPrompt onConfirm={handleConfirm} />;
-  } else {
-    return (
-      <Suspense fallback={<Loading />}>
-        <ExperimentalFeaturesMain />
-      </Suspense>
-    );
+  const [accepted, setAccepted] = useAtom(experimentalDisclaimerAtom);
+  const handleAccept = useAsyncCallback(async () => {
+    setAccepted(true);
+  }, [setAccepted]);
+
+  if (!accepted) {
+    return <ExperimentalDisclaimerGate onAccept={handleAccept} />;
   }
+
+  return (
+    <Suspense fallback={<Loading />}>
+      <ExperimentalFlagsList />
+    </Suspense>
+  );
 };

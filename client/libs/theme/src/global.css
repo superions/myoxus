@@ -298,18 +298,6 @@ math {
     math;
 }
 
-/* AI Block Diff */
-.ai-block-diff-deleted {
-  background-color: var(--myoxus-background-error-color) !important;
-  border-radius: 4px !important;
-  padding: 8px 0px !important;
-  margin-bottom: 10px !important;
-}
-
-.ai-block-diff-deleted .myoxus-block-component {
-  margin: 0 !important;
-}
-
 html[data-image-antialiasing="off"] img {
   image-rendering: pixelated;
 }

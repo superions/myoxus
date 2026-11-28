@@ -6231,8 +6231,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "Zaawansowana kontrola widoczności bloków",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "Umożliwia bloki czatu AI.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "Blok czatu AI",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "Włącz lub wyłącz funkcję przełączania modelu AI.",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "Włącz przełącznik modelu AI",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "Gdy wyłączone, przy każdym wyborze „Kontynuuj z AI” AI otrzyma tylko zrzut ekranu.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "Wyślij szczegółowe informacje o obiekcie do AI",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "Włącz lub wyłącz wszystkie funkcje AI.",

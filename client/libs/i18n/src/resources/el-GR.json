@@ -6231,8 +6231,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "Προηγμένος έλεγχος ορατότητας μπλοκ",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "Ενεργοποιεί μπλοκ συνομιλίας AI.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "Μπλοκ Συνομιλίας AI",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "Ενεργοποιήστε ή απενεργοποιήστε τη δυνατότητα αλλαγής μοντέλου AI.",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "Ενεργοποίηση αλλαγής μοντέλου AI",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "Όταν απενεργοποιηθεί, κάθε φορά που επιλέγετε «Συνέχεια με AI», το AI λαμβάνει μόνο ένα στιγμιότυπο οθόνης.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "Αποστολή λεπτομερών πληροφοριών αντικειμένου στο AI",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "Ενεργοποιήστε ή απενεργοποιήστε ΟΛΕΣ τις δυνατότητες AI.",

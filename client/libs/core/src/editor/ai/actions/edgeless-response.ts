@@ -1,10 +1,10 @@
-import { acceptSourceMindmap } from "./mindmap-source";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import { CodeBlockPreviewIdentifier } from "@virgultum/editor/blocks/code";
-import { addImages } from "@virgultum/editor/blocks/image";
 import { DefaultTool, getSurfaceBlock } from "@virgultum/editor/blocks/surface";
 import { createTemplateJob } from "@virgultum/editor/gfx/template";
-import { Bound } from "@virgultum/editor/global/gfx";
 import {
   EDGELESS_TEXT_BLOCK_MIN_HEIGHT,
   EDGELESS_TEXT_BLOCK_MIN_WIDTH,
@@ -26,10 +26,9 @@ import type { AIItemConfig } from "../components/ai-item/types";
 import { AIProvider } from "../provider";
 import { reportResponse } from "../utils/action-reporter";
 import { getAIPanelController } from "../utils/ai-widgets";
-import type { AIContext } from "../utils/context";
+import type { AIContext, ContextValue } from "../utils/context";
 import { getEdgelessCopilotWidget } from "../utils/edgeless";
 import { preprocessHtml } from "../utils/html";
-import { fetchImageToFile } from "../utils/image";
 import {
   getCopilotSelectedElems,
   getSurfaceElementFromEditor,
@@ -37,45 +36,47 @@ import {
 import type { AIPanelController } from "../widgets/ai-panel/controller";
 import type { EdgelessCopilotWidget } from "../widgets/edgeless-copilot";
 import { EXCLUDING_INSERT_ACTIONS, generatingStages } from "./consts";
+import { acceptSourceMindmap } from "./mindmap-source";
 
-type FinishConfig = Exclude<
-  AIPanelController["config"],
-  null
+type FinishConfig = NonNullable<
+  AIPanelController["config"]
 >["finishStateConfig"];
+type ErrorConfig = NonNullable<AIPanelController["config"]>["errorStateConfig"];
+type ActionVariants<K extends keyof VirgultumPresets.AIActions> = Omit<
+  Parameters<VirgultumPresets.AIActions[K]>[0],
+  keyof VirgultumPresets.AITextActionOptions
+>;
 
-type ErrorConfig = Exclude<
-  AIPanelController["config"],
-  null
->["errorStateConfig"];
+const READY_GUARDS: Partial<
+  Record<keyof VirgultumPresets.AIActions, (data: ContextValue) => boolean>
+> = {
+  createSlides: (data) => Boolean(data.contents),
+  brainstormMindmap: (data) => Boolean(data.node),
+};
 
 export function getToolbar(host: EditorHost) {
-  const rootBlockId = host.store.root?.id as string;
-  const toolbar = host.view.getWidget(
+  const rootId = host.store.root?.id as string;
+  const widget = host.view.getWidget(
     MYOXUS_TOOLBAR_WIDGET,
-    rootBlockId,
-  ) as MyoxusToolbarWidget;
-
-  return toolbar?.toolbar ?? null;
+    rootId,
+  ) as MyoxusToolbarWidget | null;
+  return widget?.toolbar ?? null;
 }
 
 export function getTriggerEntry(host: EditorHost) {
-  const copilotWidget = getEdgelessCopilotWidget(host);
-
-  return copilotWidget.visible ? "selection" : "toolbar";
+  return getEdgelessCopilotWidget(host).visible ? "selection" : "toolbar";
 }
 
 export function discard(
   panel: AIPanelController,
-  _: EdgelessCopilotWidget,
+  _copilot: EdgelessCopilotWidget,
 ): AIItemConfig {
   return {
     name: "Discard",
     icon: "DeleteIcon",
     testId: "answer-discard",
-    showWhen: () => !!panel.answer,
-    handler: () => {
-      panel.discard();
-    },
+    showWhen: () => Boolean(panel.answer),
+    handler: () => panel.discard(),
   };
 }
 
@@ -91,120 +92,7 @@ export function retry(panel: AIPanelController): AIItemConfig {
   };
 }
 
-const extraConditions: Record<string, (data: any) => boolean> = {
-  createSlides: (data) => !!data.contents,
-  brainstormMindmap: (data) => !!data.node,
-};
-export function createInsertItems<T extends keyof VirgultumPresets.AIActions>(
-  id: T,
-  host: EditorHost,
-  ctx: AIContext,
-  variants?: Omit<
-    Parameters<VirgultumPresets.AIActions[T]>[0],
-    keyof VirgultumPresets.AITextActionOptions
-  >,
-): AIItemConfig[] {
-  const extraCondition = extraConditions[id] || ((_: any) => true);
-  const buttonText = getButtonText[id]?.(variants) ?? "Insert below";
-  return [
-    {
-      name: `${buttonText} - Loading...`,
-      icon: "LoadingIcon",
-      testId: "answer-insert-below-loading",
-      showWhen: () => {
-        const panel = getAIPanelController(host);
-        const data = ctx.get();
-        return (
-          !EXCLUDING_INSERT_ACTIONS.includes(id) &&
-          !!panel.answer &&
-          // required data for insert
-          !extraCondition(data)
-        );
-      },
-    },
-    {
-      name: buttonText,
-      icon: "InsertBelowIcon",
-      testId:
-        buttonText === "Replace" ? "answer-replace" : `answer-insert-below`,
-      showWhen: () => {
-        const panel = getAIPanelController(host);
-        const data = ctx.get();
-        return (
-          !EXCLUDING_INSERT_ACTIONS.includes(id) &&
-          !!panel.answer &&
-          // required data for insert
-          !!extraCondition(data)
-        );
-      },
-      handler: () => {
-        reportResponse("result:insert");
-        edgelessResponseHandler(id, host, ctx).catch(console.error);
-        const panel = getAIPanelController(host);
-        if (id !== "brainstormMindmap" && id !== "expandMindmap") panel.hide();
-      },
-    },
-  ];
-}
-
-async function edgelessResponseHandler<
-  T extends keyof VirgultumPresets.AIActions,
->(id: T, host: EditorHost, ctx: AIContext) {
-  switch (id) {
-    case "expandMindmap":
-      await responseToExpandMindmap(host, ctx);
-      break;
-    case "brainstormMindmap":
-      await responseToBrainstormMindmap(host, ctx);
-      break;
-    case "makeItReal":
-      responseToMakeItReal(host, ctx);
-      break;
-    case "createSlides":
-      await responseToCreateSlides(host, ctx);
-      break;
-    case "createImage":
-    case "filterImage":
-    case "processImage":
-      responseToCreateImage(host);
-      break;
-    default:
-      defaultHandler(host);
-      break;
-  }
-}
-
-export function asCaption<T extends keyof VirgultumPresets.AIActions>(
-  id: T,
-  host: EditorHost,
-): AIItemConfig {
-  return {
-    name: "Use as caption",
-    icon: "PenIcon",
-    testId: "answer-use-as-caption",
-    showWhen: () => {
-      const panel = getAIPanelController(host);
-      return id === "generateCaption" && !!panel.answer;
-    },
-    handler: () => {
-      reportResponse("result:use-as-caption");
-      const panel = getAIPanelController(host);
-      const caption = panel.answer;
-      if (!caption) return;
-
-      const selectedElements = getCopilotSelectedElems(host);
-      if (selectedElements.length !== 1) return;
-
-      const imageBlock = selectedElements[0];
-      if (!(imageBlock instanceof ImageBlockModel)) return;
-
-      host.store.updateBlock(imageBlock, { caption });
-      panel.hide();
-    },
-  };
-}
-
-function insertBelow(
+function insertMarkdownIntoBlock(
   host: EditorHost,
   markdown: string,
   parentId: string,
@@ -212,150 +100,80 @@ function insertBelow(
 ) {
   insertFromMarkdown(host, markdown, host.store, parentId, index)
     .then(() => {
-      const gfx = host.std.get(GfxControllerIdentifier);
-
-      gfx.selection.set({
+      host.std.get(GfxControllerIdentifier).selection.set({
         elements: [parentId],
         editing: false,
-      });
-    })
-    .catch((err) => {
-      console.error(err);
-    });
-}
-
-function createBlockAndInsert(
-  host: EditorHost,
-  markdown: string,
-  type: "edgelessText" | "note",
-) {
-  const doc = host.store;
-  const edgelessCopilot = getEdgelessCopilotWidget(host);
-  doc.transact(() => {
-    if (!doc.root) return;
-    let blockId = "";
-    const bounds = edgelessCopilot.determineInsertionBounds(
-      EDGELESS_TEXT_BLOCK_MIN_WIDTH,
-      EDGELESS_TEXT_BLOCK_MIN_HEIGHT,
-    );
-    const surfaceBlock = doc.getBlocksByFlavour("myoxus:surface")[0];
-    if (type === "edgelessText") {
-      blockId = doc.addBlock(
-        "myoxus:edgeless-text",
-        {
-          xywh: bounds.serialize(),
-        },
-        surfaceBlock.id,
-      );
-    } else {
-      const bounds = edgelessCopilot.determineInsertionBounds(800, 95);
-      blockId = doc.addBlock(
-        "myoxus:note",
-        {
-          xywh: bounds.serialize(),
-          displayMode: NoteDisplayMode.EdgelessOnly,
-        },
-        doc.root.id,
-      );
-    }
-
-    insertBelow(host, markdown, blockId);
-  });
-}
-
-/**
- * defaultHandler is the default handler for inserting AI response into the edgeless document.
- * Three situations are handled by this handler:
- * 1. When selection is a single EdgelessText block, insert the response to the last of the block.
- * 2. When selections are multiple EdgelessText blocks, insert the response to a new EdgelessBlock.
- * 3. Otherwise, insert the response to a new Note block.
- * @param host EditorHost
- */
-const defaultHandler = (host: EditorHost) => {
-  const panel = getAIPanelController(host);
-  const selectedElements = getCopilotSelectedElems(host);
-  if (!panel.answer) return;
-  if (
-    selectedElements.length === 1 &&
-    selectedElements[0] instanceof EdgelessTextBlockModel
-  ) {
-    const edgelessTextBlockId = selectedElements[0].id;
-    const index = selectedElements[0].children.length;
-    insertBelow(host, panel.answer, edgelessTextBlockId, index);
-  } else if (
-    selectedElements.length > 1 &&
-    selectedElements.every((el) => el instanceof EdgelessTextBlockModel)
-  ) {
-    createBlockAndInsert(host, panel.answer, "edgelessText");
-  } else {
-    createBlockAndInsert(host, panel.answer, "note");
-  }
-};
-
-/**
- * Image handler for inserting generated image into the edgeless document.
- * Should make the inserting image size same with the input image if there is an input image.
- * @param host
- */
-function responseToCreateImage(host: EditorHost) {
-  const aiPanel = getAIPanelController(host);
-  // `DataURL` or `URL`
-  const data = aiPanel.answer;
-  if (!data) return;
-
-  const edgelessCopilot = getEdgelessCopilotWidget(host);
-  const bounds = edgelessCopilot.determineInsertionBounds();
-  const selectedElements = getCopilotSelectedElems(host);
-  const selectedImageBlockModel = selectedElements.find(
-    (model) => model instanceof ImageBlockModel,
-  );
-  const selectedBound = selectedImageBlockModel
-    ? Bound.deserialize(selectedImageBlockModel.xywh)
-    : null;
-
-  edgelessCopilot.hideCopilotPanel();
-  aiPanel.hide();
-
-  const filename = "image";
-  const imageProxy = host.std.clipboard.configs.get("imageProxy");
-
-  fetchImageToFile(data, filename, imageProxy)
-    .then((img) => {
-      if (!img) return;
-
-      const { minX, minY } = bounds;
-      const gfx = host.std.get(GfxControllerIdentifier);
-      const [x, y] = gfx.viewport.toViewCoord(minX, minY);
-
-      host.store.transact(() => {
-        addImages(host.std, [img], { point: [x, y] })
-          .then((blockIds) => {
-            const imageBlockId = blockIds[0];
-            const imageBlock = host.store.getBlock(imageBlockId);
-            if (!imageBlock || !selectedBound) return;
-
-            // Update the image width and height to the same with the selected image
-            const imageModel = imageBlock.model as ImageBlockModel;
-            const imageBound = Bound.deserialize(imageModel.xywh);
-            const newBound = new Bound(
-              imageBound.x,
-              imageBound.y,
-              selectedBound.w,
-              selectedBound.h,
-            );
-            host.store.updateBlock(imageModel, { xywh: newBound.serialize() });
-          })
-          .catch(console.error);
       });
     })
     .catch(console.error);
 }
 
-function finishSourceMindmapResponse(host: EditorHost) {
+function createSurfaceTextContainer(
+  host: EditorHost,
+  markdown: string,
+  kind: "edgelessText" | "note",
+) {
+  const { store } = host;
+  const copilot = getEdgelessCopilotWidget(host);
+  store.transact(() => {
+    if (!store.root) return;
+    const surface = store.getBlocksByFlavour("myoxus:surface")[0];
+    const blockId =
+      kind === "edgelessText"
+        ? store.addBlock(
+            "myoxus:edgeless-text",
+            {
+              xywh: copilot
+                .determineInsertionBounds(
+                  EDGELESS_TEXT_BLOCK_MIN_WIDTH,
+                  EDGELESS_TEXT_BLOCK_MIN_HEIGHT,
+                )
+                .serialize(),
+            },
+            surface.id,
+          )
+        : store.addBlock(
+            "myoxus:note",
+            {
+              xywh: copilot.determineInsertionBounds(800, 95).serialize(),
+              displayMode: NoteDisplayMode.EdgelessOnly,
+            },
+            store.root.id,
+          );
+    insertMarkdownIntoBlock(host, markdown, blockId);
+  });
+}
+
+function insertDefaultTextAnswer(host: EditorHost) {
+  const { answer } = getAIPanelController(host);
+  if (!answer) return;
+
+  const selected = getCopilotSelectedElems(host);
+  if (selected.length === 1 && selected[0] instanceof EdgelessTextBlockModel) {
+    insertMarkdownIntoBlock(
+      host,
+      answer,
+      selected[0].id,
+      selected[0].children.length,
+    );
+    return;
+  }
+
+  const allEdgelessText =
+    selected.length > 1 &&
+    selected.every((el) => el instanceof EdgelessTextBlockModel);
+  createSurfaceTextContainer(
+    host,
+    answer,
+    allEdgelessText ? "edgelessText" : "note",
+  );
+}
+
+function finalizeMindmapAcceptance(host: EditorHost) {
   const copilot = getEdgelessCopilotWidget(host);
   copilot.hideCopilotPanel();
   copilot.lockToolbar(false);
-  // The generic hide callback clears selection; the accepted owner owns it now.
+  // Skip the generic hide callback so the newly accepted mindmap keeps selection.
   getAIPanelController(host).hide(false);
   host.std.get(GfxControllerIdentifier).tool.setTool(DefaultTool);
   host.focus({ preventScroll: true });
@@ -365,8 +183,9 @@ export async function responseToExpandMindmap(
   host: EditorHost,
   ctx: AIContext,
 ) {
-  if (await acceptSourceMindmap(host, ctx, { kind: "expand" }))
-    finishSourceMindmapResponse(host);
+  if (await acceptSourceMindmap(host, ctx, { kind: "expand" })) {
+    finalizeMindmapAcceptance(host);
+  }
 }
 
 async function responseToBrainstormMindmap(host: EditorHost, ctx: AIContext) {
@@ -377,47 +196,37 @@ async function responseToBrainstormMindmap(host: EditorHost, ctx: AIContext) {
       x: rect.x + rect.width + 100,
       y: rect.y,
     })
-  )
-    finishSourceMindmapResponse(host);
+  ) {
+    finalizeMindmapAcceptance(host);
+  }
 }
 
-function getMakeItRealHTML(host: EditorHost) {
-  const aiPanel = getAIPanelController(host);
-  let html = aiPanel.answer;
-  if (!html) return;
-  html = preprocessHtml(html);
-  return html;
+function extractProcessedHtml(host: EditorHost): string | undefined {
+  const raw = getAIPanelController(host).answer;
+  return raw ? preprocessHtml(raw) : undefined;
 }
 
-function responseToMakeItReal(host: EditorHost, ctx: AIContext) {
-  const aiPanel = getAIPanelController(host);
-  const html = getMakeItRealHTML(host);
-  if (!html) return;
-
-  const edgelessCopilot = getEdgelessCopilotWidget(host);
+function insertMakeItRealBlock(host: EditorHost, ctx: AIContext) {
+  const html = extractProcessedHtml(host);
   const surface = getSurfaceBlock(host.store);
-  if (!surface) return;
+  if (!html || !surface) return;
 
-  const data = ctx.get();
-  const bounds = edgelessCopilot.determineInsertionBounds(
-    data.width || 800,
-    data.height || 600,
-  );
+  const copilot = getEdgelessCopilotWidget(host);
+  const panel = getAIPanelController(host);
+  const { width, height } = ctx.get();
+  const bounds = copilot.determineInsertionBounds(width || 800, height || 600);
 
-  edgelessCopilot.hideCopilotPanel();
-  aiPanel.hide();
+  copilot.hideCopilotPanel();
+  panel.hide();
 
   host.store.transact(() => {
-    const ifUseCodeBlock = host.std.getOptional(
+    const useCodeBlock = host.std.getOptional(
       CodeBlockPreviewIdentifier("html"),
     );
-
-    if (ifUseCodeBlock) {
+    if (useCodeBlock) {
       const note = host.store.addBlock(
         "myoxus:note",
-        {
-          xywh: bounds.serialize(),
-        },
+        { xywh: bounds.serialize() },
         host.store.root,
       );
       host.store.addBlock(
@@ -425,69 +234,161 @@ function responseToMakeItReal(host: EditorHost, ctx: AIContext) {
         { text: new Text(html), language: "html", preview: true },
         note,
       );
-    } else {
-      host.store.addBlock(
-        "myoxus:embed-html",
-        {
-          html,
-          design: "ai:makeItReal", // as tag
-          xywh: bounds.serialize(),
-        },
-        surface.id,
-      );
+      return;
     }
+
+    host.store.addBlock(
+      "myoxus:embed-html",
+      {
+        html,
+        design: "ai:makeItReal",
+        xywh: bounds.serialize(),
+      },
+      surface.id,
+    );
   });
 }
 
-async function responseToCreateSlides(host: EditorHost, ctx: AIContext) {
-  const data = ctx.get();
-  const { contents = [], images = [] } = data;
+async function insertSlidesOnCanvas(host: EditorHost, ctx: AIContext) {
+  const { contents = [], images = [] } = ctx.get();
   if (contents.length === 0) return;
 
   try {
     for (let i = 0; i < contents.length; i++) {
-      const image = images[i] || [];
-      const content = contents[i];
       const job = createTemplateJob(host.std, "template");
-
-      const imagePromises = image.map(async ({ id, url }) => {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        job.job.assets.set(id, blob);
-      });
-
-      await Promise.all(imagePromises);
-      await job.insertTemplate(content);
+      const slideImages = images[i] ?? [];
+      await Promise.all(
+        slideImages.map(async ({ id, url }) => {
+          const blob = await fetch(url).then((res) => res.blob());
+          job.job.assets.set(id, blob);
+        }),
+      );
+      await job.insertTemplate(contents[i]);
     }
-
     getSurfaceElementFromEditor(host)?.refresh();
-  } catch (error) {
-    console.error("Error creating slides:", error);
+  } catch (err) {
+    console.error("Error creating slides:", err);
   }
 }
 
-const getButtonText: {
-  [key in keyof Partial<VirgultumPresets.AIActions>]: (
-    variants?: Omit<
-      Parameters<VirgultumPresets.AIActions[key]>[0],
-      keyof VirgultumPresets.AITextActionOptions
-    >,
-  ) => string | undefined;
-} = {
-  brainstormMindmap: (variants) => {
-    return variants?.regenerate ? "Replace" : undefined;
-  },
-};
+async function applyEdgelessResponse<
+  K extends keyof VirgultumPresets.AIActions,
+>(id: K, host: EditorHost, ctx: AIContext) {
+  switch (id) {
+    case "expandMindmap":
+      await responseToExpandMindmap(host, ctx);
+      break;
+    case "brainstormMindmap":
+      await responseToBrainstormMindmap(host, ctx);
+      break;
+    case "makeItReal":
+      insertMakeItRealBlock(host, ctx);
+      break;
+    case "createSlides":
+      await insertSlidesOnCanvas(host, ctx);
+      break;
+    default:
+      insertDefaultTextAnswer(host);
+      break;
+  }
+}
 
-export function actionToResponse<T extends keyof VirgultumPresets.AIActions>(
-  id: T,
+function buildContinueChatContext<K extends keyof VirgultumPresets.AIActions>(
+  id: K,
   host: EditorHost,
   ctx: AIContext,
-  variants?: Omit<
-    Parameters<VirgultumPresets.AIActions[T]>[0],
-    keyof VirgultumPresets.AITextActionOptions
-  >,
+): Partial<ChatContextValue> | null {
+  switch (id) {
+    case "expandMindmap":
+    case "brainstormMindmap": {
+      const node = ctx.get().node;
+      return node ? { snapshot: JSON.stringify(node) } : null;
+    }
+    case "makeItReal": {
+      const html = extractProcessedHtml(host);
+      return html ? { html } : null;
+    }
+    case "createSlides":
+      return { snapshot: JSON.stringify(ctx.get().contents ?? []) };
+    default:
+      return { combinedElementsMarkdown: getAIPanelController(host).answer };
+  }
+}
+
+export function createInsertItems<K extends keyof VirgultumPresets.AIActions>(
+  id: K,
+  host: EditorHost,
+  ctx: AIContext,
+  variants?: ActionVariants<K>,
+): AIItemConfig[] {
+  const isReady = READY_GUARDS[id] ?? (() => true);
+  const label =
+    id === "brainstormMindmap" &&
+    (variants as { regenerate?: boolean } | undefined)?.regenerate
+      ? "Replace"
+      : "Insert below";
+
+  const canInsert = () =>
+    !EXCLUDING_INSERT_ACTIONS.includes(id) &&
+    Boolean(getAIPanelController(host).answer);
+
+  return [
+    {
+      name: `${label} - Loading...`,
+      icon: "LoadingIcon",
+      testId: "answer-insert-below-loading",
+      showWhen: () => canInsert() && !isReady(ctx.get()),
+    },
+    {
+      name: label,
+      icon: "InsertBelowIcon",
+      testId: label === "Replace" ? "answer-replace" : "answer-insert-below",
+      showWhen: () => canInsert() && isReady(ctx.get()),
+      handler: () => {
+        reportResponse("result:insert");
+        applyEdgelessResponse(id, host, ctx).catch(console.error);
+        if (id !== "brainstormMindmap" && id !== "expandMindmap") {
+          getAIPanelController(host).hide();
+        }
+      },
+    },
+  ];
+}
+
+export function asCaption<K extends keyof VirgultumPresets.AIActions>(
+  id: K,
+  host: EditorHost,
+): AIItemConfig {
+  return {
+    name: "Use as caption",
+    icon: "PenIcon",
+    testId: "answer-use-as-caption",
+    showWhen: () =>
+      id === "generateCaption" && Boolean(getAIPanelController(host).answer),
+    handler: () => {
+      reportResponse("result:use-as-caption");
+      const panel = getAIPanelController(host);
+      if (!panel.answer) return;
+
+      const selected = getCopilotSelectedElems(host);
+      if (selected.length !== 1 || !(selected[0] instanceof ImageBlockModel)) {
+        return;
+      }
+      host.store.updateBlock(selected[0], { caption: panel.answer });
+      panel.hide();
+    },
+  };
+}
+
+export function actionToResponse<K extends keyof VirgultumPresets.AIActions>(
+  id: K,
+  host: EditorHost,
+  ctx: AIContext,
+  variants?: ActionVariants<K>,
 ): FinishConfig {
+  const panel = getAIPanelController(host);
+  const copilot = getEdgelessCopilotWidget(host);
+
   return {
     responses: [
       {
@@ -500,15 +401,18 @@ export function actionToResponse<T extends keyof VirgultumPresets.AIActions>(
             icon: "ChatWithAiIcon",
             handler: () => {
               reportResponse("result:continue-in-chat");
-              edgelesContinueResponseHandler(id, host, ctx).catch(
-                console.error,
-              );
+              AIProvider.slots.requestOpenWithChat.next({
+                host,
+                context: buildContinueChatContext(id, host, ctx),
+                fromAnswer: true,
+              });
+              panel.hide();
             },
           },
           ...createInsertItems(id, host, ctx, variants),
           asCaption(id, host),
-          retry(getAIPanelController(host)),
-          discard(getAIPanelController(host), getEdgelessCopilotWidget(host)),
+          retry(panel),
+          discard(panel, copilot),
         ],
       },
     ],
@@ -516,110 +420,8 @@ export function actionToResponse<T extends keyof VirgultumPresets.AIActions>(
   };
 }
 
-function continueExpandMindmap(ctx: AIContext) {
-  const mindmapNode = ctx.get().node;
-  if (!mindmapNode) {
-    return null;
-  }
-  return {
-    snapshot: JSON.stringify(mindmapNode),
-  };
-}
-
-function continueBrainstormMindmap(ctx: AIContext) {
-  const mindmap = ctx.get().node;
-  if (!mindmap) {
-    return null;
-  }
-  return {
-    snapshot: JSON.stringify(mindmap),
-  };
-}
-
-function continueMakeItReal(host: EditorHost) {
-  const html = getMakeItRealHTML(host);
-  if (!html) {
-    return null;
-  }
-  return {
-    html,
-  };
-}
-
-function continueCreateSlides(ctx: AIContext) {
-  const { contents = [] } = ctx.get();
-  return {
-    snapshot: JSON.stringify(contents),
-  };
-}
-
-async function continueCreateImage(host: EditorHost) {
-  const aiPanel = getAIPanelController(host);
-  // `DataURL` or `URL`
-  const data = aiPanel.answer;
-  if (!data) return null;
-
-  const filename = "image";
-  const imageProxy = host.std.clipboard.configs.get("imageProxy");
-
-  try {
-    const image = await fetchImageToFile(data, filename, imageProxy);
-    return image
-      ? {
-          images: [image],
-        }
-      : null;
-  } catch (error) {
-    console.error("Failed fetch image", error);
-    return null;
-  }
-}
-
-function continueDefaultHandler(host: EditorHost) {
-  const panel = getAIPanelController(host);
-  return {
-    combinedElementsMarkdown: panel.answer,
-  };
-}
-
-async function edgelesContinueResponseHandler<
-  T extends keyof VirgultumPresets.AIActions,
->(id: T, host: EditorHost, ctx: AIContext) {
-  let context: Partial<ChatContextValue> | null = null;
-  switch (id) {
-    case "expandMindmap":
-      context = continueExpandMindmap(ctx);
-      break;
-    case "brainstormMindmap":
-      context = continueBrainstormMindmap(ctx);
-      break;
-    case "makeItReal":
-      context = continueMakeItReal(host);
-      break;
-    case "createSlides":
-      context = continueCreateSlides(ctx);
-      break;
-    case "createImage":
-    case "filterImage":
-    case "processImage":
-      context = await continueCreateImage(host);
-      break;
-    default:
-      context = continueDefaultHandler(host);
-      break;
-  }
-
-  const panel = getAIPanelController(host);
-  AIProvider.slots.requestOpenWithChat.next({
-    host,
-    context,
-    fromAnswer: true,
-  });
-  panel.hide();
-}
-
-export function actionToGenerating<T extends keyof VirgultumPresets.AIActions>(
-  id: T,
+export function actionToGenerating<K extends keyof VirgultumPresets.AIActions>(
+  id: K,
   generatingIcon: MyoxusIconExportName,
 ) {
   return {
@@ -629,28 +431,20 @@ export function actionToGenerating<T extends keyof VirgultumPresets.AIActions>(
 }
 
 export function actionToErrorResponse<
-  T extends keyof VirgultumPresets.AIActions,
+  K extends keyof VirgultumPresets.AIActions,
 >(
   panel: AIPanelController,
-  id: T,
+  id: K,
   host: EditorHost,
   ctx: AIContext,
-  variants?: Omit<
-    Parameters<VirgultumPresets.AIActions[T]>[0],
-    keyof VirgultumPresets.AITextActionOptions
-  >,
+  variants?: ActionVariants<K>,
 ): ErrorConfig {
   return {
-    upgrade: () => {
-      panel.hide();
-    },
     login: () => {
       AIProvider.slots.requestLogin.next({ host: panel.host });
       panel.hide();
     },
-    cancel: () => {
-      panel.hide();
-    },
+    cancel: () => panel.hide(),
     responses: [
       {
         name: "Response",
@@ -658,10 +452,7 @@ export function actionToErrorResponse<
       },
       {
         name: "",
-        items: [
-          retry(getAIPanelController(host)),
-          discard(getAIPanelController(host), getEdgelessCopilotWidget(host)),
-        ],
+        items: [retry(panel), discard(panel, getEdgelessCopilotWidget(host))],
       },
     ],
   };

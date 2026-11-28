@@ -1,15 +1,18 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   ActionPlacement,
   editorMessage,
   type ToolbarModuleConfig,
 } from "@virgultum/editor/shared/services";
 import { BlockSelection, TextSelection } from "@virgultum/editor/std";
-import { AIPanelControllerIdentifier } from "../../widgets/ai-panel/controller";
-import { extractSelectedContent } from "../../utils/extract";
-import { AIProvider } from "../../provider";
-import { aiToolbarActions } from "../toolbar-actions";
 
 import { pageAIGroups } from "../../_common/config";
+import { AIProvider } from "../../provider";
+import { extractSelectedContent } from "../../utils/extract";
+import { AIPanelControllerIdentifier } from "../../widgets/ai-panel/controller";
+import { aiToolbarActions } from "../toolbar-actions";
 
 export function toolbarAIEntryConfig(): ToolbarModuleConfig {
   return {
@@ -26,9 +29,10 @@ export function toolbarAIEntryConfig(): ToolbarModuleConfig {
             type: "menu",
             items: aiToolbarActions(ctx, pageAIGroups, true),
             onOpen: () => {
-              const host = ctx.host;
+              const { host } = ctx;
               const panel = host.std.getOptional(AIPanelControllerIdentifier);
               if (!panel?.config) return;
+
               panel.config.generateAnswer = ({ finish, input }) => {
                 finish("success");
                 panel.hide();
@@ -45,14 +49,18 @@ export function toolbarAIEntryConfig(): ToolbarModuleConfig {
               panel.config.inputCallback = (text) => {
                 if (text) ctx.hide();
               };
-              const text = host.selection.find(TextSelection);
-              const blocks = host.selection.filter(BlockSelection);
-              const id = text
-                ? (text.to?.blockId ?? text.blockId)
-                : blocks.at(-1)?.blockId;
-              if (!id) return;
-              const block = host.view.getBlock(id);
-              if (block) panel.setState("input", block);
+
+              const textSel = host.selection.find(TextSelection);
+              const blockSels = host.selection.filter(BlockSelection);
+              const targetId = textSel
+                ? (textSel.to?.blockId ?? textSel.blockId)
+                : blockSels.at(-1)?.blockId;
+              if (!targetId) return;
+
+              const block = host.view.getBlock(targetId);
+              if (block) {
+                panel.setState("input", block);
+              }
             },
           };
         },

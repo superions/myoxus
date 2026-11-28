@@ -1,6 +1,6 @@
 import { getStoreManager } from "@myoxus/core/editor/manager/store";
 import { Entity } from "@myoxus/infra";
-import { MarkdownTransformer } from "@virgultum/editor/widgets/linked-doc";
+import { MarkdownTransformer } from "@virgultum/editor/interchange";
 import { CoreDocEmbedProvider, DocsService } from "../../doc";
 import { GuardService } from "../../permissions";
 import { createSignalFromObservable } from "@virgultum/editor/shared/utils";

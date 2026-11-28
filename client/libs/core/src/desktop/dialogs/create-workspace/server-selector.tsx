@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { type Server, ServersService } from "@myoxus/core/modules/server";
 import { canUseLocalWorkspaces } from "@myoxus/core/modules/workspace/local-workspace-capability";
 import { useI18n } from "@myoxus/i18n";
@@ -19,14 +22,13 @@ export function buildWorkspaceTargetOptions({
   includeLocal: boolean;
   localLabel: string;
 }): WorkspaceTargetOption[] {
-  const remoteTargets = servers.map((server) => ({
+  const remoteOptions = servers.map((server) => ({
     value: server.id,
     label: server.config$.value.serverName,
   }));
-
   return includeLocal
-    ? [{ value: "local", label: localLabel }, ...remoteTargets]
-    : remoteTargets;
+    ? [{ value: "local", label: localLabel }, ...remoteOptions]
+    : remoteOptions;
 }
 
 export interface ServerSelectorProps extends Omit<
@@ -43,11 +45,10 @@ export const ServerSelector = ({
   ...props
 }: ServerSelectorProps) => {
   const t = useI18n();
-
   const serversService = useService(ServersService);
   const servers = useLiveData(serversService.servers$);
 
-  const data = useMemo(
+  const options = useMemo(
     () =>
       buildWorkspaceTargetOptions({
         servers,
@@ -59,7 +60,7 @@ export const ServerSelector = ({
 
   return (
     <FormSelect
-      data={data}
+      data={options}
       data-testid="server-selector-trigger"
       value={selectedId}
       onChange={onChange}

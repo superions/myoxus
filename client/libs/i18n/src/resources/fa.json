@@ -3164,8 +3164,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "کنترل پیشرفته دید بلاک",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "امکان بلوک‌های چت هوش مصنوعی را فعال می‌کند.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "بلوک چت هوش مصنوعی",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "ویژگی سوئیچ مدل AI را فعال یا غیرفعال کنید.",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "ویژگی سوئیچ مدل AI را فعال کنید",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "هنگامی که خاموش است، هر بار که «ادامه با هوش مصنوعی» را انتخاب می‌کنید، هوش مصنوعی فقط یک اسکرین‌شات دریافت می‌کند.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "ارسال اطلاعات دقیق شیء به هوش مصنوعی",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "تمام ویژگی‌های هوش مصنوعی را فعال یا غیرفعال کنید.",

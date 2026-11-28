@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useGuard } from "@myoxus/core/components/guard/use-guard";
 import {
   type Member,
@@ -10,7 +13,7 @@ import { Permission, WorkspaceMemberStatus } from "@myoxus/graphql";
 import { type I18nString, useI18n } from "@myoxus/i18n";
 import { MoreVerticalIcon } from "@myoxus/icons/react";
 import { useLiveData, useService } from "@myoxus/infra";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   Avatar,
@@ -32,75 +35,42 @@ import {
 import { ConfirmAssignModal } from "./confirm-assign-modal";
 import { MemberOptions } from "./member-option";
 
-export const MemberList = () => {
-  const membersService = useService(WorkspaceMembersService);
-  const t = useI18n();
-  const canManageUsers = useGuard("Workspace_Users_Manage");
-  const canManageAdmins = useGuard("Workspace_Administrators_Manage");
-  const canTransferOwner = useGuard("Workspace_TransferOwner");
-  const memberCount = useLiveData(membersService.members.memberCount$);
-  const pageNum = useLiveData(membersService.members.pageNum$);
-  const isLoading = useLiveData(membersService.members.isLoading$);
-  const error = useLiveData(membersService.members.error$);
-  const pageMembers = useLiveData(membersService.members.pageMembers$);
-
-  useEffect(() => {
-    membersService.members.revalidate();
-  }, [membersService]);
-
-  const session = useService(AuthService).session;
-  const account = useLiveData(session.account$);
-
-  const handlePageChange = useCallback(
-    (_: number, pageNum: number) => {
-      membersService.members.setPageNum(pageNum);
-      membersService.members.revalidate();
-    },
-    [membersService],
-  );
-
-  if (!account) {
-    return null;
-  }
-
-  return (
-    <Stack data-myoxus-ui-role="settings-member-list" role="list">
-      {pageMembers === undefined ? (
-        isLoading ? (
-          <MemberListFallback />
-        ) : (
-          <SettingsNotice tone="error" role="alert">
-            {error
-              ? UserFriendlyError.fromAny(error).message
-              : t["com.myoxus.settings.common.load-error"]()}
-          </SettingsNotice>
-        )
-      ) : (
-        pageMembers?.map((member) => (
-          <MemberItem
-            currentAccount={account}
-            key={member.id}
-            member={member}
-            canManageUsers={canManageUsers}
-            canManageAdmins={canManageAdmins}
-            canTransferOwner={canTransferOwner}
-          />
-        ))
-      )}
-      {memberCount !== undefined &&
-        memberCount > membersService.members.PAGE_SIZE && (
-          <Pagination
-            totalCount={memberCount}
-            countPerPage={membersService.members.PAGE_SIZE}
-            pageNum={pageNum}
-            onPageChange={handlePageChange}
-          />
-        )}
-    </Stack>
-  );
+const ACCEPTED_ROLE_LABEL: Partial<Record<Permission, I18nString>> = {
+  [Permission.Owner]: "Owner",
+  [Permission.Admin]: "Admin",
+  [Permission.Collaborator]: "Collaborator",
+  [Permission.Commenter]: "Commenter",
+  [Permission.Manager]: "Manager",
+  [Permission.Reader]: "Reader",
+  [Permission.External]: "com.myoxus.workspace-content-operation.role.external",
 };
 
-const getShouldShow = ({
+function getMemberStatusLabel(member: Member): I18nString {
+  switch (member.status) {
+    case WorkspaceMemberStatus.NeedMoreSeat:
+      return "insufficient-team-seat";
+    case WorkspaceMemberStatus.Pending:
+      return "Pending";
+    case WorkspaceMemberStatus.UnderReview:
+      return "Under-Review";
+    case WorkspaceMemberStatus.AllocatingSeat:
+      return "Allocating Seat";
+    case WorkspaceMemberStatus.Accepted:
+      return ACCEPTED_ROLE_LABEL[member.permission] ?? "Member";
+    default:
+      return "Pending";
+  }
+}
+
+function getMemberStatusTone(
+  member: Member,
+): "neutral" | "success" | "warning" | "error" {
+  if (member.status === WorkspaceMemberStatus.NeedMoreSeat) return "error";
+  if (member.status !== WorkspaceMemberStatus.Accepted) return "warning";
+  return "neutral";
+}
+
+function canOpenMemberMenu({
   member,
   currentAccountId,
   canManageUsers,
@@ -112,7 +82,7 @@ const getShouldShow = ({
   canManageUsers: boolean;
   canManageAdmins: boolean;
   canTransferOwner: boolean;
-}) => {
+}): boolean {
   if (
     !member.directRole ||
     member.id === currentAccountId ||
@@ -123,9 +93,9 @@ const getShouldShow = ({
   return member.directRole === Permission.Admin
     ? canManageAdmins || canTransferOwner
     : canManageUsers || canTransferOwner;
-};
+}
 
-const MemberItem = ({
+function MemberRow({
   member,
   canManageUsers,
   canManageAdmins,
@@ -137,62 +107,53 @@ const MemberItem = ({
   canManageAdmins: boolean;
   canTransferOwner: boolean;
   currentAccount: AuthAccountInfo;
-}) => {
+}) {
   const t = useI18n();
-  const [open, setOpen] = useState(false);
-  const [inputValue, setInputValue] = useState("");
   const membersService = useService(WorkspaceMembersService);
   const workspace = useService(WorkspaceService).workspace;
   const workspaceName = useLiveData(workspace.name$);
-  const isEquals = workspaceName === inputValue;
 
-  const show = useMemo(
-    () =>
-      getShouldShow({
-        member,
-        currentAccountId: currentAccount.id,
-        canManageUsers,
-        canManageAdmins,
-        canTransferOwner,
-      }),
-    [member, currentAccount, canManageUsers, canManageAdmins, canTransferOwner],
-  );
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [confirmInput, setConfirmInput] = useState("");
 
-  const handleOpenAssignModal = useCallback(() => {
-    setInputValue("");
-    setOpen(true);
+  const memberLabel = member.name || member.email || member.id;
+  const showMenu = canOpenMemberMenu({
+    member,
+    currentAccountId: currentAccount.id,
+    canManageUsers,
+    canManageAdmins,
+    canTransferOwner,
+  });
+
+  const handleOpenAssign = useCallback(() => {
+    setConfirmInput("");
+    setAssignOpen(true);
   }, []);
 
-  const confirmAssign = useCallback(() => {
+  const handleConfirmAssign = useCallback(() => {
     membersService
       .adjustMemberPermission(member.id, Permission.Owner)
-      .then((result) => {
-        if (result) {
-          setOpen(false);
-          notify.success({
-            title: t["com.myoxus.member.assign.notify.title"](),
-            message: t["com.myoxus.member.assign.notify.message"]({
-              name: member.name || member.email || member.id,
-            }),
-          });
-          membersService.members.revalidate();
-        }
+      .then((updated) => {
+        if (!updated) return;
+        setAssignOpen(false);
+        notify.success({
+          title: t["com.myoxus.member.assign.notify.title"](),
+          message: t["com.myoxus.member.assign.notify.message"]({
+            name: memberLabel,
+          }),
+        });
+        membersService.members.revalidate();
       })
       .catch((error) => {
         notify.error({
           title: t["com.myoxus.common.operation-failed"](),
-          message: error.message,
+          message: error instanceof Error ? error.message : String(error),
         });
       });
-  }, [member, t, membersService]);
-
-  const memberStatus = useMemo(() => getMemberStatus(member), [member]);
-  const memberStatusTone = useMemo(() => getMemberStatusTone(member), [member]);
-  const memberLabel = member.name || member.email || member.id;
+  }, [member.id, memberLabel, membersService, t]);
 
   return (
     <SurfaceListItem
-      key={member.id}
       component="li"
       appearance="row"
       density="compact"
@@ -225,7 +186,7 @@ const MemberItem = ({
         )}
       </SurfaceListItemMain>
       <SurfaceListMeta layout="row-cluster">
-        {member.directRole && (
+        {member.directRole ? (
           <SettingsListItemMeta>
             {t["com.myoxus.member.role.direct"]({
               role: t.t(
@@ -235,8 +196,8 @@ const MemberItem = ({
               ),
             })}
           </SettingsListItemMeta>
-        )}
-        {member.ouRole && (
+        ) : null}
+        {member.ouRole ? (
           <SettingsListItemMeta>
             {t["com.myoxus.member.role.inherited"]({
               role: t.t(
@@ -247,13 +208,15 @@ const MemberItem = ({
               units: member.ouNames.join(", "),
             })}
           </SettingsListItemMeta>
-        )}
-        <Badge tone={memberStatusTone}>{t.t(memberStatus)}</Badge>
+        ) : null}
+        <Badge tone={getMemberStatusTone(member)}>
+          {t.t(getMemberStatusLabel(member))}
+        </Badge>
         <Menu
           items={
             <MemberOptions
               member={member}
-              openAssignModal={handleOpenAssignModal}
+              openAssignModal={handleOpenAssign}
               canManageUsers={canManageUsers}
               canManageAdmins={canManageAdmins}
               canTransferOwner={canTransferOwner}
@@ -262,75 +225,28 @@ const MemberItem = ({
         >
           <IconButton
             aria-label={`${t["Members"]()}: ${memberLabel}`}
-            disabled={!show}
+            disabled={!showMenu}
           >
             <MoreVerticalIcon />
           </IconButton>
         </Menu>
       </SurfaceListMeta>
       <ConfirmAssignModal
-        open={open}
-        setOpen={setOpen}
+        open={assignOpen}
+        setOpen={setAssignOpen}
         member={member}
-        inputValue={inputValue}
+        inputValue={confirmInput}
         placeholder={workspaceName}
-        setInputValue={setInputValue}
-        isEquals={isEquals}
-        onConfirm={confirmAssign}
+        setInputValue={setConfirmInput}
+        isEquals={workspaceName === confirmInput}
+        onConfirm={handleConfirmAssign}
       />
     </SurfaceListItem>
   );
-};
-
-const getMemberStatus = (member: Member): I18nString => {
-  switch (member.status) {
-    case WorkspaceMemberStatus.NeedMoreSeat:
-      return "insufficient-team-seat";
-    case WorkspaceMemberStatus.Pending:
-      return "Pending";
-    case WorkspaceMemberStatus.UnderReview:
-      return "Under-Review";
-    case WorkspaceMemberStatus.AllocatingSeat:
-      return "Allocating Seat";
-    case WorkspaceMemberStatus.Accepted:
-      switch (member.permission) {
-        case Permission.Owner:
-          return "Owner";
-        case Permission.Admin:
-          return "Admin";
-        case Permission.Collaborator:
-          return "Collaborator";
-        case Permission.Commenter:
-          return "Commenter";
-        case Permission.Manager:
-          return "Manager";
-        case Permission.Reader:
-          return "Reader";
-        case Permission.External:
-          return "com.myoxus.workspace-content-operation.role.external";
-        default:
-          return "Member";
-      }
-    default:
-      return "Pending";
-  }
-};
-
-const getMemberStatusTone = (
-  member: Member,
-): "neutral" | "success" | "warning" | "error" => {
-  if (member.status === WorkspaceMemberStatus.NeedMoreSeat) {
-    return "error";
-  }
-  if (member.status !== WorkspaceMemberStatus.Accepted) {
-    return "warning";
-  }
-  return "neutral";
-};
+}
 
 export const MemberListFallback = () => {
   const t = useI18n();
-
   return (
     <SurfaceListItem
       component="div"
@@ -345,5 +261,71 @@ export const MemberListFallback = () => {
         {t["com.myoxus.settings.member.loading"]()}
       </SettingsControlEmpty>
     </SurfaceListItem>
+  );
+};
+
+export const MemberList = () => {
+  const t = useI18n();
+  const membersService = useService(WorkspaceMembersService);
+  const account = useLiveData(useService(AuthService).session.account$);
+
+  const canManageUsers = useGuard("Workspace_Users_Manage");
+  const canManageAdmins = useGuard("Workspace_Administrators_Manage");
+  const canTransferOwner = useGuard("Workspace_TransferOwner");
+
+  const memberCount = useLiveData(membersService.members.memberCount$);
+  const pageNum = useLiveData(membersService.members.pageNum$);
+  const isLoading = useLiveData(membersService.members.isLoading$);
+  const error = useLiveData(membersService.members.error$);
+  const pageMembers = useLiveData(membersService.members.pageMembers$);
+
+  useEffect(() => {
+    membersService.members.revalidate();
+  }, [membersService]);
+
+  const handlePageChange = useCallback(
+    (_: number, nextPage: number) => {
+      membersService.members.setPageNum(nextPage);
+      membersService.members.revalidate();
+    },
+    [membersService],
+  );
+
+  if (!account) return null;
+
+  return (
+    <Stack data-myoxus-ui-role="settings-member-list" role="list">
+      {pageMembers === undefined ? (
+        isLoading ? (
+          <MemberListFallback />
+        ) : (
+          <SettingsNotice tone="error" role="alert">
+            {error
+              ? UserFriendlyError.fromAny(error).message
+              : t["com.myoxus.settings.common.load-error"]()}
+          </SettingsNotice>
+        )
+      ) : (
+        pageMembers.map((member) => (
+          <MemberRow
+            key={member.id}
+            currentAccount={account}
+            member={member}
+            canManageUsers={canManageUsers}
+            canManageAdmins={canManageAdmins}
+            canTransferOwner={canTransferOwner}
+          />
+        ))
+      )}
+      {memberCount !== undefined &&
+      memberCount > membersService.members.PAGE_SIZE ? (
+        <Pagination
+          totalCount={memberCount}
+          countPerPage={membersService.members.PAGE_SIZE}
+          pageNum={pageNum}
+          onPageChange={handlePageChange}
+        />
+      ) : null}
+    </Stack>
   );
 };

@@ -3,4 +3,4 @@ export {
   CreatedByUpdatedByFilterValue,
   ModifiedByGroupHeader,
   UpdatedByDocListInlineProperty,
-} from "../workspace-property-types/created-updated-by";
+} from "../workspace-property-types";

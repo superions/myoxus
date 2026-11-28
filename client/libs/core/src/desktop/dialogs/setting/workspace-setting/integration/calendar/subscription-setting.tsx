@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { CalendarAccountsQuery } from "@myoxus/graphql";
 import { cssVar } from "@myoxus/theme";
 import { useCallback } from "react";
@@ -25,9 +28,7 @@ export const SubscriptionSetting = ({
   onToggle: (id: string, checked: boolean) => void;
 }) => {
   const handleToggle = useCallback(
-    (nextChecked: boolean) => {
-      onToggle(subscription.id, nextChecked);
-    },
+    (nextChecked: boolean) => onToggle(subscription.id, nextChecked),
     [onToggle, subscription.id],
   );
 

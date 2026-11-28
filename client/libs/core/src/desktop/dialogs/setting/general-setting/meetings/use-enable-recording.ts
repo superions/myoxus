@@ -1,19 +1,22 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
 import { MeetingSettingsService } from "@myoxus/core/modules/media/services/meeting-settings";
+import { UserFriendlyError } from "@myoxus/error";
 import { useI18n } from "@myoxus/i18n";
 import { useService } from "@myoxus/infra";
-import { UserFriendlyError } from "@myoxus/error";
 import track from "@myoxus/track";
 import { useCallback } from "react";
 
 import { notify, useConfirmModal } from "../../primitives";
 
 export const useEnableRecording = () => {
-  const meetingSettingsService = useService(MeetingSettingsService);
-  const confirmModal = useConfirmModal();
   const t = useI18n();
+  const meetingSettingsService = useService(MeetingSettingsService);
+  const { openConfirmModal } = useConfirmModal();
 
-  const notifySystemAudioUnavailable = useCallback(() => {
+  const reportSystemAudioUnavailable = useCallback(() => {
     notify.error({
       title:
         t[
@@ -26,67 +29,65 @@ export const useEnableRecording = () => {
     });
   }, [t]);
 
-  const handleEnabledChange = useAsyncCallback(
-    async (checked: boolean) => {
+  return useAsyncCallback(
+    async (enabled: boolean) => {
       try {
-        if (checked) {
+        if (enabled) {
           const permissions =
             await meetingSettingsService.checkMeetingPermissions();
           if (permissions && !permissions.systemAudio) {
-            notifySystemAudioUnavailable();
+            reportSystemAudioUnavailable();
             return;
           }
         }
         track.$.settingsPanel.meetings.toggleMeetingFeatureFlag({
-          option: checked ? "on" : "off",
+          option: enabled ? "on" : "off",
           type: "Meeting record",
         });
-        await meetingSettingsService.setEnabled(checked);
+        await meetingSettingsService.setEnabled(enabled);
       } catch (error) {
         const permissions =
           await meetingSettingsService.checkMeetingPermissions();
         if (permissions && !permissions.systemAudio) {
-          notifySystemAudioUnavailable();
+          reportSystemAudioUnavailable();
           return;
         }
-        if (
-          !environment.isMacOs ||
-          !checked ||
-          (permissions?.screen && permissions.microphone)
-        ) {
+        const canPromptMacPermission =
+          environment.isMacOs &&
+          enabled &&
+          !(permissions?.screen && permissions.microphone);
+        if (!canPromptMacPermission) {
           notify.error({
             title: t["com.myoxus.settings.meetings"](),
             message: UserFriendlyError.fromAny(error).message,
           });
           return;
         }
-        confirmModal.openConfirmModal({
-          title: permissions?.screen
+
+        const missingMicrophoneOnly = Boolean(permissions?.screen);
+        openConfirmModal({
+          title: missingMicrophoneOnly
             ? t["com.myoxus.settings.meetings.privacy.microphone"]()
             : t["com.myoxus.settings.meetings.record.permission-modal.title"](),
-          description: permissions?.screen
+          description: missingMicrophoneOnly
             ? t["com.myoxus.settings.meetings.privacy.microphone.description"]()
             : t[
                 "com.myoxus.settings.meetings.record.permission-modal.description"
               ](),
-          onConfirm: async () => {
-            await meetingSettingsService.showRecordingPermissionSetting(
-              permissions?.screen ? "microphone" : "screen",
-            );
-          },
           cancelText: t["com.myoxus.recording.dismiss"](),
-          confirmButtonOptions: {
-            variant: "primary",
-          },
           confirmText:
             t[
               "com.myoxus.settings.meetings.record.permission-modal.open-setting"
             ](),
+          confirmButtonOptions: { variant: "primary" },
+          onConfirm: async () => {
+            await meetingSettingsService.showRecordingPermissionSetting(
+              missingMicrophoneOnly ? "microphone" : "screen",
+            );
+          },
         });
       }
     },
-    [confirmModal, meetingSettingsService, notifySystemAudioUnavailable, t],
+    [meetingSettingsService, openConfirmModal, reportSystemAudioUnavailable, t],
   );
-
-  return handleEnabledChange;
 };

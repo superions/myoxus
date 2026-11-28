@@ -1,38 +1,27 @@
-import {
-  MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK,
-  MyoxusBlockDiffWidgetForBlock,
-} from "../widgets/block-diff/block";
-import {
-  MYOXUS_BLOCK_DIFF_WIDGET_FOR_PAGE,
-  MyoxusBlockDiffWidgetForPage,
-} from "../widgets/block-diff/page";
-import {
-  BlockDiffPlayground,
-  MYOXUS_BLOCK_DIFF_PLAYGROUND,
-} from "../widgets/block-diff/playground";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   EdgelessCopilotWidget,
   MYOXUS_EDGELESS_COPILOT_WIDGET,
 } from "../widgets/edgeless-copilot";
-import { EdgelessCopilotPanel } from "../widgets/edgeless-copilot-panel";
 import { interactiveEditorTags } from "./registry";
-import { registerAISharedEffects } from "./shared";
 
-const editorRegistries = new WeakSet<CustomElementRegistry>();
-export function registerAIEditorEffects() {
+const registeredRegistries = new WeakSet<CustomElementRegistry>();
+
+export function registerAIEditorEffects(): void {
   const registry = customElements;
-  if (editorRegistries.has(registry)) return;
-  registerAISharedEffects();
-  const elements = {
-    [MYOXUS_BLOCK_DIFF_PLAYGROUND]: BlockDiffPlayground,
+  if (registeredRegistries.has(registry)) return;
+
+  const constructors = {
     [MYOXUS_EDGELESS_COPILOT_WIDGET]: EdgelessCopilotWidget,
-    [MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK]: MyoxusBlockDiffWidgetForBlock,
-    [MYOXUS_BLOCK_DIFF_WIDGET_FOR_PAGE]: MyoxusBlockDiffWidgetForPage,
-    "edgeless-copilot-panel": EdgelessCopilotPanel,
   } satisfies Record<
     (typeof interactiveEditorTags)[number],
     CustomElementConstructor
   >;
-  for (const tag of interactiveEditorTags) registry.define(tag, elements[tag]);
-  editorRegistries.add(registry);
+
+  for (const tag of interactiveEditorTags) {
+    registry.define(tag, constructors[tag]);
+  }
+  registeredRegistries.add(registry);
 }

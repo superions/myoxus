@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   EdgelessClipboardController,
   PageClipboard,
@@ -19,166 +22,167 @@ import { type BlockModel, Slice } from "@virgultum/editor/store";
 import { insertFromMarkdown, markDownToDoc } from "../../utils";
 import type { AIPanelController } from "../widgets/ai-panel/controller";
 
-const getNoteId = (blockElement: BlockComponent) => {
-  let element = blockElement;
-  while (element.flavour !== "myoxus:note") {
-    if (!element.parentComponent) {
-      break;
-    }
-    element = element.parentComponent;
+function resolveOwningNoteId(block: BlockComponent): string {
+  let cursor = block;
+  while (cursor.flavour !== "myoxus:note" && cursor.parentComponent) {
+    cursor = cursor.parentComponent;
   }
+  return cursor.model.id;
+}
 
-  return element.model.id;
-};
-
-const setBlockSelection = (
+function selectInsertedBlocks(
   host: EditorHost,
   parent: BlockComponent,
   models: BlockModel[],
-) => {
-  const selections = models
-    .map((model) => model.id)
-    .map((blockId) => host.selection.create(BlockSelection, { blockId }));
+): void {
+  if (models.length === 0) return;
+
+  const blockSelections = models.map((model) =>
+    host.selection.create(BlockSelection, { blockId: model.id }),
+  );
 
   if (isInsideEdgelessEditor(host)) {
-    const surfaceElementId = getNoteId(parent);
+    const noteId = resolveOwningNoteId(parent);
     const surfaceSelection = host.selection.create(
       SurfaceSelection,
-      selections[0].blockId,
-      [surfaceElementId],
+      blockSelections[0].blockId,
+      [noteId],
       true,
     );
-
-    selections.push(surfaceSelection);
-    host.selection.set(selections);
+    host.selection.set([...blockSelections, surfaceSelection]);
   } else {
-    host.selection.setGroup("note", selections);
+    host.selection.setGroup("note", blockSelections);
   }
-};
+}
 
-export const insert = async (
+export async function insert(
   host: EditorHost,
   content: string,
-  selectBlock: BlockComponent,
-  below: boolean = true,
-) => {
-  const blockParent = selectBlock.parentComponent;
-  if (!blockParent) return;
-  const index = blockParent.model.children.findIndex(
-    (model) => model.id === selectBlock.model.id,
-  );
-  const insertIndex = below ? index + 1 : index;
+  anchorBlock: BlockComponent,
+  below = true,
+): Promise<void> {
+  const parent = anchorBlock.parentComponent;
+  if (!parent) return;
 
-  const { store } = host;
-  const models = await insertFromMarkdown(
+  const anchorIndex = parent.model.children.findIndex(
+    (child) => child.id === anchorBlock.model.id,
+  );
+  const insertAt = below ? anchorIndex + 1 : anchorIndex;
+
+  const inserted = await insertFromMarkdown(
     host,
     content,
-    store,
-    blockParent.model.id,
-    insertIndex,
+    host.store,
+    parent.model.id,
+    insertAt,
   );
   await host.updateComplete;
-  requestAnimationFrame(() => setBlockSelection(host, blockParent, models));
-};
+  requestAnimationFrame(() => selectInsertedBlocks(host, parent, inserted));
+}
 
-export const insertBelow = async (
+export async function insertBelow(
   host: EditorHost,
   content: string,
-  selectBlock: BlockComponent,
-) => {
-  await insert(host, content, selectBlock, true);
-};
+  anchorBlock: BlockComponent,
+): Promise<void> {
+  await insert(host, content, anchorBlock, true);
+}
 
-export const insertAbove = async (
+export async function insertAbove(
   host: EditorHost,
   content: string,
-  selectBlock: BlockComponent,
-) => {
-  await insert(host, content, selectBlock, false);
-};
+  anchorBlock: BlockComponent,
+): Promise<void> {
+  await insert(host, content, anchorBlock, false);
+}
 
-export const replace = async (
+export async function replace(
   host: EditorHost,
   content: string,
   firstBlock: BlockComponent,
   selectedModels: BlockModel[],
   textSelection?: TextSelection,
-) => {
-  const firstBlockParent = firstBlock.parentComponent;
-  if (!firstBlockParent) return;
-  const firstIndex = firstBlockParent.model.children.findIndex(
-    (model) => model.id === firstBlock.model.id,
-  );
+): Promise<void> {
+  const parent = firstBlock.parentComponent;
+  if (!parent) return;
 
   if (textSelection) {
-    const current = host.selection.find(TextSelection);
-    if (!current?.equals(textSelection))
+    const activeSelection = host.selection.find(TextSelection);
+    if (!activeSelection?.equals(textSelection)) {
       throw new Error("Markdown replacement selection changed");
+    }
     const clipboard =
       host.std.getOptional(PageClipboard) ??
       host.std.getOptional(EdgelessClipboardController);
-    if (!clipboard) throw new Error("Native page clipboard unavailable");
+    if (!clipboard) {
+      throw new Error("Native page clipboard unavailable");
+    }
     await clipboard.pasteText(content);
-  } else {
-    const { store } = host;
-    using selectionJob = store.getTransformer();
-    const originalContent = JSON.stringify(
-      selectedModels.map((model) => selectionJob.blockToSnapshot(model)),
-    );
-    const models = await insertFromMarkdown(
-      host,
-      content,
-      store,
-      firstBlockParent.model.id,
-      firstIndex,
-      firstBlock.model.id,
-      () => {
-        if (
-          selectedModels.some(
-            (model) => store.getModelById(model.id) !== model,
-          ) ||
-          firstBlockParent.model.children[firstIndex]?.id !==
-            firstBlock.model.id ||
-          originalContent !==
-            JSON.stringify(
-              selectedModels.map((model) =>
-                selectionJob.blockToSnapshot(model),
-              ),
-            )
-        )
-          throw new Error("Markdown replacement selection changed");
-        store.captureSync();
-        selectedModels.forEach((model) => store.deleteBlock(model));
-      },
-    );
-
-    await host.updateComplete;
-    requestAnimationFrame(() =>
-      setBlockSelection(host, firstBlockParent, models),
-    );
+    return;
   }
-};
 
-export const copyTextAnswer = async (panel: AIPanelController) => {
-  if (!panel.answer) {
-    return false;
+  const firstIndex = parent.model.children.findIndex(
+    (child) => child.id === firstBlock.model.id,
+  );
+  const { store } = host;
+  using transformer = store.getTransformer();
+  const snapshotBefore = JSON.stringify(
+    selectedModels.map((model) => transformer.blockToSnapshot(model)),
+  );
+
+  const inserted = await insertFromMarkdown(
+    host,
+    content,
+    store,
+    parent.model.id,
+    firstIndex,
+    firstBlock.model.id,
+    () => {
+      const drifted =
+        selectedModels.some(
+          (model) => store.getModelById(model.id) !== model,
+        ) ||
+        parent.model.children[firstIndex]?.id !== firstBlock.model.id ||
+        snapshotBefore !==
+          JSON.stringify(
+            selectedModels.map((model) => transformer.blockToSnapshot(model)),
+          );
+      if (drifted) {
+        throw new Error("Markdown replacement selection changed");
+      }
+      store.captureSync();
+      for (const model of selectedModels) {
+        store.deleteBlock(model);
+      }
+    },
+  );
+
+  await host.updateComplete;
+  requestAnimationFrame(() => selectInsertedBlocks(host, parent, inserted));
+}
+
+export async function copyText(text: string): Promise<boolean> {
+  const previewStore = await markDownToDoc(text, [defaultImageProxyMiddleware]);
+  try {
+    const models = previewStore
+      .getBlocksByFlavour("myoxus:note")
+      .flatMap((block) => block.model.children);
+    const slice = Slice.fromModels(previewStore, models);
+    const scope = new BlockStdScope({
+      store: previewStore,
+      extensions: [...clipboardConfigs],
+    });
+    const clipboard = scope.provider.get(Clipboard);
+    await clipboard.copySlice(slice);
+    return true;
+  } finally {
+    previewStore.dispose();
   }
+}
+
+export async function copyTextAnswer(
+  panel: AIPanelController,
+): Promise<boolean> {
+  if (!panel.answer) return false;
   return copyText(panel.answer);
-};
-
-export const copyText = async (text: string) => {
-  const previewDoc = await markDownToDoc(text, [defaultImageProxyMiddleware]);
-  const models = previewDoc
-    .getBlocksByFlavour("myoxus:note")
-    .map((b) => b.model)
-    .flatMap((model) => model.children);
-  const slice = Slice.fromModels(previewDoc, models);
-  const std = new BlockStdScope({
-    store: previewDoc,
-    extensions: [...clipboardConfigs],
-  });
-  const clipboard = std.provider.get(Clipboard);
-  await clipboard.copySlice(slice);
-  previewDoc.dispose();
-  return true;
-};
+}

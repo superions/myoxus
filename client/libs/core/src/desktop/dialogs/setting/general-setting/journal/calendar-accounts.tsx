@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import {
   useQuery,
@@ -56,15 +57,15 @@ import {
   SurfaceListText,
 } from "../../primitives";
 
-type CalendarAccount = NonNullable<
+type LinkedCalendarAccount = NonNullable<
   CalendarAccountsQuery["currentUser"]
 >["calendarAccounts"][number];
 
-type CalendarCalDAVProvider = NonNullable<
+type CalDavProviderPreset = NonNullable<
   CalendarProvidersQuery["serverConfig"]
 >["calendarCalDAVProviders"][number];
 
-const providerMeta = {
+const PROVIDER_DISPLAY = {
   [CalendarProviderType.Google]: {
     label: "Google Calendar",
     icon: <GoogleIcon />,
@@ -77,14 +78,20 @@ const providerMeta = {
   Record<CalendarProviderType, { label: string; icon: ReactNode }>
 >;
 
-const CalDAVLinkDialog = ({
+interface CalDavFormErrors {
+  provider?: string;
+  username?: string;
+  password?: string;
+}
+
+const CalDavLinkModal = ({
   open,
   providers,
   onClose,
   onLinked,
 }: {
   open: boolean;
-  providers: CalendarCalDAVProvider[];
+  providers: CalDavProviderPreset[];
   onClose: () => void;
   onLinked: () => void;
 }) => {
@@ -95,21 +102,17 @@ const CalDAVLinkDialog = ({
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{
-    provider?: string;
-    username?: string;
-    password?: string;
-  }>({});
+  const [errors, setErrors] = useState<CalDavFormErrors>({});
 
-  const selectedProvider = useMemo(() => {
-    if (providerId) {
-      const match = providers.find((provider) => provider.id === providerId);
-      if (match) {
-        return match;
-      }
-    }
-    return providers[0] ?? null;
-  }, [providerId, providers]);
+  const activeProvider = useMemo(
+    () =>
+      (providerId
+        ? providers.find((item) => item.id === providerId)
+        : undefined) ??
+      providers[0] ??
+      null,
+    [providerId, providers],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -120,44 +123,9 @@ const CalDAVLinkDialog = ({
     setErrors({});
   }, [open, providers]);
 
-  const handleProviderSelect = useCallback(
-    (provider: CalendarCalDAVProvider) => {
-      setProviderId(provider.id);
-      setErrors((prev) => ({ ...prev, provider: undefined }));
-    },
-    [],
-  );
-
-  const handleUsernameInput = useCallback(
-    (event: FormEvent<HTMLInputElement>) => {
-      setUsername(event.currentTarget.value);
-      setErrors((prev) => ({ ...prev, username: undefined }));
-    },
-    [],
-  );
-
-  const handlePasswordInput = useCallback(
-    (event: FormEvent<HTMLInputElement>) => {
-      setPassword(event.currentTarget.value);
-      setErrors((prev) => ({ ...prev, password: undefined }));
-    },
-    [],
-  );
-
-  const handleDisplayNameInput = useCallback(
-    (event: FormEvent<HTMLInputElement>) => {
-      setDisplayName(event.currentTarget.value);
-    },
-    [],
-  );
-
   const handleSubmit = useCallback(async () => {
-    const nextErrors: {
-      provider?: string;
-      username?: string;
-      password?: string;
-    } = {};
-    if (!selectedProvider) {
+    const nextErrors: CalDavFormErrors = {};
+    if (!activeProvider) {
       nextErrors.provider =
         t["com.myoxus.integration.calendar.caldav.field.provider.error"]();
     }
@@ -169,17 +137,18 @@ const CalDAVLinkDialog = ({
       nextErrors.password =
         t["com.myoxus.integration.calendar.caldav.field.password.error"]();
     }
-    if (Object.keys(nextErrors).length) {
+    if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
     }
+
     setSubmitting(true);
     try {
       await gqlService.gql({
         query: linkCalDavAccountMutation,
         variables: {
           input: {
-            providerPresetId: selectedProvider.id,
+            providerPresetId: activeProvider!.id,
             username: username.trim(),
             password,
             displayName: displayName.trim() || null,
@@ -189,25 +158,68 @@ const CalDAVLinkDialog = ({
       onLinked();
       onClose();
     } catch (error) {
-      const message =
+      const detail =
         error instanceof UserFriendlyError ? error.message : String(error);
       notify.error({
         title: t["com.myoxus.integration.calendar.caldav.link.failed"](),
-        message: message || undefined,
+        message: detail || undefined,
       });
     } finally {
       setSubmitting(false);
     }
   }, [
+    activeProvider,
     displayName,
     gqlService,
     onClose,
     onLinked,
     password,
-    selectedProvider,
     t,
     username,
   ]);
+
+  const renderProviderHelp = () => {
+    if (!activeProvider) {
+      return null;
+    }
+    if (activeProvider.requiresAppPassword) {
+      return (
+        <>
+          {t["com.myoxus.integration.calendar.caldav.hint.app-password"]()}
+          {activeProvider.docsUrl ? (
+            <>
+              {" "}
+              <MyoxusText
+                component="a"
+                href={activeProvider.docsUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                tone="link"
+                typographySlot="body-small"
+              >
+                {t["com.myoxus.integration.calendar.caldav.hint.learn-more"]()}
+              </MyoxusText>
+            </>
+          ) : null}
+        </>
+      );
+    }
+    if (activeProvider.docsUrl) {
+      return (
+        <MyoxusText
+          component="a"
+          href={activeProvider.docsUrl}
+          target="_blank"
+          rel="noreferrer noopener"
+          tone="link"
+          typographySlot="body-small"
+        >
+          {t["com.myoxus.integration.calendar.caldav.hint.guide"]()}
+        </MyoxusText>
+      );
+    }
+    return null;
+  };
 
   return (
     <Modal
@@ -216,57 +228,22 @@ const CalDAVLinkDialog = ({
       onOpenChange={(nextOpen) => {
         if (!nextOpen) onClose();
       }}
-      contentOptions={{
-        "data-testid": "calendar-caldav-link-dialog",
-      }}
+      contentOptions={{ "data-testid": "calendar-caldav-link-dialog" }}
     >
       <SettingsFieldGroup>
         <FormRow
           label={t["com.myoxus.integration.calendar.caldav.field.provider"]()}
           error={errors.provider}
-          help={
-            selectedProvider?.requiresAppPassword ? (
-              <>
-                {t[
-                  "com.myoxus.integration.calendar.caldav.hint.app-password"
-                ]()}
-                {selectedProvider.docsUrl ? (
-                  <>
-                    {" "}
-                    <MyoxusText
-                      component="a"
-                      href={selectedProvider.docsUrl}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      tone="link"
-                      typographySlot="body-small"
-                    >
-                      {t[
-                        "com.myoxus.integration.calendar.caldav.hint.learn-more"
-                      ]()}
-                    </MyoxusText>
-                  </>
-                ) : null}
-              </>
-            ) : selectedProvider?.docsUrl ? (
-              <MyoxusText
-                component="a"
-                href={selectedProvider.docsUrl}
-                target="_blank"
-                rel="noreferrer noopener"
-                tone="link"
-                typographySlot="body-small"
-              >
-                {t["com.myoxus.integration.calendar.caldav.hint.guide"]()}
-              </MyoxusText>
-            ) : null
-          }
+          help={renderProviderHelp()}
         >
           <Menu
             items={providers.map((provider) => (
               <MenuItem
                 key={provider.id}
-                onSelect={() => handleProviderSelect(provider)}
+                onSelect={() => {
+                  setProviderId(provider.id);
+                  setErrors((prev) => ({ ...prev, provider: undefined }));
+                }}
               >
                 {provider.label}
               </MenuItem>
@@ -276,22 +253,26 @@ const CalDAVLinkDialog = ({
             <Button
               block
               justifyContent="space-between"
-              disabled={!providers.length}
+              disabled={providers.length === 0}
             >
-              {selectedProvider?.label ??
+              {activeProvider?.label ??
                 t[
                   "com.myoxus.integration.calendar.caldav.field.provider.placeholder"
                 ]()}
             </Button>
           </Menu>
         </FormRow>
+
         <FormRow
           label={t["com.myoxus.integration.calendar.caldav.field.username"]()}
           error={errors.username}
         >
           <Input
             value={username}
-            onInput={handleUsernameInput}
+            onInput={(event: FormEvent<HTMLInputElement>) => {
+              setUsername(event.currentTarget.value);
+              setErrors((prev) => ({ ...prev, username: undefined }));
+            }}
             placeholder={t[
               "com.myoxus.integration.calendar.caldav.field.username.placeholder"
             ]()}
@@ -299,13 +280,17 @@ const CalDAVLinkDialog = ({
             disabled={submitting}
           />
         </FormRow>
+
         <FormRow
           label={t["com.myoxus.integration.calendar.caldav.field.password"]()}
           error={errors.password}
         >
           <Input
             value={password}
-            onInput={handlePasswordInput}
+            onInput={(event: FormEvent<HTMLInputElement>) => {
+              setPassword(event.currentTarget.value);
+              setErrors((prev) => ({ ...prev, password: undefined }));
+            }}
             placeholder={t[
               "com.myoxus.integration.calendar.caldav.field.password.placeholder"
             ]()}
@@ -314,6 +299,7 @@ const CalDAVLinkDialog = ({
             disabled={submitting}
           />
         </FormRow>
+
         <FormRow
           label={t[
             "com.myoxus.integration.calendar.caldav.field.displayName"
@@ -321,13 +307,16 @@ const CalDAVLinkDialog = ({
         >
           <Input
             value={displayName}
-            onInput={handleDisplayNameInput}
+            onInput={(event: FormEvent<HTMLInputElement>) =>
+              setDisplayName(event.currentTarget.value)
+            }
             placeholder={t[
               "com.myoxus.integration.calendar.caldav.field.displayName.placeholder"
             ]()}
             disabled={submitting}
           />
         </FormRow>
+
         <DialogFooterActions>
           <Button disabled={submitting} onClick={onClose}>
             {t["Cancel"]()}
@@ -335,7 +324,7 @@ const CalDAVLinkDialog = ({
           <Button
             variant="primary"
             loading={submitting}
-            disabled={submitting || !providers.length}
+            disabled={submitting || providers.length === 0}
             onClick={() => void handleSubmit()}
           >
             {t["com.myoxus.integration.calendar.account.link"]()}
@@ -346,7 +335,7 @@ const CalDAVLinkDialog = ({
   );
 };
 
-const CalendarAccountsSettingsContent = ({
+const CalendarAccountsPanel = ({
   embedded = false,
 }: {
   embedded?: boolean;
@@ -355,22 +344,22 @@ const CalendarAccountsSettingsContent = ({
   const gqlService = useService(GraphQLService);
   const urlService = useService(UrlService);
   const [linking, setLinking] = useState(false);
-  const [unlinkingAccountId, setUnlinkingAccountId] = useState<string | null>(
-    null,
-  );
-  const [openedExternalWindow, setOpenedExternalWindow] = useState(false);
-  const [caldavDialogOpen, setCaldavDialogOpen] = useState(false);
-  const makeConfig: <Query extends GraphQLQuery>(
-    title: string,
-  ) => UseQueryConfig<Query> = useCallback(
-    (title) => ({
+  const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
+  const [awaitingOAuthReturn, setAwaitingOAuthReturn] = useState(false);
+  const [caldavModalOpen, setCaldavModalOpen] = useState(false);
+
+  const buildQueryConfig = useCallback(
+    <Q extends GraphQLQuery>(errorTitle: string): UseQueryConfig<Q> => ({
       suspense: false,
-      revalidateOnFocus: openedExternalWindow,
+      revalidateOnFocus: awaitingOAuthReturn,
       onError: (error) => {
-        notify.error({ title, message: String(error) || undefined });
+        notify.error({
+          title: errorTitle,
+          message: String(error) || undefined,
+        });
       },
     }),
-    [openedExternalWindow],
+    [awaitingOAuthReturn],
   );
 
   const {
@@ -381,8 +370,10 @@ const CalendarAccountsSettingsContent = ({
     { query: calendarAccountsQuery },
     useMemo(
       () =>
-        makeConfig(t["com.myoxus.integration.calendar.account.load-error"]()),
-      [makeConfig, t],
+        buildQueryConfig(
+          t["com.myoxus.integration.calendar.account.load-error"](),
+        ),
+      [buildQueryConfig, t],
     ),
   );
 
@@ -392,15 +383,16 @@ const CalendarAccountsSettingsContent = ({
     mutate: mutateProviders,
   } = useQuery(
     { query: calendarProvidersQuery },
-
     useMemo(
       () =>
-        makeConfig(t["com.myoxus.integration.calendar.provider.load-error"]()),
-      [makeConfig, t],
+        buildQueryConfig(
+          t["com.myoxus.integration.calendar.provider.load-error"](),
+        ),
+      [buildQueryConfig, t],
     ),
   );
 
-  const accounts: CalendarAccount[] =
+  const accounts: LinkedCalendarAccount[] =
     accountsData?.currentUser?.calendarAccounts ?? [];
   const providers = useMemo(
     () => providersData?.serverConfig.calendarProviders ?? [],
@@ -410,27 +402,29 @@ const CalendarAccountsSettingsContent = ({
     providersData?.serverConfig.calendarCalDAVProviders ?? [];
   const loading = accountsLoading || providersLoading;
 
-  const providerOptions = useMemo(() => {
-    return providers.map((provider) => {
-      const meta = providerMeta[provider];
-      return {
-        provider,
-        label: meta?.label ?? provider,
-        icon: meta?.icon,
-      };
-    });
-  }, [providers]);
+  const providerMenuEntries = useMemo(
+    () =>
+      providers.map((provider) => {
+        const display = PROVIDER_DISPLAY[provider];
+        return {
+          provider,
+          label: display?.label ?? provider,
+          icon: display?.icon,
+        };
+      }),
+    [providers],
+  );
 
-  const handleLink = useCallback(
+  const handleLinkProvider = useCallback(
     async (provider: CalendarProviderType) => {
       if (provider === CalendarProviderType.CalDAV) {
-        setCaldavDialogOpen(true);
+        setCaldavModalOpen(true);
         return;
       }
 
       setLinking(true);
       try {
-        const data = await gqlService.gql({
+        const result = await gqlService.gql({
           query: linkCalendarAccountMutation,
           variables: {
             input: {
@@ -439,8 +433,8 @@ const CalendarAccountsSettingsContent = ({
             },
           },
         });
-        urlService.openExternal(data.linkCalendarAccount);
-        setOpenedExternalWindow(true);
+        urlService.openExternal(result.linkCalendarAccount);
+        setAwaitingOAuthReturn(true);
       } catch (error) {
         console.error("Failed to link calendar account", error);
         notify.error({
@@ -453,21 +447,17 @@ const CalendarAccountsSettingsContent = ({
     [gqlService, t, urlService],
   );
 
-  const handleUnlink = useCallback(
+  const handleUnlinkAccount = useCallback(
     async (accountId: string) => {
-      setUnlinkingAccountId(accountId);
+      setUnlinkingId(accountId);
       try {
         await gqlService.gql({
           query: unlinkCalendarAccountMutation,
-          variables: {
-            accountId,
-          },
+          variables: { accountId },
         });
         await mutateAccounts(
           (current) => {
-            if (!current?.currentUser) {
-              return current;
-            }
+            if (!current?.currentUser) return current;
             return {
               ...current,
               currentUser: {
@@ -478,9 +468,7 @@ const CalendarAccountsSettingsContent = ({
               },
             };
           },
-          {
-            revalidate: false,
-          },
+          { revalidate: false },
         );
       } catch (error) {
         console.error("Failed to unlink calendar account", error);
@@ -488,13 +476,13 @@ const CalendarAccountsSettingsContent = ({
           title: t["com.myoxus.integration.calendar.account.unlink-error"](),
         });
       } finally {
-        setUnlinkingAccountId(null);
+        setUnlinkingId(null);
       }
     },
     [gqlService, mutateAccounts, t],
   );
 
-  const panel = (
+  const content = (
     <Stack data-myoxus-ui-role="calendar-accounts-panel">
       <SettingsToolbar
         layout="split"
@@ -505,15 +493,15 @@ const CalendarAccountsSettingsContent = ({
         <SettingsStatusText lineClamp={3}>
           {t["com.myoxus.integration.calendar.desc"]()}
         </SettingsStatusText>
-        {providerOptions.length ? (
+        {providerMenuEntries.length > 0 ? (
           <Menu
-            items={providerOptions.map((option) => (
+            items={providerMenuEntries.map((entry) => (
               <MenuItem
-                key={option.provider}
-                prefixIcon={option.icon}
-                onSelect={() => void handleLink(option.provider)}
+                key={entry.provider}
+                prefixIcon={entry.icon}
+                onSelect={() => void handleLinkProvider(entry.provider)}
               >
-                {option.label}
+                {entry.label}
               </MenuItem>
             ))}
             contentOptions={{ align: "end" }}
@@ -533,18 +521,18 @@ const CalendarAccountsSettingsContent = ({
         <SettingsControlEmpty data-testid="calendar-accounts-loading">
           <Loading size={20} />
         </SettingsControlEmpty>
-      ) : accounts.length ? (
+      ) : accounts.length > 0 ? (
         <SurfaceList
           label={t["com.myoxus.integration.calendar.name"]()}
           data-testid="calendar-accounts-list"
         >
           {accounts.map((account) => {
-            const meta = providerMeta[account.provider];
+            const display = PROVIDER_DISPLAY[account.provider];
             const title = account.displayName ?? account.email ?? account.id;
             const subtitle = account.displayName ? account.email : null;
-            const showStatus =
+            const hasWarning =
               account.status !== "active" || Boolean(account.lastError);
-            const statusMessage = account.lastError
+            const statusText = account.lastError
               ? t["com.myoxus.integration.calendar.account.status.failed"]({
                   error: account.lastError,
                 })
@@ -562,7 +550,7 @@ const CalendarAccountsSettingsContent = ({
                 data-myoxus-ui-role="calendar-account-row"
               >
                 <SurfaceListItemIcon tone="secondary">
-                  {meta?.icon ?? <LinkIcon />}
+                  {display?.icon ?? <LinkIcon />}
                 </SurfaceListItemIcon>
                 <SurfaceListItemMain compact>
                   <SurfaceListText kind="title">{title}</SurfaceListText>
@@ -576,15 +564,15 @@ const CalendarAccountsSettingsContent = ({
                       })}
                     </SettingsStatusText>
                   </SurfaceListMeta>
-                  {showStatus ? (
-                    <StatusDot tone="error" label={statusMessage} />
+                  {hasWarning ? (
+                    <StatusDot tone="error" label={statusText} />
                   ) : null}
                 </SurfaceListItemMain>
                 <SettingsToolbar>
                   <Button
                     variant="error"
-                    disabled={unlinkingAccountId === account.id}
-                    onClick={() => void handleUnlink(account.id)}
+                    disabled={unlinkingId === account.id}
+                    onClick={() => void handleUnlinkAccount(account.id)}
                   >
                     {t["com.myoxus.integration.calendar.account.unlink"]()}
                   </Button>
@@ -603,10 +591,10 @@ const CalendarAccountsSettingsContent = ({
 
   return (
     <>
-      <CalDAVLinkDialog
-        open={caldavDialogOpen}
+      <CalDavLinkModal
+        open={caldavModalOpen}
         providers={caldavProviders}
-        onClose={() => setCaldavDialogOpen(false)}
+        onClose={() => setCaldavModalOpen(false)}
         onLinked={() => {
           void Promise.all([mutateAccounts(), mutateProviders()]).catch(
             () => undefined,
@@ -614,10 +602,10 @@ const CalendarAccountsSettingsContent = ({
         }}
       />
       {embedded ? (
-        panel
+        content
       ) : (
         <SettingWrapper title={t["com.myoxus.integration.calendar.name"]()}>
-          {panel}
+          {content}
         </SettingWrapper>
       )}
     </>
@@ -636,5 +624,5 @@ export const CalendarAccountsSettings = ({
     return null;
   }
 
-  return <CalendarAccountsSettingsContent embedded={embedded} />;
+  return <CalendarAccountsPanel embedded={embedded} />;
 };

@@ -1,4 +1,3 @@
-import type * as DatabaseBlocks from "@virgultum/editor/blocks/database";
 import type * as NoteBlocks from "@virgultum/editor/blocks/note";
 import type * as Effect from "@virgultum/editor/effects";
 import type * as GlobalUtils from "@virgultum/editor/global/utils";
@@ -16,13 +15,20 @@ declare type _GLOBAL_ = typeof Effect;
 declare global {
   interface Window {
     applyNativeUpdate: (update: number[]) => Promise<void>;
+    mountFrameNavigatorFixture: (host: EditorHost) => {
+      setHost(host: EditorHost): void;
+      unmount(): void;
+    };
+    __frameNavigatorFixture?: {
+      setHost(host: EditorHost): void;
+      unmount(): void;
+    };
     /** Available on the Virgultum integration-test window.
      * The following instances are initialized by `@virgultum/integration-test`.
      */
     $virgultum: {
       store: typeof StoreModule;
       blocks: {
-        database: typeof DatabaseBlocks;
         note: typeof NoteBlocks;
       };
       global: {

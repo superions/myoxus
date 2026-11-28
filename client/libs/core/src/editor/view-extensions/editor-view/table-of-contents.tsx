@@ -160,7 +160,7 @@ export function TableOfContentsConfiguration({
         </Group>
         {count !== undefined ? (
           <MyoxusText typographySlot="dense-label" tone="secondary">
-            {t["com.myoxus.wiki.toc.matching-count"]({ count })}
+            {t["com.myoxus.wiki.toc.matching-count"]({ count: String(count) })}
           </MyoxusText>
         ) : null}
         <Group justify="flex-end" gap="xs">

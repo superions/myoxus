@@ -19,8 +19,7 @@ import {
 } from "@myoxus/icons/react";
 
 import type { GroupHeaderProps } from "../explorer/types";
-import { DateFilterMethod } from "../workspace-property-types";
-import { TextFilterValue } from "../workspace-property-types/text";
+import { DateFilterMethod, TextFilterValue } from "../workspace-property-types";
 import {
   CreateAtDocListProperty,
   CreatedAtFilterValue,

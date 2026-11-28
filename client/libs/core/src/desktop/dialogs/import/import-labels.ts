@@ -7,7 +7,7 @@ import { prepareWorkspaceImport } from "../import-workspace/workspace-import";
 import type {
   SnapshotImportHooks,
   SnapshotImportLabels,
-} from "@virgultum/editor/widgets/linked-doc";
+} from "@virgultum/editor/interchange";
 
 /** Rust validates/maps the portable envelope; this adapter only wires lifecycle
  * and removes only newly imported live label fields after SQL succeeds. */

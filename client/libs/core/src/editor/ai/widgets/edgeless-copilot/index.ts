@@ -1,4 +1,6 @@
-import { popoverViewportMiddlewares } from "@myoxus/ui-facade";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   autoPlacement,
   autoUpdate,
@@ -9,7 +11,8 @@ import {
   size,
 } from "@floating-ui/dom";
 import { CopilotTool } from "@myoxus/core/editor/ai/tool/copilot-tool";
-import { effect } from "@preact/signals-core";
+import { popoverViewportMiddlewares } from "@myoxus/ui-facade";
+import { effect, signal } from "@preact/signals-core";
 import { EdgelessLegacySlotIdentifier } from "@virgultum/editor/blocks/surface";
 import {
   Bound,
@@ -19,31 +22,44 @@ import type { RootBlockModel } from "@virgultum/editor/model";
 import {
   MOUSE_BUTTON,
   requestConnectedFrame,
+  stopPropagation,
 } from "@virgultum/editor/shared/utils";
 import { NativeEditorWidget, WidgetViewExtension } from "@virgultum/editor/std";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
+import { createElement, type ReactNode } from "react";
 
-import type { AIItemGroupConfig } from "../../components/ai-item/types.js";
-import { AIProvider } from "../../provider/index.js";
-import { extractSelectedContent } from "../../utils/extract.js";
+import type { AIItemGroupConfig } from "../../components/ai-item/types";
+import { AIProvider } from "../../provider";
+import { extractSelectedContent } from "../../utils/extract";
 import { AIPanelControllerIdentifier } from "../ai-panel/controller";
-import { EdgelessCopilotPanel } from "../edgeless-copilot-panel/index.js";
-import { MYOXUS_EDGELESS_COPILOT_WIDGET } from "./constant.js";
+import { AIActionMenu } from "../ai-panel/view";
+import { NativeAIWidgetUI } from "../native-ui";
+import { MYOXUS_EDGELESS_COPILOT_WIDGET } from "./constant";
+
+const PANEL_VIEWPORT_PADDING = {
+  top: 10,
+  right: 10,
+  bottom: 150,
+  left: 10,
+};
+
+interface MountedActionPanel {
+  container: HTMLDivElement;
+  dispose: () => void;
+}
 
 export class EdgelessCopilotWidget extends NativeEditorWidget<RootBlockModel> {
   readonly selectionElem = document.createElement("div");
 
-  private _clickOutsideOff: (() => void) | null = null;
-
-  private _copilotPanel!: EdgelessCopilotPanel | null;
-
-  private _listenClickOutsideId: number | null = null;
-
-  private _selectionModelRect!: DOMRect;
-
-  private _autoUpdateCleanup: (() => void) | null = null;
-
   groups: AIItemGroupConfig[] = [];
+
+  private _selectionRect = { x: 0, y: 0, width: 0, height: 0 };
+  private _selectionModelRect = new DOMRect();
+  private _visible = false;
+  private _mountedPanel: MountedActionPanel | null = null;
+  private _positionCleanup: (() => void) | null = null;
+  private _outsideClickOff: (() => void) | null = null;
+  private _outsideClickFrame: number | null = null;
 
   get gfx() {
     return this.std.get(GfxControllerIdentifier);
@@ -58,77 +74,123 @@ export class EdgelessCopilotWidget extends NativeEditorWidget<RootBlockModel> {
   }
 
   get visible() {
-    return !!(
-      this._visible &&
-      this._selectionRect.width &&
-      this._selectionRect.height
+    return Boolean(
+      this._visible && this._selectionRect.width && this._selectionRect.height,
     );
   }
 
-  set visible(visible: boolean) {
-    this._visible = visible;
-    this.renderSelection();
+  set visible(nextVisible: boolean) {
+    this._visible = nextVisible;
+    this.syncSelectionBox();
   }
 
-  private _showCopilotInput() {
-    requestConnectedFrame(() => {
-      const referenceElement = this.selectionElem;
-      if (!referenceElement || !referenceElement.isConnected) return;
-
-      // show ai input
-      const aiPanel = this.std.getOptional(AIPanelControllerIdentifier);
-
-      if (aiPanel) {
-        aiPanel.setState("input", referenceElement);
-        // TODO: @xiaojun refactor these scattered config overrides
-        if (aiPanel.config && !aiPanel.config.generateAnswer) {
-          aiPanel.config.generateAnswer = ({ finish, input }) => {
-            finish("success");
-            aiPanel.hide();
-            extractSelectedContent(this.host)
-              .then((context) => {
-                AIProvider.slots.requestSendWithChat.next({
-                  input,
-                  context,
-                  host: this.host,
-                });
-              })
-              .catch(console.error);
-          };
-          aiPanel.config.inputCallback = (text) => {
-            const panel = this.querySelector("edgeless-copilot-panel");
-            if (panel instanceof HTMLElement) {
-              panel.style.visibility = text ? "hidden" : "visible";
-            }
-          };
-        }
-        requestAnimationFrame(() => {
-          this._createCopilotPanel();
-          this._updateCopilotPanel(aiPanel.element);
-        });
-      }
-    }, this);
-  }
-
-  private _createCopilotPanel() {
-    if (!this._copilotPanel) {
-      const panel = new EdgelessCopilotPanel();
-      panel.host = this.host;
-      panel.groups = this.groups;
-      this.append(panel);
-      this._copilotPanel = panel;
+  setCopilotPanelVisible(visible: boolean): void {
+    const container = this._mountedPanel?.container;
+    if (container) {
+      container.style.visibility = visible ? "visible" : "hidden";
     }
   }
 
-  private _updateCopilotPanel(referenceElement: HTMLElement) {
-    const panel = this._copilotPanel;
-    if (!panel) return;
+  private openCopilotInput() {
+    requestConnectedFrame(() => {
+      if (!this.selectionElem.isConnected) return;
 
-    const padding = { top: 10, right: 10, bottom: 150, left: 10 };
+      const aiPanel = this.std.getOptional(AIPanelControllerIdentifier);
+      if (!aiPanel) return;
 
-    this._autoUpdateCleanup?.();
-    this._autoUpdateCleanup = autoUpdate(referenceElement, panel, () => {
-      computePosition(referenceElement, panel, {
+      aiPanel.setState("input", this.selectionElem);
+
+      if (aiPanel.config && !aiPanel.config.generateAnswer) {
+        aiPanel.config.generateAnswer = ({ finish, input }) => {
+          finish("success");
+          aiPanel.hide();
+          extractSelectedContent(this.host)
+            .then((context) => {
+              AIProvider.slots.requestSendWithChat.next({
+                input,
+                context,
+                host: this.host,
+              });
+            })
+            .catch(console.error);
+        };
+        aiPanel.config.inputCallback = (text) => {
+          this.setCopilotPanelVisible(!text);
+        };
+      }
+
+      requestAnimationFrame(() => {
+        const panel = this.mountActionPanel();
+        if (panel) {
+          this.positionActionPanel(panel.container, aiPanel.element);
+        }
+      });
+    }, this);
+  }
+
+  private mountActionPanel(): MountedActionPanel | null {
+    if (this._mountedPanel) {
+      return this._mountedPanel;
+    }
+
+    const mount = this.host.std.getOptional(NativeAIWidgetUI);
+    if (!mount) return null;
+
+    const chain = this.host.std.command.chain();
+    const visibleGroups = this.groups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) =>
+          item.showWhen?.(chain, "edgeless", this.host),
+        ),
+      }))
+      .filter((group) => group.items.length > 0);
+
+    if (visibleGroups.length === 0) return null;
+
+    const container = document.createElement("div");
+    container.dataset.myoxusUiRole = "edgeless-copilot-panel";
+    container.style.position = "absolute";
+    container.style.zIndex = "var(--myoxus-z-index-popover)";
+
+    const listenerAbort = new AbortController();
+    for (const eventName of ["wheel", "pointerdown"] as const) {
+      container.addEventListener(eventName, stopPropagation, {
+        signal: listenerAbort.signal,
+      });
+    }
+
+    this.append(container);
+    const unmountReact = mount(
+      container,
+      signal<ReactNode>(
+        createElement(AIActionMenu, {
+          host: this.host,
+          groups: visibleGroups,
+          maxHeight: "floating",
+        }),
+      ),
+    );
+
+    const mounted: MountedActionPanel = {
+      container,
+      dispose: () => {
+        listenerAbort.abort();
+        unmountReact();
+        container.remove();
+      },
+    };
+    this._mountedPanel = mounted;
+    return mounted;
+  }
+
+  private positionActionPanel(
+    panelEl: HTMLElement,
+    anchorEl: HTMLElement,
+  ): void {
+    this._positionCleanup?.();
+    this._positionCleanup = autoUpdate(anchorEl, panelEl, () => {
+      computePosition(anchorEl, panelEl, {
         placement: "bottom-start",
         middleware: [
           offset(4),
@@ -141,61 +203,61 @@ export class EdgelessCopilotWidget extends NativeEditorWidget<RootBlockModel> {
               "bottom-end",
             ],
           }),
-          size({ ...popoverViewportMiddlewares.size, padding }),
+          size({
+            ...popoverViewportMiddlewares.size,
+            padding: PANEL_VIEWPORT_PADDING,
+          }),
           shift({
-            padding,
+            padding: PANEL_VIEWPORT_PADDING,
             limiter: limitShift(),
           }),
         ],
       })
         .then(({ x, y }) => {
-          panel.style.left = `${x}px`;
-          panel.style.top = `${y}px`;
+          panelEl.style.left = `${x}px`;
+          panelEl.style.top = `${y}px`;
         })
-        .catch((e) => {
-          console.warn("Can't compute EdgelessCopilotPanel position", e);
+        .catch((err) => {
+          console.warn("Unable to position Edgeless copilot action menu", err);
         });
     });
   }
 
-  private _updateSelection(rect: DOMRect) {
+  private updateSelectionArea(rect: DOMRect) {
     this._selectionModelRect = rect;
-
     const zoom = this.gfx.viewport.zoom;
     const [x, y] = this.gfx.viewport.toViewCoord(rect.left, rect.top);
-    const [width, height] = [rect.width * zoom, rect.height * zoom];
-
-    this._selectionRect = { x, y, width, height };
-    this.renderSelection();
+    this._selectionRect = {
+      x,
+      y,
+      width: rect.width * zoom,
+      height: rect.height * zoom,
+    };
+    this.syncSelectionBox();
   }
 
-  private _watchClickOutside() {
-    this._clickOutsideOff?.();
+  private armOutsideDismiss() {
+    this._outsideClickOff?.();
+    if (!this._selectionRect.width || !this._selectionRect.height) return;
 
-    const { width, height } = this._selectionRect;
-
-    if (width && height) {
-      this._listenClickOutsideId &&
-        cancelAnimationFrame(this._listenClickOutsideId);
-      this._listenClickOutsideId = requestConnectedFrame(() => {
-        if (!this.isConnected) {
-          return;
-        }
-
-        const off = this.std.event.add("pointerDown", (ctx) => {
-          const e = ctx.get("pointerState").raw;
-          if (
-            e.button === MOUSE_BUTTON.MAIN &&
-            !this.contains(e.target as HTMLElement)
-          ) {
-            this.visible = false;
-            this.hideCopilotPanel();
-          }
-        });
-        this._listenClickOutsideId = null;
-        this._clickOutsideOff = off;
-      }, this);
+    if (this._outsideClickFrame !== null) {
+      cancelAnimationFrame(this._outsideClickFrame);
     }
+
+    this._outsideClickFrame = requestConnectedFrame(() => {
+      if (!this.isConnected) return;
+      this._outsideClickOff = this.std.event.add("pointerDown", (ctx) => {
+        const raw = ctx.get("pointerState").raw;
+        if (
+          raw.button === MOUSE_BUTTON.MAIN &&
+          !this.contains(raw.target as Node | null)
+        ) {
+          this.visible = false;
+          this.hideCopilotPanel();
+        }
+      });
+      this._outsideClickFrame = null;
+    }, this);
   }
 
   override connectedCallback(): void {
@@ -211,15 +273,16 @@ export class EdgelessCopilotWidget extends NativeEditorWidget<RootBlockModel> {
     });
     this.selectionElem.hidden = true;
     this.append(this.selectionElem);
-    const CopilotSelectionTool = this.gfx.tool.get(CopilotTool);
+
+    const copilotTool = this.gfx.tool.get(CopilotTool);
 
     this.disposables.add(
-      CopilotSelectionTool.draggingAreaUpdated.subscribe((shouldShowPanel) => {
+      copilotTool.draggingAreaUpdated.subscribe((shouldShowPanel) => {
         this._visible = true;
-        this._updateSelection(CopilotSelectionTool.area);
+        this.updateSelectionArea(copilotTool.area);
         if (shouldShowPanel) {
-          this._showCopilotInput();
-          this._watchClickOutside();
+          this.openCopilotInput();
+          this.armOutsideDismiss();
         } else {
           this.hideCopilotPanel();
         }
@@ -228,18 +291,16 @@ export class EdgelessCopilotWidget extends NativeEditorWidget<RootBlockModel> {
 
     this.disposables.add(
       this.gfx.viewport.viewportUpdated.subscribe(() => {
-        if (!this._visible) return;
-
-        this._updateSelection(CopilotSelectionTool.area);
+        if (this._visible) {
+          this.updateSelectionArea(copilotTool.area);
+        }
       }),
     );
 
     this.disposables.add(
       effect(() => {
-        const currentTool = this.gfx.tool.currentToolName$.value;
-
-        if (!this._visible || currentTool === "copilot") return;
-
+        const activeTool = this.gfx.tool.currentToolName$.value;
+        if (!this._visible || activeTool === "copilot") return;
         this.visible = false;
         this.hideCopilotPanel();
       }),
@@ -251,40 +312,43 @@ export class EdgelessCopilotWidget extends NativeEditorWidget<RootBlockModel> {
     });
   }
 
-  determineInsertionBounds(width = 800, height = 95) {
-    const elements = this.gfx.selection.selectedElements;
-    const offsetY = 20 / this.gfx.viewport.zoom;
+  determineInsertionBounds(width = 800, height = 95): Bound {
+    const selected = this.gfx.selection.selectedElements;
+    const gapY = 20 / this.gfx.viewport.zoom;
     const bounds = new Bound(0, 0, width, height);
-    if (elements.length) {
-      const { x, y, h } = getCommonBoundWithRotation(elements);
+
+    if (selected.length > 0) {
+      const { x, y, h } = getCommonBoundWithRotation(selected);
       bounds.x = x;
-      bounds.y = y + h + offsetY;
+      bounds.y = y + h + gapY;
     } else {
       const { x, y, height: h } = this.selectionModelRect;
       bounds.x = x;
-      bounds.y = y + h + offsetY;
+      bounds.y = y + h + gapY;
     }
     return bounds;
   }
 
-  hideCopilotPanel() {
-    this._copilotPanel?.remove();
-    this._copilotPanel = null;
-    this._autoUpdateCleanup?.();
-    this._autoUpdateCleanup = null;
-    if (this._listenClickOutsideId !== null)
-      cancelAnimationFrame(this._listenClickOutsideId);
-    this._listenClickOutsideId = null;
-    this._clickOutsideOff?.();
-    this._clickOutsideOff = null;
+  hideCopilotPanel(): void {
+    this._mountedPanel?.dispose();
+    this._mountedPanel = null;
+    this._positionCleanup?.();
+    this._positionCleanup = null;
+
+    if (this._outsideClickFrame !== null) {
+      cancelAnimationFrame(this._outsideClickFrame);
+      this._outsideClickFrame = null;
+    }
+    this._outsideClickOff?.();
+    this._outsideClickOff = null;
   }
 
-  lockToolbar(disabled: boolean) {
+  lockToolbar(disabled: boolean): void {
     const legacySlot = this.std.get(EdgelessLegacySlotIdentifier);
     legacySlot.toolbarLocked.next(disabled);
   }
 
-  private renderSelection() {
+  private syncSelectionBox(): void {
     const { x, y, width, height } = this._selectionRect;
     this.selectionElem.hidden = !this.visible;
     Object.assign(this.selectionElem.style, {
@@ -294,9 +358,6 @@ export class EdgelessCopilotWidget extends NativeEditorWidget<RootBlockModel> {
       height: `${height}px`,
     });
   }
-
-  private _selectionRect = { x: 0, y: 0, width: 0, height: 0 };
-  private _visible = false;
 }
 
 export const edgelessCopilotWidget = WidgetViewExtension(

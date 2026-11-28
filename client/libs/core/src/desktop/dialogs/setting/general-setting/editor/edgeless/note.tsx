@@ -1,15 +1,15 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { EditorSettingService } from "@myoxus/core/modules/editor-setting";
 import { useI18n } from "@myoxus/i18n";
-import { useFramework, useLiveData } from "@myoxus/infra";
+import { useLiveData, useService } from "@myoxus/infra";
 import {
-  createEnumMap,
   DefaultTheme,
   NoteShadow,
   NoteShadowMap,
   StrokeStyle,
 } from "@virgultum/editor/model";
-import type { Store } from "@virgultum/editor/store";
-import { isEqual } from "lodash-es";
 import { useCallback, useMemo } from "react";
 
 import {
@@ -24,37 +24,33 @@ import {
   EditorRadioGroup,
   EditorSlider,
 } from "../menu";
-import { usePalettes } from "../utils";
+import { colorsEqual, usePalettes } from "../utils";
 import { Point } from "./point";
-import { EdgelessSnapshot } from "./snapshot";
+import { EdgelessStylePreview } from "./preview";
 
-enum CornerSize {
-  None = 0,
-  Small = 8,
-  Medium = 16,
-  Large = 24,
-  Huge = 32,
-}
-
-const CornerSizeMap = createEnumMap(CornerSize);
-
-const CORNER_SIZE = [
-  { name: "None", value: CornerSize.None },
-  { name: "Small", value: CornerSize.Small },
-  { name: "Medium", value: CornerSize.Medium },
-  { name: "Large", value: CornerSize.Large },
-  { name: "Huge", value: CornerSize.Huge },
+const CORNER_OPTIONS = [
+  { name: "None", value: 0 },
+  { name: "Small", value: 8 },
+  { name: "Medium", value: 16 },
+  { name: "Large", value: 24 },
+  { name: "Huge", value: 32 },
 ] as const;
+
+const THICKNESS_NODES = [2, 4, 6, 8, 10, 12];
 
 export const NoteSettings = () => {
   const t = useI18n();
-  const framework = useFramework();
-  const { editorSetting } = framework.get(EditorSettingService);
+  const { editorSetting } = useService(EditorSettingService);
   const settings = useLiveData(editorSetting.settings$);
+  const note = settings["myoxus:note"];
+  const { borderRadius, borderSize, borderStyle, shadowType } =
+    note.edgeless.style;
+
   const { palettes, getCurrentColor } = usePalettes(
     DefaultTheme.NoteBackgroundColorPalettes,
     DefaultTheme.noteBackgrounColor,
   );
+  const currentColor = getCurrentColor(note.background);
 
   const borderStyleItems = useMemo<RadioItem[]>(
     () => [
@@ -77,104 +73,76 @@ export const NoteSettings = () => {
     [t],
   );
 
-  const { borderStyle } = settings["myoxus:note"].edgeless.style;
+  const updateNoteStyle = useCallback(
+    (patch: Partial<typeof note.edgeless.style>) => {
+      editorSetting.set("myoxus:note", {
+        edgeless: { style: patch },
+      });
+    },
+    [editorSetting],
+  );
+
   const setBorderStyle = useCallback(
-    (value: StrokeStyle) => {
-      editorSetting.set("myoxus:note", {
-        edgeless: {
-          style: {
-            borderStyle: value,
-          },
-        },
-      });
-    },
-    [editorSetting],
+    (value: StrokeStyle) => updateNoteStyle({ borderStyle: value }),
+    [updateNoteStyle],
   );
 
-  const { borderSize } = settings["myoxus:note"].edgeless.style;
   const setBorderSize = useCallback(
-    (value: number[]) => {
-      editorSetting.set("myoxus:note", {
-        edgeless: {
-          style: {
-            borderSize: value[0],
-          },
-        },
-      });
-    },
-    [editorSetting],
+    (value: number[]) => updateNoteStyle({ borderSize: value[0] }),
+    [updateNoteStyle],
   );
 
-  const backgroundItems = useMemo(() => {
-    const { background } = settings["myoxus:note"];
-    return palettes.map(({ key, label, value, resolvedValue }) => {
-      const handler = () => {
-        editorSetting.set("myoxus:note", { background: value });
-      };
-      const isSelected = isEqual(background, value);
-      return (
+  const backgroundItems = useMemo(
+    () =>
+      palettes.map(({ key, label, value, resolvedValue }) => (
         <MenuItem
           key={key}
-          onSelect={handler}
-          selected={isSelected}
+          onSelect={() => {
+            editorSetting.set("myoxus:note", { background: value });
+          }}
+          selected={colorsEqual(note.background, value)}
           prefix={<Point color={resolvedValue} />}
         >
           {label}
         </MenuItem>
-      );
-    });
-  }, [editorSetting, settings, palettes]);
+      )),
+    [editorSetting, note.background, palettes],
+  );
 
-  const cornerItems = useMemo(() => {
-    const { borderRadius } = settings["myoxus:note"].edgeless.style;
-    return CORNER_SIZE.map(({ name, value }) => {
-      const handler = () => {
-        editorSetting.set("myoxus:note", {
-          edgeless: {
-            style: {
-              borderRadius: value,
-            },
-          },
-        });
-      };
-      const isSelected = borderRadius === value;
-      return (
-        <MenuItem key={name} onSelect={handler} selected={isSelected}>
+  const cornerItems = useMemo(
+    () =>
+      CORNER_OPTIONS.map(({ name, value }) => (
+        <MenuItem
+          key={name}
+          onSelect={() => updateNoteStyle({ borderRadius: value })}
+          selected={borderRadius === value}
+        >
           {name}
         </MenuItem>
-      );
-    });
-  }, [editorSetting, settings]);
+      )),
+    [borderRadius, updateNoteStyle],
+  );
 
-  const shadowItems = useMemo(() => {
-    const { shadowType } = settings["myoxus:note"].edgeless.style;
-    return Object.entries(NoteShadow).map(([name, value]) => {
-      const handler = () => {
-        editorSetting.set("myoxus:note", {
-          edgeless: {
-            style: {
-              shadowType: value,
-            },
-          },
-        });
-      };
-      const isSelected = shadowType === value;
-      return (
-        <MenuItem key={name} onSelect={handler} selected={isSelected}>
+  const shadowItems = useMemo(
+    () =>
+      Object.entries(NoteShadow).map(([name, value]) => (
+        <MenuItem
+          key={name}
+          onSelect={() => updateNoteStyle({ shadowType: value })}
+          selected={shadowType === value}
+        >
           {name}
         </MenuItem>
-      );
-    });
-  }, [editorSetting, settings]);
+      )),
+    [shadowType, updateNoteStyle],
+  );
 
-  const currentColor = useMemo(() => {
-    const { background } = settings["myoxus:note"];
-    return getCurrentColor(background);
-  }, [getCurrentColor, settings]);
-
-  const getElements = useCallback((doc: Store) => {
-    return doc.getBlocksByFlavour("myoxus:note") || [];
-  }, []);
+  const currentCornerName =
+    CORNER_OPTIONS.find((item) => item.value === borderRadius)?.name ??
+    String(borderRadius);
+  const currentBorderLabel =
+    borderStyleItems.find((item) => item.value === borderStyle)?.label ??
+    borderStyle;
   const title = t["com.myoxus.settings.editorSettings.edgeless.note"]();
 
   return (
@@ -182,18 +150,53 @@ export const NoteSettings = () => {
       title={title}
       testId="editor-settings-section-edgeless-note"
     >
-      <EdgelessSnapshot
-        title={title}
-        docName="note"
-        keyName="myoxus:note"
-        getElements={getElements}
-        previewSize="note"
+      <EdgelessStylePreview
+        sampleTitle={t[
+          "com.myoxus.settings.editorSettings.edgeless.preview.note.headline"
+        ]()}
+        sampleBody={`${t["com.myoxus.settings.editorSettings.edgeless.preview.note.body1"]()} ${t["com.myoxus.settings.editorSettings.edgeless.preview.note.body2"]()}`}
+        items={[
+          ...(currentColor
+            ? [
+                {
+                  label:
+                    t[
+                      "com.myoxus.settings.editorSettings.edgeless.note.background"
+                    ](),
+                  value: currentColor.label,
+                  color: currentColor.resolvedValue,
+                },
+              ]
+            : []),
+          {
+            label:
+              t["com.myoxus.settings.editorSettings.edgeless.note.corners"](),
+            value: currentCornerName,
+          },
+          {
+            label:
+              t["com.myoxus.settings.editorSettings.edgeless.note.shadow"](),
+            value: NoteShadowMap[shadowType],
+          },
+          {
+            label:
+              t["com.myoxus.settings.editorSettings.edgeless.note.border"](),
+            value:
+              borderStyle === StrokeStyle.None ? (
+                currentBorderLabel
+              ) : (
+                <>
+                  {currentBorderLabel} ({borderSize}px)
+                </>
+              ),
+          },
+        ]}
       />
       <SettingsRow
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.note.background"
         ]()}
-        desc={""}
+        desc=""
       >
         {currentColor ? (
           <DropdownMenu
@@ -210,38 +213,27 @@ export const NoteSettings = () => {
       </SettingsRow>
       <SettingsRow
         name={t["com.myoxus.settings.editorSettings.edgeless.note.corners"]()}
-        desc={""}
+        desc=""
       >
         <DropdownMenu
           items={cornerItems}
-          trigger={
-            <DropdownTrigger>
-              {
-                CornerSizeMap[
-                  settings["myoxus:note"].edgeless.style
-                    .borderRadius as CornerSize
-                ]
-              }
-            </DropdownTrigger>
-          }
+          trigger={<DropdownTrigger>{currentCornerName}</DropdownTrigger>}
         />
       </SettingsRow>
       <SettingsRow
         name={t["com.myoxus.settings.editorSettings.edgeless.note.shadow"]()}
-        desc={""}
+        desc=""
       >
         <DropdownMenu
           items={shadowItems}
           trigger={
-            <DropdownTrigger>
-              {NoteShadowMap[settings["myoxus:note"].edgeless.style.shadowType]}
-            </DropdownTrigger>
+            <DropdownTrigger>{NoteShadowMap[shadowType]}</DropdownTrigger>
           }
         />
       </SettingsRow>
       <SettingsRow
         name={t["com.myoxus.settings.editorSettings.edgeless.note.border"]()}
-        desc={""}
+        desc=""
       >
         <EditorRadioGroup
           items={borderStyleItems}
@@ -253,7 +245,7 @@ export const NoteSettings = () => {
         name={t[
           "com.myoxus.settings.editorSettings.edgeless.note.border-thickness"
         ]()}
-        desc={""}
+        desc=""
       >
         <EditorSlider
           value={[borderSize]}
@@ -261,7 +253,7 @@ export const NoteSettings = () => {
           min={2}
           max={12}
           step={2}
-          nodes={[2, 4, 6, 8, 10, 12]}
+          nodes={THICKNESS_NODES}
           disabled={borderStyle === StrokeStyle.None}
         />
       </SettingsRow>

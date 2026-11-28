@@ -6215,8 +6215,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "Avansert kontroll av blokksynlighet",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "Aktiverer AI-chatblokker.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "AI-chatblokk",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "Aktiver eller deaktiver veksling mellom AI-modeller.",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "Aktiver veksling mellom AI-modeller",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "Når dette er slått av, får AI-en kun et skjermbilde hver gang du velger \"Fortsett med AI\".",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "Send detaljert objektinformasjon til AI",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "Aktiver eller deaktiver ALLE AI-funksjoner.",

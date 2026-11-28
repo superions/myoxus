@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { captureException } from "@sentry/react";
 import type { EditorHost } from "@virgultum/editor/std";
 import { BehaviorSubject, Subject } from "rxjs";
@@ -17,7 +20,7 @@ export interface AIChatParams {
   docId?: string;
   input?: string;
   mode?: "page" | "edgeless";
-  // Auto select and append selection to input via `Continue in AI Chat` action.
+  /** Auto-select and forward editor selection via `Continue in AI Chat`. */
   autoSelect?: boolean;
   context?: Partial<ChatContextValue | null>;
   fromAnswer?: boolean;
@@ -52,309 +55,264 @@ export type ActionEventType =
   | "result:discard"
   | "result:retry";
 
+export interface AIActionEvent {
+  action: keyof VirgultumPresets.AIActions;
+  options: VirgultumPresets.AITextActionOptions;
+  event: ActionEventType;
+}
+
+type ActionFn<K extends keyof VirgultumPresets.AIActions> = (
+  ...args: Parameters<VirgultumPresets.AIActions[K]>
+) => Promise<ReturnType<VirgultumPresets.AIActions[K]>>;
+
+type ForkChatFn = (
+  options: VirgultumPresets.AIForkChatSessionOptions,
+) => string | Promise<string>;
+
+type UserInfoResolver = () => AIUserInfo | Promise<AIUserInfo> | null;
+
+function isAsyncStream(
+  value: VirgultumPresets.TextStream | Promise<string>,
+): value is VirgultumPresets.TextStream {
+  return (
+    value !== null && typeof value === "object" && Symbol.asyncIterator in value
+  );
+}
+
 /**
- * AI provider for the block suite
- *
- * To use it, downstream (affine) has to provide AI actions implementation,
- * user info etc
- *
- * TODO: breakdown into different parts?
+ * Central client registry binding server-backed AI services, actions, and
+ * observable action-lifecycle slots for editor and chat surfaces.
  */
 export class AIProvider {
+  private static readonly singleton = new AIProvider();
+
+  static LAST_ACTION_SESSIONID = "";
+  static MAX_LOCAL_HISTORY = 10;
+
   static get slots() {
-    return AIProvider.instance.slots;
+    return AIProvider.singleton.slots;
   }
 
   static get actions() {
-    return AIProvider.instance.actions;
+    return AIProvider.singleton.actions;
   }
 
   static get userInfo() {
-    return AIProvider.instance.userInfoFn();
+    return AIProvider.singleton.resolveUserInfo();
   }
 
   static get photoEngine() {
-    return AIProvider.instance.photoEngine;
+    return AIProvider.singleton.photoEngine;
   }
 
   static get histories() {
-    return AIProvider.instance.histories;
+    return AIProvider.singleton.histories;
   }
 
   static get session() {
-    return AIProvider.instance.session;
+    return AIProvider.singleton.session;
   }
 
   static get context() {
-    return AIProvider.instance.context;
+    return AIProvider.singleton.context;
   }
 
   static get actionHistory() {
-    return AIProvider.instance.actionHistory;
+    return AIProvider.singleton.actionHistory;
   }
 
   static get forkChat() {
-    return AIProvider.instance.forkChat;
+    return AIProvider.singleton.forkChat;
   }
 
   static get embedding() {
-    return AIProvider.instance.embedding;
+    return AIProvider.singleton.embedding;
   }
 
-  private static readonly instance = new AIProvider();
-
-  static LAST_ACTION_SESSIONID = "";
-
-  static MAX_LOCAL_HISTORY = 10;
-
   private readonly actions: Partial<VirgultumPresets.AIActions> = {};
-
-  private photoEngine: VirgultumPresets.AIPhotoEngineService | null = null;
-
-  private histories: VirgultumPresets.AIHistoryService | null = null;
-
-  private session: VirgultumPresets.AISessionService | null = null;
-
-  private context: VirgultumPresets.AIContextService | null = null;
-
-  private forkChat:
-    | ((
-        options: VirgultumPresets.AIForkChatSessionOptions,
-      ) => string | Promise<string>)
-    | null = null;
+  private readonly actionHistory: Array<{
+    action: keyof VirgultumPresets.AIActions;
+    options: VirgultumPresets.AITextActionOptions;
+  }> = [];
 
   private readonly slots = {
-    // use case: when user selects "continue in chat" in an ask ai result panel
-    // do we need to pass the context to the chat panel?
-
     requestOpenWithChat: new BehaviorSubject<AIChatParams | null>(null),
     requestSendWithChat: new BehaviorSubject<AISendParams | null>(null),
     requestLogin: new Subject<{ host?: EditorHost | null }>(),
-    // stream of AI actions triggered by users
-    actions: new Subject<{
-      action: keyof VirgultumPresets.AIActions;
-      options: VirgultumPresets.AITextActionOptions;
-      event: ActionEventType;
-    }>(),
-    // downstream can emit this slot to notify ai presets that user info has been updated
+    actions: new Subject<AIActionEvent>(),
     userInfo: new Subject<AIUserInfo | null>(),
     sessionReady: new BehaviorSubject<boolean>(false),
     previewPanelOpenChange: new Subject<boolean>(),
   };
 
-  // track the history of triggered actions (in memory only)
-  private readonly actionHistory: {
-    action: keyof VirgultumPresets.AIActions;
-    options: VirgultumPresets.AITextActionOptions;
-  }[] = [];
-
-  private userInfoFn: () => AIUserInfo | Promise<AIUserInfo> | null = () =>
-    null;
-
+  private resolveUserInfo: UserInfoResolver = () => null;
+  private photoEngine: VirgultumPresets.AIPhotoEngineService | null = null;
+  private histories: VirgultumPresets.AIHistoryService | null = null;
+  private session: VirgultumPresets.AISessionService | null = null;
+  private context: VirgultumPresets.AIContextService | null = null;
+  private forkChat: ForkChatFn | null = null;
   private embedding: VirgultumPresets.AIEmbeddingService | null = null;
 
-  private provideAction<T extends keyof VirgultumPresets.AIActions>(
-    id: T,
-    action: (
-      ...options: Parameters<VirgultumPresets.AIActions[T]>
-    ) => Promise<ReturnType<VirgultumPresets.AIActions[T]>>,
+  private reportFailure(
+    action: keyof VirgultumPresets.AIActions,
+    options: VirgultumPresets.AITextActionOptions,
+    err: unknown,
+    userId: string | undefined,
+    classifyStreamErrors: boolean,
   ): void {
-    // @ts-expect-error TODO: maybe fix this
-    this.actions[id] = async (
-      ...args: Parameters<VirgultumPresets.AIActions[T]>
+    if (options.signal?.aborted) {
+      // Expected cancellation belongs to this action invocation and is never reported as an error.
+      this.slots.actions.next({ action, options, event: "aborted:stop" });
+      return;
+    }
+
+    this.slots.actions.next({ action, options, event: "error" });
+
+    if (classifyStreamErrors && err instanceof RequestTimeoutError) {
+      this.slots.actions.next({ action, options, event: "aborted:timeout" });
+      return;
+    }
+    if (classifyStreamErrors && err instanceof UnauthorizedError) {
+      this.slots.actions.next({
+        action,
+        options,
+        event: "aborted:login-required",
+      });
+      return;
+    }
+
+    this.slots.actions.next({ action, options, event: "aborted:server-error" });
+    captureException(err, {
+      user: { id: userId },
+      extra: {
+        action,
+        session: AIProvider.LAST_ACTION_SESSIONID,
+      },
+    });
+  }
+
+  private registerAction<K extends keyof VirgultumPresets.AIActions>(
+    id: K,
+    handler: ActionFn<K>,
+  ): void {
+    const wrapped = async (
+      ...args: Parameters<VirgultumPresets.AIActions[K]>
     ) => {
       const options = args[0];
-      const slots = this.slots;
-      slots.actions.next({
-        action: id,
-        options,
-        event: "started",
-      });
+      this.slots.actions.next({ action: id, options, event: "started" });
       this.actionHistory.push({ action: id, options });
       if (this.actionHistory.length > AIProvider.MAX_LOCAL_HISTORY) {
         this.actionHistory.shift();
       }
-      // wrap the action with slot actions
-      const result: VirgultumPresets.TextStream | Promise<string> =
-        await action(...args);
-      const isTextStream = (
-        m: VirgultumPresets.TextStream | Promise<string>,
-      ): m is VirgultumPresets.TextStream =>
-        Reflect.has(m, Symbol.asyncIterator);
-      if (isTextStream(result)) {
+
+      const rawResult = (await handler(...args)) as
+        VirgultumPresets.TextStream | Promise<string>;
+
+      if (isAsyncStream(rawResult)) {
+        const emitFinished = () =>
+          this.slots.actions.next({
+            action: id,
+            options,
+            event: "finished",
+          });
+        const emitFailure = (err: unknown, userId: string | undefined) =>
+          this.reportFailure(id, options, err, userId, true);
+
         return {
           [Symbol.asyncIterator]: async function* () {
-            let user = null;
+            let user: AIUserInfo | null = null;
             try {
               user = await AIProvider.userInfo;
-              yield* result;
+              yield* rawResult;
               options.signal?.throwIfAborted();
-              slots.actions.next({
-                action: id,
-                options,
-                event: "finished",
-              });
+              emitFinished();
             } catch (err) {
-              if (options.signal?.aborted) {
-                // Expected cancellation belongs to this action, not whichever
-                // action is currently last in the global reporter's history.
-                slots.actions.next({
-                  action: id,
-                  options,
-                  event: "aborted:stop",
-                });
-                throw err;
-              }
-              slots.actions.next({
-                action: id,
-                options,
-                event: "error",
-              });
-              if (err instanceof RequestTimeoutError) {
-                slots.actions.next({
-                  action: id,
-                  options,
-                  event: "aborted:timeout",
-                });
-              } else if (err instanceof UnauthorizedError) {
-                slots.actions.next({
-                  action: id,
-                  options,
-                  event: "aborted:login-required",
-                });
-              } else {
-                slots.actions.next({
-                  action: id,
-                  options,
-                  event: "aborted:server-error",
-                });
-                captureException(err, {
-                  user: { id: user?.id },
-                  extra: {
-                    action: id,
-                    session: AIProvider.LAST_ACTION_SESSIONID,
-                  },
-                });
-              }
+              emitFailure(err, user?.id);
               throw err;
             }
           },
         };
-      } else {
-        let user: any = null;
-        return result
-          .then(async (result) => {
-            options.signal?.throwIfAborted();
-            user = await AIProvider.userInfo;
-            slots.actions.next({
-              action: id,
-              options,
-              event: "finished",
-            });
-            return result;
-          })
-          .catch((err) => {
-            if (options.signal?.aborted) {
-              slots.actions.next({
-                action: id,
-                options,
-                event: "aborted:stop",
-              });
-              throw err;
-            }
-            slots.actions.next({
-              action: id,
-              options,
-              event: "error",
-            });
-            slots.actions.next({
-              action: id,
-              options,
-              event: "aborted:server-error",
-            });
-            captureException(err, {
-              user: { id: user?.id },
-              extra: {
-                action: id,
-                session: AIProvider.LAST_ACTION_SESSIONID,
-              },
-            });
-            throw err;
-          });
+      }
+
+      let user: AIUserInfo | null = null;
+      try {
+        const text = await rawResult;
+        options.signal?.throwIfAborted();
+        user = await AIProvider.userInfo;
+        this.slots.actions.next({
+          action: id,
+          options,
+          event: "finished",
+        });
+        return text;
+      } catch (err) {
+        this.reportFailure(id, options, err, user?.id, false);
+        throw err;
       }
     };
+
+    (this.actions as Record<string, unknown>)[id] = wrapped;
   }
 
-  static provide(
-    id: "userInfo",
-    fn: () => AIUserInfo | Promise<AIUserInfo> | null,
-  ): void;
-
+  static provide(id: "userInfo", fn: UserInfoResolver): void;
   static provide(
     id: "session",
     service: VirgultumPresets.AISessionService,
   ): void;
-
   static provide(
     id: "context",
     service: VirgultumPresets.AIContextService,
   ): void;
-
   static provide(
     id: "histories",
     service: VirgultumPresets.AIHistoryService,
   ): void;
-
   static provide(
     id: "photoEngine",
     engine: VirgultumPresets.AIPhotoEngineService,
   ): void;
-
-  static provide(
-    id: "forkChat",
-    fn: (
-      options: VirgultumPresets.AIForkChatSessionOptions,
-    ) => string | Promise<string>,
-  ): void;
-
+  static provide(id: "forkChat", fn: ForkChatFn): void;
   static provide(id: "onboarding", fn: (value: boolean) => void): void;
-
   static provide(
     id: "embedding",
     service: VirgultumPresets.AIEmbeddingService,
   ): void;
-
-  // actions:
-  static provide<T extends keyof VirgultumPresets.AIActions>(
-    id: T,
-    action: (
-      ...options: Parameters<VirgultumPresets.AIActions[T]>
-    ) => Promise<ReturnType<VirgultumPresets.AIActions[T]>>,
+  static provide<K extends keyof VirgultumPresets.AIActions>(
+    id: K,
+    action: ActionFn<K>,
   ): void;
-
-  static provide(id: unknown, action: unknown) {
-    if (id === "userInfo") {
-      AIProvider.instance.userInfoFn = action as () => AIUserInfo;
-    } else if (id === "histories") {
-      AIProvider.instance.histories =
-        action as VirgultumPresets.AIHistoryService;
-    } else if (id === "session") {
-      AIProvider.instance.session = action as VirgultumPresets.AISessionService;
-      AIProvider.instance.slots.sessionReady.next(true);
-    } else if (id === "context") {
-      AIProvider.instance.context = action as VirgultumPresets.AIContextService;
-    } else if (id === "photoEngine") {
-      AIProvider.instance.photoEngine =
-        action as VirgultumPresets.AIPhotoEngineService;
-    } else if (id === "forkChat") {
-      AIProvider.instance.forkChat = action as (
-        options: VirgultumPresets.AIForkChatSessionOptions,
-      ) => string | Promise<string>;
-    } else if (id === "embedding") {
-      AIProvider.instance.embedding =
-        action as VirgultumPresets.AIEmbeddingService;
-    } else {
-      AIProvider.instance.provideAction(id as any, action as any);
+  static provide(id: string, impl: unknown): void {
+    const target = AIProvider.singleton;
+    switch (id) {
+      case "userInfo":
+        target.resolveUserInfo = impl as UserInfoResolver;
+        return;
+      case "histories":
+        target.histories = impl as VirgultumPresets.AIHistoryService;
+        return;
+      case "session":
+        target.session = impl as VirgultumPresets.AISessionService;
+        target.slots.sessionReady.next(true);
+        return;
+      case "context":
+        target.context = impl as VirgultumPresets.AIContextService;
+        return;
+      case "photoEngine":
+        target.photoEngine = impl as VirgultumPresets.AIPhotoEngineService;
+        return;
+      case "forkChat":
+        target.forkChat = impl as ForkChatFn;
+        return;
+      case "embedding":
+        target.embedding = impl as VirgultumPresets.AIEmbeddingService;
+        return;
+      case "onboarding":
+        return;
+      default:
+        target.registerAction(
+          id as keyof VirgultumPresets.AIActions,
+          impl as ActionFn<keyof VirgultumPresets.AIActions>,
+        );
     }
   }
 }

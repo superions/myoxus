@@ -60,7 +60,7 @@ export const AIPanelControllerIdentifier = createIdentifier<AIPanelController>(
  * Signal-driven controller for the Edgeless inline AI panel.
  *
  * Mounts its plain overlay element inside `myoxus-edgeless-root > .widgets-container`
- * so `EdgelessCopilotPanel` anchoring and image-export exclusion continue to work
+ * so `EdgelessCopilotWidget` action-menu anchoring and image-export exclusion continue to work
  * without registering a custom element or imperative render scheduler.
  */
 export class AIPanelController extends LifeCycleWatcher {

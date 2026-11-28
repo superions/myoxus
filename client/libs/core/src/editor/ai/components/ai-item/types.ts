@@ -1,12 +1,15 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import type { DocMode } from "@virgultum/editor/model";
 import type { Chain, EditorHost, InitCommandCtx } from "@virgultum/editor/std";
 import type { ReactNode } from "react";
 
-export interface AIItemGroupConfig {
-  name?: string;
+export interface AISubItemConfig {
+  type: string;
   testId?: string;
-  items: AIItemConfig[];
+  handler?: (host: EditorHost) => void;
 }
 
 export interface AIItemConfig {
@@ -25,8 +28,8 @@ export interface AIItemConfig {
   beta?: boolean;
 }
 
-export interface AISubItemConfig {
-  type: string;
+export interface AIItemGroupConfig {
+  name?: string;
   testId?: string;
-  handler?: (host: EditorHost) => void;
+  items: AIItemConfig[];
 }

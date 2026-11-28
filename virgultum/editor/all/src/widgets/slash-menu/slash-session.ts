@@ -30,7 +30,7 @@ import {
   getSlashMenuItemLabel,
   getSlashMenuGroupLabel,
   resolveSlashMenuText,
-} from "./utils";
+} from "./slash-items";
 
 /** One editor's trigger, live query and command lifetime. The renderer owns option navigation. */
 export class SlashSession implements EditorSlashControls {

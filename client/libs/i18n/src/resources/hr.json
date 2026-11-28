@@ -4625,8 +4625,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "Napredna kontrola vidljivosti blokova",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "Uključuje blokove AI chata.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "Blok AI chata",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "Uključi ili isključi značajku prebacivanja AI modela.",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "Prebacivanje AI modela",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "Kada je isključeno, pri svakom odabiru „Nastavi s AI“ AI dobiva samo snimku zaslona.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "Šalji AI-ju detaljne podatke o objektu",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "Uključi ili isključi SVE AI značajke.",

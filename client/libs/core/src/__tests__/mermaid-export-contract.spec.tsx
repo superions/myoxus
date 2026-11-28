@@ -24,8 +24,8 @@ vi.mock("@virgultum/block-mermaid", async (original) => ({
   ...(await original<typeof import("@virgultum/block-mermaid")>()),
   renderMermaidSvg: nativeExport.render,
 }));
-vi.mock("@virgultum/editor/widgets/linked-doc", async (original) => ({
-  ...(await original<typeof import("@virgultum/editor/widgets/linked-doc")>()),
+vi.mock("@virgultum/editor/interchange", async (original) => ({
+  ...(await original<typeof import("@virgultum/editor/interchange")>()),
   download: nativeExport.download,
 }));
 

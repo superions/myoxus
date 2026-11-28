@@ -1,72 +1,37 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { WorkspaceQuotaService } from "@myoxus/core/modules/quota";
-import { useI18n } from "@myoxus/i18n";
 import { useLiveData, useService } from "@myoxus/infra";
 import { useEffect } from "react";
 
-import {
-  ErrorMessage,
-  Progress,
-  SettingsStatusText,
-  SettingsToolbar,
-  Skeleton,
-  Stack,
-} from "../../primitives";
-
-export const WorkspaceQuotaPanel = () => {
-  return <StorageProgress />;
-};
+import { StorageUsageMeter } from "../../storage-usage-meter";
 
 export const StorageProgress = () => {
-  const t = useI18n();
-
-  const workspaceQuotaService = useService(WorkspaceQuotaService).quota;
-
-  const isLoading = useLiveData(workspaceQuotaService.isRevalidating$);
-  const usedFormatted = useLiveData(workspaceQuotaService.usedFormatted$);
-  const maxFormatted = useLiveData(workspaceQuotaService.maxFormatted$);
-  const percent = useLiveData(workspaceQuotaService.percent$);
-  const color = useLiveData(workspaceQuotaService.color$);
-  const usedLabel =
-    usedFormatted ?? t["com.myoxus.sidebar.common.not-available"]();
-  const maxLabel = maxFormatted ?? t["com.myoxus.storage.unlimited"]();
+  const quota = useService(WorkspaceQuotaService).quota;
 
   useEffect(() => {
-    // revalidate quota to get the latest status
-    workspaceQuotaService.revalidate();
-  }, [workspaceQuotaService]);
+    quota.revalidate();
+  }, [quota]);
 
-  const loadError = useLiveData(workspaceQuotaService.error$);
-
-  if (isLoading) {
-    if (loadError) {
-      return (
-        <ErrorMessage>
-          {t["com.myoxus.settings.common.load-error"]()}
-        </ErrorMessage>
-      );
-    }
-    return <Skeleton variant="rectangular" />;
-  }
+  const isLoading = useLiveData(quota.isRevalidating$);
+  const usedFormatted = useLiveData(quota.usedFormatted$);
+  const maxFormatted = useLiveData(quota.maxFormatted$);
+  const percent = useLiveData(quota.percent$);
+  const color = useLiveData(quota.color$);
+  const loadError = useLiveData(quota.error$);
 
   return (
-    <Stack data-myoxus-ui-role="workspace-storage-progress-meter">
-      <SettingsToolbar
-        layout="split"
-        data-myoxus-ui-role="workspace-storage-progress-labels"
-      >
-        <SettingsStatusText>
-          {t["com.myoxus.storage.used.hint"]()}
-        </SettingsStatusText>
-        <SettingsStatusText tone="active">
-          {usedLabel} / {maxLabel}
-        </SettingsStatusText>
-      </SettingsToolbar>
-      <Progress
-        showValueLabel={false}
-        color={color ?? undefined}
-        value={percent ?? 0}
-        ariaLabel={t["com.myoxus.storage.used.hint"]()}
-      />
-    </Stack>
+    <StorageUsageMeter
+      usedFormatted={usedFormatted}
+      maxFormatted={maxFormatted}
+      percent={percent}
+      color={color}
+      loading={Boolean(isLoading)}
+      error={loadError}
+      uiRolePrefix="workspace"
+    />
   );
 };
+
+export const WorkspaceQuotaPanel = () => <StorageProgress />;

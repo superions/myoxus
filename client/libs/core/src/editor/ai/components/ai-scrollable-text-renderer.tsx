@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import { Scrollable, Stack, useThrottledCallback } from "@myoxus/ui-facade";
 import type { EditorHost } from "@virgultum/editor/std";
@@ -11,13 +12,18 @@ import type {
 import { StoredAnswerText } from "./ai-message-content/stored-answer-text";
 import { ChatScrollToLatest } from "./message-chrome";
 
-const AUTO_SCROLL_PAUSE_THRESHOLD_PX = 32;
-const AUTO_SCROLL_RESUME_THRESHOLD_PX = 16;
+const PAUSE_THRESHOLD_PX = 32;
+const RESUME_THRESHOLD_PX = 16;
 
 export interface ScrollableTextRendererOptions {
   host?: EditorHost | null;
 }
 
+/**
+ * Renders streaming or completed AI markdown inside a bounded Mantine
+ * Scrollable viewport. Scrolling upward pauses auto-scroll without blocking
+ * wheel input; the scroll-to-latest control resumes following the tail.
+ */
 export function AIScrollableTextRenderer({
   answer,
   state,
@@ -32,34 +38,33 @@ export function AIScrollableTextRenderer({
   autoScroll?: boolean;
 }) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  const lastScrollHeightRef = useRef(0);
+  const lastHeightRef = useRef(0);
   const pausedRef = useRef(false);
   const [paused, setPaused] = useState(false);
 
-  const setPausedState = useCallback((next: boolean) => {
+  const updatePaused = useCallback((next: boolean) => {
     pausedRef.current = next;
     setPaused(next);
   }, []);
 
-  const throttledScrollToEnd = useThrottledCallback(() => {
+  const scrollToTail = useThrottledCallback(() => {
     requestAnimationFrame(() => {
       if (pausedRef.current) return;
       const viewport = viewportRef.current;
       if (!viewport) return;
-      const scrollHeight = viewport.scrollHeight || 0;
-      if (scrollHeight > lastScrollHeightRef.current) {
-        lastScrollHeightRef.current = scrollHeight;
-        viewport.scrollTo({ top: scrollHeight });
+      if (viewport.scrollHeight > lastHeightRef.current) {
+        lastHeightRef.current = viewport.scrollHeight;
+        viewport.scrollTo({ top: viewport.scrollHeight });
       }
     });
   }, 300);
 
   useEffect(() => {
     if (state !== "generating") {
-      lastScrollHeightRef.current = 0;
-      setPausedState(false);
+      lastHeightRef.current = 0;
+      updatePaused(false);
     }
-  }, [setPausedState, state]);
+  }, [state, updatePaused]);
 
   useEffect(() => {
     if (
@@ -67,31 +72,29 @@ export function AIScrollableTextRenderer({
       !paused &&
       (state === "generating" || state === "finished")
     ) {
-      throttledScrollToEnd();
+      scrollToTail();
     }
-  }, [answer, autoScroll, paused, state, throttledScrollToEnd]);
+  }, [answer, autoScroll, paused, scrollToTail, state]);
 
   const handleScroll = useCallback(() => {
     const viewport = viewportRef.current;
     if (!viewport || state !== "generating") return;
-    const distanceFromBottom =
+    const remaining =
       viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
-    if (distanceFromBottom > AUTO_SCROLL_PAUSE_THRESHOLD_PX) {
-      setPausedState(true);
-    } else if (distanceFromBottom <= AUTO_SCROLL_RESUME_THRESHOLD_PX) {
-      setPausedState(false);
+    if (remaining > PAUSE_THRESHOLD_PX) {
+      updatePaused(true);
+    } else if (remaining <= RESUME_THRESHOLD_PX) {
+      updatePaused(false);
     }
-  }, [setPausedState, state]);
+  }, [state, updatePaused]);
 
-  const resumeAutoScroll = useCallback(() => {
-    setPausedState(false);
+  const resume = useCallback(() => {
+    updatePaused(false);
     const viewport = viewportRef.current;
     if (!viewport) return;
-    lastScrollHeightRef.current = viewport.scrollHeight || 0;
-    // Instant scroll avoids firing intermediate scroll frames > 32px from the
-    // bottom that would immediately re-pause auto-scroll.
+    lastHeightRef.current = viewport.scrollHeight;
     viewport.scrollTo({ top: viewport.scrollHeight });
-  }, [setPausedState]);
+  }, [updatePaused]);
 
   return (
     <Stack gap="xs">
@@ -101,25 +104,23 @@ export function AIScrollableTextRenderer({
         style={{ maxHeight }}
         ref={viewportRef}
         onScroll={handleScroll}
-        onWheel={(event) => {
-          event.stopPropagation();
-        }}
+        onWheel={(event) => event.stopPropagation()}
       >
         <StoredAnswerText host={host} text={answer} />
       </Scrollable.Viewport>
       {paused && state === "generating" ? (
-        <ChatScrollToLatest onClick={resumeAutoScroll} />
+        <ChatScrollToLatest onClick={resume} />
       ) : null}
     </Stack>
   );
 }
 
-export const createAIScrollableTextRenderer = (
+export function createAIScrollableTextRenderer(
   options: ScrollableTextRendererOptions = {},
   maxHeight = 320,
   autoScroll = true,
-): MyoxusAIPanelWidgetConfig["answerRenderer"] => {
-  return (answer: string, state: MyoxusAIPanelState | undefined) => (
+): MyoxusAIPanelWidgetConfig["answerRenderer"] {
+  return (answer, state) => (
     <AIScrollableTextRenderer
       answer={answer}
       state={state}
@@ -128,4 +129,4 @@ export const createAIScrollableTextRenderer = (
       autoScroll={autoScroll}
     />
   );
-};
+}

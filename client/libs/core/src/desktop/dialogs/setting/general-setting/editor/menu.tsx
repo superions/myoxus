@@ -1,4 +1,7 @@
-import { type ComponentProps, type ReactNode } from "react";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
+import type { ComponentProps, ReactNode } from "react";
 
 import {
   Menu,
@@ -8,13 +11,13 @@ import {
   Slider,
 } from "../../primitives";
 
-export const DropdownMenu = ({
+export function DropdownMenu({
   items,
   trigger,
 }: {
   items: ReactNode;
   trigger: ReactNode;
-}) => {
+}) {
   return (
     <SettingsControlGroup>
       <Menu
@@ -28,24 +31,24 @@ export const DropdownMenu = ({
       </Menu>
     </SettingsControlGroup>
   );
-};
+}
 
-export const DropdownTrigger = (props: ComponentProps<typeof MenuTrigger>) => {
+export function DropdownTrigger(props: ComponentProps<typeof MenuTrigger>) {
   return <MenuTrigger {...props} block />;
-};
+}
 
-export const EditorRadioGroup = (props: ComponentProps<typeof RadioGroup>) => {
+export function EditorRadioGroup(props: ComponentProps<typeof RadioGroup>) {
   return (
     <SettingsControlGroup>
       <RadioGroup {...props} block />
     </SettingsControlGroup>
   );
-};
+}
 
-export const EditorSlider = (props: ComponentProps<typeof Slider>) => {
+export function EditorSlider(props: ComponentProps<typeof Slider>) {
   return (
     <SettingsControlGroup stretch>
       <Slider {...props} block />
     </SettingsControlGroup>
   );
-};
+}

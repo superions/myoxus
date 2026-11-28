@@ -1,13 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { track, tracker } from "@myoxus/track";
 import type { EditorHost } from "@virgultum/editor/std";
 import type { GfxPrimitiveElementModel } from "@virgultum/editor/std/gfx";
 import type { BlockModel } from "@virgultum/editor/store";
-import { lowerCase, omit } from "lodash-es";
-import type { Subject } from "rxjs";
 
-import { AIProvider } from "./ai-provider";
-
-type ElementModel = GfxPrimitiveElementModel;
+import {
+  type ActionEventType,
+  type AIActionEvent,
+  AIProvider,
+} from "./ai-provider";
 
 type AIActionEventName =
   | "AI action invoked"
@@ -48,8 +51,8 @@ type AIActionEventProperties = {
     | "add page"
     | "continue in chat";
   type:
-    | "doc" // synced doc
-    | "note" // note shape
+    | "doc"
+    | "note"
     | "text"
     | "image"
     | "draw object"
@@ -61,29 +64,10 @@ type AIActionEventProperties = {
   workspaceId: string;
 };
 
-type SubjectValue<T> = T extends Subject<infer U> ? U : never;
-
-type VirgultumActionEvent = SubjectValue<typeof AIProvider.slots.actions>;
-
-const trackAction = ({
-  eventName,
-  properties,
-}: {
-  eventName: AIActionEventName;
-  properties: AIActionEventProperties;
-}) => {
-  tracker.track(eventName, properties);
-};
-
-const inferPageMode = (host: EditorHost) => {
-  return host.querySelector("myoxus-page-root") ? "doc" : "edgeless";
-};
-
-const defaultActionOptions = [
+const OMITTED_OPTION_KEYS = new Set([
   "stream",
   "input",
   "content",
-  "stream",
   "attachments",
   "signal",
   "docId",
@@ -93,164 +77,120 @@ const defaultActionOptions = [
   "control",
   "where",
   "seed",
-];
+]);
 
-function isElementModel(
-  model: BlockModel | ElementModel,
-): model is ElementModel {
-  return !isBlockModel(model);
-}
+const TEXT_BLOCK_FLAVOURS = new Set([
+  "myoxus:paragraph",
+  "myoxus:list",
+  "myoxus:code",
+]);
 
-function isBlockModel(model: BlockModel | ElementModel): model is BlockModel {
+const EVENT_CONTROL_MAP: Partial<
+  Record<ActionEventType, AIActionEventProperties["control"]>
+> = {
+  "aborted:stop": "stop button",
+  "aborted:server-error": "server error",
+  "aborted:login-required": "login required",
+  "aborted:timeout": "request timeout",
+  "result:add-note": "add note",
+  "result:add-page": "add page",
+  "result:continue-in-chat": "continue in chat",
+  "result:insert": "insert",
+  "result:replace": "replace",
+  "result:use-as-caption": "use as caption",
+  "result:discard": "discard",
+  "result:retry": "retry",
+};
+
+function isBlockModel(
+  model: BlockModel | GfxPrimitiveElementModel,
+): model is BlockModel {
   return "flavour" in model;
 }
 
-function inferObjectType(event: VirgultumActionEvent) {
-  const models: (BlockModel | ElementModel)[] | undefined =
-    event.options.models;
+function detectPageMode(host?: EditorHost): AIActionEventProperties["page"] {
+  if (!host) return "unknown";
+  return host.querySelector("myoxus-page-root") ? "doc" : "edgeless";
+}
+
+function detectObjectType(
+  event: AIActionEvent,
+): AIActionEventProperties["type"] {
+  const models = event.options.models;
   if (!models) {
-    if (event.action === "chat") {
-      return "chatbox text";
-    } else if (event.options.attachments?.length) {
-      return "image";
-    } else {
-      return "text";
-    }
-  } else if (models.every(isElementModel)) {
+    if (event.action === "chat") return "chatbox text";
+    return event.options.attachments?.length ? "image" : "text";
+  }
+  if (models.every((m) => !isBlockModel(m))) {
     return "draw object";
-  } else if (models.every(isBlockModel)) {
+  }
+  if (models.every(isBlockModel) && models.length > 0) {
     const flavour = models[0].flavour;
-    if (flavour === "myoxus:note") {
-      return "note";
-    } else if (
-      ["myoxus:paragraph", "myoxus:list", "myoxus:code"].includes(flavour)
-    ) {
-      return "text";
-    } else if (flavour === "myoxus:image") {
-      return "image";
-    }
+    if (flavour === "myoxus:note") return "note";
+    if (TEXT_BLOCK_FLAVOURS.has(flavour)) return "text";
+    if (flavour === "myoxus:image") return "image";
   }
   return "other";
 }
 
-function inferSegment(
-  event: VirgultumActionEvent,
+function detectSegment(
+  event: AIActionEvent,
 ): AIActionEventProperties["segment"] {
-  if (event.options.where === "inline-chat-panel") {
-    return "inline chat panel";
-  } else if (event.event.startsWith("result:")) {
-    return "AI result panel";
-  } else if (event.options.where === "chat-panel") {
-    return "right side bar";
-  } else if (event.options.where === "ai-chat-block") {
-    return "AI chat block";
-  } else {
-    return "AI action panel";
-  }
+  if (event.options.where === "inline-chat-panel") return "inline chat panel";
+  if (event.event.startsWith("result:")) return "AI result panel";
+  if (event.options.where === "chat-panel") return "right side bar";
+  if (event.options.where === "ai-chat-block") return "AI chat block";
+  return "AI action panel";
 }
 
-function inferModule(
-  event: VirgultumActionEvent,
-): AIActionEventProperties["module"] {
-  if (event.options.where === "chat-panel") {
-    return "AI chat panel";
-  } else if (event.event === "result:discard") {
-    return "exit confirmation";
-  } else if (event.event.startsWith("result:")) {
-    return "AI result panel";
-  } else if (event.options.where === "inline-chat-panel") {
-    return "inline chat panel";
-  } else if (event.options.where === "ai-chat-block") {
-    return "AI chat block";
-  } else {
-    return "AI action panel";
-  }
+function detectModule(event: AIActionEvent): AIActionEventProperties["module"] {
+  if (event.options.where === "chat-panel") return "AI chat panel";
+  if (event.event === "result:discard") return "exit confirmation";
+  if (event.event.startsWith("result:")) return "AI result panel";
+  if (event.options.where === "inline-chat-panel") return "inline chat panel";
+  if (event.options.where === "ai-chat-block") return "AI chat block";
+  return "AI action panel";
 }
 
-function inferEventName(event: VirgultumActionEvent): AIActionEventName | null {
-  if (["result:discard", "result:retry"].includes(event.event)) {
+function detectEventName(event: AIActionEvent): AIActionEventName | null {
+  if (event.event === "result:discard" || event.event === "result:retry") {
     return "AI result discarded";
-  } else if (event.event.startsWith("result:")) {
-    return "AI result accepted";
-  } else if (event.event.startsWith("aborted:")) {
-    return "AI action aborted";
-  } else if (event.event === "started") {
-    return "AI action invoked";
   }
+  if (event.event.startsWith("result:")) return "AI result accepted";
+  if (event.event.startsWith("aborted:")) return "AI action aborted";
+  if (event.event === "started") return "AI action invoked";
   return null;
 }
 
-function inferControl(
-  event: VirgultumActionEvent,
+function detectControl(
+  event: AIActionEvent,
 ): AIActionEventProperties["control"] {
-  if (event.event === "aborted:stop") {
-    return "stop button";
-  } else if (event.event === "aborted:server-error") {
-    return "server error";
-  } else if (event.event === "aborted:login-required") {
-    return "login required";
-  } else if (event.event === "aborted:timeout") {
-    return "request timeout";
-  } else if (event.options.control === "chat-send") {
-    return "AI chat send button";
-  } else if (event.options.control === "block-action-bar") {
-    return "Block action bar";
-  } else if (event.event === "result:add-note") {
-    return "add note";
-  } else if (event.event === "result:add-page") {
-    return "add page";
-  } else if (event.event === "result:continue-in-chat") {
-    return "continue in chat";
-  } else if (event.event === "result:insert") {
-    return "insert";
-  } else if (event.event === "result:replace") {
-    return "replace";
-  } else if (event.event === "result:use-as-caption") {
-    return "use as caption";
-  } else if (event.event === "result:discard") {
-    return "discard";
-  } else if (event.event === "result:retry") {
-    return "retry";
-  } else {
-    return "format toolbar";
-  }
+  const mapped = EVENT_CONTROL_MAP[event.event];
+  if (mapped) return mapped;
+  if (event.options.control === "chat-send") return "AI chat send button";
+  if (event.options.control === "block-action-bar") return "Block action bar";
+  return "format toolbar";
 }
 
-const toTrackedOptions = (
-  event: VirgultumActionEvent,
-): {
-  eventName: AIActionEventName;
-  properties: AIActionEventProperties;
-} | null => {
-  const eventName = inferEventName(event);
+function formatCategoryName(action: string): string {
+  return action
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .toLowerCase();
+}
 
-  if (!eventName) return null;
-
-  const pageMode = event.options.host
-    ? inferPageMode(event.options.host)
-    : "unknown";
-  const otherProperties = omit(event.options, defaultActionOptions);
-  const type = inferObjectType(event);
-  const segment = inferSegment(event);
-  const module = inferModule(event);
-  const control = inferControl(event);
-  const category = lowerCase(event.action);
-
-  return {
-    eventName,
-    properties: {
-      page: pageMode,
-      segment,
-      category,
-      module,
-      control,
-      type,
-      other: otherProperties,
-      docId: event.options.docId,
-      workspaceId: event.options.workspaceId,
-    },
-  };
-};
+function extractExtraOptions(
+  options: VirgultumPresets.AITextActionOptions,
+): Record<string, unknown> {
+  const extra: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(options)) {
+    if (!OMITTED_OPTION_KEYS.has(key)) {
+      extra[key] = value;
+    }
+  }
+  return extra;
+}
 
 export function setupTracker() {
   AIProvider.slots.requestLogin.subscribe(() => {
@@ -258,9 +198,19 @@ export function setupTracker() {
   });
 
   AIProvider.slots.actions.subscribe((event) => {
-    const properties = toTrackedOptions(event);
-    if (properties) {
-      trackAction(properties);
-    }
+    const eventName = detectEventName(event);
+    if (!eventName) return;
+
+    tracker.track(eventName, {
+      page: detectPageMode(event.options.host),
+      segment: detectSegment(event),
+      category: formatCategoryName(event.action),
+      module: detectModule(event),
+      control: detectControl(event),
+      type: detectObjectType(event),
+      other: extractExtraOptions(event.options),
+      docId: event.options.docId,
+      workspaceId: event.options.workspaceId,
+    });
   });
 }

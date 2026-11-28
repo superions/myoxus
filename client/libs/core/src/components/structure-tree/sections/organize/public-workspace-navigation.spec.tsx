@@ -78,12 +78,7 @@ vi.mock("@myoxus/core/modules/workbench", () => ({
   WorkbenchLink: () => null,
   WorkbenchService: class {},
 }));
-vi.mock("../../nodes/doc", () => ({ StructureTreeDocNode: () => null }));
 vi.mock("../../nodes/folder", () => ({ StructureTreeFolderNode: () => null }));
-vi.mock("../../layouts/collapsible-section", () => ({
-  CollapsibleSection: () => null,
-}));
-vi.mock("./empty", () => ({ RootEmpty: () => null }));
 vi.mock("../../../../desktop/pages/workspace/overview/introduction", () => ({
   WorkspaceIntroduction: () => null,
 }));

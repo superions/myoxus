@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { MarkdownTransformer } from "@virgultum/editor/widgets/linked-doc";
+import { MarkdownTransformer, Zip } from "@virgultum/editor/interchange";
 import { Container } from "@virgultum/core/primitives/di";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -56,7 +56,6 @@ import { createJob } from "../utils/create-job.js";
 import { getProvider } from "../utils/get-provider.js";
 import { nanoidReplacement } from "../utils/nanoid-replacement.js";
 import { testStoreExtensions } from "../utils/store.js";
-import { Zip } from "../../widgets/linked-doc/transformers/utils.js";
 
 const provider = getProvider();
 

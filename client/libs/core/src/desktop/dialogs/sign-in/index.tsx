@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { SignInPanel, type SignInStep } from "@myoxus/core/components/sign-in";
 import type {
   DialogComponentProps,
@@ -19,7 +22,7 @@ export const SignInDialog = ({
   server: initialServerBaseUrl,
   step,
 }: DialogComponentProps<GLOBAL_DIALOG_SCHEMA["sign-in"]>) => {
-  const onAuthenticated = useCallback(
+  const handleAuthenticated = useCallback(
     (status: AuthSessionStatus) => {
       if (status === "authenticated") {
         close();
@@ -27,6 +30,7 @@ export const SignInDialog = ({
     },
     [close],
   );
+
   return (
     <Modal
       open
@@ -42,7 +46,7 @@ export const SignInDialog = ({
     >
       <SignInPanel
         onSkip={close}
-        onAuthenticated={onAuthenticated}
+        onAuthenticated={handleAuthenticated}
         server={initialServerBaseUrl}
         initStep={step as SignInStep}
       />

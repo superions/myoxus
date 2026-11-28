@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { handleError } from "./copilot-client";
 import { GeneralNetworkError, RequestTimeoutError } from "./error";
 
@@ -7,162 +10,190 @@ export type MyoxusTextEvent = {
 };
 
 type MyoxusTextStream = AsyncIterable<MyoxusTextEvent>;
+
 type TextStreamOptions = {
   timeout?: number;
   signal?: AbortSignal;
   onRetrievalStatus?: (available: boolean) => void;
 };
 
-function parseStreamError(data: string) {
+type TerminalKind = "done" | "failed" | "aborted";
+
+const CONNECTION_ENDED_MESSAGE = "Copilot connection ended before completion";
+const INVALID_ERROR_FRAME_MESSAGE = "Invalid Copilot stream error response";
+
+function decodeErrorFrame(raw: string): Error {
   try {
-    const payload: unknown = JSON.parse(data);
+    const parsed: unknown = JSON.parse(raw);
     if (
-      payload &&
-      typeof payload === "object" &&
-      "message" in payload &&
-      typeof payload.message === "string"
+      parsed &&
+      typeof parsed === "object" &&
+      "message" in parsed &&
+      typeof parsed.message === "string"
     ) {
       const code =
-        "code" in payload && typeof payload.code === "string"
-          ? payload.code
+        "code" in parsed && typeof parsed.code === "string"
+          ? parsed.code
           : "INTERNAL_SERVER_ERROR";
-      // The deployed SSE envelope has code/message, not GraphQL extensions.
-      // Supply the existing error mapper's shape without discarding its code.
+      const status =
+        "status" in parsed && typeof parsed.status === "number"
+          ? parsed.status
+          : 500;
       return handleError({
         code,
         type: code,
         name: code,
-        message: payload.message,
-        status:
-          "status" in payload && typeof payload.status === "number"
-            ? payload.status
-            : 500,
+        message: parsed.message,
+        status,
       });
     }
   } catch {
-    // Invalid wire data is not diagnostic copy and must not enter errors.
+    // Malformed frames must not leak raw payloads into user-facing errors.
   }
-  return new GeneralNetworkError("Invalid Copilot stream error response");
+  return new GeneralNetworkError(INVALID_ERROR_FRAME_MESSAGE);
 }
 
-/** One owned connection: only done is success; transport close is never done.
- * Queued output drains before a terminal result, and terminal listeners close
- * immediately so EventSource cannot reconnect and start another response.
+function decodeRetrievalAvailability(raw: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return (
+      parsed !== null &&
+      typeof parsed === "object" &&
+      "available" in parsed &&
+      parsed.available === true
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Wraps a single-shot Copilot `EventSource` as an async iterable.
+ * Only an explicit `done` event finishes cleanly; transport closure fails
+ * closed, queued chunks drain before completion/failure, and terminal events
+ * close immediately so the browser cannot auto-reconnect.
  */
 export function toTextStream(
   eventSource: EventSource,
-  { timeout, signal, onRetrievalStatus }: TextStreamOptions = {},
+  options: TextStreamOptions = {},
 ): MyoxusTextStream {
+  const { timeout, signal, onRetrievalStatus } = options;
+
   return {
     [Symbol.asyncIterator]: async function* () {
-      const queue: MyoxusTextEvent[] = [];
-      let terminal: "done" | "failed" | "aborted" | undefined;
-      let failure: Error | undefined;
-      let wake: (() => void) | undefined;
-      let timer: ReturnType<typeof setTimeout> | undefined;
+      const buffer: MyoxusTextEvent[] = [];
+      let terminal: TerminalKind | undefined;
+      let terminalError: Error | undefined;
+      let notify: (() => void) | undefined;
+      let idleTimer: ReturnType<typeof setTimeout> | undefined;
 
-      const settle = (state: NonNullable<typeof terminal>, error?: Error) => {
-        if (terminal) return;
-        terminal = state;
-        failure = error;
-        eventSource.close();
-        wake?.();
+      const clearIdleTimer = () => {
+        if (idleTimer !== undefined) {
+          clearTimeout(idleTimer);
+          idleTimer = undefined;
+        }
       };
-      const messageListener = (event: Event) => {
+
+      const finish = (kind: TerminalKind, err?: Error) => {
         if (terminal) return;
-        queue.push({
+        terminal = kind;
+        terminalError = err;
+        eventSource.close();
+        notify?.();
+      };
+
+      const onChunk = (event: Event) => {
+        if (terminal) return;
+        buffer.push({
           type: event.type as MyoxusTextEvent["type"],
           data: (event as MessageEvent<string>).data,
         });
-        wake?.();
+        notify?.();
       };
-      const doneListener = () => settle("done");
-      const retrievalListener = (event: Event) => {
+
+      const onRetrieval = (event: Event) => {
         if (terminal) return;
-        let available = false;
-        try {
-          const payload: unknown = JSON.parse(
-            (event as MessageEvent<string>).data,
-          );
-          available =
-            !!payload &&
-            typeof payload === "object" &&
-            "available" in payload &&
-            payload.available === true;
-        } catch {
-          // Invalid metadata must not claim a successful search or become text.
-        }
-        onRetrievalStatus?.(available);
-      };
-      const errorListener = (event: Event) => {
-        if (terminal) return;
-        const data = (event as MessageEvent<string>).data;
-        settle(
-          "failed",
-          typeof data === "string" && data
-            ? parseStreamError(data)
-            : new GeneralNetworkError(
-                "Copilot connection ended before completion",
-              ),
+        onRetrievalStatus?.(
+          decodeRetrievalAvailability((event as MessageEvent<string>).data),
         );
       };
-      const abortListener = () =>
-        settle(
-          "aborted",
+
+      const onDone = () => finish("done");
+
+      const onError = (event: Event) => {
+        if (terminal) return;
+        const payload = (event as MessageEvent<string>).data;
+        const err =
+          typeof payload === "string" && payload.length > 0
+            ? decodeErrorFrame(payload)
+            : new GeneralNetworkError(CONNECTION_ENDED_MESSAGE);
+        finish("failed", err);
+      };
+
+      const onAbort = () => {
+        const reason =
           signal?.reason instanceof Error
             ? signal.reason
-            : new DOMException("Copilot request aborted", "AbortError"),
-        );
+            : new DOMException("Copilot request aborted", "AbortError");
+        finish("aborted", reason);
+      };
 
-      eventSource.addEventListener("message", messageListener);
-      eventSource.addEventListener("attachment", messageListener);
-      eventSource.addEventListener("retrieval-status", retrievalListener);
-      eventSource.addEventListener("done", doneListener);
-      eventSource.addEventListener("error", errorListener);
-      signal?.addEventListener("abort", abortListener, { once: true });
-      if (signal?.aborted) abortListener();
+      eventSource.addEventListener("message", onChunk);
+      eventSource.addEventListener("attachment", onChunk);
+      eventSource.addEventListener("retrieval-status", onRetrieval);
+      eventSource.addEventListener("done", onDone);
+      eventSource.addEventListener("error", onError);
+      signal?.addEventListener("abort", onAbort, { once: true });
+
+      if (signal?.aborted) {
+        onAbort();
+      }
 
       try {
         while (true) {
-          // Abort releases an idle reader immediately; queued data cannot turn
-          // an explicit stop into a successful postfix/result.
-          if (terminal === "aborted") throw failure;
-          const next = queue.shift();
-          if (next) {
-            yield next;
+          if (terminal === "aborted") {
+            throw terminalError;
+          }
+
+          const item = buffer.shift();
+          if (item) {
+            yield item;
             continue;
           }
-          if (terminal === "failed") throw failure;
-          if (terminal === "done") return;
-          if (eventSource.readyState === 2) {
-            throw new GeneralNetworkError(
-              "Copilot connection ended before completion",
-            );
+
+          if (terminal === "failed") {
+            throw terminalError;
           }
+          if (terminal === "done") {
+            return;
+          }
+          if (eventSource.readyState === 2) {
+            throw new GeneralNetworkError(CONNECTION_ENDED_MESSAGE);
+          }
+
           try {
             await new Promise<void>((resolve) => {
-              wake = resolve;
+              notify = resolve;
               if (timeout !== undefined && timeout > 0) {
-                timer = setTimeout(
-                  () => settle("failed", new RequestTimeoutError()),
+                idleTimer = setTimeout(
+                  () => finish("failed", new RequestTimeoutError()),
                   timeout,
                 );
               }
             });
           } finally {
-            if (timer !== undefined) clearTimeout(timer);
-            timer = undefined;
-            wake = undefined;
+            clearIdleTimer();
+            notify = undefined;
           }
         }
       } finally {
-        if (timer !== undefined) clearTimeout(timer);
-        eventSource.removeEventListener("message", messageListener);
-        eventSource.removeEventListener("attachment", messageListener);
-        eventSource.removeEventListener("retrieval-status", retrievalListener);
-        eventSource.removeEventListener("done", doneListener);
-        eventSource.removeEventListener("error", errorListener);
-        signal?.removeEventListener("abort", abortListener);
+        clearIdleTimer();
+        eventSource.removeEventListener("message", onChunk);
+        eventSource.removeEventListener("attachment", onChunk);
+        eventSource.removeEventListener("retrieval-status", onRetrieval);
+        eventSource.removeEventListener("done", onDone);
+        eventSource.removeEventListener("error", onError);
+        signal?.removeEventListener("abort", onAbort);
         eventSource.close();
       }
     },

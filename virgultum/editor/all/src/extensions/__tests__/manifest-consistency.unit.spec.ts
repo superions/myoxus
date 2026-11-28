@@ -85,7 +85,6 @@ import { TableViewExtension } from "@virgultum/content/view";
 import { FoundationStoreExtension } from "../../foundation/store";
 import { FoundationViewExtension } from "../../foundation/view";
 import { DocTitleViewExtension } from "@virgultum/content/view";
-import { FramePanelViewExtension } from "../../fragments/frame-panel/view";
 import { OutlineViewExtension } from "../../fragments/outline/view";
 import { BrushStoreExtension } from "@virgultum/canvas/store";
 import { BrushViewExtension } from "@virgultum/canvas/view";
@@ -231,7 +230,6 @@ const LEGACY_VIEW = [
   ViewportOverlayViewExtension,
   EdgelessSelectedRectViewExtension,
   DocTitleViewExtension,
-  FramePanelViewExtension,
   OutlineViewExtension,
 ];
 

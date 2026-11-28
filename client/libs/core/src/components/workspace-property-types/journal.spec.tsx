@@ -10,7 +10,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { DocService } from "../../modules/doc";
 import { JournalService } from "../../modules/journal";
 import { WorkbenchService } from "../../modules/workbench";
-import { JournalValue } from "./journal";
+import { JournalValue } from "./doc-meta-properties";
 
 vi.mock("@myoxus/i18n", async (importActual) => {
   const actual = await importActual<Record<string, unknown>>();

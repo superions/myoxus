@@ -1,7 +1,9 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
 import { useI18n } from "@myoxus/i18n";
-import { CodeBlockIcon, ToolIcon as NativeToolIcon } from "@myoxus/icons/react";
+import { CodeBlockIcon, ToolIcon } from "@myoxus/icons/react";
 import { Box } from "@myoxus/ui-facade";
 import type { NotificationService } from "@virgultum/core/services";
 import type { BlockStdScope } from "@virgultum/editor/std";
@@ -12,7 +14,6 @@ import {
   Text,
 } from "@virgultum/editor/store";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
 
 import { HtmlCodePreview } from "../../../view-extensions/code-block-preview/html-preview";
 import { ArtifactSkeleton } from "../ai-artifact-skeleton";
@@ -37,6 +38,52 @@ export interface CodeArtifactToolResult {
   result: { title: string; html: string; size: number } | ToolError | null;
 }
 
+function isToolError(value: unknown): value is ToolError {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    "type" in value &&
+    (value as { type?: unknown }).type === "error"
+  );
+}
+
+function buildHtmlCodeSlice(html: string): SliceSnapshot {
+  const codeBlock: BlockSnapshot = {
+    type: "block",
+    id: nanoid(),
+    flavour: "myoxus:code",
+    version: 1,
+    props: {
+      language: "html",
+      wrap: false,
+      caption: "",
+      text: {
+        "$virgultum:internal:text$": true,
+        delta: [{ insert: html }],
+      },
+    },
+    children: [],
+  };
+  return {
+    type: "slice",
+    content: [codeBlock],
+    workspaceId: "fake-workspace-id",
+    pageId: "fake-page-id",
+  };
+}
+
+function downloadHtmlFile(title: string, html: string) {
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${title || "artifact"}.html`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function CodeArtifactTool({
   data,
   std,
@@ -52,16 +99,11 @@ export function CodeArtifactTool({
   const ownerId = useId();
   const preview = useChatPreview();
   const [mode, setMode] = useState<"preview" | "code">("preview");
-  const initialPreviewPendingRef = useRef(true);
+  const hasAutoOpenedRef = useRef(false);
   const storeReadonly = useSignalValue(std?.store.readonly$) ?? false;
 
-  const isError =
-    data.type === "tool-result" &&
-    !!data.result &&
-    typeof data.result === "object" &&
-    "type" in data.result &&
-    data.result.type === "error";
   const isLoading = data.type !== "tool-result";
+  const isError = data.type === "tool-result" && isToolError(data.result);
   const htmlResult =
     data.type === "tool-result" &&
     data.result &&
@@ -70,19 +112,15 @@ export function CodeArtifactTool({
       ? data.result
       : null;
 
-  const openOrUpdatePreview = useCallback(() => {
+  const syncPreview = useCallback(() => {
     if (!preview) return;
-    initialPreviewPendingRef.current = false;
+    hasAutoOpenedRef.current = true;
 
-    const errorView = isError
-      ? toolFailedCard({
-          name: t["com.myoxus.ai.chat-panel.code-artifact-failed"](),
-          icon: <NativeToolIcon />,
-        })
-      : null;
-
-    const content = errorView ? (
-      errorView
+    const content = isError ? (
+      toolFailedCard({
+        name: t["com.myoxus.ai.chat-panel.code-artifact-failed"](),
+        icon: <ToolIcon />,
+      })
     ) : isLoading ? (
       <ArtifactSkeleton icon={<CodeBlockIcon />} />
     ) : htmlResult ? (
@@ -104,36 +142,14 @@ export function CodeArtifactTool({
         <CodeArtifactControls
           mode={mode}
           setMode={setMode}
-          copy={() => {
-            const codeBlock: BlockSnapshot = {
-              type: "block",
-              id: nanoid(),
-              flavour: "myoxus:code",
-              version: 1,
-              props: {
-                language: "html",
-                wrap: false,
-                caption: "",
-                text: {
-                  "$virgultum:internal:text$": true,
-                  delta: [{ insert: htmlResult.html }],
-                },
-              },
-              children: [],
-            };
-            const sliceSnapshot: SliceSnapshot = {
-              type: "slice",
-              content: [codeBlock],
-              workspaceId: "fake-workspace-id",
-              pageId: "fake-page-id",
-            };
-            return std.clipboard
+          copy={() =>
+            std.clipboard
               .writeToClipboard((items) => ({
                 ...items,
                 "text/plain": htmlResult.html,
                 "text/html": htmlResult.html,
                 "VIRGULTUM/SNAPSHOT": JSON.stringify({
-                  snapshot: sliceSnapshot,
+                  snapshot: buildHtmlCodeSlice(htmlResult.html),
                   blobs: {},
                 }),
               }))
@@ -144,21 +160,13 @@ export function CodeArtifactTool({
               .catch((error) => {
                 console.error(error);
                 return false;
-              });
-          }}
+              })
+          }
           download={() => {
             try {
-              const blob = new Blob([htmlResult.html], { type: "text/html" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `${htmlResult.title || "artifact"}.html`;
-              document.body.append(a);
-              a.click();
-              a.remove();
-              URL.revokeObjectURL(url);
-            } catch (e) {
-              console.error(e);
+              downloadHtmlFile(htmlResult.title, htmlResult.html);
+            } catch (error) {
+              console.error(error);
             }
           }}
           insert={
@@ -166,11 +174,10 @@ export function CodeArtifactTool({
               ? undefined
               : () => {
                   try {
-                    const store = std.store;
+                    const { store } = std;
                     if (independentMode || store.readonly$.value) return;
                     const notes = store.getBlocksByFlavour("myoxus:note");
-                    const parentId =
-                      notes.length > 0 ? notes[0].id : store.root?.id;
+                    const parentId = notes[0]?.id ?? store.root?.id;
                     if (!parentId) return;
                     store.addBlock(
                       "myoxus:code",
@@ -184,8 +191,8 @@ export function CodeArtifactTool({
                     notificationService?.toast(
                       t["com.myoxus.ai.chat-panel.inserted"](),
                     );
-                  } catch (e) {
-                    console.error(e);
+                  } catch (error) {
+                    console.error(error);
                   }
                 }
           }
@@ -215,21 +222,22 @@ export function CodeArtifactTool({
 
   useEffect(() => {
     if (!preview) return;
-    if (initialPreviewPendingRef.current || preview.isOwnerOpen(ownerId)) {
-      openOrUpdatePreview();
+    if (!hasAutoOpenedRef.current || preview.isOwnerOpen(ownerId)) {
+      syncPreview();
     }
-  }, [openOrUpdatePreview, ownerId, preview]);
+  }, [ownerId, preview, syncPreview]);
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       preview?.closePreview(ownerId);
-    };
-  }, [ownerId, preview]);
+    },
+    [ownerId, preview],
+  );
 
   if (isError) {
     return toolFailedCard({
       name: t["com.myoxus.ai.chat-panel.code-artifact-failed"](),
-      icon: <NativeToolIcon />,
+      icon: <ToolIcon />,
     });
   }
 
@@ -238,7 +246,7 @@ export function CodeArtifactTool({
       title={data.args.title}
       icon={<CodeBlockIcon />}
       loading={isLoading}
-      open={preview ? openOrUpdatePreview : undefined}
+      open={preview ? syncPreview : undefined}
     />
   );
 }

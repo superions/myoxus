@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useI18n } from "@myoxus/i18n";
 
 import { SettingHeader } from "../../primitives";
@@ -17,9 +20,6 @@ export const EditorSettings = () => {
       <General />
       <Page />
       <Edgeless />
-
-      {/* // TODO(@EYHN): implement export and import
-       <Preferences /> */}
     </>
   );
 };

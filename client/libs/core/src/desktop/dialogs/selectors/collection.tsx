@@ -1,4 +1,6 @@
-import { SelectorLayout } from "@myoxus/core/components/page-list/selector/selector-layout";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   type CollectionMeta,
   CollectionService,
@@ -18,67 +20,85 @@ import {
   SurfaceListItemIcon,
   SurfaceListText,
 } from "@myoxus/ui-facade";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+
+import { SelectorFrame } from "./selector-frame";
 
 export const CollectionSelectorDialog = ({
   close,
   init: selectedCollectionIds,
+  returnFocusRef,
 }: DialogComponentProps<WORKSPACE_DIALOG_SCHEMA["collection-selector"]>) => {
   const t = useI18n();
   const collectionService = useService(CollectionService);
   const collections = useLiveData(collectionService.collectionMetas$);
-  const [selection, setSelection] = useState(selectedCollectionIds);
+
+  const [open, setOpen] = useState(true);
+  const resultRef = useRef<string[] | undefined>(undefined);
+  const [selection, setSelection] = useState<string[]>(selectedCollectionIds);
   const [keyword, setKeyword] = useState("");
 
-  const collectionMetas = useMemo(() => {
-    const query = keyword.trim().toLocaleLowerCase();
-    return query
-      ? collections.filter((meta) =>
-          meta.title.toLocaleLowerCase().includes(query),
-        )
-      : collections;
-  }, [collections, keyword]);
+  const requestClose = useCallback(
+    (result?: string[]) => {
+      if (!open) return;
+      resultRef.current = result;
+      setOpen(false);
+    },
+    [open],
+  );
 
-  const toggleCollection = useCallback((collection: CollectionMeta) => {
-    setSelection((current) =>
-      current.includes(collection.id)
-        ? current.filter((id) => id !== collection.id)
-        : [...current, collection.id],
+  const visibleCollections = useMemo(() => {
+    const query = keyword.trim().toLocaleLowerCase(t.language);
+    if (!query) return collections;
+    return collections.filter((meta) =>
+      meta.title.toLocaleLowerCase(t.language).includes(query),
+    );
+  }, [collections, keyword, t.language]);
+
+  const toggleCollection = useCallback((meta: CollectionMeta) => {
+    setSelection((prev) =>
+      prev.includes(meta.id)
+        ? prev.filter((id) => id !== meta.id)
+        : [...prev, meta.id],
     );
   }, []);
 
   return (
     <Modal
-      open
-      onOpenChange={() => close()}
+      open={open}
+      returnFocusRef={returnFocusRef}
+      onExitTransitionEnd={() => close(resultRef.current)}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) requestClose();
+      }}
       title={t["Collections"]()}
       width="xl"
       height="80%"
       contentOptions={{ bodyOverflow: "hidden" }}
     >
-      <SelectorLayout
+      <SelectorFrame
         searchPlaceholder={t[
           "com.myoxus.selector-collection.search.placeholder"
         ]()}
         selectedCount={selection.length}
         onSearch={setKeyword}
         onClear={() => setSelection([])}
-        onCancel={() => close()}
-        onConfirm={() => close(selection)}
+        onCancel={() => requestClose()}
+        onConfirm={() => requestClose(selection)}
       >
         <Scrollable.Viewport fill>
-          {collectionMetas.length > 0 ? (
+          {visibleCollections.length > 0 ? (
             <SurfaceList label={t["Collections"]()}>
-              {collectionMetas.map((collection) => {
+              {visibleCollections.map((collection) => {
                 const selected = selection.includes(collection.id);
                 return (
                   <SurfaceListItem
+                    key={collection.id}
                     alignItems="center"
                     component="label"
                     density="compact"
                     fullWidth
                     interactive
-                    key={collection.id}
                     layout="row"
                     selected={selected}
                     data-collection-id={collection.id}
@@ -102,7 +122,7 @@ export const CollectionSelectorDialog = ({
             <EmptyState title={t["com.myoxus.collections.empty.message"]()} />
           )}
         </Scrollable.Viewport>
-      </SelectorLayout>
+      </SelectorFrame>
     </Modal>
   );
 };

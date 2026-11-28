@@ -3164,8 +3164,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "高度なブロック表示制御",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "AIチャットブロックを有効にします。",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "AIチャットブロック",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "AIモデル切り替え機能を有効または無効にします。",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "AIモデル切り替えを有効にする",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "無効にすると、「AIで続ける」を選択するたびに AI はスクリーンショットのみを受け取ります。",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "AI に詳細なオブジェクト情報を送信",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "すべての AI 機能を有効または無効にします。",

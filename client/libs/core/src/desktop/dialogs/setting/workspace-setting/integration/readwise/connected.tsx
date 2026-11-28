@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
 import { IntegrationService } from "@myoxus/core/modules/integration";
 import { useI18n } from "@myoxus/i18n";
@@ -15,18 +18,12 @@ export const ReadwiseDisconnectDialog = ({
   const t = useI18n();
   const readwise = useService(IntegrationService).readwise;
 
-  const onOpenChange = useCallback(
-    (open: boolean) => {
-      if (!open) onClose();
-    },
-    [onClose],
-  );
-  const handleCancel = useCallback(() => onClose(), [onClose]);
   const handleKeep = useCallback(() => {
     readwise.disconnect();
     readwiseTrack.disconnectIntegration({ method: "keep" });
     onClose();
   }, [onClose, readwise]);
+
   const handleDelete = useAsyncCallback(async () => {
     await readwise.deleteAll();
     readwise.disconnect();
@@ -36,14 +33,16 @@ export const ReadwiseDisconnectDialog = ({
 
   return (
     <Modal
-      open={true}
-      onOpenChange={onOpenChange}
+      open
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
       title={t["com.myoxus.integration.readwise.disconnect.title"]()}
       description={t["com.myoxus.integration.readwise.disconnect.desc"]()}
       contentOptions={{ "data-testid": "readwise-disconnect-dialog" }}
     >
       <DialogFooterActions>
-        <Button onClick={handleCancel}>{t["Cancel"]()}</Button>
+        <Button onClick={onClose}>{t["Cancel"]()}</Button>
         <Button variant="error" onClick={handleDelete}>
           {t["com.myoxus.integration.readwise.disconnect.delete"]()}
         </Button>
@@ -57,15 +56,14 @@ export const ReadwiseDisconnectDialog = ({
 
 export const ReadwiseDisconnectButton = () => {
   const t = useI18n();
-  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+  const [open, setOpen] = useState(false);
+
   return (
     <>
-      {showDisconnectDialog && (
-        <ReadwiseDisconnectDialog
-          onClose={() => setShowDisconnectDialog(false)}
-        />
-      )}
-      <Button variant="error" onClick={() => setShowDisconnectDialog(true)}>
+      {open ? (
+        <ReadwiseDisconnectDialog onClose={() => setOpen(false)} />
+      ) : null}
+      <Button variant="error" onClick={() => setOpen(true)}>
         {t["com.myoxus.integration.readwise.disconnect"]()}
       </Button>
     </>

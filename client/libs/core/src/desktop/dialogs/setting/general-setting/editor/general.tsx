@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { EditorReadingSizeSelect } from "@myoxus/core/components/editor-reading-size";
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
 import { DesktopApiService } from "@myoxus/core/modules/desktop-api";
@@ -25,7 +28,13 @@ import {
 } from "../../primitives";
 import { DropdownTrigger } from "./menu";
 
-const FontSizeSettings = () => {
+const DEFAULT_MODE_MENU_OPTIONS = {
+  align: "end",
+  sideOffset: 16,
+  panelWidth: "display",
+} as const;
+
+function FontSizeRow() {
   const t = useI18n();
   return (
     <SettingsRow
@@ -39,25 +48,17 @@ const FontSizeSettings = () => {
       </SettingsControlGroup>
     </SettingsRow>
   );
-};
+}
 
-const menuContentOptions = {
-  align: "end",
-  sideOffset: 16,
-  panelWidth: "display",
-} as const;
-const NewDocDefaultModeSettings = () => {
+function NewDocDefaultModeRow() {
   const t = useI18n();
   const { editorSettingService } = useServices({ EditorSettingService });
   const settings = useLiveData(editorSettingService.editorSetting.settings$);
-  const items = useMemo(
+
+  const modes = useMemo(
     () =>
       [
-        {
-          value: "page",
-          label: t["Page"](),
-          testId: "page-mode-trigger",
-        },
+        { value: "page", label: t["Page"](), testId: "page-mode-trigger" },
         {
           value: "edgeless",
           label: t["Edgeless"](),
@@ -71,12 +72,18 @@ const NewDocDefaultModeSettings = () => {
       ] as const,
     [t],
   );
-  const updateNewDocDefaultMode = useCallback(
-    (value: EditorSettingSchema["newDocDefaultMode"]) => {
-      editorSettingService.editorSetting.set("newDocDefaultMode", value);
+
+  const handleSelect = useCallback(
+    (mode: EditorSettingSchema["newDocDefaultMode"]) => {
+      editorSettingService.editorSetting.set("newDocDefaultMode", mode);
     },
     [editorSettingService.editorSetting],
   );
+
+  const activeLabel = modes.find(
+    (item) => item.value === settings.newDocDefaultMode,
+  )?.label;
+
   return (
     <SettingsRow
       name={t[
@@ -87,32 +94,27 @@ const NewDocDefaultModeSettings = () => {
       ]()}
     >
       <Menu
-        contentOptions={menuContentOptions}
-        items={items.map((item) => {
-          return (
-            <MenuItem
-              key={item.value}
-              selected={item.value === settings.newDocDefaultMode}
-              onSelect={() => updateNewDocDefaultMode(item.value)}
-              data-testid={item.testId}
-            >
-              {item.label}
-            </MenuItem>
-          );
-        })}
+        contentOptions={DEFAULT_MODE_MENU_OPTIONS}
+        items={modes.map((item) => (
+          <MenuItem
+            key={item.value}
+            selected={item.value === settings.newDocDefaultMode}
+            onSelect={() => handleSelect(item.value)}
+            data-testid={item.testId}
+          >
+            {item.label}
+          </MenuItem>
+        ))}
       >
         <DropdownTrigger data-testid="new-doc-default-mode-trigger">
-          {
-            items.find((item) => item.value === settings.newDocDefaultMode)
-              ?.label
-          }
+          {activeLabel}
         </DropdownTrigger>
       </Menu>
     </SettingsRow>
   );
-};
+}
 
-const AISettings = () => {
+function AIToggleRow() {
   const t = useI18n();
   const { openConfirmModal } = useConfirmModal();
   const { featureFlagService, serverService } = useServices({
@@ -122,13 +124,7 @@ const AISettings = () => {
   const serverFeatures = useLiveData(serverService.server.features$);
   const enableAI = useLiveData(featureFlagService.flags.enable_ai.$);
 
-  const onAIChange = useCallback(
-    (checked: boolean) => {
-      featureFlagService.flags.enable_ai.set(checked); // this will trigger page reload, see `FeatureFlagService`
-    },
-    [featureFlagService],
-  );
-  const onToggleAI = useCallback(
+  const handleToggle = useCallback(
     (checked: boolean) => {
       openConfirmModal({
         title: checked
@@ -147,48 +143,41 @@ const AISettings = () => {
               "com.myoxus.settings.editorSettings.general.ai.disable.confirm"
             ](),
         cancelText: t["Cancel"](),
-        onConfirm: () => onAIChange(checked),
-        confirmButtonOptions: {
-          variant: checked ? "primary" : "error",
-        },
+        onConfirm: () => featureFlagService.flags.enable_ai.set(checked),
+        confirmButtonOptions: { variant: checked ? "primary" : "error" },
       });
     },
-    [openConfirmModal, t, onAIChange],
+    [featureFlagService, openConfirmModal, t],
   );
 
-  if (!serverFeatures?.copilot) {
-    return null;
-  }
+  if (!serverFeatures?.copilot) return null;
 
   return (
     <SettingsRow
       name={t["com.myoxus.settings.editorSettings.general.ai.title"]()}
       desc={t["com.myoxus.settings.editorSettings.general.ai.description"]()}
     >
-      <Switch checked={enableAI} onChange={onToggleAI} />
+      <Switch checked={enableAI} onChange={handleToggle} />
     </SettingsRow>
   );
-};
+}
 
-const SpellCheckSettings = () => {
+function SpellCheckRow() {
   const t = useI18n();
   const spellCheckSetting = useService(SpellCheckSettingService);
-
   const desktopApiService = useService(DesktopApiService);
-
   const enabled = useLiveData(spellCheckSetting.enabled$)?.enabled;
+  const [needsRestart, setNeedsRestart] = useState(false);
 
-  const [requireRestart, setRequireRestart] = useState(false);
-
-  const onToggleSpellCheck = useCallback(
+  const handleToggle = useCallback(
     (checked: boolean) => {
       spellCheckSetting.setEnabled(checked);
-      setRequireRestart(true);
+      setNeedsRestart(true);
     },
     [spellCheckSetting],
   );
 
-  const onRestart = useAsyncCallback(async () => {
+  const handleRestart = useAsyncCallback(async () => {
     await desktopApiService.handler.ui.restartApp();
   }, [desktopApiService]);
 
@@ -196,11 +185,11 @@ const SpellCheckSettings = () => {
     <SettingsRow
       name={t["com.myoxus.settings.editorSettings.general.spell-check.title"]()}
       desc={
-        requireRestart ? (
+        needsRestart ? (
           <SettingsStatusText tone="error">
             <Trans i18nKey="com.myoxus.settings.editorSettings.general.spell-check.restart-hint">
               Settings changed; please restart the app.
-              <InlineActionButton onClick={onRestart}>
+              <InlineActionButton onClick={handleRestart}>
                 Restart
               </InlineActionButton>
             </Trans>
@@ -212,21 +201,23 @@ const SpellCheckSettings = () => {
         )
       }
     >
-      <Switch checked={enabled} onChange={onToggleSpellCheck} />
+      <Switch checked={enabled} onChange={handleToggle} />
     </SettingsRow>
   );
-};
+}
 
-const MiddleClickPasteSettings = () => {
+function MiddleClickPasteRow() {
   const t = useI18n();
-  const editorSettingService = useService(EditorSettingService);
-  const settings = useLiveData(editorSettingService.editorSetting.settings$);
-  const onToggleMiddleClickPaste = useCallback(
+  const editorSetting = useService(EditorSettingService).editorSetting;
+  const settings = useLiveData(editorSetting.settings$);
+
+  const handleToggle = useCallback(
     (checked: boolean) => {
-      editorSettingService.editorSetting.set("enableMiddleClickPaste", checked);
+      editorSetting.set("enableMiddleClickPaste", checked);
     },
-    [editorSettingService.editorSetting],
+    [editorSetting],
   );
+
   return (
     <SettingsRow
       name={t[
@@ -238,13 +229,13 @@ const MiddleClickPasteSettings = () => {
     >
       <Switch
         checked={settings.enableMiddleClickPaste}
-        onChange={onToggleMiddleClickPaste}
+        onChange={handleToggle}
       />
     </SettingsRow>
   );
-};
+}
 
-export const General = () => {
+export function General() {
   const t = useI18n();
 
   return (
@@ -252,14 +243,11 @@ export const General = () => {
       title={t["com.myoxus.settings.editorSettings.general"]()}
       testId="editor-settings-section-general"
     >
-      <AISettings />
-      <FontSizeSettings />
-      <NewDocDefaultModeSettings />
-      {BUILD_CONFIG.isElectron && <SpellCheckSettings />}
-      {environment.isLinux && <MiddleClickPasteSettings />}
-      {/* // TODO(@akumatus): implement these settings
-        <DeFaultCodeBlockSettings />
-       */}
+      <AIToggleRow />
+      <FontSizeRow />
+      <NewDocDefaultModeRow />
+      {BUILD_CONFIG.isElectron ? <SpellCheckRow /> : null}
+      {environment.isLinux ? <MiddleClickPasteRow /> : null}
     </SettingsSection>
   );
-};
+}

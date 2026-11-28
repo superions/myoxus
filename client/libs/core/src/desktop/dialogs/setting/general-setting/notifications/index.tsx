@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   type EffectiveUserPreferenceValues,
   UserPreferencesService,
@@ -16,69 +19,69 @@ import {
   Switch,
 } from "../../primitives";
 
+type NotificationPreferenceKey = keyof Pick<
+  EffectiveUserPreferenceValues,
+  | "receiveMentionEmail"
+  | "receiveInvitationEmail"
+  | "receiveCommentEmail"
+  | "notifyCreatedDocuments"
+>;
+
 export const NotificationSettings = () => {
   const t = useI18n();
   const userPreferencesService = useService(UserPreferencesService);
+  const preferences = useLiveData(userPreferencesService.userPreferences$);
+  const loadError = useLiveData(userPreferencesService.error$);
+  const [saving, setSaving] = useState(false);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     void userPreferencesService.revalidate();
   }, [userPreferencesService]);
 
-  const userPreferences = useLiveData(userPreferencesService.userPreferences$);
-  const [isMutating, setIsMutating] = useState(false);
-  const failedSaveFocus = useRef<HTMLElement | null>(null);
   useEffect(() => {
-    if (!isMutating && failedSaveFocus.current) {
-      const control = failedSaveFocus.current;
-      failedSaveFocus.current = null;
-      if (control.isConnected) control.focus();
+    if (!saving && restoreFocusRef.current) {
+      const target = restoreFocusRef.current;
+      restoreFocusRef.current = null;
+      if (target.isConnected) {
+        target.focus();
+      }
     }
-  }, [isMutating]);
-  const error = useLiveData(userPreferencesService.error$);
+  }, [saving]);
+
   const errorMessage = useMemo(() => {
-    if (error) {
-      const userFriendlyError = UserFriendlyError.fromAny(error);
-      return t[`error.${userFriendlyError.name}`](userFriendlyError.data);
-    }
-    return null;
-  }, [error, t]);
+    if (!loadError) return null;
+    const friendly = UserFriendlyError.fromAny(loadError);
+    return t[`error.${friendly.name}`](friendly.data);
+  }, [loadError, t]);
 
-  const values = userPreferences?.effectiveValues;
-  const disable = !values || isMutating;
+  const values = preferences?.effectiveValues;
+  const controlsDisabled = !values || saving;
 
-  const handleUpdate = useCallback(
-    (
-      key: keyof Pick<
-        EffectiveUserPreferenceValues,
-        | "receiveMentionEmail"
-        | "receiveInvitationEmail"
-        | "receiveCommentEmail"
-        | "notifyCreatedDocuments"
-      >,
-      value: boolean,
-    ) => {
-      const control =
+  const updateToggle = useCallback(
+    (key: NotificationPreferenceKey, checked: boolean) => {
+      const activeControl =
         document.activeElement instanceof HTMLElement
           ? document.activeElement
           : null;
-      setIsMutating(true);
+      setSaving(true);
       userPreferencesService
         .update(
-          { [key]: value },
+          { [key]: checked },
           { rollbackOnError: key === "notifyCreatedDocuments" },
         )
-        .catch((err) => {
-          failedSaveFocus.current = control;
-          const userFriendlyError = UserFriendlyError.fromAny(err);
+        .catch((error) => {
+          restoreFocusRef.current = activeControl;
+          const friendly = UserFriendlyError.fromAny(error);
           notify.error({
-            title: t[`error.${userFriendlyError.name}`](userFriendlyError.data),
+            title: t[`error.${friendly.name}`](friendly.data),
           });
         })
         .finally(() => {
-          setIsMutating(false);
+          setSaving(false);
         });
     },
-    [userPreferencesService, t],
+    [t, userPreferencesService],
   );
 
   return (
@@ -87,6 +90,7 @@ export const NotificationSettings = () => {
         title={t["com.myoxus.setting.notifications.header.title"]()}
         subtitle={t["com.myoxus.setting.notifications.header.description"]()}
       />
+
       <SettingWrapper
         title={t["com.myoxus.setting.notifications.in-app.title"]()}
       >
@@ -103,20 +107,23 @@ export const NotificationSettings = () => {
             ]()}
             checked={values?.notifyCreatedDocuments ?? false}
             disabled={
-              disable || typeof values?.notifyCreatedDocuments !== "boolean"
+              controlsDisabled ||
+              typeof values?.notifyCreatedDocuments !== "boolean"
             }
             onChange={(checked) =>
-              handleUpdate("notifyCreatedDocuments", checked)
+              updateToggle("notifyCreatedDocuments", checked)
             }
           />
         </SettingRow>
       </SettingWrapper>
+
       <SettingWrapper
         title={t["com.myoxus.setting.notifications.email.title"]()}
       >
-        {!values && errorMessage && (
+        {!values && errorMessage ? (
           <SettingsStatusText tone="error">{errorMessage}</SettingsStatusText>
-        )}
+        ) : null}
+
         <SettingRow
           name={t["com.myoxus.setting.notifications.email.mention.title"]()}
           desc={t["com.myoxus.setting.notifications.email.mention.subtitle"]()}
@@ -124,10 +131,11 @@ export const NotificationSettings = () => {
           <Switch
             data-testid="notification-email-mention-trigger"
             checked={values?.receiveMentionEmail ?? false}
-            disabled={disable}
-            onChange={(checked) => handleUpdate("receiveMentionEmail", checked)}
+            disabled={controlsDisabled}
+            onChange={(checked) => updateToggle("receiveMentionEmail", checked)}
           />
         </SettingRow>
+
         <SettingRow
           name={t["com.myoxus.setting.notifications.email.invites.title"]()}
           desc={t["com.myoxus.setting.notifications.email.invites.subtitle"]()}
@@ -135,12 +143,13 @@ export const NotificationSettings = () => {
           <Switch
             data-testid="notification-email-invites-trigger"
             checked={values?.receiveInvitationEmail ?? false}
-            disabled={disable}
+            disabled={controlsDisabled}
             onChange={(checked) =>
-              handleUpdate("receiveInvitationEmail", checked)
+              updateToggle("receiveInvitationEmail", checked)
             }
           />
         </SettingRow>
+
         <SettingRow
           name={t["com.myoxus.setting.notifications.email.comments.title"]()}
           desc={t["com.myoxus.setting.notifications.email.comments.subtitle"]()}
@@ -148,8 +157,8 @@ export const NotificationSettings = () => {
           <Switch
             data-testid="notification-email-comments-trigger"
             checked={values?.receiveCommentEmail ?? false}
-            disabled={disable}
-            onChange={(checked) => handleUpdate("receiveCommentEmail", checked)}
+            disabled={controlsDisabled}
+            onChange={(checked) => updateToggle("receiveCommentEmail", checked)}
           />
         </SettingRow>
       </SettingWrapper>

@@ -159,8 +159,6 @@ export async function enterPlaygroundRoom(
         "[vite] connecting...",
         // Figma embed:
         "Fullscreen: Using 4GB WASM heap",
-        // Lit:
-        "Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.",
         // Figma embed:
         "Running frontend commit",
         // Github timeout:

@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import type {
   AIDraftService,
@@ -14,7 +15,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { type AIError, AIProvider, type AISendParams } from "../../provider";
 import { readBlobAsURL } from "../../utils/image";
-import { mergeStreamObjects } from "../../utils/stream-objects";
 import type { SearchMenuConfig } from "../ai-chat-add-context";
 import { AddContext } from "../ai-chat-chips/context-options";
 import type { ChatChip, DocDisplayConfig } from "../ai-chat-chips/type";
@@ -24,11 +24,8 @@ import {
   isFileChip,
 } from "../ai-chat-chips/utils";
 import { ChatImagePreviewView } from "../ai-chat-chips/view";
-import {
-  type ChatMessage,
-  isChatMessage,
-  StreamObjectSchema,
-} from "../ai-chat-messages/type";
+import { type ChatMessage, isChatMessage } from "../ai-chat-messages/type";
+import { applyChatStreamChunk } from "../hooks/use-chat-stream";
 import { ImagePreviewUrls } from "../image-preview-grid";
 import { ChatPreferenceMenu } from "./preference-menu";
 import type { AIChatInputContext, AIReasoningConfig } from "./type";
@@ -57,58 +54,115 @@ export interface AIChatInputProps {
   onChatSuccess?: () => void;
   trackOptions?: VirgultumPresets.TrackerOptions;
   testId?: string;
-  /** Optional playground synchronization hooks. */
-  syncedDraft?: string;
-  onSyncedDraftChange?: (value: string) => void;
-  onRegisterSend?: (send: () => void) => () => void;
-  onBroadcastSend?: () => void;
 }
 
-export function AIChatInput({
-  independentMode,
-  host,
-  workspaceId,
-  docId,
-  session,
-  isContextProcessing,
-  chatContextValue,
-  chips,
-  createSession,
-  updateContext,
-  addImages,
-  addChip,
-  reasoningConfig,
-  docDisplayConfig,
-  searchMenuConfig,
-  aiDraftService,
-  aiToolsConfigService,
-  aiModelService,
-  isRootSession = true,
-  onChatSuccess,
-  trackOptions,
-  testId = "chat-panel-input-container",
-  syncedDraft,
-  onSyncedDraftChange,
-  onRegisterSend,
-  onBroadcastSend,
-}: AIChatInputProps) {
-  const [draftValue, setDraftValue] = useState(syncedDraft ?? "");
-  const draftRef = useRef(draftValue);
+function collectChatContexts(
+  chips: readonly ChatChip[],
+  config: DocDisplayConfig,
+) {
+  const docsById = new Map<string, string>();
+  for (const chip of chips) {
+    if (isDocChip(chip)) {
+      docsById.set(chip.docId, chip.markdown?.value ?? "");
+    }
+  }
+
+  const docs: VirgultumPresets.AIDocContextOption[] = Array.from(
+    docsById.entries(),
+  ).map(([docId, docContent]) => {
+    const meta = config.getDocMeta(docId);
+    return {
+      docId,
+      docContent,
+      docTitle: config.getTitle(docId),
+      tags: meta?.tags?.map((id) => config.getTagTitle(id)).join(",") ?? "",
+      createDate: meta?.createDate
+        ? new Date(meta.createDate).toISOString()
+        : "",
+      updatedDate: meta?.updatedDate
+        ? new Date(meta.updatedDate).toISOString()
+        : "",
+    };
+  });
+
+  const files: VirgultumPresets.AIFileContextOption[] = [];
+  for (const chip of chips) {
+    if (chip.state !== "finished") continue;
+    if (isFileChip(chip) && chip.blobId) {
+      files.push({
+        blobId: chip.blobId,
+        fileName: chip.file.name,
+        fileType: chip.file.type,
+        fileContent: "",
+      });
+    } else if (isAttachmentChip(chip)) {
+      files.push({
+        blobId: chip.sourceId,
+        fileName: chip.name,
+        fileType: "",
+        fileContent: "",
+      });
+    }
+  }
+
+  return { docs, files };
+}
+
+function conversationHasImages(ctx: AIChatInputContext): boolean {
+  return (
+    ctx.images.length > 0 ||
+    ctx.messages.some(
+      (msg) =>
+        isChatMessage(msg) && msg.role === "user" && !!msg.attachments?.length,
+    )
+  );
+}
+
+/**
+ * Controlled chat input orchestrator handling draft persistence, image paste
+ * previews, context assembly, streaming message submission, abort, and server
+ * message-ID reconciliation.
+ */
+export function AIChatInput(props: AIChatInputProps) {
+  const {
+    independentMode,
+    host,
+    workspaceId,
+    docId,
+    session,
+    isContextProcessing,
+    chatContextValue,
+    chips,
+    createSession,
+    updateContext,
+    addImages,
+    addChip,
+    reasoningConfig,
+    docDisplayConfig,
+    searchMenuConfig,
+    aiDraftService,
+    aiToolsConfigService,
+    aiModelService,
+    isRootSession = true,
+    onChatSuccess,
+    trackOptions,
+    testId = "chat-panel-input-container",
+  } = props;
+
+  const [draft, setDraftState] = useState("");
+  const draftRef = useRef(draft);
   const setDraft = useCallback((next: string) => {
     draftRef.current = next;
-    setDraftValue(next);
+    setDraftState(next);
   }, []);
-  const imagePreviewUrls = useMemo(() => new ImagePreviewUrls(), []);
-  const [activeRequest, setActiveRequest] = useState<AbortController | null>(
-    null,
-  );
+
+  const previewUrls = useMemo(() => new ImagePreviewUrls(), []);
+  const [activeAbort, setActiveAbort] = useState<AbortController | null>(null);
 
   const mountedRef = useRef(true);
-  const draftRevisionRef = useRef(0);
-  const activeRequestRef = useRef<AbortController | null>(null);
-  const isActiveRequestCurrentRef = useRef<(() => boolean) | undefined>(
-    undefined,
-  );
+  const draftVersionRef = useRef(0);
+  const activeAbortRef = useRef<AbortController | null>(null);
+  const activeGuardRef = useRef<(() => boolean) | undefined>(undefined);
 
   const latestRef = useRef({
     host,
@@ -128,7 +182,6 @@ export function AIChatInput({
     aiModelService,
     isRootSession,
     onChatSuccess,
-    onSyncedDraftChange,
     trackOptions,
   });
   latestRef.current = {
@@ -149,35 +202,26 @@ export function AIChatInput({
     aiModelService,
     isRootSession,
     onChatSuccess,
-    onSyncedDraftChange,
     trackOptions,
   };
 
-  // Subscribe to signals needed for reactive disabled/preferences UI.
   const models = useSignalValue(aiModelService.models) ?? [];
   const modelStatus = useSignalValue(aiModelService.status) ?? "idle";
   const tools = useSignalValue(aiToolsConfigService.config) ?? {};
-  const isReasoningActive = !!(
+  const isReasoningEnabled = !!(
     useSignalValue(reasoningConfig.enabled) ?? false
   );
 
-  useEffect(() => {
-    if (syncedDraft !== undefined && syncedDraft !== draftRef.current) {
-      draftRevisionRef.current++;
-      setDraft(syncedDraft);
-    }
-  }, [setDraft, syncedDraft]);
-
-  const stopRequest = useCallback((controller: AbortController) => {
-    const ownsRequest = activeRequestRef.current === controller;
+  const cancelRequest = useCallback((controller: AbortController) => {
+    const isOwned = activeAbortRef.current === controller;
     controller.abort();
-    if (ownsRequest) {
-      activeRequestRef.current = null;
-      setActiveRequest(null);
-      isActiveRequestCurrentRef.current = undefined;
+    if (isOwned) {
+      activeAbortRef.current = null;
+      setActiveAbort(null);
+      activeGuardRef.current = undefined;
     }
     if (
-      ownsRequest ||
+      isOwned ||
       latestRef.current.chatContextValue.abortController === controller
     ) {
       latestRef.current.updateContext({
@@ -187,242 +231,83 @@ export function AIChatInput({
     }
   }, []);
 
-  // Abort active request if workspace/doc/session scope changes incompatibly.
   useEffect(() => {
-    const active = activeRequestRef.current;
-    if (active && !isActiveRequestCurrentRef.current?.()) {
-      stopRequest(active);
+    const running = activeAbortRef.current;
+    if (running && !activeGuardRef.current?.()) {
+      cancelRequest(running);
     }
-  }, [workspaceId, docId, session?.sessionId, stopRequest]);
+  }, [cancelRequest, docId, session?.sessionId, workspaceId]);
 
   useEffect(() => {
     mountedRef.current = true;
-    const revision = draftRevisionRef.current;
+    const expectedVersion = draftVersionRef.current;
     aiDraftService
       ?.getDraft()
-      .then((restored) => {
-        if (mountedRef.current && revision === draftRevisionRef.current) {
-          setDraft(restored.input);
+      .then((saved) => {
+        if (mountedRef.current && expectedVersion === draftVersionRef.current) {
+          setDraft(saved.input);
         }
       })
       .catch(console.error);
 
     return () => {
       mountedRef.current = false;
-      imagePreviewUrls.dispose();
-      draftRevisionRef.current++;
-      activeRequestRef.current?.abort();
-      activeRequestRef.current = null;
-      isActiveRequestCurrentRef.current = undefined;
+      previewUrls.dispose();
+      draftVersionRef.current += 1;
+      activeAbortRef.current?.abort();
+      activeAbortRef.current = null;
+      activeGuardRef.current = undefined;
     };
-  }, [aiDraftService, imagePreviewUrls, setDraft]);
+  }, [aiDraftService, previewUrls, setDraft]);
 
   const supportsVision = aiModelService.supportsVision;
-  const imageInputUnsupported = useMemo(() => {
-    const hasImages =
-      chatContextValue.images.length > 0 ||
-      chatContextValue.messages.some(
-        (message) =>
-          isChatMessage(message) &&
-          message.role === "user" &&
-          !!message.attachments?.length,
-      );
-    return hasImages && !supportsVision;
-  }, [supportsVision, chatContextValue.images, chatContextValue.messages]);
+  const imageInputUnsupported = useMemo(
+    () => conversationHasImages(chatContextValue) && !supportsVision,
+    [chatContextValue, supportsVision],
+  );
 
   const generating =
-    !!activeRequest ||
+    !!activeAbort ||
     chatContextValue.status === "loading" ||
     chatContextValue.status === "transmitting";
 
-  const isSendDisabled =
+  const sendDisabled =
     generating ||
-    !draftValue.trim() ||
+    !draft.trim() ||
     !!isContextProcessing ||
     imageInputUnsupported;
 
-  const getMatchedContexts = useCallback(async () => {
-    const { chips: currentChips, docDisplayConfig: config } = latestRef.current;
-    const docContexts = new Map<
-      string,
-      { docId: string; docContent: string }
-    >();
-
-    currentChips.forEach((chip) => {
-      if (isDocChip(chip)) {
-        docContexts.set(chip.docId, {
-          docId: chip.docId,
-          docContent: chip.markdown?.value ?? "",
-        });
-      }
-    });
-
-    const docs: VirgultumPresets.AIDocContextOption[] = Array.from(
-      docContexts.values(),
-    ).map((doc) => {
-      const docMeta = config.getDocMeta(doc.docId);
-      const docTitle = config.getTitle(doc.docId);
-      const tags = docMeta?.tags
-        ? docMeta.tags.map((tagId) => config.getTagTitle(tagId)).join(",")
-        : "";
-      return {
-        docId: doc.docId,
-        docContent: doc.docContent,
-        docTitle,
-        tags,
-        createDate: docMeta?.createDate
-          ? new Date(docMeta.createDate).toISOString()
-          : "",
-        updatedDate: docMeta?.updatedDate
-          ? new Date(docMeta.updatedDate).toISOString()
-          : "",
-      };
-    });
-
-    const files: VirgultumPresets.AIFileContextOption[] = currentChips.flatMap(
-      (chip) => {
-        if (chip.state !== "finished") return [];
-        if (isFileChip(chip) && chip.blobId)
-          return [
-            {
-              blobId: chip.blobId,
-              fileName: chip.file.name,
-              fileType: chip.file.type,
-              fileContent: "",
-            },
-          ];
-        if (isAttachmentChip(chip))
-          return [
-            {
-              blobId: chip.sourceId,
-              fileName: chip.name,
-              fileType: "",
-              fileContent: "",
-            },
-          ];
-        return [];
-      },
-    );
-    return { docs, files };
-  }, []);
-
-  const preUpdateMessages = useCallback(
-    async (
-      userInput: string,
-      attachments: string[],
-      previous: AIChatInputContext["messages"],
-      isCurrent: () => boolean,
-      requestId: string,
-    ) => {
-      const userInfo = await AIProvider.userInfo;
-      if (!isCurrent()) return undefined;
-      const messages: AIChatInputContext["messages"] = [
-        ...previous,
-        {
-          id: "",
-          role: "user",
-          content: userInput,
-          params: { inputRequestId: requestId },
-          createdAt: new Date().toISOString(),
-          attachments,
-          userId: userInfo?.id,
-          userName: userInfo?.name,
-          avatarUrl: userInfo?.avatarUrl ?? undefined,
-        },
-        {
-          id: "",
-          role: "assistant",
-          content: "",
-          params: { requestId },
-          createdAt: new Date().toISOString(),
-        },
-      ];
-      latestRef.current.updateContext({ messages });
-      return messages;
-    },
-    [],
-  );
-
-  const postUpdateMessages = useCallback(
-    async (
-      sessionId: string,
-      messages: AIChatInputContext["messages"],
-      isCurrent: () => boolean,
-      requestId: string,
-    ) => {
-      if (!sessionId || !AIProvider.histories) return;
-      const histories = await AIProvider.histories.chats(
-        latestRef.current.workspaceId,
-        sessionId,
-      );
-      if (!isCurrent()) return;
-      const stored = (histories?.[0]?.messages ?? []) as ChatMessage[];
-      const user = stored.find(
-        (message) =>
-          message.role === "user" &&
-          message.params?.inputRequestId === requestId,
-      );
-      const assistant = stored.find(
-        (message) =>
-          message.role === "assistant" &&
-          message.params?.responseTo === user?.id,
-      );
-      if (!user || !assistant)
-        throw new Error("The response identity could not be reconciled");
-      const localUser = messages.at(-2) as ChatMessage;
-      const last = messages.at(-1) as ChatMessage;
-      latestRef.current.updateContext({
-        messages: [
-          ...messages.slice(0, -2),
-          { ...localUser, id: user.id, params: user.params },
-          {
-            ...last,
-            id: assistant.id,
-            params: assistant.params,
-            generatedFiles: assistant.generatedFiles,
-          },
-        ],
-      });
-    },
-    [],
-  );
-
-  const send = useCallback(
+  const submitPrompt = useCallback(
     async (text: string, clearDraft = false) => {
       const cur = latestRef.current;
-      const isBusyNow =
-        !!activeRequestRef.current ||
+      const busy =
+        !!activeAbortRef.current ||
         cur.chatContextValue.status === "loading" ||
         cur.chatContextValue.status === "transmitting";
-      const hasImages =
-        cur.chatContextValue.images.length > 0 ||
-        cur.chatContextValue.messages.some(
-          (message) =>
-            isChatMessage(message) &&
-            message.role === "user" &&
-            !!message.attachments?.length,
-        );
-      const visionUnsupported = hasImages && !cur.aiModelService.supportsVision;
+      const blockedByVision =
+        conversationHasImages(cur.chatContextValue) &&
+        !cur.aiModelService.supportsVision;
 
       if (
         !mountedRef.current ||
-        isBusyNow ||
+        busy ||
         cur.isContextProcessing ||
-        visionUnsupported ||
+        blockedByVision ||
         !text.trim() ||
         !AIProvider.actions.chat
       ) {
         return;
       }
 
-      const before = cur.chatContextValue;
-      const originalDraft = draftRef.current;
-      const submittedDraftRevision = draftRevisionRef.current;
-      const originalSessionId = cur.session?.sessionId;
-      let ownedSessionId = originalSessionId;
-      const reqWorkspaceId = cur.workspaceId;
-      const reqDocId = cur.docId;
-      const abortController = new AbortController();
+      const snapshotBefore = cur.chatContextValue;
+      const savedDraft = draftRef.current;
+      const submittedVersion = draftVersionRef.current;
+      const initialSessionId = cur.session?.sessionId;
+      let ownedSessionId = initialSessionId;
+      const targetWorkspaceId = cur.workspaceId;
+      const targetDocId = cur.docId;
+
+      const controller = new AbortController();
       const requestId = nanoid();
       const modelId = cur.aiModelService.effectiveModelId;
       const reasoning = cur.aiModelService.reasoningAvailable
@@ -430,43 +315,45 @@ export function AIChatInput({
         : undefined;
       const toolsConfig = cur.aiToolsConfigService.config.value;
 
-      activeRequestRef.current = abortController;
-      setActiveRequest(abortController);
+      activeAbortRef.current = controller;
+      setActiveAbort(controller);
 
       const isCurrent = () =>
         mountedRef.current &&
-        activeRequestRef.current === abortController &&
-        latestRef.current.workspaceId === reqWorkspaceId &&
-        latestRef.current.docId === reqDocId &&
-        (latestRef.current.session?.sessionId === originalSessionId ||
+        activeAbortRef.current === controller &&
+        latestRef.current.workspaceId === targetWorkspaceId &&
+        latestRef.current.docId === targetDocId &&
+        (latestRef.current.session?.sessionId === initialSessionId ||
           latestRef.current.session?.sessionId === ownedSessionId);
-      isActiveRequestCurrentRef.current = isCurrent;
+      activeGuardRef.current = isCurrent;
 
-      let clearedRevision: number | undefined;
+      let clearedVersion: number | undefined;
       try {
         const { markdown, images, snapshot, combinedElementsMarkdown, html } =
-          before;
+          snapshotBefore;
         cur.updateContext({
           status: "loading",
           retrievalAvailable: undefined,
           error: null,
-          abortController,
+          abortController: controller,
         });
 
-        const imageAttachments = await Promise.all(
-          images?.map((image) => readBlobAsURL(image)),
+        const encodedImages = await Promise.all(
+          images.map((image) => readBlobAsURL(image)),
         );
-        if (!isCurrent() || abortController.signal.aborted) return;
+        if (!isCurrent() || controller.signal.aborted) return;
 
         const sessionId = (await cur.createSession())?.sessionId;
         ownedSessionId = sessionId;
-        if (!isCurrent() || abortController.signal.aborted) return;
+        if (!isCurrent() || controller.signal.aborted) return;
         if (!sessionId) throw new Error("Conversation creation unavailable");
 
-        const contexts = await getMatchedContexts();
-        if (!isCurrent() || abortController.signal.aborted) return;
+        const contexts = collectChatContexts(
+          latestRef.current.chips,
+          latestRef.current.docDisplayConfig,
+        );
+        let workingMessages = snapshotBefore.messages;
 
-        let requestMessages = before.messages;
         const stream = await AIProvider.actions.chat({
           sessionId,
           requestId,
@@ -477,11 +364,11 @@ export function AIChatInput({
             selectedMarkdown: combinedElementsMarkdown || markdown || undefined,
             html: html || undefined,
           },
-          docId: reqDocId,
+          docId: targetDocId,
           attachments: images,
-          workspaceId: reqWorkspaceId,
+          workspaceId: targetWorkspaceId,
           stream: true,
-          signal: abortController.signal,
+          signal: controller.signal,
           isRootSession: cur.isRootSession,
           where: cur.trackOptions?.where,
           control: cur.trackOptions?.control,
@@ -489,218 +376,203 @@ export function AIChatInput({
           toolsConfig,
           modelId,
           onMessageCreated: async () => {
-            if (!isCurrent() || abortController.signal.aborted) return;
-            const acknowledged = await preUpdateMessages(
-              text,
-              imageAttachments,
-              before.messages,
-              isCurrent,
-              requestId,
-            );
-            if (!acknowledged || !isCurrent() || abortController.signal.aborted)
-              return;
-            requestMessages = acknowledged;
+            if (!isCurrent() || controller.signal.aborted) return;
+            const userInfo = await AIProvider.userInfo;
+            if (!isCurrent() || controller.signal.aborted) return;
+
+            const appended: AIChatInputContext["messages"] = [
+              ...snapshotBefore.messages,
+              {
+                id: "",
+                role: "user",
+                content: text,
+                params: { inputRequestId: requestId },
+                createdAt: new Date().toISOString(),
+                attachments: encodedImages,
+                userId: userInfo?.id,
+                userName: userInfo?.name,
+                avatarUrl: userInfo?.avatarUrl ?? undefined,
+              },
+              {
+                id: "",
+                role: "assistant",
+                content: "",
+                params: { requestId },
+                createdAt: new Date().toISOString(),
+              },
+            ];
+            workingMessages = appended;
             const latestCtx = latestRef.current.chatContextValue;
             latestRef.current.updateContext({
-              images: latestCtx.images.filter(
-                (image) => !images.includes(image),
-              ),
-              quote: latestCtx.quote === before.quote ? "" : latestCtx.quote,
+              messages: appended,
+              images: latestCtx.images.filter((img) => !images.includes(img)),
+              quote:
+                latestCtx.quote === snapshotBefore.quote ? "" : latestCtx.quote,
               markdown:
-                latestCtx.markdown === before.markdown
+                latestCtx.markdown === snapshotBefore.markdown
                   ? ""
                   : latestCtx.markdown,
             });
-            if (
-              clearDraft &&
-              draftRevisionRef.current === submittedDraftRevision
-            ) {
-              clearedRevision = ++draftRevisionRef.current;
+
+            if (clearDraft && draftVersionRef.current === submittedVersion) {
+              clearedVersion = ++draftVersionRef.current;
               setDraft("");
-              latestRef.current.onSyncedDraftChange?.("");
               await latestRef.current.aiDraftService?.setDraft({ input: "" });
             }
           },
           onRetrievalStatus: (available) => {
-            if (isCurrent() && !abortController.signal.aborted)
+            if (isCurrent() && !controller.signal.aborted) {
               latestRef.current.updateContext({
                 retrievalAvailable: available,
               });
+            }
           },
         });
 
         for await (const chunk of stream) {
-          if (abortController.signal.aborted || !isCurrent()) break;
-          const messages = requestMessages.slice(0);
-          const last = messages.at(-1);
-          if (last && isChatMessage(last)) {
-            try {
-              const parsed = StreamObjectSchema.parse(JSON.parse(chunk));
-              const streamObjects = mergeStreamObjects([
-                ...(last.streamObjects ?? []),
-                parsed,
-              ]);
-              messages[messages.length - 1] = { ...last, streamObjects };
-            } catch {
-              messages[messages.length - 1] = {
-                ...last,
-                content: last.content + chunk,
-              };
-            }
-            requestMessages = messages;
-            latestRef.current.updateContext({
-              messages,
-              status: "transmitting",
-            });
-          }
+          if (!isCurrent() || controller.signal.aborted) break;
+          workingMessages = applyChatStreamChunk(workingMessages, chunk);
+          latestRef.current.updateContext({
+            messages: workingMessages,
+            status: "transmitting",
+          });
         }
 
-        if (abortController.signal.aborted || !isCurrent()) return;
-        await postUpdateMessages(
-          sessionId,
-          requestMessages,
-          isCurrent,
-          requestId,
-        );
-        if (isCurrent() && !abortController.signal.aborted) {
+        if (!isCurrent() || controller.signal.aborted) return;
+
+        if (AIProvider.histories) {
+          const histories = await AIProvider.histories.chats(
+            targetWorkspaceId,
+            sessionId,
+          );
+          if (!isCurrent()) return;
+          const stored = (histories?.[0]?.messages ?? []) as ChatMessage[];
+          const userTurn = stored.find(
+            (m) => m.role === "user" && m.params?.inputRequestId === requestId,
+          );
+          const assistantTurn = stored.find(
+            (m) =>
+              m.role === "assistant" && m.params?.responseTo === userTurn?.id,
+          );
+          if (!userTurn || !assistantTurn) {
+            throw new Error("The response identity could not be reconciled");
+          }
+          const localUser = workingMessages.at(-2) as ChatMessage;
+          const localAssistant = workingMessages.at(-1) as ChatMessage;
+          latestRef.current.updateContext({
+            messages: [
+              ...workingMessages.slice(0, -2),
+              { ...localUser, id: userTurn.id, params: userTurn.params },
+              {
+                ...localAssistant,
+                id: assistantTurn.id,
+                params: assistantTurn.params,
+                generatedFiles: assistantTurn.generatedFiles,
+              },
+            ],
+          });
+        }
+
+        if (isCurrent() && !controller.signal.aborted) {
           latestRef.current.onChatSuccess?.();
           latestRef.current.updateContext({ status: "success" });
         }
       } catch (error) {
         if (!isCurrent()) return;
-        if (abortController.signal.aborted) {
+        if (controller.signal.aborted) {
           latestRef.current.updateContext({ status: "idle" });
           return;
         }
         if (
-          clearedRevision !== undefined &&
-          clearedRevision === draftRevisionRef.current
+          clearedVersion !== undefined &&
+          clearedVersion === draftVersionRef.current
         ) {
-          draftRevisionRef.current++;
-          setDraft(originalDraft);
-          latestRef.current.onSyncedDraftChange?.(originalDraft);
+          draftVersionRef.current += 1;
+          setDraft(savedDraft);
           void latestRef.current.aiDraftService
-            ?.setDraft({ input: originalDraft })
+            ?.setDraft({ input: savedDraft })
             .catch(console.error);
         }
         const latestCtx = latestRef.current.chatContextValue;
         latestRef.current.updateContext({
           status: "error",
           error: error as AIError,
-          images: [...new Set([...before.images, ...latestCtx.images])],
-          quote: latestCtx.quote || before.quote,
-          markdown: latestCtx.markdown || before.markdown,
+          images: [...new Set([...snapshotBefore.images, ...latestCtx.images])],
+          quote: latestCtx.quote || snapshotBefore.quote,
+          markdown: latestCtx.markdown || snapshotBefore.markdown,
         });
       } finally {
         if (
           isCurrent() &&
-          latestRef.current.chatContextValue.abortController === abortController
+          latestRef.current.chatContextValue.abortController === controller
         ) {
           latestRef.current.updateContext({
             abortController: null,
-            ...(abortController.signal.aborted ? { status: "idle" } : {}),
+            ...(controller.signal.aborted ? { status: "idle" } : {}),
           });
         }
-        if (activeRequestRef.current === abortController) {
-          activeRequestRef.current = null;
-          setActiveRequest(null);
-          isActiveRequestCurrentRef.current = undefined;
+        if (activeAbortRef.current === controller) {
+          activeAbortRef.current = null;
+          setActiveAbort(null);
+          activeGuardRef.current = undefined;
         }
       }
     },
-    [getMatchedContexts, postUpdateMessages, preUpdateMessages, setDraft],
+    [setDraft],
   );
 
   useEffect(() => {
-    const sendSub = AIProvider.slots.requestSendWithChat.subscribe(
+    const sub = AIProvider.slots.requestSendWithChat.subscribe(
       (params: AISendParams | null) => {
         if (!params) return;
-        const { input, context, host: targetHost } = params;
-        const cur = latestRef.current;
-        const busyNow =
-          !!activeRequestRef.current ||
-          cur.chatContextValue.status === "loading" ||
-          cur.chatContextValue.status === "transmitting";
-        if (cur.host === targetHost && !busyNow && !cur.isContextProcessing) {
-          const reqWorkspaceId = cur.workspaceId;
-          const reqDocId = cur.docId;
-          const reqSessionId = cur.session?.sessionId;
-          if (context) cur.updateContext(context);
+        const matches = params.host
+          ? latestRef.current.host === params.host
+          : !latestRef.current.host &&
+            (!params.docId || latestRef.current.docId === params.docId);
+        if (matches) {
           setTimeout(() => {
-            const next = latestRef.current;
-            if (
-              !mountedRef.current ||
-              next.host !== targetHost ||
-              next.workspaceId !== reqWorkspaceId ||
-              next.docId !== reqDocId ||
-              next.session?.sessionId !== reqSessionId
-            )
-              return;
-            void send(input).catch(console.error);
+            if (!mountedRef.current) return;
+            if (params.input) {
+              draftVersionRef.current += 1;
+              setDraft(params.input);
+              void submitPrompt(params.input, false).catch(console.error);
+            }
           }, 0);
         }
         AIProvider.slots.requestSendWithChat.next(null);
       },
     );
-    const openSub = AIProvider.slots.requestOpenWithChat.subscribe((params) => {
-      if (!params) return;
-      const matchesTarget = params.host
-        ? latestRef.current.host === params.host
-        : !latestRef.current.host &&
-          (!params.docId || latestRef.current.docId === params.docId);
-      if (!matchesTarget) return;
-      if (params.input) {
-        draftRevisionRef.current++;
-        setDraft(params.input);
-      }
-    });
-    return () => {
-      sendSub.unsubscribe();
-      openSub.unsubscribe();
-    };
-  }, [send, setDraft]);
+    return () => sub.unsubscribe();
+  }, [setDraft, submitPrompt]);
 
-  const sendCurrentDraft = useCallback(() => {
-    const value = draftRef.current.trim();
-    if (!value) return;
-    void send(value, true).catch(console.error);
-  }, [send]);
-
-  useEffect(() => {
-    if (!onRegisterSend) return;
-    return onRegisterSend(sendCurrentDraft);
-  }, [onRegisterSend, sendCurrentDraft]);
-
-  const handleInput = useCallback(
+  const handleInputChange = useCallback(
     (value: string) => {
       if (value === draftRef.current) return;
-      draftRevisionRef.current++;
+      draftVersionRef.current += 1;
       setDraft(value);
-      onSyncedDraftChange?.(value);
       void aiDraftService?.setDraft({ input: value }).catch(console.error);
     },
-    [aiDraftService, onSyncedDraftChange, setDraft],
+    [aiDraftService, setDraft],
   );
 
-  const handleAbort = useCallback(() => {
+  const handleStop = useCallback(() => {
     const controller =
-      activeRequestRef.current ??
+      activeAbortRef.current ??
       latestRef.current.chatContextValue.abortController;
-    if (!controller) return;
-    stopRequest(controller);
-  }, [stopRequest]);
+    if (controller) cancelRequest(controller);
+  }, [cancelRequest]);
 
-  const handlePreviewRemove = useCallback(
+  const handleRemovePreview = useCallback(
     (file: File) => {
       const currentImages = latestRef.current.chatContextValue.images;
-      const index = currentImages.indexOf(file);
-      if (index < 0) return;
-      imagePreviewUrls.release(file);
+      const idx = currentImages.indexOf(file);
+      if (idx === -1) return;
+      previewUrls.release(file);
       latestRef.current.updateContext({
-        images: currentImages.filter((_, i) => i !== index),
+        images: currentImages.filter((_, i) => i !== idx),
       });
     },
-    [imagePreviewUrls],
+    [previewUrls],
   );
 
   const handlePaste = useCallback(
@@ -710,27 +582,27 @@ export function AIChatInput({
       if (!items) return;
       for (const item of Array.from(items)) {
         if (item.kind === "file" && item.type.startsWith("image/")) {
-          const blob = item.getAsFile();
-          if (blob) addImages([blob]);
+          const file = item.getAsFile();
+          if (file) addImages([file]);
         }
       }
     },
     [addImages],
   );
 
-  const previews = imagePreviewUrls.sync(chatContextValue.images);
+  const previews = previewUrls.sync(chatContextValue.images);
 
   return (
     <Box data-testid={testId}>
       <ChatInputView
-        value={draftValue}
+        value={draft}
         quote={chatContextValue.quote}
         images={
           previews.length ? (
             <ChatImagePreviewView
               images={previews}
-              onRemove={handlePreviewRemove}
-              onError={imagePreviewUrls.release}
+              onRemove={handleRemovePreview}
+              onError={previewUrls.release}
             />
           ) : null
         }
@@ -751,7 +623,7 @@ export function AIChatInput({
             modelId={aiModelService.effectiveModelId}
             modelStatus={modelStatus}
             onReloadModels={aiModelService.reload}
-            reasoning={isReasoningActive}
+            reasoning={isReasoningEnabled}
             reasoningAvailable={aiModelService.reasoningAvailable}
             searchWorkspace={!!tools.searchWorkspace && !!tools.readingDocs}
             disabled={generating}
@@ -771,18 +643,17 @@ export function AIChatInput({
           chatContextValue.retrievalAvailable === false &&
           tools.searchWorkspace !== false
         }
-        sendDisabled={isSendDisabled}
-        onInput={handleInput}
+        sendDisabled={sendDisabled}
+        onInput={handleInputChange}
         onSend={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          if (isSendDisabled) return;
-          const value = draftRef.current.trim();
-          if (!value) return;
-          void send(value, true).catch(console.error);
-          onBroadcastSend?.();
+          if (sendDisabled) return;
+          const text = draftRef.current.trim();
+          if (!text) return;
+          void submitPrompt(text, true).catch(console.error);
         }}
-        onStop={handleAbort}
+        onStop={handleStop}
         onPaste={(event) => handlePaste(event.nativeEvent)}
         onRemoveQuote={() => updateContext({ quote: "", markdown: "" })}
       />

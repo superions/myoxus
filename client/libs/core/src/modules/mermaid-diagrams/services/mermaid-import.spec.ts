@@ -14,7 +14,7 @@ import {
 } from "@virgultum/core/models";
 import { Text } from "@virgultum/core/store";
 import { TestWorkspace } from "@virgultum/core/store/test";
-import { MarkdownTransformer } from "@virgultum/editor/widgets/linked-doc";
+import { MarkdownTransformer } from "@virgultum/editor/interchange";
 
 import {
   importMermaidFilesToDocs,

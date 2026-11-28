@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import { type EditorHost, TextSelection } from "@virgultum/editor/std";
-
-import { AIStarIconWithAnimation } from "../_common/icons";
 
 import {
   buildCopyConfig,
@@ -25,78 +26,82 @@ import type { AIPanelController } from "../widgets/ai-panel/controller";
 import type { AIActionAnswer } from "../widgets/ai-panel/type";
 import { actionToAnswerRenderer } from "./answer-renderer";
 
+type ActionVariants<K extends keyof VirgultumPresets.AIActions> = Omit<
+  Parameters<VirgultumPresets.AIActions[K]>[0],
+  keyof VirgultumPresets.AITextActionOptions
+>;
+
 export function bindTextStream(
   stream: VirgultumPresets.TextStream,
-  {
-    update,
-    finish,
-    signal,
-  }: {
+  callbacks: {
     update: (answer: AIActionAnswer) => void;
     finish: (state: "success" | "error" | "aborted", err?: AIError) => void;
     signal?: AbortSignal;
   },
-) {
+): void {
+  const { update, finish, signal } = callbacks;
+
   (async () => {
-    const answer: AIActionAnswer = {
-      content: "",
-    };
-    signal?.addEventListener("abort", () => {
-      finish("aborted");
-      reportResponse("aborted:stop");
-    });
-    for await (const data of stream) {
-      if (signal?.aborted) {
-        return;
-      }
+    const answer: AIActionAnswer = { content: "" };
+    signal?.addEventListener(
+      "abort",
+      () => {
+        finish("aborted");
+        reportResponse("aborted:stop");
+      },
+      { once: true },
+    );
+
+    for await (const chunk of stream) {
+      if (signal?.aborted) return;
+
+      let structured = false;
       try {
-        const parsed = StreamObjectSchema.safeParse(JSON.parse(data));
+        const parsed = StreamObjectSchema.safeParse(JSON.parse(chunk));
         if (parsed.success) {
           answer.streamObjects = mergeStreamObjects([
             ...(answer.streamObjects ?? []),
             parsed.data,
           ]);
-        } else {
-          answer.content += data;
+          structured = true;
         }
       } catch {
-        answer.content += data;
+        // Plain text chunk.
+      }
+      if (!structured) {
+        answer.content += chunk;
       }
       update(answer);
     }
+
     finish("success");
-  })().catch((err) => {
+  })().catch((err: unknown) => {
     if (signal?.aborted) return;
-    if (err.name === "AbortError") {
+    if (err instanceof Error && err.name === "AbortError") {
       finish("aborted");
-    } else {
-      finish("error", err);
+      return;
     }
+    finish("error", err as AIError);
   });
 }
 
-function actionToStream<T extends keyof VirgultumPresets.AIActions>(
+function createDocActionStream<K extends keyof VirgultumPresets.AIActions>(
   host: EditorHost,
-  id: T,
-  input: string,
+  id: K,
+  userInput: string,
   signal?: AbortSignal,
-  variants?: Omit<
-    Parameters<VirgultumPresets.AIActions[T]>[0],
-    keyof VirgultumPresets.AITextActionOptions
-  >,
+  variants?: ActionVariants<K>,
   trackerOptions?: VirgultumPresets.TrackerOptions,
 ): VirgultumPresets.TextStream | undefined {
   const action = AIProvider.actions[id];
-  if (!action || typeof action !== "function") return;
+  if (typeof action !== "function") return;
 
-  let stream: VirgultumPresets.TextStream | undefined;
   return {
     async *[Symbol.asyncIterator]() {
       const { currentTextSelection, selectedBlocks } = getSelections(host);
 
       let markdown: string;
       let attachments: File[] = [];
-
       if (currentTextSelection?.isCollapsed()) {
         markdown = await selectAboveBlocks(host);
       } else {
@@ -106,53 +111,53 @@ function actionToStream<T extends keyof VirgultumPresets.AIActions>(
         ]);
       }
 
-      const models = selectedBlocks?.map((block) => block.model);
-      const control = trackerOptions?.control ?? "format-bar";
-      const where = trackerOptions?.where ?? "ai-panel";
+      const combinedInput = userInput
+        ? markdown
+          ? `${markdown}\n${userInput}`
+          : userInput
+        : markdown;
+
       const options = {
         ...variants,
         attachments,
-        input: input ? (markdown ? `${markdown}\n${input}` : input) : markdown,
+        input: combinedInput,
         stream: true,
         host,
-        models,
+        models: selectedBlocks?.map((block) => block.model),
         signal,
-        control,
-        where,
+        control: trackerOptions?.control ?? "format-bar",
+        where: trackerOptions?.where ?? "ai-panel",
         docId: host.store.id,
         workspaceId: host.store.workspace.id,
-      } as Parameters<typeof action>[0];
-      // @ts-expect-error TODO(@Peng): maybe fix this
-      stream = await action(options);
-      if (!stream) return;
-      yield* stream;
+      };
+
+      const stream = (await (
+        action as (
+          opts: Record<string, unknown>,
+        ) => Promise<VirgultumPresets.TextStream | undefined>
+      )(options)) as VirgultumPresets.TextStream | undefined;
+      if (stream) {
+        yield* stream;
+      }
     },
   };
 }
 
-function actionToGenerateAnswer<T extends keyof VirgultumPresets.AIActions>(
-  host: EditorHost,
-  id: T,
-  variants?: Omit<
-    Parameters<VirgultumPresets.AIActions[T]>[0],
-    keyof VirgultumPresets.AITextActionOptions
-  >,
+function configurePanelForDocAction<K extends keyof VirgultumPresets.AIActions>(
+  panel: AIPanelController,
+  id: K,
+  generatingIcon: MyoxusIconExportName,
+  variants?: ActionVariants<K>,
   trackerOptions?: VirgultumPresets.TrackerOptions,
-) {
-  return ({
-    input,
-    signal,
-    update,
-    finish,
-  }: {
-    input: string;
-    signal?: AbortSignal;
-    update: (answer: AIActionAnswer) => void;
-    finish: (state: "success" | "error" | "aborted", err?: AIError) => void;
-  }) => {
-    const { selectedBlocks: blocks } = getSelections(host);
-    if (!blocks || blocks.length === 0) return;
-    const stream = actionToStream(
+): void {
+  const { config, host } = panel;
+  if (!config) return;
+
+  const ctx = new AIContext();
+  config.generateAnswer = ({ input, signal, update, finish }) => {
+    const { selectedBlocks } = getSelections(host);
+    if (!selectedBlocks?.length) return;
+    const stream = createDocActionStream(
       host,
       id,
       input,
@@ -160,92 +165,55 @@ function actionToGenerateAnswer<T extends keyof VirgultumPresets.AIActions>(
       variants,
       trackerOptions,
     );
-    if (!stream) return;
-    bindTextStream(stream, { update, finish, signal });
+    if (stream) {
+      bindTextStream(stream, { update, finish, signal });
+    }
   };
-}
-
-/**
- * TODO: Should update config according to the action type
- * When support mind-map. generate image, generate slides on doc mode or in edgeless note block
- * Currently, only support text action
- */
-function updateAIPanelConfig<T extends keyof VirgultumPresets.AIActions>(
-  aiPanel: AIPanelController,
-  id: T,
-  generatingIcon: MyoxusIconExportName,
-  variants?: Omit<
-    Parameters<VirgultumPresets.AIActions[T]>[0],
-    keyof VirgultumPresets.AITextActionOptions
-  >,
-  trackerOptions?: VirgultumPresets.TrackerOptions,
-) {
-  const { config, host } = aiPanel;
-  if (!config) return;
-  config.generateAnswer = actionToGenerateAnswer(
-    host,
-    id,
-    variants,
-    trackerOptions,
-  );
-
-  const ctx = new AIContext();
   config.answerRenderer = actionToAnswerRenderer(id, host, ctx);
-  config.finishStateConfig = buildFinishConfig(aiPanel, id, ctx);
+  config.finishStateConfig = buildFinishConfig(panel, id, ctx);
   config.generatingStateConfig = buildGeneratingConfig(generatingIcon);
-  config.errorStateConfig = buildErrorConfig(aiPanel);
-  config.copy = buildCopyConfig(aiPanel);
-  config.discardCallback = () => {
-    reportResponse("result:discard");
-  };
+  config.errorStateConfig = buildErrorConfig(panel);
+  config.copy = buildCopyConfig(panel);
+  config.discardCallback = () => reportResponse("result:discard");
 }
 
-export function actionToHandler<T extends keyof VirgultumPresets.AIActions>(
-  id: T,
+export function actionToHandler<K extends keyof VirgultumPresets.AIActions>(
+  id: K,
   generatingIcon: MyoxusIconExportName,
-  variants?: Omit<
-    Parameters<VirgultumPresets.AIActions[T]>[0],
-    keyof VirgultumPresets.AITextActionOptions
-  >,
+  variants?: ActionVariants<K>,
   trackerOptions?: VirgultumPresets.TrackerOptions,
 ) {
   return (host: EditorHost) => {
-    const aiPanel = getAIPanelController(host);
-    updateAIPanelConfig(aiPanel, id, generatingIcon, variants, trackerOptions);
-    const { selectedBlocks: blocks } = getSelections(aiPanel.host);
-    if (!blocks || blocks.length === 0) return;
-    const block = blocks.at(-1);
-    if (!block) return;
-    if (
-      blocks.length === 1 &&
-      block.model.flavour === "myoxus:image" &&
-      id === "createImage"
-    ) {
-      // if only one image block is selected, and the action is createImage
-      // toggle panel to allow user to enter text prompt
-      aiPanel.toggle(block, "input");
-    } else {
-      // generate the answer
-      aiPanel.toggle(block, "generate");
+    const panel = getAIPanelController(host);
+    configurePanelForDocAction(
+      panel,
+      id,
+      generatingIcon,
+      variants,
+      trackerOptions,
+    );
+    const { selectedBlocks } = getSelections(panel.host);
+    const anchor = selectedBlocks?.at(-1);
+    if (anchor) {
+      panel.toggle(anchor, "generate");
     }
   };
 }
 
-export function handleInlineAskAIAction(host: EditorHost) {
+export function handleInlineAskAIAction(host: EditorHost): void {
   const panel = getAIPanelController(host);
-  const selection = host.selection.find(TextSelection);
-  const lastBlockPath = selection
-    ? (selection.to?.blockId ?? selection.blockId)
+  const textSelection = host.selection.find(TextSelection);
+  const blockId = textSelection
+    ? (textSelection.to?.blockId ?? textSelection.blockId)
     : null;
-  if (!lastBlockPath) return;
-  const block = host.view.getBlock(lastBlockPath);
-  if (!block) return;
-  if (!panel.config) return;
+  if (!blockId || !panel.config) return;
 
-  updateAIPanelConfig(panel, "chat", AIStarIconWithAnimation, undefined, {
+  const anchor = host.view.getBlock(blockId);
+  if (!anchor) return;
+
+  configurePanelForDocAction(panel, "chat", "AiIcon", undefined, {
     control: "chat-send",
     where: "inline-chat-panel",
   });
-
-  panel.toggle(block, "input");
+  panel.toggle(anchor, "input");
 }

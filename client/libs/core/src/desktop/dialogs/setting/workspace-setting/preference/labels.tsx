@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { WorkspacePermissionService } from "@myoxus/core/modules/permissions";
 import { WorkspaceServerService } from "@myoxus/core/modules/server";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
@@ -16,19 +19,16 @@ type WorkspaceStatus =
   | "sharedWorkspace"
   | "publishedToWeb";
 
-type LabelProps = {
-  value: string;
-  status: WorkspaceStatus;
-};
-
 type WorkspaceStatusTone = "neutral" | "success" | "warning" | "info";
 
-type LabelMap = {
-  [key in WorkspaceStatus]: LabelProps;
-};
-type labelConditionsProps = {
-  condition: boolean;
-  label: WorkspaceStatus;
+const STATUS_TONE: Record<WorkspaceStatus, WorkspaceStatusTone> = {
+  availableOffline: "success",
+  joinedWorkspace: "warning",
+  local: "warning",
+  publishedToWeb: "info",
+  server: "info",
+  selfHosted: "neutral",
+  sharedWorkspace: "info",
 };
 
 const GENERIC_SERVER_NAMES = new Set([
@@ -46,94 +46,23 @@ export function getWorkspaceServerDisplayName({
   fallback: string;
   serverName?: string | null;
 }) {
-  const normalizedServerName = serverName?.trim();
-  const normalizedBaseUrl = baseUrl?.trim();
-  // Built-in product defaults are not instance names; prefer the selected URL
-  // until the server exposes an operator-configured name.
-  if (normalizedServerName && !GENERIC_SERVER_NAMES.has(normalizedServerName)) {
-    return normalizedServerName;
+  const trimmedName = serverName?.trim();
+  const trimmedUrl = baseUrl?.trim();
+  // Prefer the configured server URL over generic built-in product defaults.
+  if (trimmedName && !GENERIC_SERVER_NAMES.has(trimmedName)) {
+    return trimmedName;
   }
-  return normalizedBaseUrl || normalizedServerName || fallback;
+  return trimmedUrl || trimmedName || fallback;
 }
 
-const Label = ({ value, status }: LabelProps) => {
-  const toneByStatus: Record<WorkspaceStatus, WorkspaceStatusTone> = {
-    availableOffline: "success",
-    joinedWorkspace: "warning",
-    local: "warning",
-    publishedToWeb: "info",
-    server: "info",
-    selfHosted: "neutral",
-    sharedWorkspace: "info",
-  };
-  return (
-    <BadgeListItem data-status={status}>
-      <Badge tone={toneByStatus[status]}>{value}</Badge>
-    </BadgeListItem>
-  );
-};
-
-const getConditions = (
-  isOwner: boolean | null,
-  flavour: string,
-  isShared: boolean | null,
-): labelConditionsProps[] => {
-  return [
-    { condition: !isOwner, label: "joinedWorkspace" },
-    { condition: flavour === "local", label: "local" },
-    {
-      condition: flavour !== "local",
-      label: "server",
-    },
-    {
-      condition: !!isShared,
-      label: "sharedWorkspace",
-    },
-  ];
-};
-
-const getLabelMap = (
-  t: ReturnType<typeof useI18n>,
-  serverDisplayName: string,
-): LabelMap => ({
-  local: {
-    value: t["com.myoxus.settings.workspace.state.local"](),
-    status: "local",
-  },
-  server: {
-    value: serverDisplayName,
-    status: "server",
-  },
-  selfHosted: {
-    value: t["com.myoxus.settings.workspace.state.self-hosted"](),
-    status: "selfHosted",
-  },
-  joinedWorkspace: {
-    value: t["com.myoxus.settings.workspace.state.joined"](),
-    status: "joinedWorkspace",
-  },
-  availableOffline: {
-    value: t["com.myoxus.settings.workspace.state.available-offline"](),
-    status: "availableOffline",
-  },
-  publishedToWeb: {
-    value: t["com.myoxus.settings.workspace.state.published"](),
-    status: "publishedToWeb",
-  },
-  sharedWorkspace: {
-    value: t["com.myoxus.workspace.type.shared"](),
-    status: "sharedWorkspace",
-  },
-});
-
 export const LabelsPanel = () => {
+  const t = useI18n();
   const workspace = useService(WorkspaceService).workspace;
   const server = workspace.scope.get(WorkspaceServerService).server;
   const serverConfig = useLiveData(server?.config$);
   const permissionService = useService(WorkspacePermissionService);
   const isOwner = useLiveData(permissionService.permission.isOwner$);
   const isShared = useLiveData(permissionService.permission.isShared$);
-  const t = useI18n();
 
   useEffect(() => {
     permissionService.permission.revalidate();
@@ -149,28 +78,41 @@ export const LabelsPanel = () => {
     [server?.baseUrl, serverConfig?.serverName, t],
   );
 
-  const labelMap = useMemo(
-    () => getLabelMap(t, serverDisplayName),
-    [serverDisplayName, t],
-  );
-
-  const labelConditions = useMemo(
-    () => getConditions(isOwner, workspace.flavour, isShared),
-    [isOwner, isShared, workspace.flavour],
-  );
+  const visibleBadges = useMemo(() => {
+    const entries: Array<{ status: WorkspaceStatus; label: string }> = [];
+    if (!isOwner) {
+      entries.push({
+        status: "joinedWorkspace",
+        label: t["com.myoxus.settings.workspace.state.joined"](),
+      });
+    }
+    if (workspace.flavour === "local") {
+      entries.push({
+        status: "local",
+        label: t["com.myoxus.settings.workspace.state.local"](),
+      });
+    } else {
+      entries.push({
+        status: "server",
+        label: serverDisplayName,
+      });
+    }
+    if (isShared) {
+      entries.push({
+        status: "sharedWorkspace",
+        label: t["com.myoxus.workspace.type.shared"](),
+      });
+    }
+    return entries;
+  }, [isOwner, isShared, serverDisplayName, t, workspace.flavour]);
 
   return (
     <BadgeList grow>
-      {labelConditions.map(
-        ({ condition, label }) =>
-          condition && (
-            <Label
-              key={label}
-              value={labelMap[label].value}
-              status={labelMap[label].status}
-            />
-          ),
-      )}
+      {visibleBadges.map(({ status, label }) => (
+        <BadgeListItem key={status} data-status={status}>
+          <Badge tone={STATUS_TONE[status]}>{label}</Badge>
+        </BadgeListItem>
+      ))}
     </BadgeList>
   );
 };

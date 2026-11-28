@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
 import { IntegrationService } from "@myoxus/core/modules/integration";
 import { Trans, useI18n } from "@myoxus/i18n";
@@ -24,86 +27,76 @@ import {
 } from "../../../primitives";
 import { readwiseTrack } from "./track";
 
-const ConnectDialog = ({
+function ConnectDialog({
   onClose,
   onSuccess,
 }: {
   onClose: () => void;
   onSuccess: (token: string) => void;
-}) => {
+}) {
   const t = useI18n();
+  const readwise = useService(IntegrationService).readwise;
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<"idle" | "verifying" | "error">("idle");
   const [token, setToken] = useState("");
-  const readwise = useService(IntegrationService).readwise;
 
-  const handleCancel = useCallback(() => {
-    onClose();
-  }, [onClose]);
-
-  const onOpenChange = useCallback(
-    (open: boolean) => {
-      if (!open) handleCancel();
-    },
-    [handleCancel],
-  );
-
-  const handleInput = useCallback((e: FormEvent<HTMLInputElement>) => {
-    setToken(e.currentTarget.value);
-    setStatus("idle");
+  useEffect(() => {
+    const refocus = () => inputRef.current?.focus();
+    window.addEventListener("focus", refocus);
+    return () => window.removeEventListener("focus", refocus);
   }, []);
 
-  const handleResult = useCallback(
-    (success: boolean, token: string) => {
+  const reportOutcome = useCallback(
+    (success: boolean, candidate: string) => {
       readwiseTrack.connectIntegration({
         result: success ? "success" : "failed",
       });
       if (success) {
-        onSuccess(token);
-      } else {
-        setStatus("error");
-        notify.error({
-          title:
-            t["com.myoxus.integration.readwise.connect.error-notify-title"](),
-          message:
-            t["com.myoxus.integration.readwise.connect.error-notify-desc"](),
-        });
+        onSuccess(candidate);
+        return;
       }
+      setStatus("error");
+      notify.error({
+        title:
+          t["com.myoxus.integration.readwise.connect.error-notify-title"](),
+        message:
+          t["com.myoxus.integration.readwise.connect.error-notify-desc"](),
+      });
     },
     [onSuccess, t],
   );
 
   const handleConnect = useAsyncCallback(
-    async (token: string) => {
+    async (candidate: string) => {
       setStatus("verifying");
       try {
-        const success = await readwise.crawler.verifyToken(token);
-        if (!success) return handleResult(false, token);
-      } catch (err) {
-        console.error(err);
-        return handleResult(false, token);
+        const valid = await readwise.crawler.verifyToken(candidate);
+        reportOutcome(Boolean(valid), candidate);
+      } catch (error) {
+        console.error(error);
+        reportOutcome(false, candidate);
       }
-      handleResult(true, token);
     },
-    [handleResult, readwise],
+    [readwise, reportOutcome],
   );
 
-  useEffect(() => {
-    const onFocus = () => inputRef.current?.focus();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      window.removeEventListener("focus", onFocus);
-    };
+  const handleInput = useCallback((event: FormEvent<HTMLInputElement>) => {
+    setToken(event.currentTarget.value);
+    setStatus("idle");
   }, []);
+
+  const verifying = status === "verifying";
 
   return (
     <Modal
-      open={true}
-      onOpenChange={onOpenChange}
+      open
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
       title={t["com.myoxus.integration.readwise.connect.title"]()}
       description={
         <Trans
-          i18nKey={"com.myoxus.integration.readwise.connect.desc"}
+          i18nKey="com.myoxus.integration.readwise.connect.desc"
           components={{
             a: (
               <InlineLink
@@ -128,7 +121,7 @@ const ConnectDialog = ({
           ]()}
           type="password"
           status={status === "error" ? "error" : "default"}
-          disabled={status === "verifying"}
+          disabled={verifying}
           autoFocus
         />
         {status === "error" ? (
@@ -137,13 +130,13 @@ const ConnectDialog = ({
           </SettingsStatusText>
         ) : null}
         <DialogFooterActions>
-          <Button disabled={status === "verifying"} onClick={handleCancel}>
+          <Button disabled={verifying} onClick={onClose}>
             {t["Cancel"]()}
           </Button>
           <Button
             variant="primary"
-            disabled={status === "verifying" || !token || status === "error"}
-            loading={status === "verifying"}
+            disabled={verifying || !token || status === "error"}
+            loading={verifying}
             onClick={() => handleConnect(token)}
           >
             {t["com.myoxus.integration.readwise.connect"]()}
@@ -152,7 +145,7 @@ const ConnectDialog = ({
       </Stack>
     </Modal>
   );
-};
+}
 
 export const ReadwiseConnectButton = ({
   onSuccess,
@@ -164,13 +157,9 @@ export const ReadwiseConnectButton = ({
   const t = useI18n();
   const [open, setOpen] = useState(false);
 
-  const handleClose = useCallback(() => {
-    setOpen(false);
-  }, []);
-
   const handleOpen = useCallback(
-    (e: MouseEvent<HTMLButtonElement>) => {
-      onClick?.(e);
+    (event: MouseEvent<HTMLButtonElement>) => {
+      onClick?.(event);
       setOpen(true);
     },
     [onClick],
@@ -178,7 +167,9 @@ export const ReadwiseConnectButton = ({
 
   return (
     <>
-      {open && <ConnectDialog onClose={handleClose} onSuccess={onSuccess} />}
+      {open ? (
+        <ConnectDialog onClose={() => setOpen(false)} onSuccess={onSuccess} />
+      ) : null}
       <Button onClick={handleOpen} {...buttonProps}>
         {t["com.myoxus.integration.readwise.connect"]()}
       </Button>

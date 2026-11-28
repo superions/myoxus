@@ -101,7 +101,10 @@ const policies = [
   },
   {
     id: "linked_doc_notion",
-    roots: ["virgultum/editor/all/src/widgets/linked-doc"],
+    roots: [
+      "virgultum/editor/all/src/widgets/linked-doc",
+      "virgultum/editor/all/src/interchange",
+    ],
     patterns: [/NotionHtmlTransformer/, /_importNotion/, /importNotionZip/],
     allowed: baseline.policies.linked_doc_notion,
   },

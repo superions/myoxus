@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import type { AIToolsConfig } from "@myoxus/core/modules/ai-button";
 import type {
   AddContextFileInput,
@@ -20,6 +23,7 @@ import type { EditorHost } from "@virgultum/editor/std";
 import type { GfxModel } from "@virgultum/editor/std/gfx";
 import type { BlockModel } from "@virgultum/editor/store";
 
+import type { CopilotGeneratedFile } from "../components/ai-chat-messages/type";
 import type { AIEmbeddingStatus } from "../provider";
 import type { PromptKey } from "../provider/prompt";
 
@@ -45,19 +49,6 @@ export const textTones = [
   "Humorous",
 ] as const;
 
-export const imageFilterStyles = [
-  "Clay style",
-  "Sketch style",
-  "Anime style",
-  "Pixel style",
-] as const;
-
-export const imageProcessingTypes = [
-  "Clearer",
-  "Remove background",
-  "Convert to sticker",
-] as const;
-
 declare global {
   // oxlint-disable-next-line typescript/no-namespace
   namespace VirgultumPresets {
@@ -73,11 +64,10 @@ declare global {
     }
 
     interface AITextActionOptions {
-      // user input text
       input?: string;
       stream?: boolean;
-      /** Persisted strings are workspace blob keys, never preview/data URLs. */
-      attachments?: (string | File | Blob)[];
+      /** String attachments are persisted workspace blob keys, never data URLs. */
+      attachments?: Array<string | File | Blob>;
       signal?: AbortSignal;
       retry?: boolean;
       requestId?: string;
@@ -85,14 +75,10 @@ declare global {
       responseId?: string;
       expectedStreamId?: string;
       onMessageCreated?: (messageId: string) => void | Promise<void>;
-
-      // action's context
       docId?: string;
       workspaceId: string;
-
-      // internal context
       host?: EditorHost;
-      models?: (BlockModel | GfxModel)[];
+      models?: Array<BlockModel | GfxModel>;
       control?: TrackerControl;
       where?: TrackerWhere;
     }
@@ -106,14 +92,6 @@ declare global {
 
     interface AIImageActionOptions extends AITextActionOptions {
       seed?: string;
-    }
-
-    interface FilterImageOptions extends AIImageActionOptions {
-      style: (typeof imageFilterStyles)[number];
-    }
-
-    interface ProcessImageOptions extends AIImageActionOptions {
-      type: (typeof imageProcessingTypes)[number];
     }
 
     type TextStream = {
@@ -172,109 +150,38 @@ declare global {
       regenerate?: boolean;
     }
 
+    type TextActionHandler<
+      O extends AITextActionOptions = AITextActionOptions,
+    > = <T extends O>(options: T) => Promise<AIActionTextResponse<T>>;
+
     interface AIActions {
-      // chat is a bit special because it's has a internally maintained session
-      chat<T extends ChatOptions>(options: T): Promise<AIActionTextResponse<T>>;
-
-      summary<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      improveWriting<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      improveGrammar<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      fixSpelling<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      createHeadings<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      makeLonger<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      makeShorter<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      continueWriting<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      checkCodeErrors<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      explainCode<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      writeArticle<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      writeTwitterPost<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      writePoem<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      writeBlogPost<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      brainstorm<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      writeOutline<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-
-      explainImage<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-
-      findActions<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-
-      // mindmap
-      brainstormMindmap<T extends BrainstormMindMap>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      expandMindmap<T extends ExpandMindMap>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-
-      // presentation
-      createSlides<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-
-      // explain this
-      explain<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-
-      // actions with variants
-      translate<T extends TranslateOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      changeTone<T extends ChangeToneOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-
-      // make it real, image to text
-      makeItReal<T extends AIImageActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      createImage<T extends AIImageActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      processImage<T extends ProcessImageOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      filterImage<T extends FilterImageOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
-      generateCaption<T extends AITextActionOptions>(
-        options: T,
-      ): Promise<AIActionTextResponse<T>>;
+      chat: TextActionHandler<ChatOptions>;
+      summary: TextActionHandler;
+      improveWriting: TextActionHandler;
+      improveGrammar: TextActionHandler;
+      fixSpelling: TextActionHandler;
+      createHeadings: TextActionHandler;
+      makeLonger: TextActionHandler;
+      makeShorter: TextActionHandler;
+      continueWriting: TextActionHandler;
+      checkCodeErrors: TextActionHandler;
+      explainCode: TextActionHandler;
+      writeArticle: TextActionHandler;
+      writeTwitterPost: TextActionHandler;
+      writePoem: TextActionHandler;
+      writeBlogPost: TextActionHandler;
+      brainstorm: TextActionHandler;
+      writeOutline: TextActionHandler;
+      explainImage: TextActionHandler;
+      findActions: TextActionHandler;
+      brainstormMindmap: TextActionHandler<BrainstormMindMap>;
+      expandMindmap: TextActionHandler<ExpandMindMap>;
+      createSlides: TextActionHandler;
+      explain: TextActionHandler;
+      translate: TextActionHandler<TranslateOptions>;
+      changeTone: TextActionHandler<ChangeToneOptions>;
+      makeItReal: TextActionHandler<AIImageActionOptions>;
+      generateCaption: TextActionHandler;
     }
 
     type AIDocsAndFilesContext = {
@@ -376,32 +283,28 @@ declare global {
       }) => Promise<boolean>;
     }
 
-    // TODO(@Peng): should be refactored to get rid of implement details (like messages, action, role, etc.)
+    type MessageRole = "user" | "assistant";
+
     interface AIHistory {
       sessionId: string;
       tokens: number;
       action: string | null;
       createdAt: string;
-      messages: {
-        id: string | null; // message id
+      messages: Array<{
+        id: string | null;
         content: string;
         createdAt: string;
         role: MessageRole;
         attachments?: string[] | null;
-        generatedFiles?:
-          | import("../components/ai-chat-messages/type").CopilotGeneratedFile[]
-          | null;
+        generatedFiles?: CopilotGeneratedFile[] | null;
         streamObjects?: StreamObject[] | null;
-      }[];
+      }>;
     }
 
-    type MessageRole = "user" | "assistant";
-
     type AIHistoryIds = Pick<AIHistory, "sessionId" | "messages"> & {
-      messages: Pick<
-        AIHistory["messages"][number],
-        "id" | "createdAt" | "role"
-      >[];
+      messages: Array<
+        Pick<AIHistory["messages"][number], "id" | "createdAt" | "role">
+      >;
     };
 
     interface AICreateSessionOptions {
@@ -411,7 +314,6 @@ declare global {
       sessionId?: string;
       retry?: boolean;
       pinned?: boolean;
-      // default value of reuseLatestChat is true at backend
       reuseLatestChat?: boolean;
     }
 
@@ -421,12 +323,8 @@ declare global {
       exportMessage?: (
         messageId: string,
         format: "pdf" | "html",
-      ) => Promise<
-        import("../components/ai-chat-messages/type").CopilotGeneratedFile
-      >;
-      downloadGeneratedFile?: (
-        file: import("../components/ai-chat-messages/type").CopilotGeneratedFile,
-      ) => Promise<void>;
+      ) => Promise<CopilotGeneratedFile>;
+      downloadGeneratedFile?: (file: CopilotGeneratedFile) => Promise<void>;
       createSession: (options: AICreateSessionOptions) => Promise<string>;
       createSessionWithHistory: (
         options: AICreateSessionOptions,
@@ -451,7 +349,6 @@ declare global {
     }
 
     interface AIHistoryService {
-      // non chat histories
       actions: (
         workspaceId: string,
         docId: string,

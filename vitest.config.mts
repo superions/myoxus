@@ -82,6 +82,8 @@ export default defineConfig({
             "virgultum/core/src/__tests__/utils/document-field.unit.spec.ts",
             "virgultum/content/src/inlines/footnote/__tests__/adapters/preprocessor.unit.spec.ts",
             "virgultum/content/src/inlines/footnote/__tests__/citation-preview-session.unit.spec.ts",
+            "virgultum/canvas/src/gfx/template/__tests__/template-registry.unit.spec.ts",
+            "virgultum/editor/all/src/fragments/frame-panel/__tests__/frame-navigator-controller.unit.spec.ts",
             "virgultum/editor/all/src/fragments/outline/__tests__/document-outline-controller.unit.spec.ts",
             "virgultum/embeds/src/bookmark/__tests__/adapters/preprocessor.unit.spec.ts",
             "virgultum/embeds/src/image/__tests__/page-image.unit.spec.ts",

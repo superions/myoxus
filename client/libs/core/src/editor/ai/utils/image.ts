@@ -1,7 +1,45 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
+import type { GfxModel } from "@virgultum/core/runtime/gfx";
 import { ImageBlockModel } from "@virgultum/editor/model";
 import { FetchUtils } from "@virgultum/editor/shared/adapters";
 import type { BlockModel } from "@virgultum/editor/store";
-import type { GfxModel } from "@virgultum/core/runtime/gfx";
+
+function rasterizeImageToPng(
+  src: string,
+  crossOrigin?: string,
+): Promise<Blob | null> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Canvas 2D context unavailable"));
+        return;
+      }
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(image, 0, 0);
+      canvas.toBlob(resolve, "image/png");
+    };
+    image.onerror = () => resolve(null);
+    if (crossOrigin) {
+      image.crossOrigin = crossOrigin;
+    }
+    image.src = src;
+  });
+}
+
+async function ensurePngBlob(blob: Blob): Promise<Blob> {
+  const dataUrl = await readBlobAsURL(blob).catch(() => null);
+  if (!dataUrl) return blob;
+  const converted = await rasterizeImageToPng(dataUrl).catch(() => null);
+  return converted ?? blob;
+}
 
 export async function fetchImageToFile(
   url: string,
@@ -9,11 +47,11 @@ export async function fetchImageToFile(
   imageProxy?: string,
 ): Promise<File | void> {
   try {
-    const res = await FetchUtils.fetchImage(url, undefined, imageProxy);
-    if (res && res.ok) {
-      let blob = await res.blob();
+    const response = await FetchUtils.fetchImage(url, undefined, imageProxy);
+    if (response?.ok) {
+      let blob = await response.blob();
       if (!blob.type || !blob.type.startsWith("image/")) {
-        blob = await convertToPng(blob).then((tmp) => tmp || blob);
+        blob = await ensurePngBlob(blob);
       }
       return new File([blob], filename, { type: blob.type || "image/png" });
     }
@@ -21,78 +59,27 @@ export async function fetchImageToFile(
     console.error(err);
   }
 
-  return fetchImageFallback(url, filename);
-}
-
-function fetchImageFallback(
-  url: string,
-  filename: string,
-): Promise<File | void> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement("canvas");
-      c.width = img.width;
-      c.height = img.height;
-      const ctx = c.getContext("2d");
-      if (!ctx) {
-        reject();
-        return;
-      }
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-      ctx.drawImage(img, 0, 0);
-      c.toBlob((blob) => {
-        if (blob) {
-          return resolve(new File([blob], filename, { type: blob.type }));
-        }
-        resolve();
-      }, "image/png");
-    };
-    img.onerror = () => resolve();
-    img.crossOrigin = "anonymous";
-    img.src = url;
-  });
-}
-
-function convertToPng(blob: Blob): Promise<Blob | null> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", (_) => {
-      const img = new Image();
-      img.onload = () => {
-        const c = document.createElement("canvas");
-        c.width = img.width;
-        c.height = img.height;
-        const ctx = c.getContext("2d");
-        if (!ctx) {
-          reject();
-          return;
-        }
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(img, 0, 0);
-        c.toBlob(resolve, "image/png");
-      };
-      img.onerror = () => resolve(null);
-      img.src = reader.result as string;
+  const fallbackBlob = await rasterizeImageToPng(url, "anonymous");
+  if (fallbackBlob) {
+    return new File([fallbackBlob], filename, {
+      type: fallbackBlob.type || "image/png",
     });
-    reader.addEventListener("error", () => resolve(null));
-    reader.readAsDataURL(blob);
-  });
+  }
 }
 
-export function readBlobAsURL(blob: Blob | File) {
-  return new Promise<string>((resolve, reject) => {
+export function readBlobAsURL(blob: Blob | File): Promise<string> {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      if (typeof e.target?.result === "string") {
-        resolve(e.target.result);
+    reader.onload = (event) => {
+      const result = event.target?.result;
+      if (typeof result === "string") {
+        resolve(result);
       } else {
-        reject();
+        reject(new Error("Failed to read blob as data URL"));
       }
     };
-    reader.onerror = reject;
+    reader.onerror = () =>
+      reject(reader.error ?? new Error("FileReader error"));
     reader.readAsDataURL(blob);
   });
 }
@@ -101,13 +88,11 @@ export function canvasToBlob(
   canvas: HTMLCanvasElement,
   type = "image/png",
   quality?: number,
-) {
-  return new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, type, quality),
-  );
+): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 }
 
-export function randomSeed(min = 0, max = Date.now()) {
+export function randomSeed(min = 0, max = Date.now()): number {
   return Math.round(Math.random() * (max - min)) + min;
 }
 

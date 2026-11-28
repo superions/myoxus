@@ -14715,10 +14715,6 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description"](): string;
   /** AI Chat Block */
   ["com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name"](): string;
-  /** Enable or disable AI model switch feature. */
-  ["com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description"](): string;
-  /** Enable AI Model Switch */
-  ["com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name"](): string;
   /** When toggled off, every time you choose "Continue with AI", AI only got a screenshot. */
   ["com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description"](): string;
   /** Send detailed object information to AI */
@@ -21455,8 +21451,6 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.ai.chat-panel.error-details"](): string;
   /** Could not add this context. */
   ["com.myoxus.ai.chat-panel.context-error"](): string;
-  /** AI playground */
-  ["com.myoxus.ai.chat-panel.playground"](): string;
   /** Generating an answer… */
   ["com.myoxus.ai.chat-panel.generating"](): string;
   /** Content inserted */

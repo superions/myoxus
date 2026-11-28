@@ -132,6 +132,7 @@ export type WORKSPACE_DIALOG_SCHEMA = {
   }) => string[];
   "collection-selector": (props: {
     init: string[];
+    returnFocusRef?: RefObject<HTMLElement | null>;
     onBeforeConfirm?: (ids: string[], cb: () => void) => void;
   }) => string[];
   "database-selector": (props: {
@@ -141,9 +142,11 @@ export type WORKSPACE_DIALOG_SCHEMA = {
   "collection-editor": (props: {
     collectionId: string;
     mode?: "page" | "rule";
+    returnFocusRef?: RefObject<HTMLElement | null>;
   }) => void;
   "tag-selector": (props: {
     init: string[];
+    returnFocusRef?: RefObject<HTMLElement | null>;
     onBeforeConfirm?: (ids: string[], cb: () => void) => void;
   }) => string[];
   "date-selector": (props: {

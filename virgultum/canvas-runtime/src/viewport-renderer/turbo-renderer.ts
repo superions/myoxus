@@ -63,7 +63,7 @@ export const TurboRendererConfigFactory =
  *   d.  Add an export mapping for the painter worker in `package.json` under the `exports` field (e.g., `"./turbo-painter": "./src/turbo/my-block-painter.worker.ts"`).
  *   e.  Add a TypeScript project reference to `virgultum/canvas-runtime` in `tsconfig.json`.
  *
- * 2.  **In the application integration point (for example, `client/libs/core/src/editor/virgultum` and `virgultum/integration-test/src/__tests__/utils/renderer-entry.ts`):**
+ * 2.  **In the application integration point (for example, `client/libs/core/src/editor/virgultum` and `virgultum/integration-test/src/harness/browser-entry.ts`):**
  *   a.  In `turbo-renderer.ts` (or the file setting up `TurboRendererConfigFactory`):
  *     - Import and add the new Layout Handler extension to the `patchTurboRendererExtension` array (or equivalent DI setup). See how `ParagraphLayoutHandlerExtension` is added as a reference.
  *   b.  In `turbo-painter.worker.ts` (the painter worker entry point):

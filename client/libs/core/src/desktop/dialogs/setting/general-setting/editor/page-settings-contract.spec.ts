@@ -1,33 +1,20 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, test } from "vitest";
 
-const sourcePath = join(
+const editorRoot = join(
   process.cwd(),
-  "client/libs/core/src/desktop/dialogs/setting/general-setting/editor/page.tsx",
+  "client/libs/core/src/desktop/dialogs/setting/general-setting/editor",
 );
-const generalPath = join(
-  process.cwd(),
-  "client/libs/core/src/desktop/dialogs/setting/general-setting/editor/general.tsx",
-);
-
-const edgelessPath = join(
-  process.cwd(),
-  "client/libs/core/src/desktop/dialogs/setting/general-setting/editor/edgeless/edgeless.tsx",
-);
-const edgelessSnapshotPath = join(
-  process.cwd(),
-  "client/libs/core/src/desktop/dialogs/setting/general-setting/editor/edgeless/snapshot.tsx",
-);
-const edgelessUtilsPath = join(
-  process.cwd(),
-  "client/libs/core/src/desktop/dialogs/setting/general-setting/editor/utils.ts",
-);
-const edgelessDocsPath = join(
-  process.cwd(),
-  "client/libs/core/src/desktop/dialogs/setting/general-setting/editor/edgeless/docs/index.ts",
-);
+const sourcePath = join(editorRoot, "page.tsx");
+const generalPath = join(editorRoot, "general.tsx");
+const edgelessPath = join(editorRoot, "edgeless/edgeless.tsx");
+const edgelessPreviewPath = join(editorRoot, "edgeless/preview.tsx");
+const edgelessUtilsPath = join(editorRoot, "utils.ts");
 
 const edgelessSectionPaths = [
   "note.tsx",
@@ -37,13 +24,7 @@ const edgelessSectionPaths = [
   "connector.tsx",
   "pen.tsx",
   "mind-map.tsx",
-].map((fileName) =>
-  join(
-    process.cwd(),
-    "client/libs/core/src/desktop/dialogs/setting/general-setting/editor/edgeless",
-    fileName,
-  ),
-);
+].map((fileName) => join(editorRoot, "edgeless", fileName));
 
 describe("editor page settings structure", () => {
   test("full-width editing is a facade settings section, not a small row heading", () => {
@@ -80,34 +61,28 @@ describe("editor page settings structure", () => {
       const source = readFileSync(sectionPath, "utf8");
       expect(source, sectionPath).toContain("SettingsSection");
       expect(source, sectionPath).toMatch(
-        /<SettingsSection[\s\S]*title=\{title\}[\s\S]*testId="editor-settings-section-edgeless-[^"]+"[\s\S]*<EdgelessSnapshot[\s\S]*title=\{title\}/,
+        /<SettingsSection[\s\S]*title=\{title\}[\s\S]*testId="editor-settings-section-edgeless-[^"]+"[\s\S]*<EdgelessStylePreview/,
       );
       expect(source, sectionPath).not.toMatch(
-        /return \(\s*<>[\s\S]*<EdgelessSnapshot/,
+        /return \(\s*<>[\s\S]*<EdgelessStylePreview/,
       );
     }
   });
 
-  test("edgeless preview snapshots do not repeat the section title as visible chrome", () => {
-    const source = readFileSync(edgelessSnapshotPath, "utf8");
+  test("edgeless style previews stay lightweight without live editor hosts or raw chrome", () => {
+    const source = readFileSync(edgelessPreviewPath, "utf8");
 
     expect(source).toContain("EditorPreviewFrame");
-    expect(source).toContain("EditorPreviewViewport");
-    expect(source).toContain("EditorPreviewSkeleton");
-    expect(source).toContain(
-      'ViewportElementExtension(".setting-editor-snapshot")',
-    );
-    expect(source).toContain('previewSize = "default"');
-    expect(source).not.toContain("snapshotTitle");
-    expect(source).not.toContain("snapshotLabel");
-    expect(source).not.toMatch(/<div[^>]*>\{title\}<\/div>/);
-    expect(source).not.toMatch(/className=.*setting-editor-snapshot/);
+    expect(source).toContain("ColorDot");
+    expect(source).toContain("Badge");
+    expect(source).not.toContain("BlockStdScope");
+    expect(source).not.toContain("EditorHost");
+    expect(source).not.toContain("GfxController");
+    expect(source).not.toContain("<svg");
   });
 
-  test("edgeless settings localize visible palette labels and preview text without mutating fixture markers", () => {
+  test("edgeless settings localize visible palette labels without exposing raw keys", () => {
     const utils = readFileSync(edgelessUtilsPath, "utf8");
-    const snapshot = readFileSync(edgelessSnapshotPath, "utf8");
-    const docs = readFileSync(edgelessDocsPath, "utf8");
 
     expect(utils).toContain("translatePaletteLabel");
     expect(utils).toContain(
@@ -120,12 +95,5 @@ describe("editor page settings structure", () => {
       );
       expect(source, sectionPath).not.toMatch(/>\s*\{key\}\s*<\/MenuItem>/);
     }
-
-    expect(snapshot).toContain("usePreviewTextReplacements");
-    expect(snapshot).toContain(
-      "com.myoxus.settings.editorSettings.edgeless.preview.note.headline",
-    );
-    expect(docs).toContain("applySnapshotTextReplacements");
-    expect(docs).toContain("JSON.parse(JSON.stringify(snapshot))");
   });
 });

@@ -3167,8 +3167,6 @@
   "com.myoxus.settings.workspace.experimental-features.enable-advanced-block-visibility.name": "التحكم في رؤية الكتل المتقدمة",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.description": "تمكين كتل الدردشة بالذكاء الاصطناعي.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-chat-block.name": "كتلة المحادثة بالذكاء الاصطناعي",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.description": "تمكين أو تعطيل ميزة تبديل نموذج الذكاء الاصطناعي.",
-  "com.myoxus.settings.workspace.experimental-features.enable-ai-model-switch.name": "تمكين التبديل لنموذج الذكاء الاصطناعي",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.description": "عند التعطيل، في كل مرة تختار فيها «متابعة مع الذكاء الاصطناعي»، يحصل الذكاء الاصطناعي على لقطة شاشة فقط.",
   "com.myoxus.settings.workspace.experimental-features.enable-ai-send-detailed-object.name": "إرسال معلومات تفصيلية عن الكائن إلى الذكاء الاصطناعي",
   "com.myoxus.settings.workspace.experimental-features.enable-ai.description": "تمكين أو تعطيل جميع ميزات الذكاء الاصطناعي.",

@@ -1,14 +1,6 @@
-/**
- * `EnableCloudDialog` — migrates a local workspace to a selected server.
- *
- * Shows a server selector (`ServerSelector`) so the user can choose which
- * Myoxus-compatible server to sync with.  If the selected server requires
- * authentication and the user is not signed in, the dialog opens the
- * `sign-in` global dialog and waits for the result before proceeding.
- *
- * On success, the local workspace is migrated/linked to the cloud workspace
- * and the UI navigates to it.  On failure a toast notification is shown.
- */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useNavigateHelper } from "@myoxus/core/components/hooks/use-navigate-helper";
 import { ServerSelector } from "@myoxus/core/components/server-selector";
 import {
@@ -27,43 +19,40 @@ import { FrameworkScope, useLiveData, useService } from "@myoxus/infra";
 import { ConfirmModal, notify } from "@myoxus/ui-facade";
 import { useCallback, useEffect, useState } from "react";
 
-const Dialog = ({
+function EnableCloudModalContent({
   workspaceId,
   close,
   selectedServer,
-  setSelectedServer,
+  onSelectServer,
   serverList,
   openPageId,
 }: {
   workspaceId: string;
   serverList: Server[];
   selectedServer: Server;
-  setSelectedServer: (server: Server) => void;
+  onSelectServer: (server: Server) => void;
   openPageId?: string;
-  serverId?: string;
   close?: () => void;
-}) => {
+}) {
   const t = useI18n();
   const authService = useService(AuthService);
   const account = useLiveData(authService.session.account$);
-  const loginStatus = useLiveData(useService(AuthService).session.status$);
+  const loginStatus = useLiveData(authService.session.status$);
   const globalDialogService = useService(GlobalDialogService);
   const workspacesService = useService(WorkspacesService);
   const workspaceMeta = useLiveData(
     workspacesService.list.workspace$(workspaceId),
   );
-  const { workspace } = workspaceMeta
-    ? workspacesService.open({ metadata: workspaceMeta })
-    : { workspace: undefined };
+  const workspace = workspaceMeta
+    ? workspacesService.open({ metadata: workspaceMeta }).workspace
+    : undefined;
 
   const { jumpToPage } = useNavigateHelper();
   const [waitingForSignIn, setWaitingForSignIn] = useState(false);
 
-  const enableCloud = useCallback(async () => {
+  const migrateWorkspace = useCallback(async () => {
+    if (!workspace || !account) return;
     try {
-      if (!workspace) return;
-      if (!account) return;
-
       const { id: newId } = await workspacesService.transformLocalToCloud(
         workspace,
         account.id,
@@ -71,49 +60,49 @@ const Dialog = ({
       );
       jumpToPage(newId, openPageId || "home");
       close?.();
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
       notify.error({
         title: t["com.myoxus.workspace.enable-cloud.failed"](),
       });
     }
   }, [
-    workspace,
     account,
-    workspacesService,
-    selectedServer.id,
+    close,
     jumpToPage,
     openPageId,
-    close,
+    selectedServer.id,
     t,
+    workspace,
+    workspacesService,
   ]);
 
-  const openSignIn = useCallback(() => {
-    globalDialogService.open("sign-in", {
-      server: selectedServer.baseUrl,
-    });
-  }, [globalDialogService, selectedServer.baseUrl]);
-
-  const signInOrMigrate = useCallback(async () => {
+  const handleConfirm = useCallback(async () => {
     if (loginStatus === "unauthenticated") {
       setWaitingForSignIn(true);
-      openSignIn();
+      globalDialogService.open("sign-in", { server: selectedServer.baseUrl });
       return;
     }
     if (loginStatus === "authenticated") {
-      await enableCloud();
+      await migrateWorkspace();
     }
-  }, [enableCloud, loginStatus, openSignIn]);
+  }, [
+    globalDialogService,
+    loginStatus,
+    migrateWorkspace,
+    selectedServer.baseUrl,
+  ]);
 
   useEffect(() => {
     if (waitingForSignIn && loginStatus === "authenticated") {
       setWaitingForSignIn(false);
-      void enableCloud();
+      void migrateWorkspace();
     }
-  }, [enableCloud, loginStatus, waitingForSignIn]);
+  }, [loginStatus, migrateWorkspace, waitingForSignIn]);
 
   return (
     <ConfirmModal
+      open
       closeOnConfirm={false}
       confirmText={
         loginStatus === "authenticated"
@@ -122,25 +111,27 @@ const Dialog = ({
       }
       contentOptions={{ "data-testid": "workspace-migration-dialog" }}
       description={t["Enable Myoxus Cloud Description"]()}
-      onConfirm={signInOrMigrate}
-      onOpenChange={(open) => {
-        if (!open) close?.();
+      onConfirm={handleConfirm}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) close?.();
       }}
-      open
       title={t["com.myoxus.workspaceMigration.custom-server.title"]({
         workspaceName: workspace?.name$.value || t["Untitled"](),
       })}
     >
       <ServerSelector
         label={t["com.myoxus.workspaceMigration.custom-server.description"]()}
-        onSelect={setSelectedServer}
+        onSelect={onSelectServer}
         selectedServerId={selectedServer.id}
         servers={serverList}
       />
     </ConfirmModal>
   );
-};
+}
 
+/**
+ * Migrates an Electron local workspace onto a selected Myoxus server.
+ */
 export const EnableCloudDialog = ({
   workspaceId,
   openPageId,
@@ -165,12 +156,12 @@ export const EnableCloudDialog = ({
 
   return (
     <FrameworkScope key={selectedServer.id} scope={selectedServer.scope}>
-      <Dialog
+      <EnableCloudModalContent
         close={close}
         openPageId={openPageId}
         selectedServer={selectedServer}
         serverList={serverList}
-        setSelectedServer={(server) => setSelectedServerId(server.id)}
+        onSelectServer={(server) => setSelectedServerId(server.id)}
         workspaceId={workspaceId}
       />
     </FrameworkScope>

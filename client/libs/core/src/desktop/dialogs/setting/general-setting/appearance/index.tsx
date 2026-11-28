@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { TraySettingService } from "@myoxus/core/modules/editor-setting/services/tray-settings";
 import { useI18n } from "@myoxus/i18n";
 import { useLiveData, useService } from "@myoxus/infra";
@@ -42,28 +45,29 @@ export const ThemeSettings = () => {
   const { setTheme, theme } = useMyoxusTheme();
   const { updatePreferences } = useUserPreferences();
 
-  const themeItems = useMemo(() => getThemeOptions(t), [t]);
+  const options = useMemo(() => getThemeOptions(t), [t]);
+  const handleModeChange = useCallback(
+    (value: string) => {
+      setTheme(value as MyoxusThemeMode);
+      void updatePreferences({ colorMode: value });
+    },
+    [setTheme, updatePreferences],
+  );
 
   return (
     <MyoxusSegmentedControl
-      data={themeItems}
+      data={options}
       value={theme}
       testId="appearance-theme-segmented-control"
-      onChange={useCallback(
-        (value: string) => {
-          setTheme(value as MyoxusThemeMode);
-          void updatePreferences({ colorMode: value });
-        },
-        [setTheme, updatePreferences],
-      )}
+      onChange={handleModeChange}
     />
   );
 };
 
-const MenubarSetting = () => {
+const DesktopTraySettings = () => {
   const t = useI18n();
   const traySettingService = useService(TraySettingService);
-  const traySetting = useLiveData(traySettingService.settings$);
+  const traySettings = useLiveData(traySettingService.settings$);
 
   return (
     <>
@@ -76,12 +80,13 @@ const MenubarSetting = () => {
           desc={t["com.myoxus.appearanceSettings.menubar.description"]()}
         >
           <MyoxusSwitch
-            checked={traySetting.enabled}
+            checked={traySettings.enabled}
             onChange={(checked) => traySettingService.setEnabled(checked)}
           />
         </SettingsRow>
       </SettingsSection>
-      {traySetting.enabled && !environment.isMacOs ? (
+
+      {traySettings.enabled && !environment.isMacOs ? (
         <SettingsSection
           id="windowBehavior"
           title={t[
@@ -97,7 +102,7 @@ const MenubarSetting = () => {
             ]()}
           >
             <MyoxusSwitch
-              checked={traySetting.openOnLeftClick}
+              checked={traySettings.openOnLeftClick}
               onChange={(checked) =>
                 traySettingService.setOpenOnLeftClick(checked)
               }
@@ -112,7 +117,7 @@ const MenubarSetting = () => {
             ]()}
           >
             <MyoxusSwitch
-              checked={traySetting.minimizeToTray}
+              checked={traySettings.minimizeToTray}
               onChange={(checked) =>
                 traySettingService.setMinimizeToTray(checked)
               }
@@ -127,7 +132,7 @@ const MenubarSetting = () => {
             ]()}
           >
             <MyoxusSwitch
-              checked={traySetting.closeToTray}
+              checked={traySettings.closeToTray}
               onChange={(checked) => traySettingService.setCloseToTray(checked)}
             />
           </SettingsRow>
@@ -140,7 +145,7 @@ const MenubarSetting = () => {
             ]()}
           >
             <MyoxusSwitch
-              checked={traySetting.startMinimized}
+              checked={traySettings.startMinimized}
               onChange={(checked) =>
                 traySettingService.setStartMinimized(checked)
               }
@@ -154,7 +159,6 @@ const MenubarSetting = () => {
 
 export const AppearanceSettings = () => {
   const t = useI18n();
-
   const { deviceSettings, updateSettings } = useDeviceSettingHelper();
   const { effectivePreferences, updatePreferences } = useUserPreferences();
 
@@ -255,7 +259,7 @@ export const AppearanceSettings = () => {
         </SettingsRow>
       </SettingsSection>
 
-      {BUILD_CONFIG.isElectron ? <MenubarSetting /> : null}
+      {BUILD_CONFIG.isElectron ? <DesktopTraySettings /> : null}
     </SettingsPage>
   );
 };

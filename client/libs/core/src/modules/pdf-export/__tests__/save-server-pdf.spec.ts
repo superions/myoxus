@@ -16,7 +16,7 @@ vi.mock("@myoxus/desktop-api-contract/bridge", () => ({
     },
   }),
 }));
-vi.mock("@virgultum/editor/widgets/linked-doc", () => ({
+vi.mock("@virgultum/editor/interchange", () => ({
   download: mocks.download,
 }));
 import { saveServerPdf } from "../save-server-pdf";

@@ -8,7 +8,6 @@ export {
 
 import type { Framework } from "@myoxus/infra";
 
-import { FeatureFlagService } from "../feature-flag";
 import { GraphQLService, ServerScope, UserPreferencesService } from "../server";
 import { CacheStorage, GlobalStateService } from "../storage";
 import { WorkspaceScope } from "../workspace";
@@ -16,7 +15,6 @@ import { AIButtonProvider } from "./provider/ai-button";
 import { AIButtonService } from "./services/ai-button";
 import { AIDraftService } from "./services/ai-draft";
 import { AIModelService } from "./services/models";
-import { AIPlaygroundService } from "./services/playground";
 import { AIReasoningService } from "./services/reasoning";
 import { AIToolsConfigService } from "./services/tools-config";
 
@@ -30,10 +28,6 @@ export function configureAIReasoningModule(framework: Framework) {
   framework
     .scope(ServerScope)
     .service(AIReasoningService, [UserPreferencesService]);
-}
-
-export function configureAIPlaygroundModule(framework: Framework) {
-  framework.service(AIPlaygroundService, [FeatureFlagService]);
 }
 
 export function configureAIDraftModule(framework: Framework) {

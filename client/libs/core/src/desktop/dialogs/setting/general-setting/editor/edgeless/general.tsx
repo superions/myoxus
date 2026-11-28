@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { EditorSettingService } from "@myoxus/core/modules/editor-setting";
 import type { EdgelessDefaultTheme } from "@myoxus/core/modules/editor-setting/schema";
 import { useI18n } from "@myoxus/i18n";
@@ -7,75 +10,58 @@ import { useCallback, useMemo } from "react";
 import { Menu, MenuItem, SettingsRow, Switch } from "../../../primitives";
 import { DropdownTrigger } from "../menu";
 
-const getThemeOptions = (
-  t: ReturnType<typeof useI18n>,
-): { value: EdgelessDefaultTheme; label: string }[] => [
-  {
-    value: "specified" as EdgelessDefaultTheme,
-    label:
-      t[
-        "com.myoxus.settings.editorSettings.page.edgeless-default-theme.specified"
-      ](),
-  },
-  {
-    value: "dark" as EdgelessDefaultTheme,
-    label: t["com.myoxus.themeSettings.dark"](),
-  },
-  {
-    value: "light" as EdgelessDefaultTheme,
-    label: t["com.myoxus.themeSettings.light"](),
-  },
-  {
-    value: "auto" as EdgelessDefaultTheme,
-    label: t["com.myoxus.themeSettings.auto"](),
-  },
-];
-
-const getThemeValue = (
-  theme: EdgelessDefaultTheme,
-  t: ReturnType<typeof useI18n>,
-) => {
-  switch (theme) {
-    case "dark":
-      return t["com.myoxus.themeSettings.dark"]();
-    case "light":
-      return t["com.myoxus.themeSettings.light"]();
-    case "auto":
-      return t["com.myoxus.themeSettings.auto"]();
-    case "specified":
-      return t[
-        "com.myoxus.settings.editorSettings.page.edgeless-default-theme.specified"
-      ]();
-    default:
-      return "";
-  }
-};
-
 export const GeneralEdgelessSetting = () => {
   const t = useI18n();
-  const editorSetting = useService(EditorSettingService).editorSetting;
-  const edgelessDefaultTheme = useLiveData(
-    editorSetting.settings$,
-  ).edgelessDefaultTheme;
+  const { editorSetting } = useService(EditorSettingService);
+  const settings = useLiveData(editorSetting.settings$);
+  const { edgelessDefaultTheme, edgelessScrollZoom } = settings;
 
-  const items = getThemeOptions(t);
-  const currentTheme = useMemo(() => {
-    return getThemeValue(edgelessDefaultTheme, t);
-  }, [edgelessDefaultTheme, t]);
+  const themeOptions = useMemo<
+    Array<{ value: EdgelessDefaultTheme; label: string }>
+  >(
+    () => [
+      {
+        value: "specified",
+        label:
+          t[
+            "com.myoxus.settings.editorSettings.page.edgeless-default-theme.specified"
+          ](),
+      },
+      {
+        value: "dark",
+        label: t["com.myoxus.themeSettings.dark"](),
+      },
+      {
+        value: "light",
+        label: t["com.myoxus.themeSettings.light"](),
+      },
+      {
+        value: "auto",
+        label: t["com.myoxus.themeSettings.auto"](),
+      },
+    ],
+    [t],
+  );
 
-  const menuItems = useMemo(() => {
-    return items.map((item) => {
-      const selected = edgelessDefaultTheme === item.value;
-      const onSelect = () => {
-        editorSetting.set("edgelessDefaultTheme", item.value);
-      };
-      return (
-        <MenuItem key={item.value} selected={selected} onSelect={onSelect}>
-          {item.label}
+  const currentThemeLabel =
+    themeOptions.find((option) => option.value === edgelessDefaultTheme)
+      ?.label ?? "";
+
+  const menuItems = useMemo(
+    () =>
+      themeOptions.map((option) => (
+        <MenuItem
+          key={option.value}
+          selected={edgelessDefaultTheme === option.value}
+          onSelect={() => {
+            editorSetting.set("edgelessDefaultTheme", option.value);
+          }}
+        >
+          {option.label}
         </MenuItem>
-      );
-    });
-  }, [editorSetting, items, edgelessDefaultTheme]);
+      )),
+    [edgelessDefaultTheme, editorSetting, themeOptions],
+  );
 
   const handleScrollZoomChange = useCallback(
     (checked: boolean) => {
@@ -102,8 +88,8 @@ export const GeneralEdgelessSetting = () => {
             panelWidth: "display",
           }}
         >
-          <DropdownTrigger tooltip={currentTheme}>
-            {currentTheme}
+          <DropdownTrigger tooltip={currentThemeLabel}>
+            {currentThemeLabel}
           </DropdownTrigger>
         </Menu>
       </SettingsRow>
@@ -116,9 +102,9 @@ export const GeneralEdgelessSetting = () => {
         ]()}
       >
         <Switch
-          checked={editorSetting.edgelessScrollZoom.$.value}
+          checked={edgelessScrollZoom}
           onChange={handleScrollZoomChange}
-        ></Switch>
+        />
       </SettingsRow>
     </>
   );

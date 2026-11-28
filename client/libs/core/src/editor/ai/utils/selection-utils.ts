@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   EdgelessClipboardController,
   splitElements,
@@ -32,184 +35,164 @@ import type { CopilotTool } from "../tool/copilot-tool";
 import { isAttachment } from "./attachment";
 import { getEdgelessCopilotWidget } from "./get-edgeless-copilot-widget";
 
-export async function selectedToCanvas(host: EditorHost) {
-  const gfx = host.std.get(GfxControllerIdentifier);
-  return elementsToCanvas(host, gfx.selection.selectedElements);
-}
-
-export async function allToCanvas(host: EditorHost) {
-  const gfx = host.std.get(GfxControllerIdentifier);
-  return elementsToCanvas(host, gfx.gfxElements);
-}
-
-export async function elementsToCanvas(host: EditorHost, elements: GfxModel[]) {
+export async function elementsToCanvas(
+  host: EditorHost,
+  elements: GfxModel[],
+): Promise<HTMLCanvasElement | undefined> {
   const { notes, frames, shapes, images, edgelessTexts, embedSyncedDocs } =
     splitElements(elements);
 
-  const blockElements = [
+  const blocks = [
     ...notes,
     ...frames,
     ...images,
     ...edgelessTexts,
     ...embedSyncedDocs,
   ];
-
-  const hasElements = blockElements.length > 0 || shapes.length > 0;
-  if (!hasElements) {
-    return;
-  }
+  if (blocks.length === 0 && shapes.length === 0) return;
 
   try {
     const canvas = await host.std
       .get(EdgelessClipboardController)
-      .toCanvas(blockElements, shapes);
-    if (!canvas) {
-      return;
-    }
-    return canvas;
-  } catch (e) {
-    console.error("elementsToCanvas error", e);
+      .toCanvas(blocks, shapes);
+    return canvas ?? undefined;
+  } catch (err) {
+    console.error("elementsToCanvas error", err);
     return;
   }
 }
 
-export function getSelectedModels(editorHost: EditorHost) {
-  const [_, ctx] = editorHost.std.command.exec(getSelectedModelsCommand, {
-    types: ["block", "text"],
-  });
-  const { selectedModels } = ctx;
-  return selectedModels;
+export function selectedToCanvas(host: EditorHost) {
+  const gfx = host.std.get(GfxControllerIdentifier);
+  return elementsToCanvas(host, gfx.selection.selectedElements);
 }
 
-export function traverse(model: DraftModel, drafts: DraftModel[]) {
-  const isDatabase = model.flavour === "myoxus:database";
-  const children = isDatabase
-    ? model.children
-    : model.children.filter((child) => {
-        const idx = drafts.findIndex((m) => m.id === child.id);
-        return idx >= 0;
-      });
+export function allToCanvas(host: EditorHost) {
+  const gfx = host.std.get(GfxControllerIdentifier);
+  return elementsToCanvas(host, gfx.gfxElements);
+}
 
-  children.forEach((child) => {
-    const idx = drafts.findIndex((m) => m.id === child.id);
-    if (idx >= 0) {
-      drafts.splice(idx, 1);
-    }
-    traverse(child, drafts);
+export function getSelectedModels(host: EditorHost) {
+  const [, ctx] = host.std.command.exec(getSelectedModelsCommand, {
+    types: ["block", "text"],
   });
-  model.children = children;
+  return ctx.selectedModels;
+}
+
+export function traverse(model: DraftModel, pool: DraftModel[]): void {
+  const keepChildren =
+    model.flavour === "myoxus:database"
+      ? model.children
+      : model.children.filter((child) =>
+          pool.some((entry) => entry.id === child.id),
+        );
+
+  for (const child of keepChildren) {
+    const index = pool.findIndex((entry) => entry.id === child.id);
+    if (index >= 0) {
+      pool.splice(index, 1);
+    }
+    traverse(child, pool);
+  }
+  model.children = keepChildren;
 }
 
 export async function getTextContentFromBlockModels(
-  editorHost: EditorHost,
+  host: EditorHost,
   models: BlockModel[],
-  type: "markdown" | "plain-text" = "markdown",
-) {
-  // Currently only filter out images and databases
-  const selectedTextModels = models.filter(
+  format: "markdown" | "plain-text" = "markdown",
+): Promise<string> {
+  const textModels = models.filter(
     (model) => !matchModels(model, [ImageBlockModel, DatabaseBlockModel]),
   );
-  const drafts = selectedTextModels.map(toDraftModel);
-  drafts.forEach((draft) => traverse(draft, drafts));
-  const slice = Slice.fromModels(editorHost.std.store, drafts);
-  return getContentFromSlice(editorHost, slice, type);
+  const drafts = textModels.map(toDraftModel);
+  for (const draft of drafts) {
+    traverse(draft, drafts);
+  }
+  const slice = Slice.fromModels(host.std.store, drafts);
+  return getContentFromSlice(host, slice, format);
 }
 
 export async function getSelectedTextContent(
-  editorHost: EditorHost,
-  type: "markdown" | "plain-text" = "markdown",
-) {
-  const selectedModels = getSelectedModels(editorHost);
-  if (!selectedModels) return "";
-  return getTextContentFromBlockModels(editorHost, selectedModels, type);
+  host: EditorHost,
+  format: "markdown" | "plain-text" = "markdown",
+): Promise<string> {
+  const selected = getSelectedModels(host);
+  if (!selected) return "";
+  return getTextContentFromBlockModels(host, selected, format);
 }
 
-export async function selectAboveBlocks(editorHost: EditorHost, num = 10) {
-  let selectedModels = getSelectedModels(editorHost);
-  if (!selectedModels) return "";
+export async function selectAboveBlocks(
+  host: EditorHost,
+  limit = 10,
+): Promise<string> {
+  const currentSelected = getSelectedModels(host);
+  if (!currentSelected?.length) return "";
 
-  const lastLeafModel = selectedModels[selectedModels.length - 1];
-
-  let noteModel: BlockModel | null = lastLeafModel;
-  let lastRootModel: BlockModel | null = null;
-  while (noteModel && noteModel.flavour !== "myoxus:note") {
-    lastRootModel = noteModel;
-    noteModel = editorHost.store.getParent(noteModel);
+  const targetLeaf = currentSelected[currentSelected.length - 1];
+  let note: BlockModel | null = targetLeaf;
+  let topChild: BlockModel | null = null;
+  while (note && note.flavour !== "myoxus:note") {
+    topChild = note;
+    note = host.store.getParent(note);
   }
-  if (!noteModel || !lastRootModel) return "";
+  if (!note || !topChild) return "";
 
-  const endIndex = noteModel.children.indexOf(lastRootModel) + 1;
-  const startIndex = Math.max(0, endIndex - num);
-  const startBlock = noteModel.children[startIndex];
+  const endIdx = note.children.indexOf(topChild) + 1;
+  const startIdx = Math.max(0, endIdx - limit);
+  const firstBlock = note.children[startIdx];
 
-  selectedModels = [];
-  let stop = false;
-  const traverse = (model: BlockModel): void => {
-    if (stop) return;
-
-    selectedModels.push(model);
-
-    if (model === lastLeafModel) {
-      stop = true;
+  const collected: BlockModel[] = [];
+  let reachedTarget = false;
+  const collectUntilLeaf = (node: BlockModel) => {
+    if (reachedTarget) return;
+    collected.push(node);
+    if (node === targetLeaf) {
+      reachedTarget = true;
       return;
     }
-
-    model.children.forEach((child) => traverse(child));
+    for (const child of node.children) {
+      collectUntilLeaf(child);
+    }
   };
-  noteModel.children.slice(startIndex, endIndex).forEach(traverse);
+  for (const root of note.children.slice(startIdx, endIdx)) {
+    collectUntilLeaf(root);
+  }
 
-  const { selection } = editorHost;
+  const { selection } = host;
   selection.set([
     selection.create(TextSelection, {
       from: {
-        blockId: startBlock.id,
+        blockId: firstBlock.id,
         index: 0,
-        length: startBlock.text?.length ?? 0,
+        length: firstBlock.text?.length ?? 0,
       },
       to: {
-        blockId: lastLeafModel.id,
+        blockId: targetLeaf.id,
         index: 0,
         length: selection.find(TextSelection)?.from.index ?? 0,
       },
     }),
   ]);
 
-  return getTextContentFromBlockModels(editorHost, selectedModels);
+  return getTextContentFromBlockModels(host, collected);
 }
 
-export function getSurfaceElementFromEditor(editor: EditorHost) {
-  const { store } = editor;
-  const surfaceModel = getSurfaceBlock(store);
-  if (!surfaceModel) return null;
-
-  const surfaceId = surfaceModel.id;
-  const surfaceElement = editor.querySelector(
-    `myoxus-surface[data-block-id="${surfaceId}"]`,
-  ) as SurfaceBlockComponent;
-  if (!surfaceElement) return null;
-
-  return surfaceElement;
+export function getSurfaceElementFromEditor(
+  host: EditorHost,
+): SurfaceBlockComponent | null {
+  const surface = getSurfaceBlock(host.store);
+  if (!surface) return null;
+  return host.querySelector(
+    `myoxus-surface[data-block-id="${surface.id}"]`,
+  ) as SurfaceBlockComponent | null;
 }
 
-export const getSelections = (
+export function getSelections(
   host: EditorHost,
   mode: "flat" | "highest" = "flat",
-) => {
-  const [_, data] = host.command
-    .chain()
-    .tryAll((chain) => [
-      chain.pipe(getTextSelectionCommand),
-      chain.pipe(getBlockSelectionsCommand),
-      chain.pipe(getImageSelectionsCommand),
-    ])
-    .pipe(getSelectedBlocksCommand, { types: ["text", "block", "image"], mode })
-    .run();
-
-  return data;
-};
-
-export const getSelectedImagesAsBlobs = async (host: EditorHost) => {
-  const [_, data] = host.command
+) {
+  const [, data] = host.command
     .chain()
     .tryAll((chain) => [
       chain.pipe(getTextSelectionCommand),
@@ -217,31 +200,47 @@ export const getSelectedImagesAsBlobs = async (host: EditorHost) => {
       chain.pipe(getImageSelectionsCommand),
     ])
     .pipe(getSelectedBlocksCommand, {
-      types: ["block", "image"],
+      types: ["text", "block", "image"],
+      mode,
     })
     .run();
+  return data;
+}
 
-  const blobs = await Promise.all(
-    data.selectedBlocks?.map(async (b) => {
-      const sourceId = (b.model as ImageBlockModel).props.sourceId;
+export async function getSelectedImagesAsBlobs(
+  host: EditorHost,
+): Promise<File[]> {
+  const [, data] = host.command
+    .chain()
+    .tryAll((chain) => [
+      chain.pipe(getTextSelectionCommand),
+      chain.pipe(getBlockSelectionsCommand),
+      chain.pipe(getImageSelectionsCommand),
+    ])
+    .pipe(getSelectedBlocksCommand, { types: ["block", "image"] })
+    .run();
+
+  const files = await Promise.all(
+    (data.selectedBlocks ?? []).map(async (block) => {
+      const sourceId = (block.model as ImageBlockModel).props.sourceId;
       if (!sourceId) return null;
       const blob = await host.store.blobSync.get(sourceId);
-      if (!blob) return null;
-      return new File([blob], sourceId);
-    }) ?? [],
+      return blob ? new File([blob], sourceId) : null;
+    }),
   );
-  return blobs.filter((blob): blob is File => !!blob);
-};
 
-export const getSelectedAttachments = async (host: EditorHost) => {
-  const [_, data] = host.command.exec(getSelectedBlocksCommand, {
+  return files.filter((file): file is File => file !== null);
+}
+
+export async function getSelectedAttachments(
+  host: EditorHost,
+): Promise<Array<{ sourceId: string; name: string }>> {
+  const [, data] = host.command.exec(getSelectedBlocksCommand, {
     types: ["block"],
   });
 
-  const blocks = data.selectedBlocks ?? [];
-  const attachments: { sourceId: string; name: string }[] = [];
-
-  for (const block of blocks) {
+  const attachments: Array<{ sourceId: string; name: string }> = [];
+  for (const block of data.selectedBlocks ?? []) {
     if (isAttachment(block.model)) {
       const { sourceId, name } = block.model.props;
       if (sourceId && name) {
@@ -249,38 +248,31 @@ export const getSelectedAttachments = async (host: EditorHost) => {
       }
     }
   }
-
   return attachments;
-};
+}
 
-export const getSelectedNoteAnchor = (host: EditorHost, id: string) => {
+export function getSelectedNoteAnchor(host: EditorHost, id: string) {
   return host.querySelector(`myoxus-edgeless-note[data-block-id="${id}"]`);
-};
+}
 
 export function getCopilotSelectedElems(host: EditorHost): GfxModel[] {
   const gfx = host.std.get(GfxControllerIdentifier);
   const copilotWidget = getEdgelessCopilotWidget(host);
-
   if (copilotWidget.visible) {
-    const currentTool = gfx.tool.currentTool$.peek() as CopilotTool;
-    return currentTool?.selectedElements ?? [];
+    const activeTool = gfx.tool.currentTool$.peek() as CopilotTool;
+    return activeTool?.selectedElements ?? [];
   }
-
   return gfx.selection.selectedElements;
 }
 
-export const imageCustomInput = async (host: EditorHost) => {
-  const selectedElements = getCopilotSelectedElems(host);
-  if (selectedElements.length !== 1) return;
+export async function imageCustomInput(host: EditorHost) {
+  const selected = getCopilotSelectedElems(host);
+  if (selected.length !== 1) return;
 
-  const imageBlock = selectedElements[0];
-  if (!(imageBlock instanceof ImageBlockModel)) return;
-  if (!imageBlock.props.sourceId) return;
+  const target = selected[0];
+  if (!(target instanceof ImageBlockModel) || !target.props.sourceId) return;
 
-  const blob = await host.store.blobSync.get(imageBlock.props.sourceId);
+  const blob = await host.store.blobSync.get(target.props.sourceId);
   if (!blob) return;
-
-  return {
-    attachments: [blob],
-  };
-};
+  return { attachments: [blob] };
+}

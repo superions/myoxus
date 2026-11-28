@@ -265,33 +265,6 @@ export type EditorFrameOrderControls = Readonly<{
   move: (id: string, before: string | null) => void;
 }>;
 
-/** Controller-owned elements retain preview/editor lifetimes and drag identity. */
-export type EditorFrameNavigatorControls = {
-  emptyLabel: string;
-  items: readonly {
-    id: string;
-    mount: (element: HTMLElement | null) => void;
-  }[];
-  setList: (element: HTMLDivElement | null) => void;
-  indicatorY?: number;
-};
-export type EditorFrameCardControls = {
-  selected: boolean;
-  mountTitle: (element: HTMLDivElement | null) => void;
-  mountPreview: (element: HTMLDivElement | null) => void;
-  select: (event: MouseEvent) => void;
-  fit: (event: MouseEvent) => void;
-  drag: (event: MouseEvent) => void;
-  count?: number;
-};
-export type EditorFrameTitleControls = {
-  index: number;
-  title: string;
-  setContainer: (element: HTMLDivElement | null) => void;
-  setTitle: (element: HTMLSpanElement | null) => void;
-  edit: (event: MouseEvent) => void;
-};
-
 export type EditorCanvasPopoverToolId =
   "templates" | "frame" | "connector" | "note" | "pen" | "eraser" | "shape";
 
@@ -538,10 +511,6 @@ export type EditorChromeHost = {
     anchor: HTMLElement,
     controls: EditorIconPickerControls,
   ) => () => void;
-  mountCanvasPopover?: (
-    anchor: HTMLElement,
-    state: ReadonlySignal<EditorCanvasPopoverControls | null>,
-  ) => () => void;
   mountSurfaceRefPlaceholder?: (
     anchor: HTMLElement,
     state: ReadonlySignal<EditorSurfaceRefPlaceholderControls | null>,
@@ -562,25 +531,9 @@ export type EditorChromeHost = {
     anchor: HTMLElement,
     state: ReadonlySignal<EditorAutoCompleteControls | null>,
   ) => () => void;
-  mountCanvasMenu: (
-    anchor: HTMLElement,
-    state: ReadonlySignal<EditorCanvasMenuControls | null>,
-  ) => () => void;
   mountCanvasDock: (
     anchor: HTMLElement,
     controls: EditorCanvasDockControls,
-  ) => () => void;
-  mountFrameNavigator: (
-    anchor: HTMLElement,
-    state: ReadonlySignal<EditorFrameNavigatorControls | null>,
-  ) => () => void;
-  mountFrameCard: (
-    anchor: HTMLElement,
-    state: ReadonlySignal<EditorFrameCardControls | null>,
-  ) => () => void;
-  mountFrameTitle: (
-    anchor: HTMLElement,
-    state: ReadonlySignal<EditorFrameTitleControls | null>,
   ) => () => void;
   mountCodePreview: (
     anchor: HTMLElement,
@@ -625,10 +578,6 @@ export type EditorChromeHost = {
   mountLoomCard: (
     anchor: HTMLElement,
     state: ReadonlySignal<EditorLoomCardControls | null>,
-  ) => () => void;
-  mountDocumentOutline: (
-    anchor: HTMLElement,
-    controls: EditorOutlineControls,
   ) => () => void;
   mountOutlineEntry: (
     anchor: HTMLElement,

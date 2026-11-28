@@ -1,26 +1,24 @@
-import { createElement } from "react";
-import type { MindmapDesign as MindmapStyle } from "@virgultum/block-mermaid";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
+import type { MindmapDesign } from "@virgultum/block-mermaid";
 import type { EditorHost } from "@virgultum/editor/std";
+import { createElement } from "react";
 
 import { markdownToMindmap, MiniMindmapPreview } from "../mini-mindmap";
 import { getAIPanelController } from "../utils/ai-widgets";
 import type { AIContext } from "../utils/context";
 import type { MyoxusAIPanelWidgetConfig } from "../widgets/ai-panel/type";
 
-export const createMindmapRenderer: (
+export function createMindmapRenderer(
   host: EditorHost,
-  /**
-   * Used to store data for later use during rendering.
-   */
   ctx: AIContext,
-  style?: MindmapStyle,
-) => MyoxusAIPanelWidgetConfig["answerRenderer"] = (host, ctx, style) => {
+  style?: MindmapDesign,
+): MyoxusAIPanelWidgetConfig["answerRenderer"] {
   return (answer, state) => {
     if (state === "generating") {
-      const panel = getAIPanelController(host);
-      panel.generatingElement?.updateLoadingProgress(2);
+      getAIPanelController(host).generatingElement?.updateLoadingProgress(2);
     }
-
     if (state !== "finished") {
       return null;
     }
@@ -34,41 +32,43 @@ export const createMindmapRenderer: (
       height: 300,
     });
   };
-};
+}
 
 /**
- * Creates a renderer for executing a handler.
- * The ai panel will not display anything after the answer is generated.
+ * Headless mindmap renderer that parses the completed response and invokes
+ * the supplied canvas insertion handler once without displaying a preview.
  */
-export const createMindmapExecuteRenderer: (
+export function createMindmapExecuteRenderer(
   host: EditorHost,
-  /**
-   * Used to store data for later use during rendering.
-   */
   ctx: AIContext,
   handler: (host: EditorHost, ctx: AIContext) => void | Promise<void>,
-) => MyoxusAIPanelWidgetConfig["answerRenderer"] = (host, ctx, handler) => {
-  let executed = false;
+): MyoxusAIPanelWidgetConfig["answerRenderer"] {
+  let dispatched = false;
+
   return (answer, state) => {
     if (state !== "finished") {
-      executed = false;
-      const panel = getAIPanelController(host);
-      panel.generatingElement?.updateLoadingProgress(2);
+      dispatched = false;
+      getAIPanelController(host).generatingElement?.updateLoadingProgress(2);
       return null;
     }
 
-    if (executed) return null;
-    executed = true;
+    if (dispatched) return null;
+    dispatched = true;
+
     try {
-      ctx.set({
-        node: markdownToMindmap(answer, host.store, host.std.store.provider),
-      });
-      if (ctx.get().node)
+      const tree = markdownToMindmap(
+        answer,
+        host.store,
+        host.std.store.provider,
+      );
+      ctx.set({ node: tree });
+      if (tree) {
         Promise.resolve(handler(host, ctx)).catch(console.error);
+      }
     } catch {
       ctx.set({ node: null });
     }
 
     return null;
   };
-};
+}

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import {
   OpenInAppService,
   OpenLinkMode,
@@ -11,16 +14,17 @@ import { FormSelect } from "../../primitives";
 export const OpenInAppLinksMenu = () => {
   const t = useI18n();
   const openInAppService = useService(OpenInAppService);
-  const currentOpenInAppMode = useLiveData(openInAppService.openLinkMode$);
+  const currentMode = useLiveData(openInAppService.openLinkMode$);
 
   const options = useMemo(
     () =>
-      Object.values(OpenLinkMode).map((mode) => ({
-        label:
-          t.t(`com.myoxus.setting.appearance.open-in-app.${mode}`) ||
-          `com.myoxus.setting.appearance.open-in-app.${mode}`,
-        value: mode,
-      })),
+      Object.values(OpenLinkMode).map((mode) => {
+        const key = `com.myoxus.setting.appearance.open-in-app.${mode}`;
+        return {
+          label: t.t(key) || key,
+          value: mode,
+        };
+      }),
     [t],
   );
 
@@ -28,7 +32,7 @@ export const OpenInAppLinksMenu = () => {
     <FormSelect
       aria-label={t["com.myoxus.setting.appearance.open-in-app"]()}
       data={options}
-      value={currentOpenInAppMode}
+      value={currentMode}
       onChange={(value) =>
         openInAppService.setOpenLinkMode(value as OpenLinkMode)
       }

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
 import { AccessTokenService, ServerService } from "@myoxus/core/modules/server";
 import type { McpApiKey } from "@myoxus/core/modules/server/stores/access-token";
@@ -6,7 +9,7 @@ import { UserFriendlyError } from "@myoxus/error";
 import { useI18n } from "@myoxus/i18n";
 import { CopyIcon, DoneIcon, McpIcon } from "@myoxus/icons/react";
 import { useLiveData, useService } from "@myoxus/infra";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   Accordion,
@@ -35,45 +38,60 @@ const MCP_BASE_SCOPES = [
   "read:docs",
   "read:calendar",
 ] as const;
-const MCP_DOCUMENT_WRITE_SCOPE = "write:docs";
-const MCP_CALENDAR_WRITE_SCOPE = "write:calendar";
-const MCP_WORKSPACE_WRITE_SCOPE = "write:workspaces";
+const SCOPE_WRITE_DOCS = "write:docs";
+const SCOPE_WRITE_CALENDAR = "write:calendar";
+const SCOPE_WRITE_WORKSPACES = "write:workspaces";
 
-const mcpApiKeyName = (workspaceId: string) => `mcp:${workspaceId}`;
+// Keys belong to ApiKey.user_id; `mcp:<workspaceId>` is a human-readable label
+// only and never restricts authorization to a single workspace.
+const formatMcpKeyLabel = (workspaceId: string) => `mcp:${workspaceId}`;
 
-export const McpServerSettingPanel = () => {
-  return <McpServerSetting />;
-};
-
-const McpServerSettingHeader = ({ action }: { action?: ReactNode }) => {
+function McpHeader() {
   const t = useI18n();
-
   return (
     <IntegrationSettingHeader
       icon={<McpIcon aria-hidden="true" />}
       name={t["com.myoxus.integration.mcp-server.name"]()}
       desc={t["com.myoxus.integration.mcp-server.desc"]()}
-      action={action}
     />
   );
-};
+}
 
-const McpServerSetting = () => {
+export const McpServerSettingPanel = () => {
+  const t = useI18n();
   const workspaceService = useService(WorkspaceService);
   const serverService = useService(ServerService);
-  const workspaceName = useLiveData(workspaceService.workspace.name$);
   const accessTokenService = useService(AccessTokenService);
+
+  const workspaceId = workspaceService.workspace.id;
+  const workspaceName = useLiveData(workspaceService.workspace.name$);
   const mcpApiKeys = useLiveData(accessTokenService.mcpApiKeys$);
   const isRevalidating = useLiveData(accessTokenService.isRevalidating$);
   const error = useLiveData(accessTokenService.error$);
+
   const [mutating, setMutating] = useState(false);
-  const [documentWriteEnabled, setDocumentWriteEnabled] = useState(true);
-  const [calendarWriteEnabled, setCalendarWriteEnabled] = useState(true);
-  const [workspaceWriteEnabled, setWorkspaceWriteEnabled] = useState(false);
-  const [revealedApiKey, setRevealedApiKey] = useState<McpApiKey | null>(null);
-  const t = useI18n();
-  const apiKeyName = mcpApiKeyName(workspaceService.workspace.id);
-  const supportTools = useMemo(
+  const [documentWrite, setDocumentWrite] = useState(true);
+  const [calendarWrite, setCalendarWrite] = useState(true);
+  const [workspaceWrite, setWorkspaceWrite] = useState(false);
+  const [revealedKey, setRevealedKey] = useState<McpApiKey | null>(null);
+
+  const keyLabel = formatMcpKeyLabel(workspaceId);
+  const existingKey = useMemo(
+    () => mcpApiKeys?.find((entry) => entry.name === keyLabel),
+    [keyLabel, mcpApiKeys],
+  );
+  const displayedKey = revealedKey ?? existingKey;
+  const hasToken = Boolean(displayedKey);
+  const isRedacted = hasToken && !revealedKey?.key;
+
+  const activeScopes = displayedKey?.scopes ?? [
+    ...MCP_BASE_SCOPES,
+    ...(documentWrite ? [SCOPE_WRITE_DOCS] : []),
+    ...(calendarWrite ? [SCOPE_WRITE_CALENDAR] : []),
+    ...(workspaceWrite ? [SCOPE_WRITE_WORKSPACES] : []),
+  ];
+
+  const supportedTools = useMemo(
     () =>
       [
         {
@@ -142,118 +160,92 @@ const McpServerSetting = () => {
     [t],
   );
 
-  const mcpApiKey = useMemo(() => {
-    return mcpApiKeys?.find((key) => key.name === apiKeyName);
-  }, [apiKeyName, mcpApiKeys]);
-
-  const displayedApiKey = revealedApiKey ?? mcpApiKey;
-  const displayedScopes: string[] = displayedApiKey?.scopes ?? [
-    ...MCP_BASE_SCOPES,
-    ...(documentWriteEnabled ? [MCP_DOCUMENT_WRITE_SCOPE] : []),
-    ...(calendarWriteEnabled ? [MCP_CALENDAR_WRITE_SCOPE] : []),
-    ...(workspaceWriteEnabled ? [MCP_WORKSPACE_WRITE_SCOPE] : []),
-  ];
-  const hasMcpToken = Boolean(revealedApiKey || mcpApiKey);
-  const hasCopyableToken = Boolean(revealedApiKey?.key);
-  const isRedactedDisplay = hasMcpToken && !hasCopyableToken;
-
-  const code = useMemo(() => {
-    return displayedApiKey
-      ? JSON.stringify(
-          {
-            mcpServers: {
-              [`myoxus_workspace_${workspaceService.workspace.id}`]: {
-                type: "streamable-http",
-                url: `${serverService.server.baseUrl}/mcp`,
-                note: t["com.myoxus.integration.mcp-server.config.note"]({
-                  name: workspaceName ?? workspaceService.workspace.id,
-                }),
-                headers: {
-                  Authorization: `Bearer ${displayedApiKey.key ?? "[REDACTED]"}`,
-                },
-              },
+  const configJson = useMemo(() => {
+    if (!displayedKey) return null;
+    return JSON.stringify(
+      {
+        mcpServers: {
+          [`myoxus_workspace_${workspaceId}`]: {
+            type: "streamable-http",
+            url: `${serverService.server.baseUrl}/mcp`,
+            note: t["com.myoxus.integration.mcp-server.config.note"]({
+              name: workspaceName ?? workspaceId,
+            }),
+            headers: {
+              Authorization: `Bearer ${displayedKey.key ?? "[REDACTED]"}`,
             },
           },
-          null,
-          2,
-        )
-      : null;
-  }, [displayedApiKey, workspaceName, workspaceService, serverService, t]);
-
-  const copyJsonDisabled = !code || mutating || isRedactedDisplay;
-  const copyJsonTooltip = isRedactedDisplay
-    ? t["com.myoxus.integration.mcp-server.copy-json.disabled-hint"]()
-    : undefined;
-
-  const showLoading = mcpApiKeys === null && isRevalidating;
-  const showError = mcpApiKeys === null && error !== null;
+        },
+      },
+      null,
+      2,
+    );
+  }, [
+    displayedKey,
+    serverService.server.baseUrl,
+    t,
+    workspaceId,
+    workspaceName,
+  ]);
 
   useEffect(() => {
     accessTokenService.revalidate();
   }, [accessTokenService]);
 
-  const handleGenerateAccessToken = useAsyncCallback(async () => {
+  const handleGenerate = useAsyncCallback(async () => {
     setMutating(true);
     try {
-      if (mcpApiKey) {
-        await accessTokenService.revokeMcpApiKey(mcpApiKey.id);
+      if (existingKey) {
+        await accessTokenService.revokeMcpApiKey(existingKey.id);
       }
-      const scopes = [
+      const created = await accessTokenService.createMcpApiKey(keyLabel, [
         ...MCP_BASE_SCOPES,
-        ...(documentWriteEnabled ? [MCP_DOCUMENT_WRITE_SCOPE] : []),
-        ...(calendarWriteEnabled ? [MCP_CALENDAR_WRITE_SCOPE] : []),
-        ...(workspaceWriteEnabled ? [MCP_WORKSPACE_WRITE_SCOPE] : []),
-      ];
-      const createdKey = await accessTokenService.createMcpApiKey(
-        apiKeyName,
-        scopes,
-      );
-      setRevealedApiKey(createdKey);
+        ...(documentWrite ? [SCOPE_WRITE_DOCS] : []),
+        ...(calendarWrite ? [SCOPE_WRITE_CALENDAR] : []),
+        ...(workspaceWrite ? [SCOPE_WRITE_WORKSPACES] : []),
+      ]);
+      setRevealedKey(created);
     } catch (err) {
-      notify.error({
-        error: UserFriendlyError.fromAny(err),
-      });
+      notify.error({ error: UserFriendlyError.fromAny(err) });
     } finally {
       setMutating(false);
     }
   }, [
     accessTokenService,
-    apiKeyName,
-    calendarWriteEnabled,
-    documentWriteEnabled,
-    mcpApiKey,
-    workspaceWriteEnabled,
+    calendarWrite,
+    documentWrite,
+    existingKey,
+    keyLabel,
+    workspaceWrite,
   ]);
 
-  const handleRevokeAccessToken = useAsyncCallback(async () => {
+  const handleRevoke = useAsyncCallback(async () => {
     setMutating(true);
     try {
-      if (mcpApiKey) {
-        await accessTokenService.revokeMcpApiKey(mcpApiKey.id);
+      if (existingKey) {
+        await accessTokenService.revokeMcpApiKey(existingKey.id);
       }
-      setRevealedApiKey(null);
+      setRevealedKey(null);
     } catch (err) {
-      notify.error({
-        error: UserFriendlyError.fromAny(err),
-      });
+      notify.error({ error: UserFriendlyError.fromAny(err) });
     } finally {
       setMutating(false);
     }
-  }, [accessTokenService, mcpApiKey]);
+  }, [accessTokenService, existingKey]);
 
-  if (showLoading) {
+  if (mcpApiKeys === null && isRevalidating) {
     return (
       <Stack>
-        <McpServerSettingHeader />
+        <McpHeader />
         <Skeleton />
       </Stack>
     );
   }
 
-  if (showError) {
+  if (mcpApiKeys === null && error !== null) {
     return (
       <Stack>
-        <McpServerSettingHeader />
+        <McpHeader />
         <ErrorMessage>{error}</ErrorMessage>
       </Stack>
     );
@@ -261,27 +253,23 @@ const McpServerSetting = () => {
 
   return (
     <Stack>
-      <McpServerSettingHeader />
+      <McpHeader />
 
       <SettingsSection
         title={t["com.myoxus.integration.mcp-server.token.title"]()}
         description={t["com.myoxus.integration.mcp-server.token.description"]()}
         actions={
-          !hasMcpToken ? (
-            <Button
-              variant="primary"
-              onClick={handleGenerateAccessToken}
-              disabled={mutating}
-            >
-              {t["com.myoxus.integration.mcp-server.token.create"]()}
+          hasToken ? (
+            <Button variant="error" onClick={handleRevoke} disabled={mutating}>
+              {t["Delete"]()}
             </Button>
           ) : (
             <Button
-              variant="error"
-              onClick={handleRevokeAccessToken}
+              variant="primary"
+              onClick={handleGenerate}
               disabled={mutating}
             >
-              {t["Delete"]()}
+              {t["com.myoxus.integration.mcp-server.token.create"]()}
             </Button>
           )
         }
@@ -293,30 +281,30 @@ const McpServerSetting = () => {
           description={t[
             "com.myoxus.integration.mcp-server.scope.workspace-write.desc"
           ]()}
-          checked={workspaceWriteEnabled}
-          disabled={hasMcpToken || mutating}
-          onChange={setWorkspaceWriteEnabled}
+          checked={workspaceWrite}
+          disabled={hasToken || mutating}
+          onChange={setWorkspaceWrite}
         />
         <SettingsSwitchRow
           label={t["com.myoxus.integration.mcp-server.scope.write.title"]()}
           description={t[
             "com.myoxus.integration.mcp-server.scope.write.desc"
           ]()}
-          checked={documentWriteEnabled}
-          disabled={hasMcpToken || mutating}
-          onChange={setDocumentWriteEnabled}
+          checked={documentWrite}
+          disabled={hasToken || mutating}
+          onChange={setDocumentWrite}
         />
         <SettingsSwitchRow
           label={`${t["com.myoxus.integration.calendar.name"]()}: ${t[
             "com.myoxus.integration.mcp-server.scope.write.title"
           ]()}`}
-          description={<MonoText>{MCP_CALENDAR_WRITE_SCOPE}</MonoText>}
-          checked={calendarWriteEnabled}
-          disabled={hasMcpToken || mutating}
-          onChange={setCalendarWriteEnabled}
+          description={<MonoText>{SCOPE_WRITE_CALENDAR}</MonoText>}
+          checked={calendarWrite}
+          disabled={hasToken || mutating}
+          onChange={setCalendarWrite}
         />
         <Group wrap="wrap" data-myoxus-ui-role="mcp-scope-list">
-          {displayedScopes.map((scope) => (
+          {activeScopes.map((scope) => (
             <Badge key={scope} data-myoxus-ui-role="mcp-scope-badge">
               <MonoText>{scope}</MonoText>
             </Badge>
@@ -327,7 +315,7 @@ const McpServerSetting = () => {
       <SettingsSection
         title={t["com.myoxus.integration.mcp-server.config.title"]()}
         actions={
-          <CopyButton value={code ?? ""} timeout={2000}>
+          <CopyButton value={configJson ?? ""} timeout={2000}>
             {({ copied, copy }) => (
               <Button
                 variant="primary"
@@ -339,14 +327,18 @@ const McpServerSetting = () => {
                   )
                 }
                 onClick={() => {
-                  if (!code) return;
+                  if (!configJson) return;
                   copy();
-                  notify.success({
-                    title: t["Copied to clipboard"](),
-                  });
+                  notify.success({ title: t["Copied to clipboard"]() });
                 }}
-                disabled={copyJsonDisabled}
-                tooltip={copyJsonTooltip}
+                disabled={!configJson || mutating || isRedacted}
+                tooltip={
+                  isRedacted
+                    ? t[
+                        "com.myoxus.integration.mcp-server.copy-json.disabled-hint"
+                      ]()
+                    : undefined
+                }
               >
                 {copied
                   ? t["Copied to clipboard"]()
@@ -356,8 +348,8 @@ const McpServerSetting = () => {
           </CopyButton>
         }
       >
-        {code ? (
-          <TerminalPanel tabIndex={0}>{code}</TerminalPanel>
+        {configJson ? (
+          <TerminalPanel tabIndex={0}>{configJson}</TerminalPanel>
         ) : (
           <SettingsControlEmpty>
             {t["com.myoxus.integration.mcp-server.config.empty"]()}
@@ -369,7 +361,7 @@ const McpServerSetting = () => {
         title={t["com.myoxus.integration.mcp-server.tools.title"]()}
       >
         <Accordion multiple data-myoxus-ui-role="mcp-tool-list">
-          {supportTools.map((tool) => (
+          {supportedTools.map((tool) => (
             <AccordionItem key={tool.name} value={tool.name}>
               <AccordionControl>
                 <MonoText>{tool.name}</MonoText>

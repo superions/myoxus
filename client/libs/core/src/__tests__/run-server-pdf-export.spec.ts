@@ -117,7 +117,7 @@ vi.mock("@virgultum/editor/store", async (importOriginal) => ({
   Transformer: class {},
 }));
 
-vi.mock("@virgultum/editor/widgets/linked-doc", () => ({
+vi.mock("@virgultum/editor/interchange", () => ({
   createAssetsArchive: () => null,
   download: vi.fn(),
   HtmlTransformer: { exportDoc: () => Promise.resolve() },
@@ -137,7 +137,7 @@ import {
 import { PDF_EXPORT_COMPLETED_EVENT } from "../modules/pdf-export/events";
 import { runServerDocxExport } from "../modules/file-export/run-server-docx-export";
 import { DOCX_MIME } from "../modules/file-export/deliver-file";
-import { download } from "@virgultum/editor/widgets/linked-doc";
+import { download } from "@virgultum/editor/interchange";
 
 type GqlServiceShape = {
   gql: (args: { query: unknown; variables?: unknown }) => Promise<unknown>;

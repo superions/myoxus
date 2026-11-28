@@ -1,7 +1,6 @@
 import "../declare-test-window.js";
 
 import { expect, type Locator, type Page } from "@playwright/test";
-import type { FramePanel } from "@virgultum/editor/fragments/frame-panel";
 import type { ConnectorTool } from "@virgultum/editor/gfx/connector";
 import type { ShapeTool } from "@virgultum/editor/gfx/shape";
 import type { IPoint, IVec } from "@virgultum/editor/global/gfx";
@@ -107,20 +106,10 @@ export async function getNoteProps(page: Page, noteId: string) {
 
 export async function mountFramePanelFixture(page: Page) {
   await page.evaluate(async () => {
-    const panel: FramePanel = document.createElement("myoxus-frame-panel");
     const host = window.editor.host;
     if (!host) throw new Error("Editor host is not mounted");
-    panel.host = host;
-    panel.hideHeader = true;
-    // Bound the real fragment for pointer input; this is not sidebar layout QA.
-    Object.assign(panel.style, {
-      position: "fixed",
-      insetBlock: "0",
-      insetInlineEnd: "0",
-      inlineSize: "30vw",
-      blockSize: "100vh",
-    });
-    document.body.append(panel);
+    window.__frameNavigatorFixture?.unmount();
+    window.__frameNavigatorFixture = window.mountFrameNavigatorFixture(host);
     await new Promise<void>((resolve) =>
       requestAnimationFrame(() => resolve()),
     );

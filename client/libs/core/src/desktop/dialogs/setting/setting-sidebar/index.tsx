@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { GlobalDialogService } from "@myoxus/core/modules/dialogs";
 import type {
   UserSettingTab,
@@ -40,11 +43,8 @@ export type UserInfoProps = {
 
 export const UserInfo = ({ onAccountSettingClick, active }: UserInfoProps) => {
   const account = useLiveData(useService(AuthService).session.account$);
+  if (!account) return null;
 
-  if (!account) {
-    // TODO(@eyhn): loading ui
-    return;
-  }
   return (
     <SidebarNavItem
       active={active}
@@ -73,6 +73,10 @@ export const SignInButton = () => {
   const t = useI18n();
   const globalDialogService = useService(GlobalDialogService);
 
+  const handleOpenSignIn = useCallback(() => {
+    globalDialogService.open("sign-in", {});
+  }, [globalDialogService]);
+
   return (
     <SidebarNavItem
       data-testid="settings-signin-button"
@@ -80,14 +84,12 @@ export const SignInButton = () => {
       icon={
         <BrandAssetImage
           slot="productMark"
-          width={"calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))"}
-          height={"calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))"}
+          width="calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))"
+          height="calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))"
           alt="Myoxus Product Mark"
         />
       }
-      onClick={useCallback(() => {
-        globalDialogService.open("sign-in", {});
-      }, [globalDialogService])}
+      onClick={handleOpenSignIn}
     >
       <SidebarIdentityText>
         <SettingsListItemTitle truncate title={t["com.myoxus.settings.sign"]()}>
@@ -104,7 +106,8 @@ export const SignInButton = () => {
   );
 };
 
-type SettingSidebarItemProps = {
+type SidebarNavRow = {
+  key: string;
   isActive: boolean;
   icon: ReactNode;
   title: string;
@@ -114,49 +117,41 @@ type SettingSidebarItemProps = {
   "data-event-arg"?: string;
 };
 
-const SettingSidebarItem = ({
-  isActive,
-  icon,
-  title,
-  testId,
-  beta,
-  ...props
-}: SettingSidebarItemProps) => {
-  return (
-    <SidebarNavItem
-      {...props}
-      active={isActive}
-      actions={
-        beta ? (
-          <Badge data-myoxus-ui-role="settings-sidebar-beta-badge">Beta</Badge>
-        ) : undefined
-      }
-      icon={icon}
-      title={title}
-      data-myoxus-ui-role="settings-sidebar-item"
-      data-testid={testId}
-    >
-      {title}
-    </SidebarNavItem>
-  );
-};
-
-const SettingSidebarGroup = ({
+function SettingSidebarSection({
   title,
   items,
 }: {
   title?: string;
-  items: Array<SettingSidebarItemProps & { key: string }>;
-}) => {
+  items: SidebarNavRow[];
+}) {
   return (
     <SidebarNavSection>
       {title ? <SidebarNavSectionLabel>{title}</SidebarNavSectionLabel> : null}
-      {items.map(({ key, ...props }) => (
-        <SettingSidebarItem key={key} {...props} />
-      ))}
+      {items.map(
+        ({ key, isActive, icon, title: itemTitle, testId, beta, ...rest }) => (
+          <SidebarNavItem
+            key={key}
+            {...rest}
+            active={isActive}
+            actions={
+              beta ? (
+                <Badge data-myoxus-ui-role="settings-sidebar-beta-badge">
+                  Beta
+                </Badge>
+              ) : undefined
+            }
+            icon={icon}
+            title={itemTitle}
+            data-myoxus-ui-role="settings-sidebar-item"
+            data-testid={testId}
+          >
+            {itemTitle}
+          </SidebarNavItem>
+        ),
+      )}
     </SidebarNavSection>
   );
-};
+}
 
 export const UserSettingsSidebar = ({
   activeTab,
@@ -168,27 +163,29 @@ export const UserSettingsSidebar = ({
   const t = useI18n();
   const loginStatus = useLiveData(useService(AuthService).session.status$);
   const generalList = useGeneralSettingList();
-  const gotoTab = useCallback(
+
+  const selectTab = useCallback(
     (tab: UserSettingTab) => {
       track.$.settingsPanel.menu.openSettings({ to: tab });
       onTabChange(tab);
     },
     [onTabChange],
   );
-  const onAccountSettingClick = useCallback(() => {
-    track.$.settingsPanel.menu.openSettings({ to: "account" });
-    onTabChange("account");
-  }, [onTabChange]);
 
-  const items = useMemo(
+  const handleAccountClick = useCallback(
+    () => selectTab("account"),
+    [selectTab],
+  );
+
+  const items = useMemo<SidebarNavRow[]>(
     () =>
       generalList.map((item) => ({
         ...item,
         isActive: item.key === activeTab,
         "data-event-arg": item.key,
-        onClick: () => gotoTab(item.key),
+        onClick: () => selectTab(item.key),
       })),
-    [activeTab, generalList, gotoTab],
+    [activeTab, generalList, selectTab],
   );
 
   return (
@@ -196,21 +193,18 @@ export const UserSettingsSidebar = ({
       <SettingsSidebarTitle>
         {t["com.myoxus.settingSidebar.title"]()}
       </SettingsSidebarTitle>
-
       {loginStatus === "unauthenticated" ? <SignInButton /> : null}
       {loginStatus === "authenticated" ? (
         <Suspense>
           <UserInfo
-            onAccountSettingClick={onAccountSettingClick}
+            onAccountSettingClick={handleAccountClick}
             active={activeTab === "account"}
           />
         </Suspense>
       ) : null}
-
       <SidebarNavSectionDivider />
-
       <SettingsSidebarContent>
-        <SettingSidebarGroup items={items} />
+        <SettingSidebarSection items={items} />
       </SettingsSidebarContent>
     </SettingsSidebarRoot>
   );
@@ -225,22 +219,24 @@ export const WorkspaceSettingsSidebar = ({
 }) => {
   const t = useI18n();
   const workspaceSettingList = useWorkspaceSettingList();
-  const gotoTab = useCallback(
+
+  const selectTab = useCallback(
     (tab: WorkspaceSettingTab) => {
       track.$.settingsPanel.menu.openSettings({ to: tab });
       onTabChange(tab);
     },
     [onTabChange],
   );
-  const items = useMemo(
+
+  const items = useMemo<SidebarNavRow[]>(
     () =>
       workspaceSettingList.map((item) => ({
         ...item,
         isActive: item.key === activeTab,
         "data-event-arg": item.key,
-        onClick: () => gotoTab(item.key),
+        onClick: () => selectTab(item.key),
       })),
-    [activeTab, gotoTab, workspaceSettingList],
+    [activeTab, selectTab, workspaceSettingList],
   );
 
   return (
@@ -249,7 +245,7 @@ export const WorkspaceSettingsSidebar = ({
         {t["com.myoxus.settingSidebar.settings.workspace"]()}
       </SettingsSidebarTitle>
       <SettingsSidebarContent>
-        <SettingSidebarGroup items={items} />
+        <SettingSidebarSection items={items} />
       </SettingsSidebarContent>
     </SettingsSidebarRoot>
   );

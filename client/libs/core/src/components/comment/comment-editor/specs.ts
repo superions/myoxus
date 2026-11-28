@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { CloudViewExtension } from "@myoxus/core/editor/view-extensions/cloud";
 import { MyoxusEditorViewExtension } from "@myoxus/core/editor/view-extensions/editor-view/editor-view";
 import { MyoxusThemeViewExtension } from "@myoxus/core/editor/view-extensions/theme";
@@ -61,19 +64,18 @@ import { z } from "zod";
 
 import { createCommentLinkedWidgetConfig } from "./linked-widget-config";
 
-const commentEditorViewExtensionOptionsSchema = z.object({
+const commentEditorOptionsSchema = z.object({
   peekView: z.optional(z.custom<PeekViewService>()),
   fontConfig: z.optional(z.array(fontConfigSchema)),
 });
 
 export type CommentEditorViewExtensionOptions = z.infer<
-  typeof commentEditorViewExtensionOptionsSchema
+  typeof commentEditorOptionsSchema
 >;
 
 class CommentEditorViewExtensionProvider extends ViewExtensionProvider<CommentEditorViewExtensionOptions> {
   override name = "comment-editor";
-
-  override schema = commentEditorViewExtensionOptionsSchema;
+  override schema = commentEditorOptionsSchema;
 
   override setup(
     context: ViewExtensionContext,
@@ -90,7 +92,6 @@ class CommentEditorViewExtensionProvider extends ViewExtensionProvider<CommentEd
       ToolbarRegistryExtension,
       PageViewportServiceExtension,
       FileSizeLimitService,
-
       ...InlineSpecExtensions,
       InlineManagerExtension<MyoxusTextAttributes>({
         id: "DefaultInlineManager",
@@ -108,7 +109,6 @@ class CommentEditorViewExtensionProvider extends ViewExtensionProvider<CommentEd
           MentionInlineSpecExtension.identifier,
         ],
       }),
-
       PlainTextClipboardConfig,
     ]);
 
@@ -121,55 +121,44 @@ class CommentEditorViewExtensionProvider extends ViewExtensionProvider<CommentEd
   }
 }
 
-let manager: ViewExtensionManager | null = null;
-export function getCommentEditorViewManager(framework: FrameworkProvider) {
-  if (!manager) {
-    manager = new ViewExtensionManager([
-      CommentEditorViewExtensionProvider,
+let cachedManager: ViewExtensionManager | null = null;
 
-      // Blocks
+export function getCommentEditorViewManager(
+  framework: FrameworkProvider,
+): ViewExtensionManager {
+  if (!cachedManager) {
+    cachedManager = new ViewExtensionManager([
+      CommentEditorViewExtensionProvider,
       CodeBlockViewExtension,
       DividerViewExtension,
       LatexBlockViewExtension,
       ListViewExtension,
-
       NoteViewExtension,
       ParagraphViewExtension,
       RootViewExtension,
-
-      // Inline
       LinkViewExtension,
       ReferenceViewExtension,
       MentionViewExtension,
       LatexInlineViewExtension,
-
-      // Widget
       ToolbarViewExtension,
       ViewportOverlayViewExtension,
       LinkedDocViewExtension,
-
       MyoxusThemeViewExtension,
       MyoxusEditorViewExtension,
-
-      // for rendering mentions
       CloudViewExtension,
     ]);
 
-    manager.configure(ParagraphViewExtension, {
-      getPlaceholder: () => {
-        return I18n.t("com.myoxus.notification.comment-prompt");
-      },
+    cachedManager.configure(ParagraphViewExtension, {
+      getPlaceholder: () => I18n.t("com.myoxus.notification.comment-prompt"),
     });
-
-    manager.configure(
+    cachedManager.configure(
       LinkedDocViewExtension,
       createCommentLinkedWidgetConfig(framework),
     );
-
-    manager.configure(CloudViewExtension, {
+    cachedManager.configure(CloudViewExtension, {
       framework,
       enableCloud: true,
     });
   }
-  return manager;
+  return cachedManager;
 }

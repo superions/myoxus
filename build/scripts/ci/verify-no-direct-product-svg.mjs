@@ -42,7 +42,7 @@ const technicalExceptionPrefixes = [
   "client/libs/core/public/imgs/",
   // Renderer/export/user-content plumbing handles SVG as a document format.
   "client/libs/core/src/components/hooks/myoxus/use-export-page.ts",
-  "client/libs/core/src/editor/ai/",
+  "client/libs/core/src/editor/ai/slides/slide-backgrounds.ts",
   "client/libs/core/src/modules/workspace-engine/",
   "client/libs/core/src/modules/media/",
   "client/libs/core/src/modules/pdf/",

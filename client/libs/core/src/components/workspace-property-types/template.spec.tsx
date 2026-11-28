@@ -8,7 +8,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { DocService } from "../../modules/doc";
-import { TemplateValue } from "./template";
+import { TemplateValue } from "./doc-meta-properties";
 
 function renderTemplateValue({
   isTemplate = false,

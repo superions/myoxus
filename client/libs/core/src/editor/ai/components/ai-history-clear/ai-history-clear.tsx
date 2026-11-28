@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import type { CopilotChatHistoryFragment } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
@@ -25,34 +26,31 @@ export function AIHistoryClear({
   onHistoryCleared?: () => void | Promise<void>;
 }) {
   const t = useI18n();
-  const disabled =
+  const isBusy =
     chatContextValue.status === "loading" ||
-    chatContextValue.status === "transmitting" ||
-    !chatContextValue.messages.length ||
-    !session;
+    chatContextValue.status === "transmitting";
+  const disabled = isBusy || !chatContextValue.messages.length || !session;
 
-  const cleanupHistories = useCallback(async () => {
+  const clearHistory = useCallback(async () => {
     if (disabled || !session) return;
-    const sessionId = session.sessionId;
     try {
-      const confirm = await notificationService.confirm({
+      const confirmed = await notificationService.confirm({
         title: t["com.myoxus.ai.chat-panel.session.delete.confirm.title"](),
         message: t["com.myoxus.ai.chat-panel.session.delete.confirm.message"](),
         confirmText: t["Confirm"](),
         cancelText: t["Cancel"](),
       });
+      if (!confirmed) return;
 
-      if (confirm) {
-        await AIProvider.histories?.cleanup(
-          doc.workspace.id,
-          doc.id,
-          sessionId ? [sessionId] : [],
-        );
-        await onHistoryCleared?.();
-        notificationService.toast(
-          t["com.myoxus.ai.chat-panel.session.delete.toast.success"](),
-        );
-      }
+      await AIProvider.histories?.cleanup(
+        doc.workspace.id,
+        doc.id,
+        session.sessionId ? [session.sessionId] : [],
+      );
+      await onHistoryCleared?.();
+      notificationService.toast(
+        t["com.myoxus.ai.chat-panel.session.delete.toast.success"](),
+      );
     } catch {
       notificationService.toast(
         t["com.myoxus.ai.chat-panel.session.delete.toast.failed"](),
@@ -69,7 +67,7 @@ export function AIHistoryClear({
       aria-label={label}
       data-testid="chat-panel-clear"
       disabled={disabled}
-      onClick={() => void cleanupHistories()}
+      onClick={() => void clearHistory()}
     >
       <TrashIcon />
     </IconButton>

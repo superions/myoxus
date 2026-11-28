@@ -1,4 +1,7 @@
-/* oxlint-disable typescript/no-non-null-assertion */
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
+import { on } from "@virgultum/core/utils";
 import { DefaultTool } from "@virgultum/editor/blocks/surface";
 import { IS_MAC } from "@virgultum/editor/global/env";
 import {
@@ -11,62 +14,61 @@ import {
   type GfxModel,
   MouseButton,
 } from "@virgultum/editor/std/gfx";
-import { on } from "@virgultum/core/utils";
-import { isEqual } from "lodash-es";
 import { Subject } from "rxjs";
 
 import { AIPanelControllerIdentifier } from "../widgets/ai-panel/controller";
 
+type Point2D = [number, number];
+
+function pointsMatch(a: Point2D, b: Point2D): boolean {
+  return a[0] === b[0] && a[1] === b[1];
+}
+
 export class CopilotTool extends BaseTool {
-  static override toolName: string = "copilot";
+  static override toolName = "copilot";
 
-  private _dragging = false;
+  readonly draggingAreaUpdated = new Subject<boolean | void>();
 
-  draggingAreaUpdated = new Subject<boolean | void>();
+  dragStartPoint: Point2D = [0, 0];
+  dragLastPoint: Point2D = [0, 0];
 
-  dragLastPoint: [number, number] = [0, 0];
-
-  dragStartPoint: [number, number] = [0, 0];
+  private dragging = false;
 
   override get allowDragWithRightButton() {
     return true;
   }
 
-  get area() {
-    const start = new DOMPoint(this.dragStartPoint[0], this.dragStartPoint[1]);
-    const end = new DOMPoint(this.dragLastPoint[0], this.dragLastPoint[1]);
-
-    const minX = Math.min(start.x, end.x);
-    const minY = Math.min(start.y, end.y);
-    const maxX = Math.max(start.x, end.x);
-    const maxY = Math.max(start.y, end.y);
-
+  get area(): DOMRect {
+    const minX = Math.min(this.dragStartPoint[0], this.dragLastPoint[0]);
+    const minY = Math.min(this.dragStartPoint[1], this.dragLastPoint[1]);
+    const maxX = Math.max(this.dragStartPoint[0], this.dragLastPoint[0]);
+    const maxY = Math.max(this.dragStartPoint[1], this.dragLastPoint[1]);
     return new DOMRect(minX, minY, maxX - minX, maxY - minY);
   }
 
-  // AI processing
-  get processing() {
-    const aiPanel = this.gfx.std.getOptional(AIPanelControllerIdentifier);
-    return Boolean(aiPanel && aiPanel.state !== "hidden");
+  get processing(): boolean {
+    const panel = this.gfx.std.getOptional(AIPanelControllerIdentifier);
+    return Boolean(panel && panel.state !== "hidden");
   }
 
   get selectedElements() {
     return this.gfx.selection.selectedElements;
   }
 
-  private initDragState(e: PointerEventState) {
-    this.dragStartPoint = this.gfx.viewport.toModelCoord(e.x, e.y);
-    this.dragLastPoint = this.dragStartPoint;
-  }
-
-  private clearDragState() {
-    this._dragging = false;
+  private resetDragState(): void {
+    this.dragging = false;
     this.dragStartPoint = [0, 0];
     this.dragLastPoint = [0, 0];
   }
 
-  abort() {
-    this.clearDragState();
+  private isCopilotGesture(event: PointerEvent): boolean {
+    if (event.button === MouseButton.SECONDARY) return true;
+    const primaryModifier = IS_MAC ? event.metaKey : event.ctrlKey;
+    return event.button === MouseButton.MAIN && primaryModifier;
+  }
+
+  abort(): void {
+    this.resetDragState();
     this.gfx.tool.setTool(DefaultTool);
   }
 
@@ -78,28 +80,27 @@ export class CopilotTool extends BaseTool {
     this.gfx.viewport.locked = false;
   }
 
-  override dragEnd(): void {
-    if (!this._dragging) return;
-
-    this._dragging = false;
-    this.draggingAreaUpdated.next(true);
+  override dragStart(e: PointerEventState): void {
+    if (this.processing) return;
+    const point = this.gfx.viewport.toModelCoord(e.x, e.y) as Point2D;
+    this.dragStartPoint = point;
+    this.dragLastPoint = point;
+    this.dragging = true;
+    this.draggingAreaUpdated.next();
   }
 
   override dragMove(e: PointerEventState): void {
-    if (!this._dragging) return;
+    if (!this.dragging) return;
+    this.dragLastPoint = this.gfx.viewport.toModelCoord(e.x, e.y) as Point2D;
 
-    this.dragLastPoint = this.gfx.viewport.toModelCoord(e.x, e.y);
-
-    const area = this.area;
-    const bound = new Bound(area.x, area.y, area.width, area.height);
-
-    if (area.width & area.height) {
-      const elements = this.gfx.getElementsByBound(bound);
-
-      const set = new Set(elements);
-
+    const rect = this.area;
+    if (rect.width > 0 && rect.height > 0) {
+      const bound = new Bound(rect.x, rect.y, rect.width, rect.height);
+      const uniqueIds = Array.from(
+        new Set(this.gfx.getElementsByBound(bound).map((el) => el.id)),
+      );
       this.gfx.selection.set({
-        elements: Array.from(set).map((element) => element.id),
+        elements: uniqueIds,
         editing: false,
         inoperable: true,
       });
@@ -108,28 +109,26 @@ export class CopilotTool extends BaseTool {
     this.draggingAreaUpdated.next();
   }
 
-  override dragStart(e: PointerEventState): void {
-    if (this.processing) return;
-
-    this.initDragState(e);
-    this._dragging = true;
-    this.draggingAreaUpdated.next();
+  override dragEnd(): void {
+    if (!this.dragging) return;
+    this.dragging = false;
+    this.draggingAreaUpdated.next(true);
   }
 
   override mounted(): void {
     this.addHook("pointerDown", (downEvent) => {
       const dispose = on(document, "pointerup", (upEvent) => {
         if (
-          this.isUseCopilot(upEvent) &&
-          isEqual(this.dragStartPoint, this.dragLastPoint)
+          this.isCopilotGesture(upEvent) &&
+          pointsMatch(this.dragStartPoint, this.dragLastPoint)
         ) {
           this.abort();
         }
         dispose();
       });
 
-      if (this.isUseCopilot(downEvent.raw)) {
-        this.clearDragState();
+      if (this.isCopilotGesture(downEvent.raw)) {
+        this.resetDragState();
         this.controller.setTool(CopilotTool);
         return false;
       }
@@ -143,41 +142,26 @@ export class CopilotTool extends BaseTool {
       e.raw.stopPropagation();
       return;
     }
-
     this.gfx.tool.setTool(DefaultTool);
   }
 
-  private isUseCopilot(event: PointerEvent) {
-    return (
-      event.button === MouseButton.SECONDARY ||
-      (event.button === MouseButton.MAIN && IS_MAC
-        ? event.metaKey
-        : event.ctrlKey)
-    );
-  }
-
-  updateDragPointsWith(selectedElements: GfxModel[], padding = 0) {
-    const bounds = getCommonBoundWithRotation(selectedElements).expand(
+  updateDragPointsWith(selectedElements: GfxModel[], padding = 0): void {
+    const expanded = getCommonBoundWithRotation(selectedElements).expand(
       padding / this.gfx.viewport.zoom,
     );
-
-    this.dragStartPoint = bounds.tl as [number, number];
-    this.dragLastPoint = bounds.br as [number, number];
+    this.dragStartPoint = expanded.tl as Point2D;
+    this.dragLastPoint = expanded.br as Point2D;
   }
 
-  updateSelectionWith(selectedElements: GfxModel[], padding = 0) {
+  updateSelectionWith(selectedElements: GfxModel[], padding = 0): void {
     const { selection } = this.gfx;
-
     selection.clear();
-
     this.updateDragPointsWith(selectedElements, padding);
-
     selection.set({
-      elements: selectedElements.map((e) => e.id),
+      elements: selectedElements.map((el) => el.id),
       editing: false,
       inoperable: true,
     });
-
     this.draggingAreaUpdated.next(true);
   }
 }

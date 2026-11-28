@@ -11,7 +11,7 @@ import {
   getSlashMenuItemSearchTerms,
   getSlashMenuSearchScore,
   parseGroup,
-} from "../utils.js";
+} from "../slash-items";
 
 const context = {} as SlashMenuContext;
 

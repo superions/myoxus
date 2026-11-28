@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+
 import { useGuard } from "@myoxus/core/components/guard/use-guard";
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
 import { Upload } from "@myoxus/core/components/pure/file-upload";
@@ -12,7 +15,13 @@ import { WorkspaceInviteLinkExpireTime } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
 import { ExportIcon } from "@myoxus/icons/react";
 import { useLiveData, useService } from "@myoxus/infra";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   Button,
@@ -46,36 +55,59 @@ export interface InviteWorkspaceMemberModalProps {
     expireTime: WorkspaceInviteLinkExpireTime,
   ) => Promise<string>;
   onRevokeInviteLink: () => Promise<boolean>;
-  importCSV: React.ReactNode;
+  importCSV: ReactNode;
   invitationLink: { link: string; expireTime?: string | null } | null;
-  serverUserInvite?: React.ReactNode;
+  serverUserInvite?: ReactNode;
 }
 
-type InviteMethodType = "email" | "link" | "server-user";
+type InviteMethod = "email" | "link" | "server-user";
 
-const INVITE_LINK_EXPIRY_OPTIONS = [
-  WorkspaceInviteLinkExpireTime.OneDay,
-  WorkspaceInviteLinkExpireTime.ThreeDays,
-  WorkspaceInviteLinkExpireTime.OneWeek,
-  WorkspaceInviteLinkExpireTime.OneMonth,
+const EXPIRY_DAY_COUNTS: Array<[WorkspaceInviteLinkExpireTime, string]> = [
+  [WorkspaceInviteLinkExpireTime.OneDay, "1"],
+  [WorkspaceInviteLinkExpireTime.ThreeDays, "3"],
+  [WorkspaceInviteLinkExpireTime.OneWeek, "7"],
+  [WorkspaceInviteLinkExpireTime.OneMonth, "30"],
 ];
 
-const InviteWorkspaceMemberModal = ({
+function deduplicateEmails(emails: string[]): string[] {
+  const seen = new Set<string>();
+  return emails.filter((email) => {
+    const normalized = email.trim().toLowerCase();
+    if (seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+}
+
+async function parseCsvEmails(blob: Blob): Promise<string[]> {
+  try {
+    const content = await blob.text();
+    return content
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && emailRegex.test(line));
+  } catch (error) {
+    console.error("Error parsing CSV:", error);
+    throw new Error("Failed to parse CSV");
+  }
+}
+
+function InviteWorkspaceMemberModal({
   open,
   setOpen,
   onConfirm,
   isMutating,
-  copyTextToClipboard,
+  copyTextToClipboard: copyLink,
   onGenerateInviteLink,
   onRevokeInviteLink,
   importCSV,
   invitationLink,
   serverUserInvite,
-}: InviteWorkspaceMemberModalProps) => {
+}: InviteWorkspaceMemberModalProps) {
   const t = useI18n();
   const [inviteEmails, setInviteEmails] = useState("");
   const [isValidEmail, setIsValidEmail] = useState(true);
-  const [inviteMethod, setInviteMethod] = useState<InviteMethodType>("email");
+  const [inviteMethod, setInviteMethod] = useState<InviteMethod>("email");
   const [selectedExpiry, setSelectedExpiry] =
     useState<WorkspaceInviteLinkExpireTime>(
       WorkspaceInviteLinkExpireTime.OneWeek,
@@ -83,47 +115,30 @@ const InviteWorkspaceMemberModal = ({
 
   const expiryItems = useMemo(
     () =>
-      INVITE_LINK_EXPIRY_OPTIONS.map((value) => (
+      EXPIRY_DAY_COUNTS.map(([value, days]) => (
         <MenuItem key={value} onSelect={() => setSelectedExpiry(value)}>
-          {t["com.myoxus.member.invite.expiration-date"]({
-            number:
-              value === WorkspaceInviteLinkExpireTime.OneDay
-                ? "1"
-                : value === WorkspaceInviteLinkExpireTime.ThreeDays
-                  ? "3"
-                  : value === WorkspaceInviteLinkExpireTime.OneWeek
-                    ? "7"
-                    : "30",
-          })}
+          {t["com.myoxus.member.invite.expiration-date"]({ number: days })}
         </MenuItem>
       )),
     [t],
   );
 
-  const selectedExpiryLabel = useMemo(() => {
-    const dayCount =
-      selectedExpiry === WorkspaceInviteLinkExpireTime.OneDay
-        ? "1"
-        : selectedExpiry === WorkspaceInviteLinkExpireTime.ThreeDays
-          ? "3"
-          : selectedExpiry === WorkspaceInviteLinkExpireTime.OneWeek
-            ? "7"
-            : "30";
-    return t["com.myoxus.member.invite.expiration-date"]({
-      number: dayCount,
-    });
-  }, [selectedExpiry, t]);
+  const selectedExpiryDays =
+    EXPIRY_DAY_COUNTS.find(([value]) => value === selectedExpiry)?.[1] ?? "7";
+  const selectedExpiryLabel = t["com.myoxus.member.invite.expiration-date"]({
+    number: selectedExpiryDays,
+  });
 
   const handleConfirm = useCallback(() => {
-    if (inviteMethod === "link" || inviteMethod === "server-user") {
+    if (inviteMethod !== "email") {
       setOpen(false);
       return;
     }
     const emails = inviteEmails
       .split(",")
-      .map((email) => email.trim())
+      .map((entry) => entry.trim())
       .filter(Boolean);
-    if (emails.some((email) => !emailRegex.test(email))) {
+    if (emails.some((entry) => !emailRegex.test(entry))) {
       setIsValidEmail(false);
       return;
     }
@@ -142,14 +157,9 @@ const InviteWorkspaceMemberModal = ({
           ? t["com.myoxus.member.invite.send-invites"]()
           : t["com.myoxus.member.invite.done"]()
       }
-      confirmButtonOptions={{
-        loading: isMutating,
-        variant: "primary",
-      }}
+      confirmButtonOptions={{ loading: isMutating, variant: "primary" }}
       onConfirm={handleConfirm}
-      contentOptions={{
-        ["data-testid" as string]: "invite-modal",
-      }}
+      contentOptions={{ ["data-testid" as string]: "invite-modal" }}
     >
       <SettingsSection
         description={t["com.myoxus.member.invite.description"]()}
@@ -207,9 +217,7 @@ const InviteWorkspaceMemberModal = ({
                 onClick={() => {
                   onGenerateInviteLink(selectedExpiry).catch((error) => {
                     console.error("Failed to generate invitation link", error);
-                    notify.error({
-                      title: t["UNKNOWN_ERROR"](),
-                    });
+                    notify.error({ title: t["UNKNOWN_ERROR"]() });
                   });
                 }}
               >
@@ -220,7 +228,7 @@ const InviteWorkspaceMemberModal = ({
                   <Button
                     variant="secondary"
                     onClick={() =>
-                      copyTextToClipboard(invitationLink.link).then(() =>
+                      void copyLink(invitationLink.link).then(() =>
                         notify.success({
                           title: t["Copied link to clipboard"](),
                         }),
@@ -242,143 +250,145 @@ const InviteWorkspaceMemberModal = ({
       </SettingsSection>
     </ConfirmModal>
   );
-};
+}
 
-const parseCSV = async (blob: Blob): Promise<string[]> => {
-  try {
-    const textContent = await blob.text();
-    const emails = textContent
-      .split("\n")
-      .map((email) => email.trim())
-      .filter((email) => email.length > 0 && emailRegex.test(email));
-
-    return emails;
-  } catch (error) {
-    console.error("Error parsing CSV:", error);
-    throw new Error("Failed to parse CSV");
+function InviteResultSummary({ failedEmails }: { failedEmails: string[] }) {
+  const t = useI18n();
+  if (failedEmails.length === 0) {
+    return t["Invitation sent hint"]();
   }
+  return (
+    <Stack>
+      <MyoxusText typographySlot="body-small">
+        {t["com.myoxus.member.invite.notify.fail-message"]()}
+      </MyoxusText>
+      {failedEmails.map((email, index) => (
+        <MyoxusText
+          key={`${index}:${email}`}
+          tone="secondary"
+          typographySlot="body-small"
+        >
+          {email}
+        </MyoxusText>
+      ))}
+    </Stack>
+  );
+}
+
+export const MembersPanelFallback = () => {
+  const t = useI18n();
+  return (
+    <SettingsPage title={t["Members"]()} subtitle={t["Members hint"]()}>
+      <SettingsSection title={t["Members"]()}>
+        <Group data-myoxus-ui-role="settings-member-loading">
+          <Loading />
+          <SettingsControlEmpty>
+            {t["com.myoxus.settings.member.loading"]()}
+          </SettingsControlEmpty>
+        </Group>
+      </SettingsSection>
+    </SettingsPage>
+  );
 };
 
 export const CloudWorkspaceMembersPanel = () => {
+  const t = useI18n();
   const workspaceId = useService(WorkspaceService).workspace.id;
-  const workspaceShareSettingService = useService(WorkspaceShareSettingService);
-  const inviteLink = useLiveData(
-    workspaceShareSettingService.sharePreview.inviteLink$,
-  );
+  const sharePreview = useService(WorkspaceShareSettingService).sharePreview;
   const membersService = useService(WorkspaceMembersService);
+  const workspaceQuotaService = useService(WorkspaceQuotaService);
   const canManageUsers = useGuard("Workspace_Users_Manage");
 
-  useEffect(() => {
-    membersService.members.revalidate();
-  }, [membersService]);
-
-  const workspaceQuotaService = useService(WorkspaceQuotaService);
-  useEffect(() => {
-    workspaceQuotaService.quota.revalidate();
-  }, [workspaceQuotaService]);
+  const inviteLink = useLiveData(sharePreview.inviteLink$);
   const isLoading = useLiveData(workspaceQuotaService.quota.isRevalidating$);
   const error = useLiveData(workspaceQuotaService.quota.error$);
   const workspaceQuota = useLiveData(workspaceQuotaService.quota.quota$);
-  const t = useI18n();
 
   const [openInvite, setOpenInvite] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
 
-  const openInviteModal = useCallback(() => {
-    // No subscription-canceled check — invite is always available
-    setOpenInvite(true);
-  }, []);
+  useEffect(() => {
+    membersService.members.revalidate();
+    workspaceQuotaService.quota.revalidate();
+  }, [membersService, workspaceQuotaService]);
 
-  const onGenerateInviteLink = useCallback(
+  const handleGenerateInviteLink = useCallback(
     async (expireTime: WorkspaceInviteLinkExpireTime) => {
       const { link } = await membersService.generateInviteLink(expireTime);
-      workspaceShareSettingService.sharePreview.revalidate();
+      sharePreview.revalidate();
       return link;
     },
-    [membersService, workspaceShareSettingService.sharePreview],
+    [membersService, sharePreview],
   );
 
-  const onRevokeInviteLink = useCallback(async () => {
+  const handleRevokeInviteLink = useCallback(async () => {
     const success = await membersService.revokeInviteLink();
-    workspaceShareSettingService.sharePreview.revalidate();
+    sharePreview.revalidate();
     return success;
-  }, [membersService, workspaceShareSettingService.sharePreview]);
+  }, [membersService, sharePreview]);
 
-  const onInviteBatchConfirm = useAsyncCallback(
-    async ({
-      emails,
-    }: Parameters<InviteWorkspaceMemberModalProps["onConfirm"]>[0]) => {
+  const handleInviteBatch = useAsyncCallback(
+    async ({ emails }: { emails: string[] }) => {
       setIsMutating(true);
-      const uniqueEmails = deduplicateEmails(emails);
-      const results = await membersService.inviteMembers(uniqueEmails);
-      const unSuccessInvites = results.reduce<string[]>((acc, result) => {
-        if (!result.sentSuccess) {
-          acc.push(result.email);
-        }
-        return acc;
-      }, []);
-      if (results) {
+      try {
+        const uniqueEmails = deduplicateEmails(emails);
+        const results = await membersService.inviteMembers(uniqueEmails);
+        const failedEmails = results
+          .filter((entry) => !entry.sentSuccess)
+          .map((entry) => entry.email);
         notify({
           title: t["com.myoxus.member.invite.notify.title"]({
-            successCount: (
-              uniqueEmails.length - unSuccessInvites.length
-            ).toString(),
-            failedCount: unSuccessInvites.length.toString(),
+            successCount: String(uniqueEmails.length - failedEmails.length),
+            failedCount: String(failedEmails.length),
           }),
-          message: <NotifyMessage unSuccessInvites={unSuccessInvites} />,
+          message: <InviteResultSummary failedEmails={failedEmails} />,
         });
         setOpenInvite(false);
         membersService.members.revalidate();
         workspaceQuotaService.quota.revalidate();
+      } finally {
+        setIsMutating(false);
       }
-      setIsMutating(false);
     },
     [membersService, t, workspaceQuotaService.quota],
   );
 
-  const onImportCSV = useAsyncCallback(
+  const handleImportCsv = useAsyncCallback(
     async (file: File) => {
       setIsMutating(true);
-      const emails = await parseCSV(file);
-      onInviteBatchConfirm({ emails });
-      setIsMutating(false);
+      try {
+        const emails = await parseCsvEmails(file);
+        handleInviteBatch({ emails });
+      } finally {
+        setIsMutating(false);
+      }
     },
-    [onInviteBatchConfirm],
+    [handleInviteBatch],
   );
-
-  const desc = useMemo(() => {
-    if (!workspaceQuota) return null;
-
-    return t["com.myoxus.member.description"]();
-  }, [t, workspaceQuota]);
-
-  const title = useMemo(() => {
-    const memberCount = workspaceQuota?.memberCount ?? 0;
-    return `${t["Members"]()} (${memberCount})`;
-  }, [t, workspaceQuota?.memberCount]);
 
   if (workspaceQuota === null) {
     if (isLoading) {
       return <MembersPanelFallback />;
-    } else {
-      return (
-        <SettingsNotice tone="error" role="alert">
-          {error
-            ? UserFriendlyError.fromAny(error).message
-            : t["com.myoxus.settings.common.load-error"]()}
-        </SettingsNotice>
-      );
     }
+    return (
+      <SettingsNotice tone="error" role="alert">
+        {error
+          ? UserFriendlyError.fromAny(error).message
+          : t["com.myoxus.settings.common.load-error"]()}
+      </SettingsNotice>
+    );
   }
 
   return (
     <SettingsPage title={t["Members"]()} subtitle={t["Members hint"]()}>
       <SettingsSection
-        title={title}
-        description={desc}
+        title={`${t["Members"]()} (${workspaceQuota.memberCount ?? 0})`}
+        description={t["com.myoxus.member.description"]()}
         actions={
           canManageUsers ? (
-            <Button onClick={openInviteModal}>{t["Invite Members"]()}</Button>
+            <Button onClick={() => setOpenInvite(true)}>
+              {t["Invite Members"]()}
+            </Button>
           ) : null
         }
       >
@@ -386,12 +396,18 @@ export const CloudWorkspaceMembersPanel = () => {
           <InviteWorkspaceMemberModal
             open={openInvite}
             setOpen={setOpenInvite}
-            onConfirm={onInviteBatchConfirm}
+            onConfirm={handleInviteBatch}
             isMutating={isMutating}
             copyTextToClipboard={copyTextToClipboard}
-            onGenerateInviteLink={onGenerateInviteLink}
-            onRevokeInviteLink={onRevokeInviteLink}
-            importCSV={<ImportCSV onImport={onImportCSV} />}
+            onGenerateInviteLink={handleGenerateInviteLink}
+            onRevokeInviteLink={handleRevokeInviteLink}
+            importCSV={
+              <Upload accept="text/csv" fileChange={handleImportCsv}>
+                <Button prefix={<ExportIcon />} variant="secondary">
+                  {t["com.myoxus.member.invite.import-csv"]()}
+                </Button>
+              </Upload>
+            }
             invitationLink={inviteLink}
             serverUserInvite={
               <ExistingUserInviteDialog workspaceId={workspaceId} />
@@ -403,82 +419,3 @@ export const CloudWorkspaceMembersPanel = () => {
     </SettingsPage>
   );
 };
-
-const NotifyMessage = ({
-  unSuccessInvites,
-}: {
-  unSuccessInvites: string[];
-}) => {
-  const t = useI18n();
-
-  if (unSuccessInvites.length === 0) {
-    return t["Invitation sent hint"]();
-  }
-
-  return (
-    <Stack>
-      <MyoxusText typographySlot="body-small">
-        {t["com.myoxus.member.invite.notify.fail-message"]()}
-      </MyoxusText>
-      {unSuccessInvites.map((email, index) => (
-        <MyoxusText
-          key={`${index}:${email}`}
-          tone="secondary"
-          typographySlot="body-small"
-        >
-          {email}
-        </MyoxusText>
-      ))}
-    </Stack>
-  );
-};
-
-export const MembersPanelFallback = () => {
-  const t = useI18n();
-
-  return (
-    <SettingsPage title={t["Members"]()} subtitle={t["Members hint"]()}>
-      <SettingsSection title={t["Members"]()}>
-        <MemberListFallback />
-      </SettingsSection>
-    </SettingsPage>
-  );
-};
-
-const MemberListFallback = () => {
-  const t = useI18n();
-
-  return (
-    <Group data-myoxus-ui-role="settings-member-loading">
-      <Loading />
-      <SettingsControlEmpty>
-        {t["com.myoxus.settings.member.loading"]()}
-      </SettingsControlEmpty>
-    </Group>
-  );
-};
-
-const ImportCSV = ({ onImport }: { onImport: (file: File) => void }) => {
-  const t = useI18n();
-
-  return (
-    <Upload accept="text/csv" fileChange={onImport}>
-      <Button prefix={<ExportIcon />} variant="secondary">
-        {t["com.myoxus.member.invite.import-csv"]()}
-      </Button>
-    </Upload>
-  );
-};
-
-function deduplicateEmails(emails: string[]): string[] {
-  const seenEmails = new Set<string>();
-  return emails.filter((email) => {
-    const lowerCaseEmail = email.trim().toLowerCase();
-    if (seenEmails.has(lowerCaseEmail)) {
-      return false;
-    } else {
-      seenEmails.add(lowerCaseEmail);
-      return true;
-    }
-  });
-}
