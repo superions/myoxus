@@ -315,26 +315,23 @@ async function createDoc(
     throw new Error(`Could not derive doc id from ${page.url()}`);
   }
 
-  const titleContainer = page.locator("doc-title .doc-title-container").first();
-  await expect(titleContainer).toBeVisible({ timeout: 20_000 });
-  await titleContainer.click();
-
-  const titleEditor = page.locator("doc-title .inline-editor").first();
+  const titleEditor = page.locator("[data-page-title]").first();
   await expect(titleEditor).toBeVisible({ timeout: 20_000 });
-  // The Lit-backed title editor stores the root title in a Y.Text. Keyboard
-  // input exercises the same composition path as users and avoids a Playwright
-  // `fill()` shortcut that can leave the UI text updated without committing the
-  // expected root-metadata title under load.
+  await titleEditor.click();
+  // Keyboard input exercises the same composition path as users and commits the
+  // root-metadata title under load.
   await page.keyboard.press("Control+A");
   await page.keyboard.press("Backspace");
   await page.keyboard.insertText(title);
   await page.keyboard.press("Enter");
   await titleEditor.blur();
-  await expect(titleContainer).toContainText(title, { timeout: 20_000 });
+  await expect(titleEditor).toContainText(title, { timeout: 20_000 });
   await expect(page.locator("[data-myoxus-editor-container]")).toBeVisible({
     timeout: 20_000,
   });
-  await page.waitForSelector("v-line", { timeout: 20_000 });
+  await page.waitForSelector("[data-page-body] [data-page-text]", {
+    timeout: 20_000,
+  });
   await waitForWorkspaceDocTitleProjection(
     request,
     cookies,
@@ -343,7 +340,7 @@ async function createDoc(
     title,
   );
 
-  const paragraph = page.locator("myoxus-paragraph .inline-editor").first();
+  const paragraph = page.locator("[data-page-body] [data-page-text]").first();
   await paragraph.click();
   await page.keyboard.insertText(`Acknowledged content: ${title}`);
   await expect(paragraph).toContainText(`Acknowledged content: ${title}`);
@@ -423,7 +420,7 @@ test("trash accepts a selected all-docs drag payload", async ({
 
     await rows[0].click();
     await expect(
-      page.locator("myoxus-paragraph .inline-editor").first(),
+      page.locator("[data-page-body] [data-page-text]").first(),
     ).toContainText(`Acknowledged content: ${titles[0]}`, { timeout: 20_000 });
     await openAllDocs(page, workspaceId);
     await rows[0].click({ modifiers: ["Shift"] });

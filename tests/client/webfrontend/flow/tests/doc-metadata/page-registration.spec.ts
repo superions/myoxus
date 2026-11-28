@@ -112,15 +112,13 @@ test("recovery preserves unresolved content but excludes permanently deleted sta
     await expect(recovery).toBeHidden();
     await expect.poll(rootCount).toBe(1);
     await page.getByText(fixture.title, { exact: true }).first().click();
-    await expect(page.locator("doc-title .inline-editor")).toHaveText(
-      fixture.title,
-    );
+    await expect(page.locator("[data-page-title]")).toHaveText(fixture.title);
     await expect(
-      page.locator("myoxus-paragraph .inline-editor").first(),
+      page.locator("[data-page-body] [data-page-text]").first(),
     ).toHaveText(fixture.content);
     await page.reload();
     await expect(
-      page.locator("myoxus-paragraph .inline-editor").first(),
+      page.locator("[data-page-body] [data-page-text]").first(),
     ).toHaveText(fixture.content);
     expect(await rootCount()).toBe(1);
 

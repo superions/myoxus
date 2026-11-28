@@ -255,13 +255,15 @@ async function createWorkspacePage(
     { timeout: 20_000 },
   );
 
-  const titleEditor = page.locator("doc-title .inline-editor").first();
+  const titleEditor = page.locator("[data-page-title]").first();
   await expect(titleEditor).toBeVisible({ timeout: 20_000 });
   await titleEditor.fill(title);
   await expect(page.locator("[data-myoxus-editor-container]")).toBeVisible({
     timeout: 20_000,
   });
-  await page.waitForSelector("v-line", { timeout: 20_000 });
+  await page.waitForSelector("[data-page-body] [data-page-text]", {
+    timeout: 20_000,
+  });
   await dismissOpenInAppOverlay(page);
 
   const docId = page.url().split("/").findLast(Boolean);
@@ -281,7 +283,9 @@ async function appendEditorText(page: Page, text: string): Promise<void> {
   await page.keyboard.press("Control+End");
   await page.keyboard.press("Enter");
   await page.keyboard.insertText(text);
-  await expect(page.locator("v-line").filter({ hasText: text })).toBeVisible({
+  await expect(
+    page.locator("[data-page-body] [data-page-text]").filter({ hasText: text }),
+  ).toBeVisible({
     timeout: 10_000,
   });
 }
@@ -446,8 +450,10 @@ $$
 $$`),
     );
     await page.keyboard.press("Control+V");
-    await expect(page.locator("myoxus-latex")).toHaveCount(2);
-    await expect(page.locator("myoxus-latex-node")).toHaveCount(2);
+    await expect(page.locator("[data-page-equation]")).toHaveCount(2);
+    await expect(
+      page.getByRole("button", { name: "Inline equation", exact: true }),
+    ).toHaveCount(2);
     // Export a persisted document, not an editor whose initial writes are in flight.
     await waitForWorkspaceDocSync(page, docId);
     await page.reload({ waitUntil: "load" });
@@ -536,9 +542,9 @@ $$`),
     await expect(page.getByRole("dialog")).toBeHidden();
 
     // The same normal export must retain safe formula diagnostics across service redaction.
-    await page.locator("myoxus-latex").first().dblclick();
+    await page.locator("[data-page-equation]").first().dblclick();
     await page
-      .locator('[aria-label="Equation"] .inline-editor')
+      .getByRole("textbox", { name: "Equation", exact: true })
       .fill(String.raw`\privateCustomerSecret{account}`);
     await page.getByRole("button", { name: "Confirm", exact: true }).click();
     await waitForWorkspaceDocSync(page, docId);

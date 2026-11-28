@@ -30,14 +30,26 @@ async function semantics(page: Page) {
   return page.evaluate(() => {
     type Delta = { insert: string; attributes?: Record<string, unknown> };
     type Model = { flavour: string; text?: { toDelta(): Delta[] } };
-    const host = document.querySelector("editor-host") as HTMLElement & {
-      std: {
-        store: { getBlocksByFlavour(flavour: string): { model: Model }[] };
-      };
-    };
+    const docId = location.pathname.split("/").pop()!;
+    const store = (
+      window as unknown as {
+        currentWorkspace?: {
+          docCollection: {
+            getDoc(id: string): {
+              getStore(): {
+                getBlocksByFlavour(flavour: string): { model: Model }[];
+              };
+            } | null;
+          };
+        };
+      }
+    ).currentWorkspace?.docCollection
+      .getDoc(docId)
+      ?.getStore();
+    if (!store) throw new Error(`Missing native store for ${docId}`);
     return ["myoxus:paragraph", "myoxus:annotation", "myoxus:code"].flatMap(
       (flavour) =>
-        host.std.store.getBlocksByFlavour(flavour).map(({ model }) => ({
+        store.getBlocksByFlavour(flavour).map(({ model }) => ({
           flavour,
           delta: model.text?.toDelta() ?? [],
         })),
@@ -46,7 +58,7 @@ async function semantics(page: Page) {
 }
 
 async function assertFixture(page: Page) {
-  await expect(page.locator("myoxus-annotation")).toHaveCount(1);
+  await expect(page.locator("[data-page-annotation]")).toHaveCount(1);
   await expect
     .poll(async () => {
       const blocks = await semantics(page);
@@ -92,39 +104,23 @@ async function importMarkdown(page: Page, name: string, buffer: Buffer) {
 }
 
 async function focusPasteBoundary(page: Page) {
-  await page.locator("rich-text > [contenteditable=true]").last().click();
-  // The native caret and the editor's asynchronous selection projection must
-  // agree before a paste whose preparation protects against later caret moves.
+  const target = page
+    .locator("[data-page-body][contenteditable=true] [data-page-text]")
+    .last();
+  await target.click();
   await expect
     .poll(() =>
-      page.evaluate(() => {
-        type Selection = {
-          toJSON(): {
-            type: string;
-            from?: { blockId: string; index: number; length: number };
-          };
-        };
-        const host = document.querySelector("editor-host") as HTMLElement & {
-          std: { selection: { value: Selection[] } };
-        };
-        const selected = host.std.selection.value
-          .map((item) => item.toJSON())
-          .find((item) => item.type === "text");
+      target.evaluate((el) => {
         const native = document.getSelection();
         const anchor = native?.anchorNode;
         const caretElement =
           anchor instanceof Element ? anchor : anchor?.parentElement;
+        const line = el.closest(".plain-page-line") ?? el;
         return (
-          !!selected?.from &&
-          native?.isCollapsed &&
-          !!caretElement &&
-          host.contains(caretElement) &&
-          selected.from.blockId ===
-            caretElement
-              .closest("[data-block-id]")
-              ?.getAttribute("data-block-id") &&
-          selected.from.index === 0 &&
-          selected.from.length === 0
+          Boolean(native?.isCollapsed) &&
+          Boolean(caretElement) &&
+          line.contains(caretElement!) &&
+          native!.anchorOffset === 0
         );
       }),
     )
@@ -215,8 +211,8 @@ test("client clipboard and document Markdown retain canonical annotation bodies"
     await waitForWorkspaceReady(page, { allDocs: true });
     await context.grantPermissions(["clipboard-write"]);
     await page.getByTestId("sidebar-new-page-button").click();
-    await expect(page.locator("editor-host")).toBeVisible();
-    await page.locator("doc-title .inline-editor").fill("Precise target");
+    await expect(page.locator("[data-page-renderer]")).toBeVisible();
+    await page.locator("[data-page-title]").fill("Precise target");
     await page.keyboard.press("Enter");
     await page.bringToFront();
     await page.evaluate(async () =>
@@ -226,22 +222,34 @@ test("client clipboard and document Markdown retain canonical annotation bodies"
     );
     await focusPasteBoundary(page);
     await page.keyboard.press("Control+V");
-    await expect(page.locator("myoxus-list")).toHaveCount(1);
+    await expect(page.locator("[data-list-kind]")).toHaveCount(1);
     const targets = await page.evaluate(() => {
       type Model = {
         id: string;
         props: { type?: string; markdownAnchor?: string };
       };
-      const host = document.querySelector("editor-host") as HTMLElement & {
-        store: {
-          id: string;
-          getBlocksByFlavour(flavour: string): { model: Model }[];
-        };
-      };
-      const paragraphs = host.store
+      const docId = location.pathname.split("/").pop()!;
+      const store = (
+        window as unknown as {
+          currentWorkspace?: {
+            docCollection: {
+              getDoc(id: string): {
+                getStore(): {
+                  id: string;
+                  getBlocksByFlavour(flavour: string): { model: Model }[];
+                };
+              } | null;
+            };
+          };
+        }
+      ).currentWorkspace?.docCollection
+        .getDoc(docId)
+        ?.getStore();
+      if (!store) throw new Error(`Missing native store for ${docId}`);
+      const paragraphs = store
         .getBlocksByFlavour("myoxus:paragraph")
         .map((block) => block.model);
-      const lists = host.store
+      const lists = store
         .getBlocksByFlavour("myoxus:list")
         .map((block) => block.model);
       const heading = paragraphs.find((model) => model.props.type === "h1");
@@ -254,7 +262,7 @@ test("client clipboard and document Markdown retain canonical annotation bodies"
       if (!heading || !paragraph || !list)
         throw new Error("Target import did not create native anchored blocks");
       return {
-        documentId: host.store.id,
+        documentId: store.id,
         heading: heading.id,
         paragraph: paragraph.id,
         list: list.id,
@@ -276,8 +284,8 @@ test("client clipboard and document Markdown retain canonical annotation bodies"
       const previousUrl = page.url();
       await page.getByTestId("sidebar-new-page-button").click();
       await expect(page).not.toHaveURL(previousUrl);
-      await expect(page.locator("editor-host")).toBeVisible();
-      await expect(page.locator("myoxus-annotation")).toHaveCount(0);
+      await expect(page.locator("[data-page-renderer]")).toBeVisible();
+      await expect(page.locator("[data-page-annotation]")).toHaveCount(0);
       await page.bringToFront();
       await page.evaluate(
         async ({ markdown, html, withHtml }) => {
@@ -309,50 +317,38 @@ test("client clipboard and document Markdown retain canonical annotation bodies"
     await expect(page).toHaveURL(
       new RegExp(`blockIds=${targets.heading}(?:&|$)`),
     );
-    const headingEditor = page.locator(
-      `[data-block-id="${targets.heading}"] .inline-editor`,
-    );
+    const headingEditor = page.locator(`[data-block-id="${targets.heading}"]`);
     await headingEditor.click();
     await page.keyboard.press("Home");
     await page.keyboard.press("Shift+End");
     await expect
       .poll(() =>
-        page.evaluate((id) => {
-          const host = document.querySelector("editor-host") as HTMLElement & {
-            std: {
-              selection: {
-                value: {
-                  toJSON(): {
-                    type: string;
-                    from?: { blockId: string; length: number };
-                  };
-                }[];
-              };
-            };
-          };
-          return host.std.selection.value.some((selection) => {
-            const value = selection.toJSON();
-            return (
-              value.type === "text" &&
-              value.from?.blockId === id &&
-              value.from.length === "Über Größe".length
-            );
-          });
-        }, targets.heading),
+        page.evaluate(() => document.getSelection()?.toString() ?? ""),
       )
-      .toBe(true);
+      .toBe("Über Größe");
     await page.keyboard.insertText("Renamed Über Größe");
     await expect
       .poll(() =>
         page.evaluate((id) => {
-          const host = document.querySelector("editor-host") as HTMLElement & {
-            store: {
-              getModelById(
-                id: string,
-              ): { props: { text?: { toString(): string } } } | null;
-            };
-          };
-          return host.store.getModelById(id)?.props.text?.toString();
+          const docId = location.pathname.split("/").pop()!;
+          const store = (
+            window as unknown as {
+              currentWorkspace?: {
+                docCollection: {
+                  getDoc(id: string): {
+                    getStore(): {
+                      getModelById(
+                        id: string,
+                      ): { props: { text?: { toString(): string } } } | null;
+                    };
+                  } | null;
+                };
+              };
+            }
+          ).currentWorkspace?.docCollection
+            .getDoc(docId)
+            ?.getStore();
+          return store?.getModelById(id)?.props.text?.toString();
         }, targets.heading),
       )
       .toBe("Renamed Über Größe");
@@ -401,11 +397,16 @@ test("client clipboard and document Markdown retain canonical annotation bodies"
       .click();
     const heading = page.locator(`[data-block-id="${targets.heading}"]`);
     await expect(heading).toContainText("Renamed Über Größe");
-    const rect = await heading.boundingBox();
-    if (!rect) throw new Error("Native heading has no rendered bounds");
-    await page.mouse.move(rect.x + 10, rect.y + 10, { steps: 2 });
-    await page.locator(".myoxus-drag-handle-container").click();
-    await page.keyboard.press("Backspace");
+    await heading.click();
+    await page.keyboard.press("Home");
+    await page.keyboard.press("Shift+End");
+    await page
+      .getByTestId("selection-toolbar")
+      .getByRole("button", { name: /^(More|Mehr|Plus|Más)$/ })
+      .click();
+    await page
+      .getByRole("menuitem", { name: /^(Delete|Löschen|Supprimer|Eliminar)$/ })
+      .click();
     await expect(heading).toHaveCount(0);
     await page.goBack();
     const missing = page.getByRole("link", {
@@ -436,7 +437,7 @@ test("client clipboard and document Markdown retain canonical annotation bodies"
     await expect(page).toHaveURL(sourceUrl);
     await assertPreciseTargets(page, targets);
     await page.goForward();
-    await page.locator("rich-text .inline-editor").first().click();
+    await page.locator("[data-page-body] [data-page-text]").first().click();
     await page.keyboard.press("Control+z");
     await expect(heading).toContainText("Renamed Über Größe");
     await page.goBack();

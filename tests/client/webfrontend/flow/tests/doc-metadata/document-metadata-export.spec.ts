@@ -278,13 +278,15 @@ async function createWorkspacePage(
     { timeout: 20_000 },
   );
 
-  const titleEditor = page.locator("doc-title .inline-editor").first();
+  const titleEditor = page.locator("[data-page-title]").first();
   await expect(titleEditor).toBeVisible({ timeout: 20_000 });
   await titleEditor.fill(title);
   await expect(page.locator("[data-myoxus-editor-container]")).toBeVisible({
     timeout: 20_000,
   });
-  await page.waitForSelector("v-line", { timeout: 20_000 });
+  await page.waitForSelector("[data-page-body] [data-page-text]", {
+    timeout: 20_000,
+  });
   await dismissOpenInAppOverlay(page);
 
   const segments = new URL(page.url()).pathname.split("/").filter(Boolean);
@@ -329,7 +331,9 @@ async function appendEditorText(page: Page, text: string): Promise<void> {
   await page.keyboard.press("Control+End");
   await page.keyboard.press("Enter");
   await page.keyboard.type(text);
-  await expect(page.locator("v-line").filter({ hasText: text })).toBeVisible({
+  await expect(
+    page.locator("[data-page-body] [data-page-text]").filter({ hasText: text }),
+  ).toBeVisible({
     timeout: 10_000,
   });
 }

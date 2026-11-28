@@ -251,7 +251,7 @@ test.describe("Custom template lifecycle", () => {
       .poll(
         async () => {
           const current = (await inventory()).admin;
-          return slugs.every((slug) => {
+          return [...slugs, "agile-standup"].every((slug) => {
             const entry = current.templateCatalog.find(
               (entry) => entry.slug === slug,
             );
@@ -302,7 +302,9 @@ test.describe("Custom template lifecycle", () => {
     const sourceId = new URL(page.url()).pathname.split("/").at(-1)!;
     expect(sourceId).toBe(dailyDocId);
     const sourceEditor = page.getByTestId(`editor-${sourceId}`);
-    await expect(sourceEditor.locator("myoxus-table").first()).toBeVisible();
+    await expect(
+      sourceEditor.locator("[data-page-table]").first(),
+    ).toBeVisible();
     const sourceBody = await sourceEditor.innerText();
     await page.goto(`${frontend}/workspace/${workspaceId}/templates`);
     await daily.getByRole("button", { name: "Use", exact: true }).click();
@@ -310,12 +312,12 @@ test.describe("Custom template lifecycle", () => {
     const workingId = new URL(page.url()).pathname.split("/").at(-1)!;
     expect(workingId).not.toBe(sourceId);
     const working = page.getByTestId(`editor-${workingId}`);
-    await expect(working.locator("myoxus-table").first()).toBeVisible();
+    await expect(working.locator("[data-page-table]").first()).toBeVisible();
     await expect
       .poll(() => readTemplateState(page, workspaceId, workingId))
       .toBeNull();
     const cell = working
-      .locator('myoxus-table-cell [contenteditable="true"]')
+      .locator('[data-page-table] [data-cell-editor][contenteditable="true"]')
       .last();
     await cell.click();
     await page.keyboard.insertText("Native standalone decision");
@@ -351,7 +353,7 @@ test.describe("Custom template lifecycle", () => {
     );
     const sourceDocId = new URL(page.url()).pathname.split("/").at(-1)!;
     const sourceTitle = `Custom source ${Date.now()}`;
-    const sourceTitleEditor = page.locator("doc-title .inline-editor").first();
+    const sourceTitleEditor = page.locator("[data-page-title]").first();
     await sourceTitleEditor.click();
     await page.keyboard.insertText(sourceTitle);
     await expect(sourceTitleEditor).toHaveText(sourceTitle);
@@ -361,7 +363,7 @@ test.describe("Custom template lifecycle", () => {
     );
     await page.reload();
     await waitForWorkspaceReady(page);
-    await expect(page.locator("doc-title .inline-editor").first()).toBeVisible({
+    await expect(page.locator("[data-page-title]").first()).toBeVisible({
       timeout: 20_000,
     });
     await expect(sourceTitleEditor).toHaveText(sourceTitle, {
@@ -394,7 +396,7 @@ test.describe("Custom template lifecycle", () => {
     await page
       .getByRole("menuitem", { name: sourceTitle, exact: true })
       .click();
-    const targetTitleEditor = page.locator("doc-title .inline-editor").first();
+    const targetTitleEditor = page.locator("[data-page-title]").first();
     await expect(targetTitleEditor).toHaveText(sourceTitle);
     await waitForNativeSourceSync(
       page,
@@ -402,7 +404,7 @@ test.describe("Custom template lifecycle", () => {
     );
     await page.reload();
     await waitForWorkspaceReady(page);
-    await expect(page.locator("doc-title .inline-editor").first()).toBeVisible({
+    await expect(page.locator("[data-page-title]").first()).toBeVisible({
       timeout: 20_000,
     });
     await expect(targetTitleEditor).toHaveText(sourceTitle);
@@ -413,8 +415,8 @@ test.describe("Custom template lifecycle", () => {
     await page.locator(`a[href$="/${workspaceId}/templates"]`).click();
     await sourceRow.getByRole("link").click();
     const changedSourceTitle = `${sourceTitle} changed`;
-    await page.locator("doc-title .inline-editor").first().click();
-    await page.locator("doc-title .inline-editor").first().press("Control+a");
+    await page.locator("[data-page-title]").first().click();
+    await page.locator("[data-page-title]").first().press("Control+a");
     await page.keyboard.insertText(changedSourceTitle);
     await expect(sourceTitleEditor).toHaveText(changedSourceTitle);
     await waitForNativeSourceSync(
@@ -423,20 +425,20 @@ test.describe("Custom template lifecycle", () => {
     );
     await page.reload();
     await waitForWorkspaceReady(page);
-    await expect(page.locator("doc-title .inline-editor").first()).toBeVisible({
+    await expect(page.locator("[data-page-title]").first()).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.locator("doc-title .inline-editor").first()).toHaveText(
+    await expect(page.locator("[data-page-title]").first()).toHaveText(
       changedSourceTitle,
     );
 
     await page.goto(`${frontend}/workspace/${workspaceId}/${targetDocId}`);
-    await expect(page.locator("doc-title .inline-editor").first()).toHaveText(
+    await expect(page.locator("[data-page-title]").first()).toHaveText(
       sourceTitle,
     );
     const changedTargetTitle = `${sourceTitle} target`;
-    await page.locator("doc-title .inline-editor").first().click();
-    await page.locator("doc-title .inline-editor").first().press("Control+a");
+    await page.locator("[data-page-title]").first().click();
+    await page.locator("[data-page-title]").first().press("Control+a");
     await page.keyboard.insertText(changedTargetTitle);
     await expect(targetTitleEditor).toHaveText(changedTargetTitle);
     await waitForNativeSourceSync(
@@ -445,15 +447,15 @@ test.describe("Custom template lifecycle", () => {
     );
     await page.reload();
     await waitForWorkspaceReady(page);
-    await expect(page.locator("doc-title .inline-editor").first()).toBeVisible({
+    await expect(page.locator("[data-page-title]").first()).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.locator("doc-title .inline-editor").first()).toHaveText(
+    await expect(page.locator("[data-page-title]").first()).toHaveText(
       changedTargetTitle,
     );
 
     await page.goto(`${frontend}/workspace/${workspaceId}/${sourceDocId}`);
-    await expect(page.locator("doc-title .inline-editor").first()).toHaveText(
+    await expect(page.locator("[data-page-title]").first()).toHaveText(
       changedSourceTitle,
     );
     await page.locator(`a[href$="/${workspaceId}/all"]`).click();
@@ -476,16 +478,20 @@ test.describe("Custom template lifecycle", () => {
     await page.getByTestId("template-catalog-create").click();
     await page.waitForURL((url) => !url.pathname.endsWith("/templates"));
     const sourceId = new URL(page.url()).pathname.split("/").at(-1)!;
-    const title = page.locator("doc-title .inline-editor").first();
+    const title = page.locator("[data-page-title]").first();
     await title.fill(
       "Brief {{input.project_name}} / {{input.reference}} / {{input.project_name}}",
     );
     await title.press("Enter");
-    const body = page.locator("myoxus-paragraph .inline-editor").first();
-    await body.fill("Project ");
-    await body.press(`${process.platform === "darwin" ? "Meta" : "Control"}+a`);
+    const body = page.locator("[data-page-body] [data-page-text]").first();
+    await body.click();
+    await page.keyboard.insertText("Project ");
+    await page.keyboard.press(
+      `${process.platform === "darwin" ? "Meta" : "Control"}+a`,
+    );
     await page
-      .getByRole("button", { name: "Insert variable", exact: true })
+      .getByTestId("selection-toolbar")
+      .getByRole("button", { name: "Document fields", exact: true })
       .click();
     const picker = page.getByTestId("template-variable-menu");
     await picker.getByRole("textbox").fill("input.project_name");
@@ -578,7 +584,7 @@ test.describe("Custom template lifecycle", () => {
     await page.waitForURL(
       (url) => !url.pathname.endsWith(`/${workspaceId}/templates`),
     );
-    const title = page.locator("doc-title .inline-editor").first();
+    const title = page.locator("[data-page-title]").first();
     await title.fill("Variable source");
     const sourceUrl = page.url();
     const modifier = process.platform === "darwin" ? "Meta" : "Control";
@@ -620,29 +626,35 @@ test.describe("Custom template lifecycle", () => {
       "Variable source{{workspace.name}}",
     );
 
+    await title.press("End");
     await title.press("Enter");
-    const paragraph = page.locator("myoxus-paragraph .inline-editor").first();
-    await paragraph.fill("Body");
-    await paragraph.press(`${modifier}+a`);
+    const paragraph = page.locator("[data-page-body] [data-page-text]").first();
+    await paragraph.click();
+    await page.keyboard.insertText("Body");
+    await page.keyboard.press(`${modifier}+a`);
     await page
-      .getByRole("button", { name: /^(Insert variable|Variable einfügen)$/ })
+      .getByTestId("selection-toolbar")
+      .getByRole("button", { name: /^(Document fields|Dokumentfelder)$/ })
       .click();
-    const paragraphCount = await page.locator("myoxus-paragraph").count();
+    const paragraphCount = await page
+      .locator("[data-page-body] [data-page-text]")
+      .count();
     await choose("{{date}}");
     await history(paragraph, "Body", "{{date}}");
-    await expect(page.locator("myoxus-paragraph")).toHaveCount(paragraphCount);
+    await expect(page.locator("[data-page-body] [data-page-text]")).toHaveCount(
+      paragraphCount,
+    );
 
-    await paragraph.press("End");
-    await paragraph.press("Enter");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Enter");
     await page.keyboard.type("/table");
     await page.getByTestId("slash-menu-item-block-table-insert").click();
-    const cell = page.locator("myoxus-table .inline-editor").first();
+    const cell = page.locator("[data-page-table] [data-cell-editor]").first();
     await cell.fill("Cell");
     await cell.press("End");
     await cell.click({ button: "right" });
     await page
-      .locator("myoxus-menu-button")
-      .filter({ hasText: /Insert variable|Variable einfügen/ })
+      .getByRole("menuitem", { name: /^(Insert variable|Variable einfügen)$/ })
       .click();
     await choose("{{date}}");
     await history(cell, "Cell", "Cell{{date}}");
@@ -650,8 +662,7 @@ test.describe("Custom template lifecycle", () => {
     await cell.press("End");
     await cell.press("Shift+F10");
     await page
-      .locator("myoxus-menu-button")
-      .filter({ hasText: /Insert variable|Variable einfügen/ })
+      .getByRole("menuitem", { name: /^(Insert variable|Variable einfügen)$/ })
       .click();
     await page
       .getByTestId("template-variable-menu")
@@ -667,7 +678,7 @@ test.describe("Custom template lifecycle", () => {
     );
     await page.reload();
     await waitForWorkspaceReady(page);
-    await expect(page.locator("doc-title .inline-editor").first()).toBeVisible({
+    await expect(page.locator("[data-page-title]").first()).toBeVisible({
       timeout: 20_000,
     });
     await expect(title).toHaveText("Variable source{{workspace.name}}");
@@ -681,8 +692,9 @@ test.describe("Custom template lifecycle", () => {
     await expect(page.getByTestId("template-variable-menu")).toHaveCount(0);
     await title.press("Escape");
     await title.press("Enter");
-    await paragraph.fill("Ordinary body");
-    await paragraph.press(`${modifier}+a`);
+    await paragraph.click();
+    await page.keyboard.insertText("Ordinary body");
+    await page.keyboard.press(`${modifier}+a`);
     await expect(
       page.getByRole("button", {
         name: /^(Insert variable|Variable einfügen)$/,
@@ -731,11 +743,11 @@ test.describe("Custom template lifecycle", () => {
       await readonly.goto(
         `${frontend}/workspace/${workspaceId}/${sourceDocId}`,
       );
-      await expect(readonly.locator("doc-title")).toContainText(
+      await expect(readonly.locator("[data-page-title]")).toContainText(
         "Variable source",
       );
       await expect(
-        readonly.locator("doc-title [contenteditable=true]"),
+        readonly.locator("[data-page-title][contenteditable=true]"),
       ).toHaveCount(0);
       await readonly.getByTestId("header-dropDownButton").click();
       await readonly.getByTestId("template-check-action").click();
@@ -751,7 +763,7 @@ test.describe("Custom template lifecycle", () => {
         .poll(() => readonly.evaluate(() => window.getSelection()?.toString()))
         .toBe("{{workspace.name}}");
       await expect(
-        readonly.locator("doc-title [contenteditable=true]"),
+        readonly.locator("[data-page-title][contenteditable=true]"),
       ).toHaveCount(0);
       await readonly.getByTestId("header-dropDownButton").click();
       await readonly.getByTestId("template-check-action").click();
@@ -759,19 +771,19 @@ test.describe("Custom template lifecycle", () => {
       await readonly.keyboard.press("Escape");
       await expect(readonly.getByTestId("header-dropDownButton")).toBeFocused();
 
-      await readonly.locator("doc-title").click({ button: "right" });
+      await readonly.locator("[data-page-title]").click({ button: "right" });
       await expect(readonly.getByTestId("template-variable-menu")).toHaveCount(
         0,
       );
       await readonly.keyboard.press("Escape");
       await readonly
-        .locator("myoxus-table .inline-editor")
+        .locator("[data-page-table] [data-cell-editor]")
         .first()
         .click({ button: "right" });
       await expect(
-        readonly
-          .locator("myoxus-menu-button")
-          .filter({ hasText: /Insert variable|Variable einfügen/ }),
+        readonly.getByRole("menuitem", {
+          name: /^(Insert variable|Variable einfügen)$/,
+        }),
       ).toHaveCount(0);
     } finally {
       await anonymous.close();
@@ -797,18 +809,19 @@ test.describe("Custom template lifecycle", () => {
       (url) => !url.pathname.endsWith(`/${workspaceId}/templates`),
     );
     const sourceDocId = new URL(page.url()).pathname.split("/").at(-1)!;
-    const title = page.locator("doc-title .inline-editor").first();
+    const title = page.locator("[data-page-title]").first();
     await title.fill("Check {{unknown.title}}");
     await title.press("Enter");
-    const paragraph = page.locator("myoxus-paragraph .inline-editor").first();
-    await paragraph.fill(
+    const paragraph = page.locator("[data-page-body] [data-page-text]").first();
+    await paragraph.click();
+    await page.keyboard.insertText(
       "{{unknown.body}} {{input.project}} {{creator.name}} {{folder_name}} {{member.name}}",
     );
-    await paragraph.press("End");
-    await paragraph.press("Enter");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Enter");
     await page.keyboard.type("/table");
     await page.getByTestId("slash-menu-item-block-table-insert").click();
-    const cell = page.locator("myoxus-table .inline-editor").first();
+    const cell = page.locator("[data-page-table] [data-cell-editor]").first();
     await cell.fill("Cell {{unknown.cell}}");
     await expect(cell).toHaveText("Cell {{unknown.cell}}");
     await cell.press("Tab");
@@ -818,7 +831,7 @@ test.describe("Custom template lifecycle", () => {
     );
     await page.reload();
     await waitForWorkspaceReady(page);
-    await expect(page.locator("doc-title .inline-editor").first()).toBeVisible({
+    await expect(page.locator("[data-page-title]").first()).toBeVisible({
       timeout: 20_000,
     });
     await expect(title).toHaveText("Check {{unknown.title}}", {
@@ -876,18 +889,36 @@ test.describe("Custom template lifecycle", () => {
     // A single editor instance produces the same native revision change as a
     // remote collaborator; no second collaborative browser can write fixtures.
     await paragraph.evaluate((editor) => {
-      const block = editor.closest("myoxus-paragraph") as HTMLElement & {
-        model: {
-          props: {
-            text: {
-              length: number;
-              delete: (index: number, length: number) => void;
-              insert: (text: string, index: number) => void;
-            };
-          };
-        };
-      };
-      const text = block.model.props.text;
+      const id = (editor as HTMLElement).dataset.pageText;
+      const docId = location.pathname.split("/").pop()!;
+      const model = id
+        ? (
+            window as unknown as {
+              currentWorkspace?: {
+                docCollection: {
+                  getDoc(id: string): {
+                    getStore(): {
+                      getModelById(id: string): {
+                        props: {
+                          text: {
+                            length: number;
+                            delete: (index: number, length: number) => void;
+                            insert: (text: string, index: number) => void;
+                          };
+                        };
+                      } | null;
+                    };
+                  } | null;
+                };
+              };
+            }
+          ).currentWorkspace?.docCollection
+            .getDoc(docId)
+            ?.getStore()
+            .getModelById(id)
+        : null;
+      if (!model) throw new Error("Missing paragraph model in native store");
+      const text = model.props.text;
       text.delete(0, text.length);
       text.insert("{{unknown.changed}}", 0);
     });
@@ -1005,7 +1036,7 @@ test.describe("Custom template lifecycle", () => {
       .poll(async () => (await instance())?.state, { timeout: 30_000 })
       .toBe("Ok");
     const sourceId = (await instance())!.workspaceDocId!;
-    const body = page.locator("myoxus-paragraph .inline-editor").first();
+    const body = page.locator("[data-page-body] [data-page-text]").first();
     const created = await gqlRequest<{
       createDatabase: { database: { id: string } };
     }>(
@@ -1050,7 +1081,24 @@ test.describe("Custom template lifecycle", () => {
     await page
       .getByRole("button", { name: "Add template", exact: true })
       .click();
-    await page.getByTestId(`template-suggestion-item-${templateId}`).click();
+    const rowTemplateItem = page.getByTestId(
+      `template-suggestion-item-${templateId}`,
+    );
+    const loadMoreSuggestions = page.getByTestId("template-suggestions-more");
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      if (await rowTemplateItem.isVisible()) break;
+      if (await loadMoreSuggestions.isVisible()) {
+        await loadMoreSuggestions.click();
+        await expect(loadMoreSuggestions)
+          .not.toHaveAttribute("aria-busy", "true", { timeout: 5_000 })
+          .catch(() => {});
+      } else {
+        await page.waitForTimeout(250);
+        if (await rowTemplateItem.isVisible()) break;
+        if (!(await loadMoreSuggestions.isVisible())) break;
+      }
+    }
+    await rowTemplateItem.click();
     const binding = page.getByRole("region", {
       name: "Row templates",
       exact: true,
@@ -1102,10 +1150,10 @@ test.describe("Custom template lifecycle", () => {
       /\{\{(?:input\.|workspace\.|creator\.|member\.|document\.created_at)/,
     );
     const targetBody = target
-      .locator("myoxus-paragraph .inline-editor")
+      .locator("[data-page-body] [data-page-text]")
       .first();
     await targetBody.click();
-    await target.locator("myoxus-page-root").press("End");
+    await target.locator("[data-page-body]").press("End");
     await page.keyboard.insertText(" Edited Row body");
     await waitForNativeSourceSync(page, targetId);
     await page.reload();

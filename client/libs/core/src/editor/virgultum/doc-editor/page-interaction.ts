@@ -235,7 +235,7 @@ export class PageInteraction {
       : this.current && resolveBookmark(this.page, this.current);
     if (!range) return false;
     const parts = segments(this.lines(), range).filter(
-      (p) => p.line.kind !== "title" && !this.page.hasFixedText(p.line.model),
+      (p) => !this.page.hasFixedText(p.line.model),
     );
     const first = parts[0];
     if (!first) return false;
@@ -250,7 +250,9 @@ export class PageInteraction {
       id: first.line.model.id,
       offset: first.from + token.length,
     };
-    this.after = { anchor: point, focus: point };
+    const nextRange = { anchor: point, focus: point };
+    this.after = nextRange;
+    this.current = bookmark(this.lines(), nextRange) ?? undefined;
     this.refresh();
     return true;
   }
@@ -671,7 +673,15 @@ export class PageInteraction {
   restore() {
     if (this.current) {
       const r = resolveBookmark(this.page, this.current);
-      if (r) restorePageRange(this.root, r);
+      if (r) {
+        const target = this.root.querySelector<HTMLElement>(
+          `[data-page-text="${CSS.escape(r.focus.id)}"]`,
+        );
+        const focusHost =
+          target?.closest<HTMLElement>("[contenteditable='true']") ?? target;
+        focusHost?.focus({ preventScroll: true });
+        restorePageRange(this.root, r);
+      }
     }
   }
   private canWrite() {
@@ -1763,15 +1773,31 @@ export class PageInteraction {
       return;
     }
     const html = data.getData("text/html");
+    const plain = data.getData("text/plain");
     const hasVirgultumSnapshot =
       html.includes("data-virgultum-snapshot=") ||
       data.types.includes("VIRGULTUM/SNAPSHOT");
-    if (hasVirgultumSnapshot && focusLine && focusLine.kind !== "title") {
+    const hasRichHtml = html.trim().length > 0;
+    const hasStructuredMarkdown =
+      plain.trim().length > 0 &&
+      /(?:^|\n)\s*(?:#{1,6}\s|[-*+]\s|\d+\.\s|>\s|```|~~~|\$\$|---+\s*$)|\$\$[\s\S]+\$\$|\$[^$\n]+\$|%%[\s\S]+?%%|\[\[[^\]]+\]\]|\[[^\]]+\]\([^)]+\)|\*\*[^*\n]+\*\*|__[^_\n]+__|`[^`\n]+`|\^[A-Za-z0-9_-]+(?:\s|$)|\n\s*\n/.test(
+        plain,
+      );
+    if (
+      (hasVirgultumSnapshot || hasRichHtml || hasStructuredMarkdown) &&
+      focusLine &&
+      focusLine.kind !== "title"
+    ) {
       const targetParent = focusLine.model.parent;
       if (targetParent) {
         const types = Array.from(data.types);
         const values = new Map(types.map((type) => [type, data.getData(type)]));
+        const replaceEmptyParagraph =
+          focusLine.kind === "text" &&
+          focusLine.text.length === 0 &&
+          focusLine.model.children.length === 0;
         const insertIndex = targetParent.children.indexOf(focusLine.model) + 1;
+        const placeholder = replaceEmptyParagraph ? focusLine.model : null;
         const signal = this.stop.signal;
         void import("./page-block-copy")
           .then(({ pastePageClipboard }) =>
@@ -1784,8 +1810,18 @@ export class PageInteraction {
               signal,
             ),
           )
-          .then(() => {
-            if (!signal.aborted) this.refresh();
+          .then((inserted) => {
+            if (signal.aborted) return;
+            if (
+              inserted &&
+              placeholder &&
+              this.page.getModelById(placeholder.id) === placeholder &&
+              placeholder.text?.length === 0 &&
+              placeholder.children.length === 0
+            ) {
+              this.page.deleteBlock(placeholder);
+            }
+            this.refresh();
           })
           .catch((error) => {
             if (!signal.aborted) console.error(error);
@@ -1793,7 +1829,6 @@ export class PageInteraction {
         return;
       }
     }
-    const plain = data.getData("text/plain");
     if (!plain) return;
     const trimmed = plain.trim();
     const nonCollapsed =

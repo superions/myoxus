@@ -230,13 +230,15 @@ async function createWorkspacePage(
     },
   );
 
-  const titleEditor = page.locator("doc-title .inline-editor").first();
+  const titleEditor = page.locator("[data-page-title]").first();
   await expect(titleEditor).toBeVisible({ timeout: 20_000 });
   await titleEditor.fill(title);
   await expect(page.locator("[data-myoxus-editor-container]")).toBeVisible({
     timeout: 20_000,
   });
-  await page.waitForSelector("v-line", { timeout: 20_000 });
+  await page.waitForSelector("[data-page-body] [data-page-text]", {
+    timeout: 20_000,
+  });
   await dismissOpenInAppOverlay(page);
 
   const segments = new URL(page.url()).pathname.split("/").filter(Boolean);

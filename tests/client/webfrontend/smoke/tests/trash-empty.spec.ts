@@ -262,18 +262,15 @@ async function createDoc(
     throw new Error(`Could not derive doc id from ${page.url()}`);
   }
 
-  const titleContainer = page.locator("doc-title .doc-title-container").first();
-  await expect(titleContainer).toBeVisible({ timeout: 20_000 });
-  await titleContainer.click();
-
-  const titleEditor = page.locator("doc-title .inline-editor").first();
+  const titleEditor = page.locator("[data-page-title]").first();
   await expect(titleEditor).toBeVisible({ timeout: 20_000 });
+  await titleEditor.click();
   await page.keyboard.press("Control+A");
   await page.keyboard.press("Backspace");
   await page.keyboard.insertText(title);
   await page.keyboard.press("Enter");
   await titleEditor.blur();
-  await expect(titleContainer).toContainText(title, { timeout: 20_000 });
+  await expect(titleEditor).toContainText(title, { timeout: 20_000 });
   await waitForWorkspaceDocTitleProjection(
     request,
     cookies,

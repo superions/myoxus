@@ -189,15 +189,12 @@ async function dismissOpenInAppOverlay(page: Page): Promise<void> {
   }
 }
 
-const titleField = "[data-page-title], doc-title .inline-editor";
+const titleField = "[data-page-title]";
 const writableParagraph =
-  "[data-page-body][contenteditable=true] [data-page-text]:visible, myoxus-paragraph .inline-editor[contenteditable=true]:visible";
+  "[data-page-body][contenteditable=true] [data-page-text]:visible";
 async function readParagraph(target: Locator) {
   return target.evaluate((node) => {
-    const el = node as HTMLElement & {
-      inlineEditor?: { yText: { toString(): string } };
-    };
-    if (el.inlineEditor) return el.inlineEditor.yText.toString();
+    const el = node as HTMLElement;
     const id = el.dataset.pageText,
       docId = location.pathname.split("/").pop()!;
     return id
@@ -259,39 +256,18 @@ async function appendEditorText(page: Page, text: string): Promise<void> {
     await expect
       .poll(() =>
         target.evaluate((node) => {
-          const element = node as HTMLElement & {
-            inlineEditor: { yText: { length: number; toString(): string } };
-          };
-          if (element.dataset.pageText) {
-            const s = window.getSelection();
-            if (
-              !s?.isCollapsed ||
-              !element.contains(s.anchorNode) ||
-              !s.rangeCount
-            )
-              return false;
-            const r = s.getRangeAt(0).cloneRange();
-            r.selectNodeContents(element);
-            r.setEnd(s.anchorNode!, s.anchorOffset);
-            return r.toString() === element.textContent;
-          }
-          const block = element.closest("myoxus-paragraph") as HTMLElement & {
-            model: { id: string };
-            host: {
-              selection: {
-                value: Array<{
-                  from?: { blockId: string; index: number; length: number };
-                }>;
-              };
-            };
-          };
-          const selected = block.host.selection.value[0]?.from;
-          return (
-            element.contains(window.getSelection()?.anchorNode ?? null) &&
-            selected?.blockId === block.model.id &&
-            selected.index === element.inlineEditor.yText.length &&
-            selected.length === 0
-          );
+          const element = node as HTMLElement;
+          const s = window.getSelection();
+          if (
+            !s?.isCollapsed ||
+            !element.contains(s.anchorNode) ||
+            !s.rangeCount
+          )
+            return false;
+          const r = s.getRangeAt(0).cloneRange();
+          r.selectNodeContents(element);
+          r.setEnd(s.anchorNode!, s.anchorOffset);
+          return r.toString() === element.textContent;
         }),
       )
       .toBe(true);

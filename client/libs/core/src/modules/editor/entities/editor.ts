@@ -136,23 +136,60 @@ export class Editor extends Entity {
           diagnostic.kind === "title"
             ? origin.querySelector<HTMLElement>("[data-page-title]")
             : diagnostic.kind === "cell"
-              ? Array.from(
-                  origin
-                    .querySelector<HTMLElement>(
-                      `[data-block-id="${CSS.escape(diagnostic.blockId)}"]`,
-                    )
-                    ?.querySelectorAll<HTMLElement>(
-                      "[data-row-id][data-column-id]",
-                    ) ?? [],
-                ).find(
-                  (cell) =>
-                    cell.dataset.rowId === diagnostic.rowId &&
-                    cell.dataset.columnId === diagnostic.columnId,
-                )
+              ? diagnostic.rowId && diagnostic.columnId
+                ? origin.querySelector<HTMLElement>(
+                    `[data-block-id="${CSS.escape(diagnostic.blockId)}"] [data-cell-editor][data-row="${CSS.escape(diagnostic.rowId)}"][data-column="${CSS.escape(diagnostic.columnId)}"]`,
+                  )
+                : null
               : origin.querySelector<HTMLElement>(
-                  `[data-block-id="${CSS.escape(diagnostic.blockId)}"]`,
+                  `[data-page-text="${CSS.escape(diagnostic.blockId)}"], [data-block-id="${CSS.escape(diagnostic.blockId)}"]`,
                 );
         target?.scrollIntoView({ block: "center" });
+        if (target) {
+          const editableHost = target.closest<HTMLElement>(
+            '[contenteditable="true"]',
+          );
+          editableHost?.focus({ preventScroll: true });
+          const startOffset = Math.max(0, diagnostic.start);
+          const endOffset = Math.max(
+            startOffset,
+            diagnostic.start + diagnostic.length,
+          );
+          const locateOffset = (
+            rootEl: HTMLElement,
+            offset: number,
+          ): { node: Node; offset: number } => {
+            const walker = document.createTreeWalker(
+              rootEl,
+              NodeFilter.SHOW_TEXT,
+            );
+            let remaining = offset;
+            let lastText: Text | null = null;
+            for (
+              let current = walker.nextNode() as Text | null;
+              current;
+              current = walker.nextNode() as Text | null
+            ) {
+              lastText = current;
+              const length = current.data.length;
+              if (remaining <= length) {
+                return { node: current, offset: remaining };
+              }
+              remaining -= length;
+            }
+            return lastText
+              ? { node: lastText, offset: lastText.data.length }
+              : { node: rootEl, offset: rootEl.childNodes.length };
+          };
+          const startPos = locateOffset(target, startOffset);
+          const endPos = locateOffset(target, endOffset);
+          const range = document.createRange();
+          range.setStart(startPos.node, startPos.offset);
+          range.setEnd(endPos.node, endPos.offset);
+          const selection = window.getSelection();
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
         if (checks.location$.value === request) {
           checks.location$.setValue(null);
         }

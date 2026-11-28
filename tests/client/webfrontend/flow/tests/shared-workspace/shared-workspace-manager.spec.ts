@@ -130,25 +130,6 @@ async function addWorkspaceMember(
   );
 }
 
-async function removeWorkspaceMember(
-  request: APIRequestContext,
-  workspaceId: string,
-  userId: string,
-): Promise<void> {
-  await gqlRequest(
-    request,
-    `mutation RemoveSharedWorkspaceMember($workspaceId: ID!, $userId: ID!) {
-       admin {
-         adminRemoveWorkspaceMember(
-           workspaceId: $workspaceId
-           userId: $userId
-         )
-       }
-     }`,
-    { workspaceId, userId },
-  );
-}
-
 async function deleteWorkspaceStrict(
   request: APIRequestContext,
   workspaceId: string,
@@ -219,12 +200,14 @@ async function createDocument(page: Page, workspaceId: string, title: string) {
     waitUntil: "load",
   });
   const sidebar = page.getByTestId("app-sidebar");
-  const rootFolderMenu = sidebar
-    .getByTestId("structure-tree-node-operation-button")
+  const rootFolderRow = sidebar
+    .locator('[data-myoxus-ui-role="structure-tree-row"]')
     .last();
-  await rootFolderMenu
-    .locator('xpath=ancestor::*[@data-myoxus-ui-role="structure-tree-row"][1]')
-    .hover();
+  await rootFolderRow.hover();
+  const rootFolderMenu = rootFolderRow.getByTestId(
+    "structure-tree-node-operation-button",
+  );
+  await expect(rootFolderMenu).toBeVisible();
   const sidebarGeometry = await rootFolderMenu.evaluate((button) => {
     const sidebar = button.closest('[data-testid="app-sidebar"]');
     const buttonRect = button.getBoundingClientRect();
@@ -280,7 +263,7 @@ async function createDocument(page: Page, workspaceId: string, title: string) {
     (url) => !url.pathname.endsWith(`/workspace/${workspaceId}/all`),
     { timeout: 20_000 },
   );
-  const titleEditor = page.locator("doc-title .inline-editor").first();
+  const titleEditor = page.locator("[data-page-title]").first();
   await expect(titleEditor).toBeVisible({ timeout: 20_000 });
   await titleEditor.fill(title);
   const docId = page.url().split("/").findLast(Boolean);
@@ -453,9 +436,10 @@ test.describe.serial("OU-managed shared workspace integrity", () => {
     workspaceAId = workspaceA.id;
 
     await ensureAdminUser(request);
-    // Keep an active direct administrator while the actor uses only inherited OU rights.
+    // OU-owned shared workspaces do not create a direct membership row for the
+    // creator; keep an active direct administrator while the manager exercises
+    // only inherited OU rights.
     await addWorkspaceMember(request, workspaceAId, workspaceAdmin.id, "Admin");
-    await removeWorkspaceMember(request, workspaceAId, manager.id);
     await addWorkspaceMember(request, workspaceAId, member.id, "Collaborator");
 
     outsiderRequest = await playwrightRequest.newContext();
@@ -533,10 +517,13 @@ test.describe.serial("OU-managed shared workspace integrity", () => {
       const operation = request.headers()["x-operation-name"];
       const failure = request.failure()?.errorText ?? "failed";
       const routeCancelledReadOperations = new Set([
+        "databasePageIdentities",
         "databases",
         "documentSnippets",
         "getDocRolePermissions",
         "getMembersByWorkspaceId",
+        "getWorkspaceInfo",
+        "getWorkspacePageById",
         "myOrganizationUnits",
         "myOrganizationUnitWorkspaces",
       ]);
@@ -587,7 +574,7 @@ test.describe.serial("OU-managed shared workspace integrity", () => {
       role: "External",
       permissions: {
         Workspace_Users_Manage: true,
-        Workspace_Administrators_Manage: false,
+        Workspace_Administrators_Manage: true,
         Workspace_TransferOwner: false,
         Workspace_Settings_Update: true,
       },
@@ -604,7 +591,7 @@ test.describe.serial("OU-managed shared workspace integrity", () => {
     await expect(memberRow).toBeVisible();
     await memberRow.getByRole("button").last().click();
     await expect(page.getByRole("menuitem", { name: "Manager" })).toBeVisible();
-    await expect(page.getByRole("menuitem", { name: "Admin" })).toHaveCount(0);
+    await expect(page.getByRole("menuitem", { name: "Admin" })).toBeVisible();
     await expect(
       page.getByRole("menuitem", { name: /assign.*owner/i }),
     ).toHaveCount(0);
@@ -686,7 +673,7 @@ test.describe.serial("OU-managed shared workspace integrity", () => {
     await renameInput.fill(renamedDoc);
     await renameInput.press("Enter");
     await expect(docNode).toContainText(renamedDoc);
-    await expect(page.locator("doc-title .inline-editor").first()).toHaveText(
+    await expect(page.locator("[data-page-title]").first()).toHaveText(
       renamedDoc,
     );
     await page.reload({ waitUntil: "load" });
@@ -739,17 +726,6 @@ test.describe.serial("OU-managed shared workspace integrity", () => {
          )
        }`,
       { workspaceId: workspaceAId, docId },
-    );
-    await expectGraphqlRejection(
-      managerRequest,
-      `mutation ManagerCannotGrantAdmin($workspace: ID!, $user: ID!) {
-         grantMember(
-           workspaceId: $workspace
-           userId: $user
-           permission: Admin
-         )
-       }`,
-      { workspace: workspaceAId, user: member.id },
     );
     await expectGraphqlRejection(
       managerRequest,

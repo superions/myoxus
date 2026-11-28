@@ -155,15 +155,16 @@ async function createLongRegressionDoc(
   }
 
   const title = `Smoke main chrome regression ${Date.now()}`;
-  const titleContainer = page.locator("doc-title .doc-title-container").first();
-  await expect(titleContainer).toBeVisible({ timeout: 20_000 });
-  await titleContainer.click();
-
-  const titleEditor = page.locator("doc-title .inline-editor").first();
+  const titleEditor = page.locator("[data-page-title]").first();
   await expect(titleEditor).toBeVisible({ timeout: 20_000 });
+  await titleEditor.click();
   await titleEditor.fill(title);
 
-  await page.locator("[data-myoxus-editor-container]").click({
+  const firstParagraph = page
+    .locator("[data-page-body] [data-page-text]")
+    .first();
+  await expect(firstParagraph).toBeVisible({ timeout: 20_000 });
+  await firstParagraph.click({
     timeout: 20_000,
   });
   const headerTitle = page.locator(
@@ -211,8 +212,8 @@ async function documentContentColumnMetrics(page: Page) {
 
     const metadataHeader = rectFor("[data-testid='document-metadata-header']");
     const iconButton = rectFor("[data-testid='doc-title-row'] button");
-    const titleContainer = rectFor("doc-title .doc-title-container");
-    const paragraph = rectFor("myoxus-paragraph");
+    const titleContainer = rectFor("[data-page-title]");
+    const paragraph = rectFor("[data-page-body] [data-page-text]");
 
     const metadataContentX = metadataHeader.x;
     const titleLineCenterY = titleContainer.y + titleContainer.lineHeight / 2;

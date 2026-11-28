@@ -89,7 +89,7 @@ async function openIndexedProjectBrief(
     /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i,
   );
   await page.getByTestId("slider-bar-quick-search-button").click();
-  const input = page.locator('[data-myoxus-ui-role="command-palette-input"]');
+  const input = page.getByTestId("cmdk-quick-search").locator("input");
   const brief = page
     .getByRole("dialog")
     .getByText("Project brief", { exact: true });
@@ -258,6 +258,14 @@ async function setTaskScope(page: Page, label: "My tasks" | "All") {
   await page.getByRole("menuitem", { name: label, exact: true }).click();
 }
 
+async function setTaskLifecycle(
+  page: Page,
+  label: "Open work" | "Closed work",
+) {
+  await page.getByRole("button", { name: /^(Open work|Closed work)$/ }).click();
+  await page.getByRole("menuitem", { name: label, exact: true }).click();
+}
+
 async function openRow(
   page: Page,
   workspaceId: string,
@@ -356,7 +364,7 @@ test("creates the original Task, edits it across two Projects and preserves clos
     await page.getByTestId("tasks-new-task").click();
     const modal = page.getByTestId("task-creation-modal");
     const title = "Native creation · reviewed regional rollout";
-    await modal.getByTestId("task-destination-select").click();
+    await modal.getByRole("combobox", { name: "Project", exact: true }).click();
     const projectName = (
       await f.gql<{ workspace: { database: { database: { title: string } } } }>(
         `query($w:String!,$d:ID!){workspace(id:$w){database(databaseId:$d){database{title}}}}`,
@@ -369,7 +377,8 @@ test("creates the original Task, edits it across two Projects and preserves clos
       .fill(title);
     await expect(modal.getByText("Assignees", { exact: true })).toBeVisible();
     await modal
-      .getByRole("combobox", { name: "Assignees", exact: true })
+      .locator('[data-testid="member-selector-chip"], [data-empty="true"]')
+      .first()
       .click();
     await modal.getByRole("textbox", { name: "Title", exact: true }).click();
     const committed = page.waitForResponse(
@@ -383,11 +392,8 @@ test("creates the original Task, edits it across two Projects and preserves clos
     const rowId = payload.data.createDatabaseRow.row.id as string;
     const detail = page.getByTestId("context-surface-task-details");
     await detail.getByText(title, { exact: true }).click();
-    const titleField = second.fields.find(
-      (field) => field.id === role(second, "task.title"),
-    )!.name;
     const input = detail.getByRole("textbox", {
-      name: titleField,
+      name: "Title",
       exact: true,
     });
     await input.fill(`${title} · confirmed`);
@@ -510,7 +516,7 @@ test("creates the original Task, edits it across two Projects and preserves clos
       detail.getByRole("textbox", { name: "Title", exact: true }),
     ).toHaveCount(0);
     await expect(
-      detail.getByRole("button", { name: titleField, exact: true }),
+      detail.getByRole("button", { name: "Title", exact: true }),
     ).toContainText(subtaskTitle);
     await expect(
       section.getByRole("button", {
@@ -518,11 +524,7 @@ test("creates the original Task, edits it across two Projects and preserves clos
         exact: true,
       }),
     ).toBeVisible();
-    await detail.getByRole("button", { name: "Status", exact: true }).click();
-    await detail
-      .getByTestId("task-property-editor")
-      .getByRole("combobox", { name: "Status", exact: true })
-      .click();
+    await detail.getByRole("combobox", { name: "Status", exact: true }).click();
     const childStatusCommit = page.waitForResponse(
       (response) =>
         response.request().headers()["x-operation-name"] ===
@@ -541,6 +543,12 @@ test("creates the original Task, edits it across two Projects and preserves clos
           )?.value.status,
       )
       .toBe(completedStatus);
+    const childStatusBox = detail.getByRole("combobox", {
+      name: "Status",
+      exact: true,
+    });
+    await expect(childStatusBox).toHaveValue("Completed");
+    await expect(childStatusBox).toBeEnabled();
     await detail
       .getByRole("button", { name: "Back", exact: true })
       .press("Enter");
@@ -586,7 +594,7 @@ test("creates the original Task, edits it across two Projects and preserves clos
     dependencyContext.hash = "task-blocking-context";
     const blocking = detail.getByTestId("database-task-blocking");
     const currentTitle = detail.getByRole("button", {
-      name: titleField,
+      name: "Title",
       exact: true,
     });
     const blockingURL = (id: string) => {
@@ -669,14 +677,8 @@ test("creates the original Task, edits it across two Projects and preserves clos
         }))
         .sort((a, b) => a.rowId.localeCompare(b.rowId));
     await expect.poll(blockerCounts).toEqual(expectedCounts(1));
-    const filter = page.getByRole("combobox", {
-      name: "Blocking",
-      exact: true,
-    });
     await page.getByRole("button", { name: "Filter", exact: true }).click();
-    await filter.click();
-    await page.getByRole("option", { name: "Blocked", exact: true }).click();
-    await page.keyboard.press("Escape");
+    await page.getByRole("menuitem", { name: "Blocked", exact: true }).click();
     dependencyContext.searchParams.set("blockedOnly", "true");
     await expect
       .poll(() => page.url())
@@ -714,29 +716,24 @@ test("creates the original Task, edits it across two Projects and preserves clos
     await expect(prerequisiteOpen).toBeFocused();
     await prerequisiteOpen.press("Enter");
     await expect(currentTitle).toContainText(`${title} · confirmed`);
-    await detail.getByRole("button", { name: "Status", exact: true }).click();
-    await detail
-      .getByTestId("task-property-editor")
-      .getByRole("combobox", { name: "Status", exact: true })
-      .click();
+    await detail.getByRole("combobox", { name: "Status", exact: true }).click();
     await page.getByRole("option", { name: "Completed", exact: true }).click();
     await expect.poll(blockerCounts).toEqual(expectedCounts(0));
     for (const dependent of [dependentB, dependentC])
       await expect(
         page.getByTestId(`task-row-${dependent.row.id}`),
       ).toHaveCount(0);
-    const statusConfig = second.fields.find(
-      (field) => field.id === role(second, "task.status"),
-    )!.config.status!;
-    const openStatus = statusConfig.options.find(
-      (option) => option.id === statusConfig.defaultOptionId,
-    )!.name;
-    await detail.getByRole("button", { name: "Status", exact: true }).click();
-    await detail
-      .getByTestId("task-property-editor")
-      .getByRole("combobox", { name: "Status", exact: true })
+    const openStatusLabel = "To do";
+    await detail.getByRole("combobox", { name: "Status", exact: true }).click();
+    await page
+      .getByRole("option", { name: openStatusLabel, exact: true })
       .click();
-    await page.getByRole("option", { name: openStatus, exact: true }).click();
+    const reopenedStatusBox = detail.getByRole("combobox", {
+      name: "Status",
+      exact: true,
+    });
+    await expect(reopenedStatusBox).toHaveValue(openStatusLabel);
+    await expect(reopenedStatusBox).toBeEnabled();
     await expect.poll(blockerCounts).toEqual(expectedCounts(1));
     for (const dependent of [dependentB, dependentC])
       await expect(
@@ -796,12 +793,7 @@ test("creates the original Task, edits it across two Projects and preserves clos
     // Unassigned children use the normal All/Closed inventory, rather than a
     // hidden subtask-only store or inherited parent assignment.
     await page.getByLabel("Search tasks", { exact: true }).fill("");
-    await page
-      .getByRole("combobox", { name: "Task lifecycle", exact: true })
-      .click();
-    await page
-      .getByRole("option", { name: "Closed work", exact: true })
-      .click();
+    await setTaskLifecycle(page, "Closed work");
     await expect(page.getByTestId(`task-row-${childId}`)).toBeVisible();
     await setTaskScope(page, "My tasks");
     await expect(
@@ -812,18 +804,13 @@ test("creates the original Task, edits it across two Projects and preserves clos
     await expect(detail).toBeVisible();
     await page.getByTestId(`task-row-${rowId}`).getByRole("checkbox").click();
     await expect(page.getByTestId(`task-row-${rowId}`)).toHaveCount(0);
-    await page
-      .getByRole("combobox", { name: "Task lifecycle", exact: true })
-      .click();
-    await page
-      .getByRole("option", { name: "Closed work", exact: true })
-      .click();
+    await setTaskLifecycle(page, "Closed work");
     await expect(page.getByTestId(`task-row-${rowId}`)).toBeVisible();
     await detail
       .getByRole("button", { name: "Task actions", exact: true })
       .click();
     await page
-      .getByRole("menuitem", { name: "Remove row", exact: true })
+      .getByRole("menuitem", { name: "Move to trash", exact: true })
       .click();
     await expect(
       detail.getByRole("button", { name: "Restore", exact: true }),
@@ -836,7 +823,7 @@ test("creates the original Task, edits it across two Projects and preserves clos
       .getByRole("button", { name: "Task actions", exact: true })
       .click();
     await expect(
-      page.getByRole("menuitem", { name: "Remove row", exact: true }),
+      page.getByRole("menuitem", { name: "Move to trash", exact: true }),
     ).toBeVisible();
     await page.keyboard.press("Escape");
     expect((await f.read(second, rowId)).row.id).toBe(rowId);
@@ -975,7 +962,10 @@ for (const colorMode of ["light"] as const) {
         page.getByTestId(`task-row-${assignedToAlice.row.id}`),
       ).toHaveCount(0);
       await detail.getByText(row.row.title, { exact: true }).click();
-      const input = detail.getByRole("textbox", { name: "Task", exact: true });
+      const input = detail.getByRole("textbox", {
+        name: "Title",
+        exact: true,
+      });
       await input.fill("My unsaved local title");
       const before = await f.read(project, row.row.id);
       const titleFieldId = role(project, "task.title");
@@ -1048,7 +1038,7 @@ for (const colorMode of ["light"] as const) {
         .getByText("Confirmed collaborator title", { exact: true })
         .click();
       await expect(
-        readonly.getByRole("textbox", { name: "Task", exact: true }),
+        readonly.getByRole("textbox", { name: "Title", exact: true }),
       ).toHaveCount(0);
       await expect(readonly.getByTestId("database-task-relations")).toHaveCount(
         0,
@@ -1419,7 +1409,7 @@ test("Empty creation cancels without writes and resumes its persisted request af
     await page.getByTestId("new-workspace").click();
     await expect(
       page.getByTestId(
-        recovery ? "create-workspace-check-button" : "create-workspace-input",
+        recovery ? "create-workspace-open-button" : "create-workspace-input",
       ),
     ).toBeVisible();
   };
@@ -1429,11 +1419,11 @@ test("Empty creation cancels without writes and resumes its persisted request af
       currentUser: {
         preferences: {
           values: { assistanceMode: string | null };
-          assistance: { mode: string };
+          assistance: { mode: string; interactiveMode: string };
         };
       };
     }>(
-      "query{workspaces{id}currentUser{preferences{values{assistanceMode}assistance{mode}}}}",
+      "query{workspaces{id}currentUser{preferences{values{assistanceMode}assistance{mode interactiveMode}}}}",
     );
   try {
     await injectSessionCookies(context, f.cookies);
@@ -1472,25 +1462,28 @@ test("Empty creation cancels without writes and resumes its persisted request af
       await route.abort("failed");
     });
     await page.getByTestId("create-workspace-create-button").click();
+    await expect(page.getByTestId("create-workspace-create-button")).toHaveText(
+      "Retry",
+    );
     await expect(
-      page.getByTestId("create-workspace-check-button"),
+      page.getByTestId("create-workspace-create-button"),
     ).toBeEnabled();
     expect(resultId).not.toBe("");
     await page.reload();
     await waitForWorkspaceReady(page);
-    await openCreate(true);
-    await expect(dialog.getByRole("textbox").first()).toHaveValue(name);
-    await expect(dialog.getByRole("textbox").first()).toBeDisabled();
     const readback = page.waitForRequest(
       (request) =>
         request.headers()["x-operation-name"] === "workspaceCreation",
     );
-    await page.getByTestId("create-workspace-check-button").click();
+    await openCreate(true);
+    await expect(dialog.getByRole("textbox").first()).toHaveValue(name);
+    await expect(dialog.getByRole("textbox").first()).toBeDisabled();
     if (!lostInput)
       throw new Error("The real server never received a confirmed request");
     expect((await readback).postDataJSON().variables).toEqual({
       requestId: lostInput.requestId,
     });
+    await page.getByTestId("create-workspace-open-button").click();
     await expect(page).toHaveURL(new RegExp(`/workspace/${resultId}/home`));
     await waitForWorkspaceReady(page);
     expect(createCalls).toBe(1);
@@ -1517,7 +1510,7 @@ test("Empty creation cancels without writes and resumes its persisted request af
       { w: resultId, id: resultId },
     );
     expect(saved.currentUser.preferences.assistance).toEqual({
-      mode: before.currentUser.preferences.assistance.mode,
+      mode: before.currentUser.preferences.assistance.interactiveMode,
       source: "Workspace",
     });
     expectEmptyUserDocuments(saved.workspace.docs, resultId);
@@ -1588,9 +1581,9 @@ test("Empty Workspace Tasks starts from Home, Tasks and a note, then explicitly 
       .getByRole("button", { name: "New task", exact: true })
       .click();
     let modal = page.getByTestId("task-creation-modal");
-    await expect(modal.getByTestId("task-destination-select")).toHaveValue(
-      "Workspace Tasks",
-    );
+    await expect(
+      modal.getByRole("combobox", { name: "Project", exact: true }),
+    ).toHaveValue("No project");
     await modal
       .getByRole("textbox", { name: "Title", exact: true })
       .fill("Home without a Project");
@@ -1610,11 +1603,8 @@ test("Empty Workspace Tasks starts from Home, Tasks and a note, then explicitly 
     await firstDetail
       .getByText("Home without a Project", { exact: true })
       .click();
-    const titleName = f.project.fields.find(
-      (field) => field.id === role(f.project, "task.title"),
-    )!.name;
     const firstTitle = firstDetail.getByRole("textbox", {
-      name: titleName,
+      name: "Title",
       exact: true,
     });
     await firstTitle.fill("Home without a Project · edited");
@@ -1650,9 +1640,9 @@ test("Empty Workspace Tasks starts from Home, Tasks and a note, then explicitly 
     await expect(page.getByTestId(`task-row-${homeRow}`)).toBeVisible();
     await page.getByTestId("tasks-new-task").click();
     modal = page.getByTestId("task-creation-modal");
-    await expect(modal.getByTestId("task-destination-select")).toHaveValue(
-      "Workspace Tasks",
-    );
+    await expect(
+      modal.getByRole("combobox", { name: "Project", exact: true }),
+    ).toHaveValue("No project");
     await modal
       .getByRole("textbox", { name: "Title", exact: true })
       .fill("Tasks without a Project");
@@ -1670,17 +1660,18 @@ test("Empty Workspace Tasks starts from Home, Tasks and a note, then explicitly 
 
     const docId = await captureDocument(page, f, "No Project capture source");
     const editable = page
-      .locator('myoxus-paragraph rich-text [contenteditable="true"]')
+      .locator("[data-page-body][contenteditable=true] [data-page-text]")
       .last();
-    await editable.fill("Review this original captured work");
+    await editable.click();
+    await page.keyboard.insertText("Review this original captured work");
     const paragraph = (await captureTree(page)).find(
       (block) => block.text === "Review this original captured work",
     )!;
     await waitForWorkspaceDocSync(page, docId);
     const capture = await selectCaptureText(page, paragraph.id);
-    await expect(capture.getByTestId("task-destination-select")).toHaveValue(
-      "Workspace Tasks",
-    );
+    await expect(
+      capture.getByRole("button", { name: "Destination", exact: true }),
+    ).toHaveText("Workspace Tasks");
     await capture
       .getByRole("textbox", { name: "Title", exact: true })
       .fill("Captured original to move");
@@ -1767,12 +1758,16 @@ test("Empty Workspace Tasks starts from Home, Tasks and a note, then explicitly 
     await expect
       .poll(() => new URL(page.url()).pathname)
       .toBe(`/workspace/${f.workspaceId}/${brief.externalId}`);
-    await expect(page.locator("editor-host")).toBeVisible();
-    await expect(page.locator("editor-host")).toContainText(briefGoal);
-    await expect(page.locator("editor-host")).toContainText("Open questions");
+    await expect(page.locator("[data-page-renderer]")).toBeVisible();
+    await expect(page.locator("[data-page-renderer]")).toContainText(briefGoal);
+    await expect(page.locator("[data-page-renderer]")).toContainText(
+      "Open questions",
+    );
     await page.reload();
-    await expect(page.locator("editor-host")).toContainText(briefGoal);
-    await expect(page.locator("editor-host")).toContainText("Open questions");
+    await expect(page.locator("[data-page-renderer]")).toContainText(briefGoal);
+    await expect(page.locator("[data-page-renderer]")).toContainText(
+      "Open questions",
+    );
     const oldURL = `${FRONTEND}/workspace/${f.workspaceId}/tasks?scope=All&databaseId=${f.project.database.id}&rowId=${receipt.rowId}`;
     await page.goto(oldURL);
     const detail = page.getByTestId("context-surface-task-details");
@@ -1802,14 +1797,10 @@ test("Empty Workspace Tasks starts from Home, Tasks and a note, then explicitly 
       page.getByTestId("context-surface-task-details"),
     ).toContainText("Captured original to move");
     await page.goto(`${FRONTEND}/workspace/${f.workspaceId}/${docId}`);
-    await expect(page.locator("editor-host")).toBeVisible();
+    await expect(page.locator("[data-page-renderer]")).toBeVisible();
     const retained = await referenceFor(page, receipt.rowId);
     expect(retained.rowId).toBe(receipt.rowId);
-    await referenceCardReady(
-      page,
-      retained.parent!,
-      "Captured original to move",
-    );
+    await referenceCardReady(page, retained.id, "Captured original to move");
     expect((await inventory()).map((database) => database.id)).toEqual([
       target,
     ]);
@@ -1898,8 +1889,8 @@ async function captureDocument(page: Page, f: CaptureFixture, title: string) {
   await page.goto(`${FRONTEND}/workspace/${f.workspaceId}/all`);
   await waitForWorkspaceReady(page, { allDocs: true });
   await page.getByTestId("sidebar-new-page-button").click();
-  await expect(page.locator("editor-host")).toBeVisible();
-  await page.locator("doc-title .inline-editor").fill(title);
+  await expect(page.locator("[data-page-renderer]")).toBeVisible();
+  await page.locator("[data-page-title]").fill(title);
   await page.keyboard.press("Enter");
   return new URL(page.url()).pathname.split("/").at(-1)!;
 }
@@ -1914,9 +1905,24 @@ async function captureTree(page: Page) {
       text?: { toString(): string };
       children: Model[];
     };
-    const host = document.querySelector("editor-host") as HTMLElement & {
-      std: { store: { root: Model } };
-    };
+    const docId = location.pathname.split("/").pop()!;
+    const root =
+      (
+        window as unknown as {
+          currentWorkspace?: {
+            docCollection: {
+              getDoc(id: string): { getStore(): { root: Model | null } } | null;
+            };
+          };
+        }
+      ).currentWorkspace?.docCollection
+        .getDoc(docId)
+        ?.getStore().root ??
+      (
+        document.querySelector("editor-host") as
+          (HTMLElement & { std: { store: { root: Model } } }) | null
+      )?.std.store.root;
+    if (!root) throw new Error(`Missing document store root for ${docId}`);
     const visit = (
       model: Model,
       parent: string | null,
@@ -1946,12 +1952,14 @@ async function captureTree(page: Page) {
       },
       ...model.children.flatMap((child) => visit(child, model.id)),
     ];
-    return visit(host.std.store.root, null);
+    return visit(root, null);
   });
 }
 async function selectCaptureText(page: Page, blockId: string) {
   const editable = page
-    .locator(`[data-block-id="${blockId}"] rich-text .inline-editor:visible`)
+    .locator(
+      `[data-block-id="${blockId}"][data-page-text]:visible, [data-block-id="${blockId}"] [data-page-text]:visible, [data-block-id="${blockId}"] rich-text .inline-editor:visible`,
+    )
     .first();
   await editable.click();
   await page.keyboard.press("Home");
@@ -1970,17 +1978,23 @@ async function selectCaptureText(page: Page, blockId: string) {
 }
 async function prepareCapture(page: Page, blockId: string, title: string) {
   const modal = await selectCaptureText(page, blockId);
-  await modal.getByTestId("task-destination-select").click();
+  await modal.getByRole("button", { name: "Destination", exact: true }).click();
+  const destinationHint = page.getByText(
+    "People with access to the selected destination",
+  );
+  await expect(destinationHint).toBeVisible();
+  await page.getByTestId("task-destination-select").click();
   await page
     .getByRole("option", { name: "Capture journey Project", exact: true })
     .click();
+  if (await destinationHint.isVisible()) {
+    await page.keyboard.press("Escape");
+    await expect(destinationHint).toBeHidden();
+  }
   await modal.getByRole("textbox", { name: "Title", exact: true }).fill(title);
   await expect(
     modal.getByRole("textbox", { name: "Description (optional)", exact: true }),
   ).toBeVisible();
-  await expect(modal).toContainText(
-    "People with access to the selected destination",
-  );
   return modal;
 }
 async function commitCapture(
@@ -2016,20 +2030,31 @@ async function referenceFor(page: Page, rowId: string) {
   return (await captureTree(page)).find((block) => block.rowId === rowId)!;
 }
 
-async function referenceCardReady(page: Page, noteId: string, title: string) {
-  const note = page.locator(`[data-block-id="${noteId}"]`).first();
-  await expect(
-    note.getByRole("button", { name: title, exact: true }),
-  ).toBeVisible();
-  await note.evaluate(async (element) => {
-    const lit = element as HTMLElement & { updateComplete: Promise<boolean> };
-    await lit.updateComplete;
+async function expandTaskInformation(detail: ReturnType<Page["locator"]>) {
+  const toggle = detail.getByRole("button", {
+    name: "Task information",
+    exact: true,
+  });
+  await expect(toggle).toBeVisible();
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+}
+
+async function referenceCardReady(page: Page, blockId: string, title: string) {
+  const container = page.locator(`[data-block-id="${blockId}"]`).first();
+  const card = container.getByTestId("embedded-task-card").first();
+  await expect(card).toBeVisible();
+  await expect(card).toContainText(title);
+  await container.evaluate(async (element) => {
+    const lit = element as HTMLElement & { updateComplete?: Promise<boolean> };
+    if (lit.updateComplete) await lit.updateComplete;
     // Native Note ResizeObserver coalesces its measurement into the next frame;
     // then Lit applies the resulting model geometry before we read the baseline.
     await new Promise<void>((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
     );
-    await lit.updateComplete;
+    if (lit.updateComplete) await lit.updateComplete;
   });
 }
 
@@ -2073,12 +2098,12 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
     const docId = await captureDocument(page, f, "Owned meeting source");
     sourceDocId = docId;
     const body = page
-      .locator('myoxus-paragraph rich-text [contenteditable="true"]')
+      .locator("[data-page-body][contenteditable=true] [data-page-text]")
       .last();
     await body.click();
     await page.keyboard.type("[ ] Confirm the release owner");
     // Markdown checkbox conversion is an ordinary editor typing operation.
-    await expect(page.locator("myoxus-list")).toBeVisible();
+    await expect(page.locator("[data-list-kind]")).toBeVisible();
     const source = (await captureTree(page)).find(
       (block) => block.flavour === "myoxus:list",
     )!;
@@ -2146,8 +2171,12 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
     await expect(
       detail.getByRole("combobox", { name: "Status", exact: true }),
     ).toHaveValue("Completed");
+    await expandTaskInformation(detail);
     await detail
-      .getByRole("button", { name: "Owned meeting source", exact: true })
+      .getByRole("button", {
+        name: "Source · Owned meeting source",
+        exact: true,
+      })
       .click();
     await expect
       .poll(() => {
@@ -2164,20 +2193,27 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
         mode: "page",
       });
     await referenceFor(page, committed!.rowId);
+    await referenceCardReady(page, ref.id, "Meeting follow-up");
     await page
-      .getByRole("button", { name: "Meeting follow-up", exact: true })
+      .locator(`[data-block-id="${ref.id}"]`)
+      .getByRole("button", { name: "Open in Kanban", exact: true })
       .click();
     await expect
       .poll(() => {
         const url = new URL(page.url());
-        return { pathname: url.pathname, rowId: url.searchParams.get("rowId") };
+        return {
+          pathname: url.pathname,
+          databaseId: url.searchParams.get("databaseId"),
+          rowId: url.searchParams.get("rowId"),
+        };
       })
       .toEqual({
-        pathname: `/workspace/${f.workspaceId}/databases/${f.project.database.id}`,
+        pathname: `/workspace/${f.workspaceId}/tasks`,
+        databaseId: f.project.database.id,
         rowId: committed!.rowId,
       });
     await expect(
-      page.getByRole("dialog", { name: /Task details/ }),
+      page.getByTestId("context-surface-task-details"),
     ).toContainText("Meeting follow-up");
     // Lifecycle controls belong to the existing Tasks detail surface, while
     // opening a reference above still proves the canonical Project Row route.
@@ -2187,7 +2223,10 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
     const rowDetail = page.getByTestId("context-surface-task-details");
     await expect(rowDetail).toBeVisible();
     await rowDetail
-      .getByRole("button", { name: "Remove row", exact: true })
+      .getByRole("button", { name: "Task actions", exact: true })
+      .click();
+    await page
+      .getByRole("menuitem", { name: "Move to trash", exact: true })
       .click();
     await rowDetail
       .getByRole("button", { name: "Restore", exact: true })
@@ -2223,11 +2262,17 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
     await page.goto(
       `${FRONTEND}/workspace/${f.workspaceId}/databases/${f.project.database.id}?rowId=${committed!.rowId}`,
     );
+    const trashedSourceDetail = page.getByRole("dialog", {
+      name: /Task details/,
+    });
+    await expect(trashedSourceDetail).toContainText("Meeting follow-up");
+    await expandTaskInformation(trashedSourceDetail);
+    await expect(trashedSourceDetail).toContainText("Unavailable");
     await expect(
-      page.getByRole("dialog", { name: /Task details/ }),
-    ).toContainText("Meeting follow-up");
-    await expect(
-      page.getByRole("button", { name: "Owned meeting source", exact: true }),
+      trashedSourceDetail.getByRole("button", {
+        name: "Source · Owned meeting source",
+        exact: true,
+      }),
     ).toHaveCount(0);
     await page.goto(`${FRONTEND}/workspace/${f.workspaceId}/${docId}`);
     await page.getByTestId("page-restore-button").click();
@@ -2269,7 +2314,7 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
         state: "Available",
       });
     await page.reload();
-    await expect(page.locator("editor-host")).toBeVisible();
+    await expect(page.locator("[data-page-renderer]")).toBeVisible();
     expect((await referenceFor(page, committed!.rowId)).id).toBe(ref.id);
     expect(
       (await captureTree(page)).find((block) => block.id === source.id),
@@ -2277,19 +2322,21 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
     await page.goto(
       `${FRONTEND}/workspace/${f.workspaceId}/databases/${f.project.database.id}?rowId=${committed!.rowId}`,
     );
+    const restoredSourceDetail = page.getByRole("dialog", {
+      name: /Task details/,
+    });
+    await expandTaskInformation(restoredSourceDetail);
     await expect(
-      page
-        .getByRole("dialog", { name: /Task details/ })
-        .getByRole("button", { name: "Owned meeting source", exact: true }),
+      restoredSourceDetail.getByRole("button", {
+        name: "Source · Owned meeting source",
+        exact: true,
+      }),
     ).toBeVisible();
     // Continue the same persisted capture, not a second synthetic Task. Actor
     // views are serial and every receipt/recipient belongs to this owned WP.
     const taskId = committed!.rowId;
     const taskURL = `${FRONTEND}/workspace/${f.workspaceId}/tasks?scope=All&projectId=${f.project.database.id}&databaseId=${f.project.database.id}&rowId=${taskId}#inbox-capture-context`;
     const taskDetail = page.getByTestId("context-surface-task-details");
-    const titleName = f.project.fields.find(
-      (field) => field.id === role(f.project, "task.title"),
-    )!.name;
     const statusName = f.project.fields.find(
       (field) => field.id === role(f.project, "task.status"),
     )!.name;
@@ -2311,7 +2358,7 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
     };
     await page.goto(taskURL);
     await expect(
-      taskDetail.getByRole("button", { name: titleName, exact: true }),
+      taskDetail.getByRole("button", { name: "Title", exact: true }),
     ).toContainText("Meeting follow-up");
     const setStatus = async (name: string) => {
       await taskDetail
@@ -2329,6 +2376,12 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
       ).toHaveValue(name);
     };
     await setStatus("To do");
+    await taskDetail
+      .getByRole("button", { name: "Task actions", exact: true })
+      .click();
+    await page
+      .getByRole("menuitem", { name: "Add subtask", exact: true })
+      .click();
     const relations = taskDetail.getByTestId("database-task-relations");
     const childTitle = "Inbox journey prerequisite";
     const add = relations.getByRole("textbox", {
@@ -2345,6 +2398,12 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
     const childResult = await (await createdChild).json();
     expect(childResult.errors).toBeUndefined();
     const childId = childResult.data.createDatabaseRow.row.id as string;
+    await taskDetail
+      .getByRole("button", { name: "Task actions", exact: true })
+      .click();
+    await page
+      .getByRole("menuitem", { name: "Blocked by", exact: true })
+      .click();
     const blockingSection = taskDetail.getByTestId("database-task-blocking");
     const blockerName = f.project.fields.find(
       (field) => field.id === role(f.project, "task.blockedBy"),
@@ -2410,7 +2469,7 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
     );
     await switchActor(recipientCookies, taskURL);
     await expect(
-      taskDetail.getByRole("button", { name: titleName, exact: true }),
+      taskDetail.getByRole("button", { name: "Title", exact: true }),
     ).toContainText("Meeting follow-up");
     await taskDetail.getByTestId("database-row-action-menu").click();
     await page
@@ -2427,15 +2486,30 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
 
     await switchActor(f.cookies, taskURL);
     await expect(
-      taskDetail.getByRole("button", { name: titleName, exact: true }),
+      taskDetail.getByRole("button", { name: "Title", exact: true }),
     ).toContainText("Meeting follow-up");
     const assigneesName = f.project.fields.find(
       (field) => field.id === role(f.project, "task.assignees"),
     )!.name;
-    const assignees = taskDetail
-      .getByText(assigneesName, { exact: true })
-      .locator("..");
-    await assignees.getByRole("button").click();
+    const assigneesTrigger = taskDetail.getByRole("button", {
+      name: assigneesName,
+      exact: true,
+    });
+    if (await assigneesTrigger.isVisible()) {
+      await assigneesTrigger.click();
+    } else {
+      await taskDetail
+        .getByRole("button", { name: "Add property", exact: true })
+        .click();
+      await page
+        .getByRole("menuitem", { name: assigneesName, exact: true })
+        .click();
+    }
+    const assigneesEditor = taskDetail.getByTestId("task-property-editor");
+    const assigneesButton = assigneesEditor.getByRole("button").first();
+    if ((await assigneesButton.getAttribute("aria-expanded")) !== "true") {
+      await assigneesButton.click();
+    }
     const assigned = page.waitForResponse(
       (response) =>
         response.request().headers()["x-operation-name"] ===
@@ -2455,16 +2529,35 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
       )
       .toEqual([recipient.id]);
     await setStatus("In progress");
-    await taskDetail
-      .getByRole("button", { name: dueName, exact: true })
-      .click();
+    const dueTrigger = taskDetail.getByRole("button", {
+      name: dueName,
+      exact: true,
+    });
+    if (await dueTrigger.isVisible()) {
+      await dueTrigger.click();
+    } else {
+      await taskDetail
+        .getByRole("button", { name: "Add property", exact: true })
+        .click();
+      await page.getByRole("menuitem", { name: dueName, exact: true }).click();
+    }
     // Native Mantine's current-month day labels use D MMMM YYYY.
     const todayLabel = new Date().toLocaleDateString("en-GB", {
       day: "numeric",
       month: "long",
       year: "numeric",
     });
-    await page.getByRole("button", { name: todayLabel, exact: true }).click();
+    const todayButton = page.getByRole("button", {
+      name: todayLabel,
+      exact: true,
+    });
+    if (!(await todayButton.isVisible())) {
+      await taskDetail
+        .getByTestId("task-property-editor")
+        .getByRole("button", { name: dueName, exact: true })
+        .click();
+    }
+    await todayButton.click();
     const dueSaved = page.waitForResponse(
       (response) =>
         response.request().headers()["x-operation-name"] ===
@@ -2525,7 +2618,7 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
       ]);
     const inboxDetail = page.getByRole("dialog", { name: /Task details/ });
     await expect(
-      inboxDetail.getByRole("button", { name: titleName, exact: true }),
+      inboxDetail.getByRole("button", { name: "Title", exact: true }),
     ).toContainText("Meeting follow-up");
     await expect
       .poll(
@@ -2540,7 +2633,7 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
     // Open the newest native card after proving both status/due deliveries.
     await changedCards.nth(0).click();
     await expect(
-      inboxDetail.getByRole("button", { name: titleName, exact: true }),
+      inboxDetail.getByRole("button", { name: "Title", exact: true }),
     ).toContainText("Meeting follow-up");
     await expect
       .poll(
@@ -2565,7 +2658,7 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
       .getByRole("button", { name: childTitle, exact: true })
       .click();
     await expect(
-      inboxDetail.getByRole("button", { name: titleName, exact: true }),
+      inboxDetail.getByRole("button", { name: "Title", exact: true }),
     ).toContainText(childTitle);
     await expect(
       inboxDetail
@@ -2589,7 +2682,7 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
       .getByRole("button", { name: "Back", exact: true })
       .click();
     await expect(
-      inboxDetail.getByRole("button", { name: titleName, exact: true }),
+      inboxDetail.getByRole("button", { name: "Title", exact: true }),
     ).toContainText("Meeting follow-up");
     await expect(
       inboxDetail.getByTestId("database-task-relations"),
@@ -2611,19 +2704,25 @@ test("checkbox capture recovers one Task/reference through trash and integrates 
     ).toEqual(
       baseline.cells.filter((cell) => protectedFields.includes(cell.fieldId)),
     );
+    await expandTaskInformation(inboxDetail);
     await inboxDetail
-      .getByRole("button", { name: "Owned meeting source", exact: true })
+      .getByRole("button", {
+        name: "Source · Owned meeting source",
+        exact: true,
+      })
       .click();
-    await expect(page.locator("editor-host")).toBeVisible();
+    await expect(page.locator("[data-page-renderer]")).toBeVisible();
     expect((await referenceFor(page, taskId)).id).toBe(ref.id);
-    await referenceCardReady(page, ref.parent!, "Meeting follow-up");
+    await referenceCardReady(page, ref.id, "Meeting follow-up");
     await page
-      .getByRole("button", { name: "Meeting follow-up", exact: true })
+      .locator(`[data-block-id="${ref.id}"]`)
+      .getByRole("button", { name: "Open in Kanban", exact: true })
       .click();
+    const reopenedTaskDetail = page.getByTestId("context-surface-task-details");
     await expect(
-      inboxDetail.getByRole("button", { name: titleName, exact: true }),
+      reopenedTaskDetail.getByRole("button", { name: "Title", exact: true }),
     ).toContainText("Meeting follow-up");
-    await inboxDetail.getByTestId("database-row-action-menu").click();
+    await reopenedTaskDetail.getByTestId("database-row-action-menu").click();
     await page
       .getByRole("menuitem", { name: "Unfollow task", exact: true })
       .click();
@@ -2783,22 +2882,34 @@ test("Edgeless sticky capture inserts a separate ordinary Note and native Undo/R
       (await captureTree(page)).find((block) => block.id === source.id),
     ).toEqual(source);
     await waitForWorkspaceDocSync(page, docId);
-    await page
+    const referenceNoteEl = page
       .locator(`[data-block-id="${referenceNote.id}"]`)
-      .first()
-      .dblclick();
+      .first();
+    await referenceNoteEl.dblclick();
+    await referenceNoteEl
+      .getByRole("button", { name: "Open in Kanban", exact: true })
+      .click();
     await expect
       .poll(() => {
         const url = new URL(page.url());
-        return { pathname: url.pathname, rowId: url.searchParams.get("rowId") };
+        return {
+          pathname: url.pathname,
+          databaseId: url.searchParams.get("databaseId"),
+          rowId: url.searchParams.get("rowId"),
+        };
       })
       .toEqual({
-        pathname: `/workspace/${f.workspaceId}/databases/${f.project.database.id}`,
+        pathname: `/workspace/${f.workspaceId}/tasks`,
+        databaseId: f.project.database.id,
         rowId: receipt.rowId,
       });
-    const detail = page.getByRole("dialog", { name: /Task details/ });
+    const detail = page.getByTestId("context-surface-task-details");
+    await expandTaskInformation(detail);
     await detail
-      .getByRole("button", { name: "Owned sticky meeting", exact: true })
+      .getByRole("button", {
+        name: "Source · Owned sticky meeting",
+        exact: true,
+      })
       .click();
     await expect
       .poll(() => {
@@ -2842,7 +2953,7 @@ test("private source capture has a wider Task audience; readonly creation is den
     await injectSessionCookies(context, f.cookies);
     const docId = await captureDocument(page, f, "Private meeting source");
     const paragraph = page
-      .locator('myoxus-paragraph rich-text [contenteditable="true"]')
+      .locator("[data-page-body][contenteditable=true] [data-page-text]")
       .last();
     await paragraph.click();
     await page.keyboard.type("Private release instructions");
@@ -2927,9 +3038,10 @@ test("private source capture has a wider Task audience; readonly creation is den
     );
     const detail = page.getByRole("dialog", { name: /Task details/ });
     await expect(detail).toContainText("Shared release follow-up");
+    await expandTaskInformation(detail);
     await expect(
       detail.getByRole("button", {
-        name: "Private meeting source",
+        name: "Source · Private meeting source",
         exact: true,
       }),
     ).toHaveCount(0);
@@ -2963,21 +3075,17 @@ test("private source capture has a wider Task audience; readonly creation is den
       state: "Available",
     });
     await page.goto(`${FRONTEND}/workspace/${f.workspaceId}/${docId}`);
-    await expect(
-      page.locator(`[data-block-id="${source.id}"] rich-text`),
-    ).toContainText("Private release instructions");
+    await expect(page.locator(`[data-block-id="${source.id}"]`)).toContainText(
+      "Private release instructions",
+    );
     await expect(
       page.locator(`[data-block-id="${source.id}"] [contenteditable="true"]`),
     ).toHaveCount(0);
-    await expect(
-      page
-        .locator(`[data-block-id="${ref.id}"]`)
-        .getByRole("button", { name: "Shared release follow-up", exact: true }),
-    ).toBeVisible();
+    await referenceCardReady(page, ref.id, "Shared release follow-up");
     // Reader selection is a native browser range, with no capture toolbar.
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await page
-      .locator(`[data-block-id="${source.id}"] rich-text .inline-editor`)
+      .locator(`[data-block-id="${source.id}"]`)
       .first()
       .click({ clickCount: 3 });
     await expect
@@ -3046,12 +3154,12 @@ test("private source capture has a wider Task audience; readonly creation is den
       title: "Shared release follow-up",
     });
     await page.reload();
-    await expect(page.locator("doc-title")).toContainText(
+    await expect(page.locator("[data-page-title]")).toContainText(
       "Private meeting source",
     );
-    await expect(
-      page.locator(`[data-block-id="${source.id}"] rich-text`),
-    ).toContainText("Private release instructions");
+    await expect(page.locator(`[data-block-id="${source.id}"]`)).toContainText(
+      "Private release instructions",
+    );
     const retainedReference = (await captureTree(page)).find(
       (block) => block.id === ref.id,
     );
@@ -3062,7 +3170,7 @@ test("private source capture has a wider Task audience; readonly creation is den
     });
 
     const embed = page.locator(
-      `[data-block-id="${ref.id}"] myoxus-database-embed`,
+      `[data-block-id="${ref.id}"][data-server-database-reference]`,
     );
     await expect(embed).not.toContainText("Shared release follow-up");
     await expect(

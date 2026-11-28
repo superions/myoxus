@@ -491,9 +491,7 @@ test.describe("Workspace Home dashboard arrangement", () => {
     ).toBeVisible();
 
     await page.getByTestId("slider-bar-quick-search-button").click();
-    const commandInput = page.locator(
-      '[data-myoxus-ui-role="command-palette-input"]',
-    );
+    const commandInput = page.getByTestId("cmdk-quick-search").locator("input");
     await expect(commandInput).toBeFocused();
     await commandInput.fill("New page");
     await expect(
@@ -848,9 +846,9 @@ test.describe("Workspace Home dashboard arrangement", () => {
           .getByRole("button", { name: "New task", exact: true })
           .click();
         const modal = page.getByTestId("task-creation-modal");
-        await expect(modal.getByTestId("task-destination-select")).toHaveValue(
-          "Workspace Tasks",
-        );
+        await expect(
+          modal.getByRole("combobox", { name: "Project", exact: true }),
+        ).toHaveValue("No project");
         await modal
           .getByRole("button", { name: "Cancel", exact: true })
           .click();

@@ -1,21 +1,29 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useI18n } from "@myoxus/i18n";
-import { useServiceOptional } from "@myoxus/infra";
+import { useFramework, useServiceOptional } from "@myoxus/infra";
+import { notify } from "@myoxus/ui-facade";
 import {
   DefaultEditorI18nService,
   type EditorSelectionControls,
   type SelectionAction,
 } from "@virgultum/core/services";
-import type { Store } from "@virgultum/core/store";
+import type { BlockModel, Store } from "@virgultum/core/store";
 import { isMyoxusLabelTone } from "@virgultum/core/styles/text";
 import { isValidUrl } from "@virgultum/core/utils/url";
 import { useMemo, useState } from "react";
 
 import { DocCommentManagerService } from "../../../modules/comment/services/doc-comment-manager";
+import { createTaskReferenceInserter } from "../../../modules/database/tasks/task-reference-insertion";
+import { WorkspaceDialogService } from "../../../modules/dialogs";
 import { DocsService } from "../../../modules/doc";
+import { DocLinksService } from "../../../modules/doc-link";
+import { DocumentMetadataCacheService } from "../../../modules/document-metadata/services/document-metadata-cache";
+import { GuardService } from "../../../modules/permissions";
+import { WorkspaceServerService } from "../../../modules/server";
 import { TemplateDocService } from "../../../modules/template-doc";
 import { ViewService, WorkbenchService } from "../../../modules/workbench";
 import { AIProvider } from "../../ai/provider/ai-provider";
+import { TASK_CAPTURE_TEXT_LIMIT } from "../../view-extensions/editor-config/toolbar/task-capture-selection";
 import { EditorLinkEditor } from "../../view-extensions/editor-view/editor-chrome/link-editor";
 import { EditorSelectionToolbar } from "../../view-extensions/editor-view/editor-chrome/selection-toolbar";
 import { configureEditorI18n } from "../editor-i18n";
@@ -45,6 +53,7 @@ export function PageFormatting({
   initialLinkOpen?: boolean;
 }) {
   const t = useI18n();
+  const framework = useFramework();
   const docsService = useServiceOptional(DocsService);
   const workbench = useServiceOptional(WorkbenchService)?.workbench;
   const view = useServiceOptional(ViewService)?.view;
@@ -437,7 +446,223 @@ export function PageFormatting({
     });
   }
 
+  const captureSource = (() => {
+    const selection = controller.selectedTextSelection();
+    if (!selection || selection.isCollapsed()) return null;
+    const fromModel = page.getModelById(selection.from.blockId);
+    const toModel = selection.to
+      ? page.getModelById(selection.to.blockId)
+      : fromModel;
+    const endpoints = [fromModel, toModel].filter(
+      (model): model is BlockModel => Boolean(model),
+    );
+    if (
+      !endpoints.length ||
+      endpoints.some(
+        (model) => !["myoxus:paragraph", "myoxus:list"].includes(model.flavour),
+      )
+    )
+      return null;
+    const excerpt = controller.selectedText().trim();
+    if (!excerpt || excerpt.length > TASK_CAPTURE_TEXT_LIMIT) return null;
+    let note: BlockModel | null = fromModel ?? null;
+    const seen = new Set<string>();
+    while (note && note.flavour !== "myoxus:note") {
+      if (seen.has(note.id)) {
+        note = null;
+        break;
+      }
+      seen.add(note.id);
+      note = page.getParent(note);
+    }
+    return {
+      sourceExternalId: page.doc.id,
+      blockId: selection.from.blockId,
+      selectionAnchor: JSON.stringify({
+        ...selection.toJSON(),
+        captureMode: "page",
+        ...(note ? { noteId: note.id } : {}),
+      }),
+      excerpt,
+    };
+  })();
+
+  const openNativeTaskCapture = async (mode: "capture" | "insert") => {
+    if (!captureSource) return;
+    const servers = framework.getOptional(WorkspaceServerService);
+    const metadata = framework.getOptional(DocumentMetadataCacheService);
+    const guard = framework.getOptional(GuardService);
+    const dialogs = framework.getOptional(WorkspaceDialogService);
+    const backlinks = framework.getOptional(DocLinksService)?.backlinks;
+    const sourceServer = servers?.server;
+    const sourceAccount = sourceServer?.account$.value;
+    if (
+      !servers ||
+      !metadata ||
+      !guard ||
+      !dialogs ||
+      !sourceServer ||
+      !sourceAccount
+    )
+      return;
+    const activeEl = document.activeElement;
+    const returnFocusRef = {
+      current:
+        activeEl instanceof HTMLElement &&
+        !activeEl.closest("[data-range-sync-exclude]")
+          ? activeEl
+          : null,
+    };
+    const sourceWorkspaceId = page.workspace.id;
+    const openingOwnerIdentity = JSON.stringify([
+      sourceServer.id,
+      sourceServer.baseUrl,
+      sourceAccount.id,
+      sourceWorkspaceId,
+    ]);
+    const isCurrent = () => {
+      const currentServer = servers.server;
+      return Boolean(
+        page.root &&
+        page.doc.id === captureSource.sourceExternalId &&
+        currentServer &&
+        JSON.stringify([
+          currentServer.id,
+          currentServer.baseUrl,
+          currentServer.account$.value?.id,
+          page.workspace.id,
+        ]) === openingOwnerIdentity,
+      );
+    };
+    const loadedModel = metadata.getModel(captureSource.sourceExternalId);
+    let sourceDocumentId =
+      loadedModel?.metadata.docId ??
+      metadata.getIndexRowByExternalId(captureSource.sourceExternalId)?.docId;
+    try {
+      if (!isCurrent()) return;
+      if (loadedModel && loadedModel.metadata.workspaceId !== sourceWorkspaceId)
+        throw new Error("Source metadata scope changed");
+      if (!sourceDocumentId) {
+        const hydrated = await metadata.hydrateMetadataWhenAvailable(
+          captureSource.sourceExternalId,
+          new AbortController().signal,
+        );
+        if (
+          !isCurrent() ||
+          hydrated.workspaceId !== sourceWorkspaceId ||
+          !hydrated.docId
+        )
+          throw new Error("Source metadata unavailable");
+        sourceDocumentId = hydrated.docId;
+      }
+    } catch {
+      notify.error({ title: t["com.myoxus.database.embed.unavailable"]() });
+      return;
+    }
+    try {
+      if (!isCurrent()) return;
+      const [read, copy] = await Promise.all([
+        guard.can("Doc_Read", captureSource.sourceExternalId),
+        guard.can("Doc_Copy", captureSource.sourceExternalId),
+      ]);
+      const currentMetadata = metadata.getModel(
+        captureSource.sourceExternalId,
+      )?.metadata;
+      const currentIndexedId = metadata.getIndexRowByExternalId(
+        captureSource.sourceExternalId,
+      )?.docId;
+      if (
+        !read ||
+        !copy ||
+        !isCurrent() ||
+        (currentIndexedId && currentIndexedId !== sourceDocumentId) ||
+        (currentMetadata &&
+          (currentMetadata.workspaceId !== sourceWorkspaceId ||
+            currentMetadata.docId !== sourceDocumentId))
+      )
+        throw new Error("Source unavailable");
+      const insertReference = createTaskReferenceInserter(
+        framework,
+        { store: page, isAttached: () => Boolean(page.root) },
+        openingOwnerIdentity,
+      );
+      const closed = () => {
+        if (mode === "insert") insertReference.releaseConfirmed();
+        controller.restore();
+      };
+      if (mode === "insert") {
+        dialogs.open(
+          "task-reference-insert",
+          {
+            openingOwnerIdentity,
+            source: {
+              sourceDocumentId,
+              sourceExternalId: captureSource.sourceExternalId,
+              blockId: captureSource.blockId,
+              selectionAnchor: captureSource.selectionAnchor,
+            },
+            returnFocusRef,
+            onInsertReference: insertReference,
+          },
+          closed,
+        );
+        return;
+      }
+      let refreshed = false;
+      dialogs.open(
+        "task-capture",
+        {
+          ...captureSource,
+          sourceDocumentId,
+          openingOwnerIdentity,
+          onInsertReference: insertReference,
+          onCaptureReleased: (requestId) =>
+            insertReference.releaseConfirmed(requestId),
+          onConfirmed: () => {
+            if (!isCurrent() || refreshed) return;
+            const currentId =
+              metadata.getModel(captureSource.sourceExternalId)?.metadata
+                .docId ??
+              metadata.getIndexRowByExternalId(captureSource.sourceExternalId)
+                ?.docId;
+            if (currentId !== sourceDocumentId) return;
+            refreshed = true;
+            backlinks?.revalidateFromCloud();
+          },
+          returnFocusRef,
+        },
+        closed,
+      );
+    } catch {
+      notify.error({ title: t["com.myoxus.database.row_detail.forbidden"]() });
+    }
+  };
+
   const more: SelectionAction[] = [
+    ...(captureSource
+      ? [
+          {
+            id: "capture-as-task",
+            label: t["com.myoxus.database.tasks.capture"](),
+            icon: "CopyIcon" as const,
+            disabled: false,
+            run: () => {
+              dismiss();
+              void openNativeTaskCapture("capture");
+            },
+          },
+          {
+            id: "insert-existing-task",
+            label: t["com.myoxus.database.tasks.insert-existing"](),
+            icon: "CopyIcon" as const,
+            disabled: false,
+            run: () => {
+              dismiss();
+              void openNativeTaskCapture("insert");
+            },
+          },
+        ]
+      : []),
     {
       id: "a.copy",
       label: t["Copy"](),

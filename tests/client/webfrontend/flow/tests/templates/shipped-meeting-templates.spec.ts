@@ -18,9 +18,21 @@ const frontend =
   process.env.MYOXUS_FRONTEND_BASE_URL ?? "http://localhost:3010";
 
 const shippedTemplates = [
-  { slug: "meeting-agenda", title: "Agenda · Besprechungsprotokoll" },
-  { slug: "meeting-focus", title: "Fokus · Besprechungsprotokoll" },
-  { slug: "meeting-register", title: "Register · Besprechungsprotokoll" },
+  {
+    slug: "meeting-agenda",
+    title: "Agenda · Besprechungsprotokoll",
+    enTitle: "Agenda · Meeting minutes",
+  },
+  {
+    slug: "meeting-focus",
+    title: "Fokus · Besprechungsprotokoll",
+    enTitle: "Fokus · Meeting minutes",
+  },
+  {
+    slug: "meeting-register",
+    title: "Register · Besprechungsprotokoll",
+    enTitle: "Register · Meeting minutes",
+  },
 ] as const;
 
 type CatalogEntry = {
@@ -202,30 +214,40 @@ test.describe("Shipped meeting templates", () => {
     const focusRow = page.getByTestId(
       `template-catalog-row-registry:${focusEntry.id}`,
     );
-    await expect(focusRow).toContainText(focus.title);
+    const focusTitlePattern = new RegExp(`(?:${focus.title}|${focus.enTitle})`);
+    await expect(focusRow).toContainText(focusTitlePattern);
     await focusRow.getByRole("button", { name: "Use", exact: true }).click();
     await page.waitForURL(
       (url) => !url.pathname.endsWith(`/${workspaceId}/templates`),
     );
     const firstTargetId = new URL(page.url()).pathname.split("/").at(-1)!;
     expect(firstTargetId).not.toBe(sourceDocIds.get(focus.slug));
-    await expect(page.locator("doc-title .inline-editor").first()).toHaveText(
-      focus.title,
-    );
+    const appliedFocusTitle = (
+      await page.locator("[data-page-title]").first().innerText()
+    ).trim();
+    expect([focus.title, focus.enTitle]).toContain(appliedFocusTitle);
+    const isEnglishFocus = appliedFocusTitle === focus.enTitle;
+    const decisionLabel = isEnglishFocus ? "Decision" : "Entscheidung";
+    const placeholderText = isEnglishFocus
+      ? "[Outcome / Rationale]"
+      : "[Ergebnis / Begründung]";
+    const outcomesHeading = isEnglishFocus
+      ? "Items & Outcomes"
+      : "Punkte & Ergebnisse";
 
     const decisionCell = page
       .getByRole("row")
-      .filter({ has: page.getByText("Entscheidung", { exact: true }) })
+      .filter({ has: page.getByText(decisionLabel, { exact: true }) })
       .first()
       .getByRole("cell")
       .nth(2)
-      .locator("v-line");
-    await expect(decisionCell).toContainText("[Ergebnis / Begründung]");
-    const decision = `Entscheidung ${Date.now()}`;
+      .locator("[data-cell-editor]");
+    await expect(decisionCell).toContainText(placeholderText);
+    const decision = `${decisionLabel} ${Date.now()}`;
     await decisionCell.selectText();
     await page.keyboard.type(decision);
     await expect(decisionCell).toHaveText(decision);
-    await page.locator("doc-title .inline-editor").first().click();
+    await page.locator("[data-page-title]").first().click();
     await page.waitForTimeout(1_000);
     await page.reload();
     await expect(page.getByText(decision, { exact: true })).toBeVisible();
@@ -241,39 +263,58 @@ test.describe("Shipped meeting templates", () => {
     await expect(
       page
         .getByRole("row")
-        .filter({ has: page.getByText("Entscheidung", { exact: true }) })
+        .filter({ has: page.getByText(decisionLabel, { exact: true }) })
         .first()
         .getByRole("cell")
         .nth(2),
-    ).toContainText("[Ergebnis / Begründung]");
+    ).toContainText(placeholderText);
 
     await page.goto(`${frontend}/workspace/${workspaceId}/${firstTargetId}`);
     await expect(page.getByText(decision, { exact: true })).toBeVisible();
 
+    const findSuggestionById = async (templateId: string) => {
+      const item = page.getByTestId(`template-suggestion-item-${templateId}`);
+      const loadMore = page.getByTestId("template-suggestions-more");
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        if (await item.isVisible()) return item;
+        if (await loadMore.isVisible()) {
+          await loadMore.click();
+          await expect(loadMore)
+            .not.toHaveAttribute("aria-busy", "true", { timeout: 5_000 })
+            .catch(() => {});
+        } else {
+          await page.waitForTimeout(250);
+          if (await item.isVisible()) return item;
+          if (!(await loadMore.isVisible())) break;
+        }
+      }
+      return item;
+    };
+
     for (const expected of shippedTemplates.filter(
       (template) => template.slug !== focus.slug,
     )) {
+      const entry = catalog.get(expected.slug)!;
       await page.getByTestId("sidebar-new-page-button").click();
       await expect(page.getByTestId("template-docs-button")).toBeVisible();
       const targetUrl = page.url();
 
       await page.getByTestId("template-docs-button").click();
-      const source = page.getByRole("menuitem", {
-        name: expected.title,
-        exact: true,
-      });
+      const source = await findSuggestionById(entry.id);
       await expect(source).toBeVisible();
       await expect(source).toBeEnabled();
+      const expectedTitle = (await source.innerText()).trim();
+      expect([expected.title, expected.enTitle]).toContain(expectedTitle);
       await source.click();
 
-      await expect(
-        page.locator("doc-title .inline-editor").first(),
-      ).toContainText(expected.title);
+      await expect(page.locator("[data-page-title]").first()).toContainText(
+        expectedTitle,
+      );
       expect(page.url()).toBe(targetUrl);
       await page.reload();
-      await expect(
-        page.locator("doc-title .inline-editor").first(),
-      ).toContainText(expected.title);
+      await expect(page.locator("[data-page-title]").first()).toContainText(
+        expectedTitle,
+      );
     }
 
     await page.goto(`${frontend}/workspace/${workspaceId}/all`);
@@ -282,7 +323,7 @@ test.describe("Shipped meeting templates", () => {
     await page.getByTestId("workspace-setting:preference").click();
     await page.getByTestId("journal-template-selector").click();
     await page
-      .getByRole("menuitem", { name: focus.title, exact: true })
+      .getByRole("menuitem", { name: appliedFocusTitle, exact: true })
       .click();
     await page
       .getByRole("dialog", { name: "Workspace" })
@@ -300,12 +341,12 @@ test.describe("Shipped meeting templates", () => {
     );
     await expect(page.getByTestId("date")).toHaveText(journalTitle);
     await expect(
-      page.getByText("Punkte & Ergebnisse", { exact: true }),
+      page.getByText(outcomesHeading, { exact: true }),
     ).toBeVisible();
     await page.reload();
     await expect(page.getByTestId("date")).toHaveText(journalTitle);
     await expect(
-      page.getByText("Punkte & Ergebnisse", { exact: true }),
+      page.getByText(outcomesHeading, { exact: true }),
     ).toBeVisible();
 
     expect(consoleErrors).toEqual([]);

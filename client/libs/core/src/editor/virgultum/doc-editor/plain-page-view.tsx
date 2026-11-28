@@ -189,6 +189,7 @@ function TextField({
   linkMenu,
   comment,
   snapshotTitle,
+  onContextMenu,
 }: {
   line: PageLine;
   title?: string;
@@ -197,6 +198,7 @@ function TextField({
   composing: () => boolean;
   linkMenu?: (value: LinkAnchor, open?: number) => void;
   comment?: (id: string) => void;
+  onContextMenu?: (event: import("react").MouseEvent<HTMLSpanElement>) => void;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const previous = useRef<string>(undefined);
@@ -404,6 +406,7 @@ function TextField({
         data-placeholder={title}
         aria-label={title}
         contentEditable={title ? !readonly : undefined}
+        onContextMenu={onContextMenu}
         suppressContentEditableWarning
       />
       {objects.map(({ el, object, key }) =>
@@ -1595,6 +1598,36 @@ function PageView({
               title={t.Title()}
               readonly={readonly}
               composing={composing}
+              onContextMenu={(event) => {
+                if (readonly || page.readonly) return;
+                if (!templateList?.isTemplate$(page.id).value) return;
+                event.preventDefault();
+                const range = root.current ? readPageRange(root.current) : null;
+                const anchor =
+                  range &&
+                  range.anchor.id === title.model.id &&
+                  range.focus.id === title.model.id
+                    ? {
+                        blockId: title.model.id,
+                        from: Math.min(range.anchor.offset, range.focus.offset),
+                        to: Math.max(range.anchor.offset, range.focus.offset),
+                      }
+                    : {
+                        blockId: title.model.id,
+                        from: title.text.length,
+                        to: title.text.length,
+                      };
+                openTemplateVariablePicker({
+                  i18n: editorI18n,
+                  templateSource: true,
+                  canWrite: () => !props.current.readonly && !page.readonly,
+                  insert: (token) => {
+                    controller.current?.insertTemplateToken(token, anchor);
+                    repaint();
+                  },
+                  onClose: () => controller.current?.restore(),
+                });
+              }}
             />
           </DocumentTitleRow>
         )}

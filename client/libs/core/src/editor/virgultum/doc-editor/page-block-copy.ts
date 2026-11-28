@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { FrameworkProvider } from "@myoxus/infra";
 import {
+  docLinkBaseURLMiddleware,
+  documentReferenceMiddleware,
+  pasteMiddleware,
+  replaceIdMiddleware,
+  surfaceRefToEmbed,
+  uploadMiddleware,
+} from "@virgultum/core/adapters";
+import {
   bindDocumentCopy,
   clipboardConfigs,
 } from "@virgultum/editor/foundation/clipboard";
@@ -58,7 +66,7 @@ export async function copyPageBlocks(
   }
 }
 
-/** Paste a captured Virgultum clipboard payload directly into a Store without an EditorHost. */
+/** Paste a captured Virgultum, HTML or Markdown clipboard payload directly into a Store without an EditorHost. */
 export async function pastePageClipboard(
   captured: { types: readonly string[]; values: ReadonlyMap<string, string> },
   store: Store,
@@ -66,17 +74,40 @@ export async function pastePageClipboard(
   parentId: string,
   index: number,
   signal: AbortSignal,
-) {
+): Promise<boolean> {
   signal.throwIfAborted();
-  if (store.readonly) return;
+  if (store.readonly) return false;
   const std = new BlockStdScope({
     store,
     extensions: [...clipboardConfigs, patchDocEmbedService(framework)],
   });
+  const paste = pasteMiddleware(std);
+  const docLink = docLinkBaseURLMiddleware(store.workspace.id);
+  const documentReferences = documentReferenceMiddleware(
+    [],
+    new Map(),
+    undefined,
+    { currentDocumentId: store.id },
+  );
+  const surfaceRef = surfaceRefToEmbed(std);
+  const replaceId = replaceIdMiddleware(store.workspace.idGenerator);
+  const upload = uploadMiddleware(std);
+  std.clipboard.use(paste);
+  std.clipboard.use(docLink);
+  std.clipboard.use(documentReferences);
+  std.clipboard.use(surfaceRef);
+  std.clipboard.use(replaceId);
+  std.clipboard.use(upload);
   let closed = false;
   const close = () => {
     if (closed) return;
     closed = true;
+    std.clipboard.unuse(paste);
+    std.clipboard.unuse(docLink);
+    std.clipboard.unuse(documentReferences);
+    std.clipboard.unuse(surfaceRef);
+    std.clipboard.unuse(replaceId);
+    std.clipboard.unuse(upload);
     std.unmount();
   };
   signal.addEventListener("abort", close, { once: true });
@@ -90,8 +121,14 @@ export async function pastePageClipboard(
       },
     } as unknown as ClipboardEvent;
     store.captureSync();
-    await std.clipboard.paste(syntheticEvent, store, parentId, index);
+    const inserted = await std.clipboard.paste(
+      syntheticEvent,
+      store,
+      parentId,
+      index,
+    );
     store.captureSync();
+    return Boolean(inserted?.content.length);
   } finally {
     signal.removeEventListener("abort", close);
     close();

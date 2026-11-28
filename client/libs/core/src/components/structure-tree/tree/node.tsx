@@ -406,14 +406,14 @@ export const StructureTreeNode = ({
   const actionsSlot =
     inlineOperations.length > 0 || menuOperations.length > 0 ? (
       <StructureTreeActions onClick={(event) => event.preventDefault()}>
-        {inlineOperations.map(({ view, index }) => (
-          <Fragment key={index}>{view}</Fragment>
+        {inlineOperations.map(({ view, index }, position) => (
+          <Fragment key={`${index}-${position}`}>{view}</Fragment>
         ))}
         {menuOperations.length > 0 ? (
           <Menu
             rootOptions={{ open: menuOpen, onOpenChange: setMenuOpen }}
-            items={menuOperations.map(({ view, index }) => (
-              <Fragment key={index}>{view}</Fragment>
+            items={menuOperations.map(({ view, index }, position) => (
+              <Fragment key={`${index}-${position}`}>{view}</Fragment>
             ))}
           >
             <StructureTreeActionButton data-testid="structure-tree-node-operation-button">
@@ -483,8 +483,8 @@ export const StructureTreeNode = ({
     >
       <ContextMenu
         asChild
-        items={menuOperations.map(({ view, index }) => (
-          <Fragment key={index}>{view}</Fragment>
+        items={menuOperations.map(({ view, index }, position) => (
+          <Fragment key={`${index}-${position}`}>{view}</Fragment>
         ))}
       >
         <StructureTreeContent

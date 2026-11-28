@@ -82,10 +82,10 @@ test("Page cards consume fresh private SVGs without preview writes", async ({
   await waitForWorkspaceReady(page, { allDocs: true });
   await page.getByTestId("sidebar-new-page-button").click();
   const title = `Preview journey ${Date.now()}`;
-  await page.locator("doc-title .inline-editor").first().fill(title);
+  await page.locator("[data-page-title]").first().fill(title);
   docId = new URL(page.url()).pathname.split("/").at(-1)!;
   const body = page
-    .locator("myoxus-paragraph .inline-editor[contenteditable=true]")
+    .locator("[data-page-body][contenteditable=true] [data-page-text]")
     .first();
   await body.click();
   await page.keyboard.insertText(
@@ -178,7 +178,7 @@ test("Page cards consume fresh private SVGs without preview writes", async ({
   expect(scroll.available).toBeGreaterThan(scroll.delta);
   network.clear();
   const mountedSrc = await card
-    .locator("img[data-myoxus-ui-role=media-preview-image]")
+    .locator('[data-page-preview="ready"] img')
     .getAttribute("src");
   await scrollOwner.evaluate(
     (parent, delta) => parent.scrollBy(0, delta),
@@ -198,9 +198,7 @@ test("Page cards consume fresh private SVGs without preview writes", async ({
   );
   await expect(card).toBeInViewport();
   expect(
-    await card
-      .locator("img[data-myoxus-ui-role=media-preview-image]")
-      .getAttribute("src"),
+    await card.locator('[data-page-preview="ready"] img').getAttribute("src"),
   ).toBe(mountedSrc);
   expect(
     network.size,
